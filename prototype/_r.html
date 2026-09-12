@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>酒话三国 · 战场原型</title>
+<link rel="stylesheet" href="card-render.css">
+<style>
+  :root {
+    --canvas-w: 736px;
+    --canvas-h: 414px;
+    --pad: 2px;
+    --card-w: 56px;        /* 所有卡牌统一尺寸 */
+    --card-h: 78px;
+    --hand-h: 78px;
+    --col-gap: 6px;
+    --row-gap: 2px;
+    --board-w: calc(5 * var(--card-w) + 4 * var(--col-gap));
+    --ink: #e9e2d5;
+    --dim: #a99e8c;
+    --gold: #d4af6a;
+    --line: #4a4034;
+    --target: #6fbf73;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050403; }
+  body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== 舞台 ===== */
+  #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #canvas {
+    position: relative;
+    width: var(--canvas-w);
+    height: var(--canvas-h);
+    transform-origin: center center;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #3a3229, 0 14px 44px rgba(0,0,0,.85);
+    display: flex;
+    flex-direction: column;
+    padding: var(--pad);
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  /* ============================================================
+     三国古战场背景（纯 CSS 占位，正式版替换为绘制插画）
+     替换方式：给 #bg-scene 加 has-image 类 + 设置 --bg-image
+     ============================================================ */
+  #bg-scene { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+  #bg-scene.has-image { background-image: var(--bg-image); background-size: cover; background-position: 50% 50%; }
+  #bg-scene.has-image > * { display: none; }
+
+  /* 天空：地平线附近有一道明亮暖光，是全图最亮处 */
+  #bg-scene .sky {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+      #120e20 0%, #211520 18%, #382016 34%, #552e18 46%,
+      #7a4622 51%, #5e381c 56%, #331d12 64%, #150e0b 76%, #0a0706 100%);
+  }
+  /* 落日：放在左侧，光晕从卡牌缝隙透出来 */
+  #bg-scene .sun {
+    position: absolute; left: 9%; top: 53%;
+    width: 230px; height: 230px; transform: translate(-50%, -50%);
+    background: radial-gradient(circle,
+      rgba(255,244,208,.8) 0%, rgba(255,198,120,.4) 18%,
+      rgba(230,140,60,.16) 40%, transparent 66%);
+  }
+  #bg-scene .cloud {
+    position: absolute; height: 20px; border-radius: 50%;
+    background: linear-gradient(90deg, transparent, rgba(255,196,140,.3), transparent);
+    filter: blur(4px);
+  }
+  #bg-scene .cloud.c1 { left: 4%;  top: 26%; width: 34%; }
+  #bg-scene .cloud.c2 { left: 48%; top: 19%; width: 40%; opacity: .8; }
+  #bg-scene .cloud.c3 { left: 20%; top: 36%; width: 26%; opacity: .55; }
+
+  /* 远山：带轮廓光 */
+  #bg-scene .mount { position: absolute; left: 0; right: 0; bottom: 0; }
+  #bg-scene .mount.far {
+    height: 58%;
+    background: linear-gradient(180deg, rgba(126,88,64,.6), rgba(58,38,28,.88));
+    clip-path: polygon(0% 100%, 0% 76%, 6% 60%, 12% 70%, 20% 46%, 27% 64%, 35% 40%,
+      43% 62%, 51% 44%, 60% 66%, 68% 50%, 77% 68%, 85% 54%, 93% 72%, 100% 62%, 100% 100%);
+  }
+  #bg-scene .mount.mid {
+    height: 42%;
+    background: linear-gradient(180deg, rgba(64,42,30,.88), rgba(22,15,11,.97));
+    clip-path: polygon(0% 100%, 0% 80%, 8% 62%, 17% 76%, 28% 54%, 38% 72%, 49% 50%,
+      60% 74%, 71% 56%, 81% 74%, 91% 60%, 100% 72%, 100% 100%);
+  }
+
+  /* 城墙 + 烽火台 + 战旗 */
+  #bg-scene .wall {
+    position: absolute; left: 0; right: 0; bottom: 9%; height: 12%;
+    background: linear-gradient(180deg, #33241a, #150f0a);
+    box-shadow: 0 -1px 0 rgba(255,190,120,.18);
+  }
+  #bg-scene .crenels {
+    position: absolute; left: 0; right: 0; bottom: 21%; height: 3%;
+    background: repeating-linear-gradient(90deg, #33241a 0 10px, transparent 10px 20px);
+  }
+  #bg-scene .tower {
+    position: absolute; bottom: 21%; width: 30px; height: 40px;
+    background: linear-gradient(180deg, #3a2a1e, #160f0a);
+    box-shadow: 0 0 14px rgba(0,0,0,.7);
+  }
+  #bg-scene .tower.t1 { left: 11%; }
+  #bg-scene .tower.t2 { right: 13%; height: 32px; }
+  #bg-scene .tower::after {
+    content: ""; position: absolute; left: -5px; right: -5px; top: -6px; height: 6px;
+    background: repeating-linear-gradient(90deg, #3a2a1e 0 7px, transparent 7px 14px);
+  }
+  #bg-scene .banner {
+    position: absolute; width: 11px; height: 28px;
+    background: linear-gradient(180deg, #a83a24, #6b2114);
+    box-shadow: inset -2px 0 0 rgba(0,0,0,.4), 0 0 8px rgba(0,0,0,.6);
+  }
+  #bg-scene .banner::after {
+    content: ""; position: absolute; left: -1px; top: -6px; width: 13px; height: 6px;
+    background: #a83a24; clip-path: polygon(0 100%, 0 0, 50% 62%, 100% 0, 100% 100%);
+  }
+  #bg-scene .banner.b1 { left: 12%; bottom: 33%; }
+  #bg-scene .banner.b2 { right: 14%; bottom: 31%; }
+
+  /* 雾气：只压底部一点，不要盖住天空 */
+  #bg-scene .fog {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+    background: linear-gradient(0deg, rgba(14,10,7,.72) 0%, rgba(24,16,11,.28) 46%, transparent 100%);
+  }
+  /* 桌面：让卡牌区比天空暗，卡牌才能"跳"出来 */
+  #bg-scene .table {
+    position: absolute; left: 50%; top: 52%; transform: translate(-50%,-50%);
+    width: 620px; height: 360px;
+    background: radial-gradient(ellipse at 50% 50%,
+      rgba(6,5,4,.82) 0%, rgba(9,7,5,.6) 56%, transparent 84%);
+    border-radius: 50%;
+  }
+  /* 暗角：轻一点，别把画面压死 */
+  #bg-scene .vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 92% 76% at 50% 48%, transparent 52%, rgba(0,0,0,.55) 100%);
+  }
+
+  /* ============================================================
+     战场布局
+     ============================================================ */
+  .arena {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    position: relative;
+    z-index: 2;
+    min-height: 0;
+  }
+
+  /* ---------- 主公侧栏 ---------- */
+  .lords {
+    flex: 0 0 auto; display: flex; flex-direction: column; gap: 12px;
+    padding: 8px 10px 8px 18px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(12,9,7,.88), rgba(9,7,5,.72));
+    box-shadow: inset 0 0 0 1px rgba(120,100,72,.22);
+  }
+  .lord-slot { width: var(--card-w); height: var(--card-h); position: relative; }
+  .lord-slot .tag {
+    position: absolute; left: -14px; top: 50%; transform: translateY(-50%) rotate(-90deg);
+    font-size: 9px; letter-spacing: .2em; color: #8a8070; white-space: nowrap;
+  }
+
+  /* ---------- 战场 ---------- */
+  .boards { flex: 0 0 auto; width: var(--board-w); display: flex; flex-direction: column; gap: var(--row-gap); }
+  .row { display: flex; gap: var(--col-gap); height: var(--card-h); justify-content: center; }
+  .slot {
+    width: var(--card-w); height: var(--card-h);
+    position: relative; flex: 0 0 auto;
+    border-radius: 5px;
+  }
+  .slot.empty {
+    border: 1px dashed rgba(120,108,88,.42);
+    background: linear-gradient(180deg, rgba(255,255,255,.015), rgba(0,0,0,.22));
+  }
+  .slot .coord {
+    position: absolute; left: 3px; top: 1px;
+    font-size: 8px; color: #6b6154; pointer-events: none; z-index: 3; display: none;
+  }
+  body.coords-on .slot .coord { display: block; }
+  .slot.is-placeable {
+    border: 1px solid #5c8f5f;
+    background: linear-gradient(180deg, rgba(111,191,115,.18), rgba(0,0,0,.28));
+    cursor: pointer;
+    animation: placeablePulse 1.4s ease-in-out infinite;
+  }
+  @keyframes placeablePulse {
+    0%,100% { box-shadow: inset 0 0 0 0 rgba(111,191,115,0); }
+    50%     { box-shadow: inset 0 0 14px 0 rgba(111,191,115,.42); }
+  }
+  .slot.is-placeable::after {
+    content: "部署";
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #6fbf73; font-size: 11px; letter-spacing: .1em;
+    pointer-events: none;
+  }
+  .unit-wrap { position: absolute; inset: 0; }
+  .unit-wrap.is-selected .cr-card {
+    box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--gold-hi), 0 0 18px rgba(212,175,106,.85);
+  }
+  .unit-wrap.is-target .cr-card {
+    box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--target), 0 0 18px rgba(111,191,115,.9);
+  }
+
+  .mid {
+    height: 4px;
+    background: linear-gradient(90deg, transparent, rgba(212,175,106,.55) 12%, rgba(212,175,106,.55) 88%, transparent);
+  }
+
+  /* ---------- 右侧信息栏 ---------- */
+  .panel {
+    flex: 0 0 auto; width: 104px;
+    display: flex; flex-direction: column; gap: 7px;
+    font-size: 11px; color: var(--dim);
+  }
+  .panel .box {
+    background: rgba(16,12,9,.78);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .panel .label { font-size: 9px; letter-spacing: .18em; color: #8a8070; }
+  .panel .big-num { font-size: 20px; font-weight: 800; color: var(--gold); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .panel .big-num small { font-size: 11px; color: var(--dim); font-weight: 600; }
+  .panel .pips { display: flex; gap: 2px; margin-top: 4px; }
+  .panel .pip { flex: 1 1 0; height: 6px; border-radius: 2px; background: #2a231c; box-shadow: inset 0 0 0 1px #3a3229; }
+  .panel .pip.on { background: linear-gradient(180deg, #ffe9b0, var(--gold)); box-shadow: 0 0 6px rgba(212,175,106,.55); }
+  .panel .row2 { display: flex; justify-content: space-between; }
+  .panel .row2 b { color: var(--ink); font-weight: 700; }
+  .panel .btn {
+    display: block; width: 100%;
+    background: linear-gradient(180deg, #3a2f22, #241d15);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-hi);
+    border-radius: 5px;
+    padding: 6px 0;
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    cursor: pointer; text-align: center;
+  }
+  .panel .btn:hover { border-color: var(--gold); color: #fff; }
+
+  /* ---------- 手牌 ---------- */
+  .hand {
+    height: var(--hand-h);
+    flex: 0 0 auto;
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: 8px;
+    position: relative; z-index: 3;
+  }
+  /* 手牌托盘：与战场做视觉分离 */
+  .hand::before {
+    content: "";
+    position: absolute; left: -6px; right: -6px; bottom: -4px; top: 2px;
+    background: linear-gradient(180deg, rgba(10,7,5,0) 0%, rgba(10,7,5,.55) 40%, rgba(8,6,4,.8) 100%);
+    border-radius: 8px 8px 0 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .hcard-wrap {
+    width: var(--card-w); height: var(--card-h);
+    cursor: pointer;
+    transition: transform .18s ease-out;
+    filter: drop-shadow(0 4px 7px rgba(0,0,0,.8));
+  }
+  .hcard-wrap:hover { transform: translateY(-10px) scale(1.06); z-index: 30; }
+  .hcard-wrap.is-selected { transform: translateY(-12px) scale(1.08); z-index: 31; }
+  .hcard-wrap.is-played { opacity: 0; transition: opacity .2s; }
+
+  /* ===== HUD ===== */
+  #hud {
+    position: fixed; left: 10px; top: 10px; z-index: 300;
+    width: 200px;
+    background: rgba(14,12,10,.95);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px; line-height: 1.6;
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+  }
+  #hud h3 { margin: 0 0 6px; font-size: 13px; color: var(--gold); }
+  #hud .tiny { font-size: 11px; color: var(--dim); }
+  #hud hr { border: none; border-top: 1px solid var(--line); margin: 8px 0; }
+  #hud .row2 { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+  #hud label { flex: 1; color: var(--dim); }
+  #hud input[type=range] { width: 80px; }
+  #hud .val { width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+  #hud button {
+    background: #2a231c; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 5px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+  }
+  #hud button:hover { border-color: var(--gold); color: var(--gold); }
+  #hud .toggle { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  #hud .warn { color: #ff8f7a; }
+  #hud .ok { color: #7fd18a; }
+
+  #detail {
+    position: fixed; right: 10px; bottom: 10px; z-index: 300;
+    width: 258px;
+    background: rgba(14,12,10,.95);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px; line-height: 1.6;
+    display: none;
+  }
+  #detail.show { display: block; }
+  #detail h4 { margin: 0 0 4px; color: var(--gold); font-size: 13px; }
+  #detail .why { color: #9fd0a4; }
+  #detail .sub { color: var(--dim); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="canvas">
+
+    <!-- 三国古战场背景（纯 CSS 占位） -->
+    <div id="bg-scene">
+      <div class="sky"></div>
+      <div class="sun"></div>
+      <div class="cloud c1"></div>
+      <div class="cloud c2"></div>
+      <div class="cloud c3"></div>
+      <div class="mount far"></div>
+      <div class="mount mid"></div>
+      <div class="wall"></div>
+      <div class="crenels"></div>
+      <div class="tower t1"></div>
+      <div class="tower t2"></div>
+      <div class="banner b1"></div>
+      <div class="banner b2"></div>
+      <div class="fog"></div>
+      <div class="table"></div>
+      <div class="vignette"></div>
+    </div>
+
+    <div class="arena">
+      <!-- 主公（侧栏） -->
+      <div class="lords">
+        <div class="lord-slot" data-side="enemy"><span class="tag">敌 主 公</span></div>
+        <div class="lord-slot" data-side="own"><span class="tag">我 主 公</span></div>
+      </div>
+
+      <!-- 战场 -->
+      <div class="boards" id="boards">
+        <div class="row" data-side="enemy" data-row="back"></div>
+        <div class="row" data-side="enemy" data-row="front"></div>
+        <div class="mid"></div>
+        <div class="row" data-side="own" data-row="front"></div>
+        <div class="row" data-side="own" data-row="back"></div>
+      </div>
+
+      <!-- 右侧信息 -->
+      <div class="panel">
+        <div class="box">
+          <div class="label">统 率 值</div>
+          <div class="big-num" id="cmd-num">3<small> / 4</small></div>
+          <div class="pips" id="cmd-pips"></div>
+        </div>
+        <div class="box">
+          <div class="row2"><span class="label">回 合</span><b id="turn-num">4</b></div>
+          <div class="row2" style="margin-top:4px"><span class="label">牌 库</span><b id="deck-num">25</b></div>
+          <div class="row2" style="margin-top:4px"><span class="label">手 牌</span><b id="hand-num">5</b></div>
+        </div>
+        <div class="btn">结束回合</div>
+      </div>
+    </div>
+
+    <div class="hand" id="hand"></div>
+  </div>
+</div>
+
+<div id="hud">
+  <h3>酒话三国 · 战场原型</h3>
+  <div class="tiny">统一卡牌 56×78 · 三国古战场背景</div>
+  <hr>
+  <div class="tiny">点手牌 → 点绿格出牌（飞行动画）</div>
+  <div class="tiny">点我方单位 → 点高亮目标攻击</div>
+  <div class="tiny">破阵后点敌方主公卡可斩将</div>
+  <hr>
+  <div class="row2"><label>卡宽</label>
+    <input id="s-cardw" type="range" min="44" max="70" value="56"><span class="val" id="v-cardw">56</span></div>
+  <div class="row2"><label>卡高</label>
+    <input id="s-cardh" type="range" min="60" max="96" value="78"><span class="val" id="v-cardh">78</span></div>
+  <hr>
+  <div class="tiny" id="fit-report"></div>
+  <div class="tiny" id="size-report"></div>
+  <div class="toggle">
+    <button id="btn-bg">切换背景</button>
+    <button id="btn-coords">坐标</button>
+    <button id="btn-reset">重置</button>
+  </div>
+</div>
+
+<div id="detail"></div>
+
+<script src="rules.js"></script>
+<script src="card-render.js"></script>
+<script>
+/* ============================================================
+   战场原型（统一 56×78 卡牌 + 古战场背景）
+   规则逻辑来自 rules.js（已被 rules-check.mjs 断言覆盖）
+   ============================================================ */
+var R = window.Rules;
+var CR = window.CardRender;
+var DESIGN_W = 736, DESIGN_H = 414;
+
+var sel = null;
+var busy = false;
+
+var $ = function (s) { return document.querySelector(s); };
+var $all = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+/* ---------- 有效攻击力（含「结阵」） ---------- */
+function effectiveAttack(side, row, col) {
+  var st = R.getState();
+  var u = st[side].rows[row][col];
+  if (!u) return 0;
+  var atk = u.atk || 0;
+  if ((u.kw || []).indexOf('jie_zhen') >= 0) {
+    var cols = [col - 1, col, col + 1];
+    var hasAlly = R.ROWS.some(function (r) {
+      return cols.some(function (c) {
+        var x = st[side].rows[r][c];
+        return x && x !== u && x.troopKind === 'infantry';
+      });
+    });
+    if (hasAlly) atk += 1;
+  }
+  return atk;
+}
+
+/* ---------- 渲染 ---------- */
+function renderLords() {
+  var st = R.getState();
+  ['enemy', 'own'].forEach(function (side) {
+    var slot = document.querySelector('.lord-slot[data-side="' + side + '"]');
+    var tag = slot.querySelector('.tag');
+    slot.innerHTML = '';
+    slot.appendChild(tag);
+    var card = CR.lord(st[side].lord);
+    card.addEventListener('click', function (e) {
+      e.stopPropagation();
+      onLordClick(side, card);
+    });
+    slot.appendChild(card);
+  });
+}
+
+function renderPanel() {
+  var st = R.getState();
+  $('#cmd-num').innerHTML = st.command.cur + '<small> / ' + st.command.max + '</small>';
+  $('#turn-num').textContent = st.turn;
+  $('#hand-num').textContent = st.hand.length;
+  $('#deck-num').textContent = Math.max(0, 30 - st.turn - st.hand.length);
+  var pips = '';
+  for (var i = 0; i < 10; i++) pips += '<div class="pip' + (i < st.command.max ? ' on' : '') + '"></div>';
+  $('#cmd-pips').innerHTML = pips;
+}
+
+function renderBoard() {
+  var st = R.getState();
+  R.ROWS.forEach(function (row) {
+    ['enemy', 'own'].forEach(function (side) {
+      var rowEl = document.querySelector('.row[data-side="' + side + '"][data-row="' + row + '"]');
+      rowEl.innerHTML = '';
+      R.COLS.forEach(function (col) {
+        var slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.dataset.side = side; slot.dataset.row = row; slot.dataset.col = col;
+        slot.innerHTML = '<span class="coord">' + (col + 1) + (row === 'front' ? 'F' : 'B') + '</span>';
+
+        var u = st[side].rows[row][col];
+        if (u) {
+          var wrap = document.createElement('div');
+          wrap.className = 'unit-wrap';
+          wrap.appendChild(CR.mini(u, { row: row }));
+          wrap.addEventListener('click', function (e) {
+            e.stopPropagation();
+            onUnitClick(side, row, col);
+          });
+          slot.appendChild(wrap);
+        } else {
+          slot.classList.add('empty');
+          slot.addEventListener('click', function (e) {
+            e.stopPropagation();
+            onSlotClick(side, row, col, slot);
+          });
+        }
+        rowEl.appendChild(slot);
+      });
+    });
+  });
+}
+
+function renderHand() {
+  var st = R.getState();
+  var hand = $('#hand');
+  hand.innerHTML = '';
+  st.hand.forEach(function (c) {
+    var wrap = document.createElement('div');
+    wrap.className = 'hcard-wrap';
+    wrap.dataset.uid = c.uid;
+    wrap.appendChild(CR.big(c));
+    wrap.addEventListener('click', function (e) {
+      e.stopPropagation();
+      onHandClick(c, wrap);
+    });
+    hand.appendChild(wrap);
+  });
+}
+
+function renderAll() {
+  renderLords();
+  renderPanel();
+  renderBoard();
+  renderHand();
+  reportSizes();
+}
+
+/* ---------- 交互 ---------- */
+function clearMarks() {
+  $all('.unit-wrap.is-selected, .unit-wrap.is-target, .slot.is-placeable, .cr-lord.is-target')
+    .forEach(function (el) {
+      el.classList.remove('is-selected', 'is-target', 'is-placeable');
+    });
+  $('#detail').classList.remove('show');
+}
+
+function showDetail(title, sub, why) {
+  var d = $('#detail');
+  d.innerHTML = '<h4>' + title + '</h4>' +
+    (sub ? '<div class="sub">' + sub + '</div>' : '') +
+    (why ? '<div class="why">' + why + '</div>' : '');
+  d.classList.add('show');
+}
+
+function onHandClick(card, wrap) {
+  if (busy) return;
+  clearMarks();
+  sel = { kind: 'hand', card: card, wrap: wrap };
+  wrap.classList.add('is-selected');
+
+  if (!CR.isCharacter(card)) {
+    showDetail('非人物卡', card.name + '（' + card.cost + ' 费）', card.memo || '');
+    return;
+  }
+  var spots = R.legalPlacements('own');
+  spots.forEach(function (s) {
+    var el = document.querySelector(
+      '.slot[data-side="own"][data-row="' + s.row + '"][data-col="' + s.col + '"]');
+    if (el) el.classList.add('is-placeable');
+  });
+  showDetail('可部署', card.name + '（' + card.cost + ' 费）', '己方共有 ' + spots.length + ' 个空格');
+}
+
+function onSlotClick(side, row, col, slotEl) {
+  if (busy || side !== 'own') return;
+  if (!sel || sel.kind !== 'hand') return;
+  if (!slotEl.classList.contains('is-placeable')) return;
+
+  busy = true;
+  var card = sel.card, handWrap = sel.wrap;
+  clearMarks();
+  handWrap.classList.add('is-played');
+
+  CR.flyTo(handWrap, slotEl, function () {
+    var st = R.getState();
+    st.hand = st.hand.filter(function (x) { return x.uid !== card.uid; });
+    var placed = Object.assign({}, card);
+    delete placed.uid;
+    R.deploy('own', row, col, placed);
+    sel = null; busy = false;
+    renderAll();
+    showDetail('已部署',
+      placed.name + ' → 列' + (col + 1) + '·' + (row === 'front' ? '前军' : '后军'),
+      placed.memo || '');
+  });
+}
+
+function onLordClick(side, cardEl) {
+  if (busy) return;
+  var st = R.getState();
+
+  // 已选中我方单位 + 该主将是合法目标 → 攻击主将
+  if (sel && sel.kind === 'unit' && side === 'enemy' && cardEl.classList.contains('is-target')) {
+    doAttackLord(sel, cardEl);
+    return;
+  }
+  clearMarks();
+  var l = st[side].lord;
+  showDetail(side === 'enemy' ? '敌方主公' : '我方主公',
+    l.name + '　♥ ' + l.hp + (l.armor ? '　◈ ' + l.armor : ''),
+    '主公技：' + l.skill + '（1 统率 / 每回合 1 次）');
+}
+
+function onUnitClick(side, row, col) {
+  if (busy) return;
+
+  if (sel && sel.kind === 'unit') {
+    var isUnitTarget = $all('.unit-wrap.is-target').some(function (el) {
+      var s = el.parentElement.dataset;
+      return s.side === side && s.row === row && s.col === col;
+    });
+    if (isUnitTarget) {
+      doAttack(sel, { side: side, row: row, col: col });
+      return;
+    }
+  }
+
+  clearMarks();
+  var st = R.getState();
+
+  if (side === 'enemy') {
+    var u0 = st.enemy.rows[row][col];
+    if (u0) {
+      showDetail('敌方单位',
+        u0.name + '（列' + (col + 1) + '·' + (row === 'front' ? '前军' : '后军') + '）',
+        u0.memo || '');
+    }
+    return;
+  }
+
+  sel = { kind: 'unit', side: side, row: row, col: col };
+  var wrap = document.querySelector('.slot[data-side="' + side + '"][data-row="' + row +
+    '"][data-col="' + col + '"] .unit-wrap');
+  if (wrap) wrap.classList.add('is-selected');
+
+  var res = R.legalTargets(side, row, col);
+  var u = st[side].rows[row][col];
+
+  res.targets.forEach(function (t) {
+    if (t.kind === 'lord') {
+      var lordEl = document.querySelector('.lord-slot[data-side="' + t.side + '"] .cr-card');
+      if (lordEl) lordEl.classList.add('is-target');
+      return;
+    }
+    var el = document.querySelector('.slot[data-side="' + t.side + '"][data-row="' + t.row +
+      '"][data-col="' + t.col + '"] .unit-wrap');
+    if (el) el.classList.add('is-target');
+  });
+
+  if (!res.targets.length) {
+    showDetail('无法攻击', u.name, res.why);
+  } else {
+    var n = res.targets.filter(function (t) { return t.kind === 'unit'; }).length;
+    var lord = res.targets.some(function (t) { return t.kind === 'lord'; });
+    showDetail('合法目标', u.name + '（攻击力 ' + effectiveAttack(side, row, col) + '）',
+      res.why + (n ? '｜可攻击 ' + n + ' 个单位' : '') + (lord ? '｜可攻击主将' : ''));
+  }
+}
+
+/* ---------- 攻击结算 ---------- */
+function doAttackLord(from, lordEl) {
+  busy = true;
+  var st = R.getState();
+  var attacker = st.own.rows[from.row][from.col];
+  var atkEl = document.querySelector('.slot[data-side="own"][data-row="' + from.row +
+    '"][data-col="' + from.col + '"] .unit-wrap');
+  var dmg = effectiveAttack('own', from.row, from.col);
+
+  CR.attack(atkEl, lordEl, dmg);
+  setTimeout(function () {
+    var armor = st.enemy.lord.armor || 0;
+    if (armor > 0) {
+      var absorbed = Math.min(armor, dmg);
+      st.enemy.lord.armor = armor - absorbed;
+      dmg -= absorbed;
+    }
+    st.enemy.lord.hp -= dmg;
+    busy = false;
+    clearMarks();
+    renderAll();
+    showDetail('破阵斩将', '对敌方主公造成 ' + dmg + ' 点伤害',
+      '敌方主公剩余 ' + st.enemy.lord.hp + ' 点生命');
+  }, 520);
+}
+
+function doAttack(from, to) {
+  busy = true;
+  var st = R.getState();
+  var attacker = st.own.rows[from.row][from.col];
+  if (!attacker) { busy = false; return; }
+
+  var atkEl = document.querySelector('.slot[data-side="own"][data-row="' + from.row +
+    '"][data-col="' + from.col + '"] .unit-wrap');
+  var dmg = effectiveAttack('own', from.row, from.col);
+  var target = st.enemy.rows[to.row][to.col];
+  var tgtEl = document.querySelector('.slot[data-side="enemy"][data-row="' + to.row +
+    '"][data-col="' + to.col + '"] .unit-wrap');
+
+  CR.attack(atkEl, tgtEl, dmg);
+
+  setTimeout(function () {
+    target.hp -= dmg;
+    var log = attacker.name + ' → ' + target.name + '：' + dmg + ' 点伤害';
+
+    var hasWuShuang = (attacker.kw || []).indexOf('wu_shuang') >= 0;
+    var hasXianGong = (attacker.kw || []).indexOf('xian_gong') >= 0;
+    var retaliation = (!hasWuShuang && !(hasXianGong && target.hp <= 0)) ? (target.atk || 0) : 0;
+    if (retaliation) { attacker.hp -= retaliation; log += '｜反击 ' + retaliation + ' 点'; }
+
+    function cleanup() {
+      if (target.hp <= 0) st.enemy.rows[to.row][to.col] = null;
+      if (attacker.hp <= 0) st.own.rows[from.row][from.col] = null;
+      busy = false;
+      clearMarks();
+      renderAll();
+      showDetail('战斗结算', log,
+        '我方 ' + attacker.name + ' 剩余 ' + Math.max(0, attacker.hp) +
+        '｜敌方 ' + target.name + ' 剩余 ' + Math.max(0, target.hp));
+    }
+
+    if (target.hp <= 0 && tgtEl) CR.die(tgtEl, cleanup);
+    else if (attacker.hp <= 0 && atkEl) CR.die(atkEl, cleanup);
+    else setTimeout(cleanup, 120);
+  }, 480);
+}
+
+/* ---------- 适配 ---------- */
+var NOSCALE = location.search.indexOf('noscale') >= 0;   // ?noscale=1 时按 1:1 渲染，便于像素级测量
+function fitStage() {
+  var canvas = $('#canvas');
+  if (NOSCALE) {
+    canvas.style.transform = 'none';
+    canvas.style.left = '0px';
+    canvas.style.top = '0px';
+    window.__scale = 1;
+    return 1;
+  }
+  var s = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+  canvas.style.transform = 'scale(' + s + ')';
+  window.__scale = s;
+  return s;
+}
+
+function reportSizes() {
+  var s = fitStage();
+  var slot = document.querySelector('.slot');
+  var hcard = document.querySelector('.hcard-wrap');
+  if (!slot || !hcard) return;
+
+  var cw = (slot.getBoundingClientRect().width / s).toFixed(0);
+  var ch = (slot.getBoundingClientRect().height / s).toFixed(0);
+  var hw = (hcard.getBoundingClientRect().width / s).toFixed(0);
+  var hh = (hcard.getBoundingClientRect().height / s).toFixed(0);
+
+  var used = $('#canvas').scrollHeight;
+  $('#fit-report').innerHTML = used > DESIGN_H
+    ? '<span class="warn">⚠ 内容 ' + used + 'pt 超出 ' + DESIGN_H + 'pt</span>'
+    : '<span class="ok">✓ 内容 ' + used + 'pt / ' + DESIGN_H + 'pt</span>';
+
+  $('#size-report').innerHTML =
+    '战场卡 ' + cw + '×' + ch + '｜手牌卡 ' + hw + '×' + hh + '（应一致）<br>' +
+    '屏幕 ' + window.innerWidth + '×' + window.innerHeight + ' · 缩放 ' + (s * 100).toFixed(0) + '%';
+}
+
+/* ---------- 控件 ---------- */
+function bindSlider(id, valId, cssVar) {
+  var input = $(id), val = $(valId);
+  input.addEventListener('input', function () {
+    val.textContent = input.value;
+    document.documentElement.style.setProperty(cssVar, input.value + 'px');
+    reportSizes();
+  });
+}
+bindSlider('#s-cardw', '#v-cardw', '--card-w');
+bindSlider('#s-cardh', '#v-cardh', '--card-h');
+
+var bgOn = true;
+$('#btn-bg').addEventListener('click', function () {
+  bgOn = !bgOn;
+  $('#bg-scene').style.display = bgOn ? '' : 'none';
+});
+$('#btn-coords').addEventListener('click', function () {
+  document.body.classList.toggle('coords-on');
+});
+$('#btn-reset').addEventListener('click', function () {
+  R.resetState();
+  sel = null; busy = false;
+  clearMarks();
+  renderAll();
+});
+
+document.addEventListener('click', function () {
+  if (busy) return;
+  clearMarks();
+  sel = null;
+});
+
+window.addEventListener('resize', reportSizes);
+// ?clean=1 隐藏开发面板，便于截图评审
+if (location.search.indexOf('clean') >= 0) {
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('detail').style.display = 'none';
+}
+renderAll();
+</script>
+<script>setTimeout(function(){
+  var rs=[];document.querySelectorAll('.cr-card').forEach(function(el){var r=el.getBoundingClientRect();
+    rs.push({x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height),
+             name:(el.querySelector('.cr-name')||{}).textContent||'',
+             lord:el.classList.contains('cr-lord'),board:el.classList.contains('cr-board')});});
+  var p=document.createElement('pre');p.id='r';
+  p.textContent='RECTS_JSON'+JSON.stringify({vp:[window.innerWidth,window.innerHeight],rects:rs})+'RECTS_END';
+  document.body.appendChild(p);},900);</script></body>
+</html>

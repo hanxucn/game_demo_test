@@ -1,0 +1,280 @@
+# ============================================================
+# 人物卡录入区（武将 / 谋臣）—— 集中一个文本
+# ============================================================
+#
+# 工作流（两步）：
+#   ① 录入：你在对话里口述一个武将，我把信息**完整录入到本文件**（一个武将一条）。
+#   ② 整理：攒够一批后，我把本文件的条目「集中整理」进 data/cards.yaml，
+#      再跑数值校验，把每个人的总价值 / 预算报告给你。
+#
+# 为什么分两步：
+#   · data/cards.yaml 是**唯一真源**，直接写它 = 半成品数值会污染构建；
+#   · 本文件是草稿区，tools/yaml2json.py 会自动跳过 *.draft.yaml，
+#     所以这里写什么都不可能进 core/data/*.json。
+#
+# 相关文档：
+#   · 字段说明    docs/gdd/05-cards.md §2、§5.1
+#   · 数值模型    docs/gdd/13-balance-data-model.md（属性点 ≈ 2×统率+1）
+#   · 技能 / 状态 docs/gdd/10-skills-statuses.md
+#   · 关键词      data/keywords.yaml
+#   · 状态        data/statuses.yaml
+#
+# ------------------------------------------------------------
+# 口述最小清单（给我这些就能录）
+# ------------------------------------------------------------
+#   1. 名字     卡名 ≤4 字（同名多形态用副标题，如「关羽·武圣」）
+#   2. 阵营     蜀 shu / 魏 wei / 吴 wu / 群 qun
+#   3. 类型     武将 general / 谋臣 strategist（谋臣攻击恒为 0，不能普攻）
+#   4. 费用     统率值 0–10
+#   5. 攻血     可只说人话；不给的话我按预算补，并标注「我拟」
+#   6. 关键词   说人话即可，我映射到 data/keywords.yaml（12 个已注册）
+#   7. 技能     说人话即可，我翻成 skills DSL（kind / trigger / target / effects）
+#   8. 记忆点   一句话——「它为什么值得被记住」，必填
+#   9. 风味     引用或化用演义原文，≤30 字，可选
+#  10. 羁绊     可选（data/bonds.yaml 尚是草案）
+#
+# ------------------------------------------------------------
+# 已注册的引用 id（只能从这里选，否则校验报错）
+# ------------------------------------------------------------
+#   关键词 keywords（12）：
+#     zhong_yi 忠义    yi_ji  遗计    ji_xing  疾行    jia_dun  架盾
+#     wu_sheng 武圣    shen_she 神射   lian_ji  连击    yin_xue  饮血
+#     qi_xi   奇袭    xian_gong 先攻  jie_zhen 结阵    wu_shuang 无双
+#     ⚠️ 非法组合：架盾 jia_dun + 奇袭 qi_xi
+#
+#   状态 status（12）：
+#     zhen_fen 振奋  ji_jiu 急救  jia_dun_status 架盾  xian_gong_status 先攻
+#     qi_xi_status 奇袭  wu_sheng_status 武圣  hu_jia 护甲（仅主将）
+#     zhen_she 震慑  hun_luan 混乱  zhong_du 中毒  xu_ruo 虚弱  duan_liang 断粮
+#
+#   效果动作 action（14，见 core/src/constants.ts 的 ACTIONS）：
+#     damage 伤害        heal 治疗          draw 抽牌        summon 召唤
+#     apply_status 施加状态  remove_status 移除状态  move 移动    destroy 消灭
+#     modify 修正属性    gain_armor 获护甲   gain_command 获统率
+#     cost_modifier 费用修正  transform 变形   random_pick 随机取
+#
+#   触发时机 trigger：
+#     on_play 入场   on_death 阵亡   on_damaged 受伤   turn_start 回合开始
+#     turn_end 回合结束  on_attack 攻击时  on_defend 被攻击时
+#
+# ------------------------------------------------------------
+# 单条记录模板
+# ------------------------------------------------------------
+# - id: shu_xxx              # 阵营前缀_拼音，如 shu_guanyu
+#   name: 卡名                # ≤4 字
+#   faction: shu              # shu | wei | wu | qun
+#   type: general             # general 武将 | strategist 谋臣
+#   cost: 0                   # 0–10
+#   attack: 0
+#   health: 0
+#   keywords: []              # 只能填上面 12 个
+#   skills: []                # 见下方技能模板
+#   bonds: []
+#   memo: ""                  # 必填：一句话记忆点
+#   flavor: ""                # 可选
+#   # ---- 录入元信息（整理进 cards.yaml 时删除）----
+#   _meta:
+#     source: 口述            # 口述 | 我拟 | 文档
+#     date: "2026-09-11"      # ⚠️ 必须加引号：裸日期会被 YAML 解析成日期对象，json 序列化会崩
+#     status: 待整理          # 待整理 | 待确认 | 已整理
+#     open: []                # 未定项，如「费用待定」「技能数值待测」
+#
+# ------------------------------------------------------------
+# 技能模板（docs/gdd/10-skills-statuses.md §2）
+# ------------------------------------------------------------
+#   skills:
+#     - id: caochuan          # 拼音 snake_case
+#       name: 草船借箭         # ≤4 字
+#       kind: active          # active 主动 | trigger 触发 | aura 光环
+#       cost: 2               # 仅 active，0–3
+#       frequency: once_per_turn   # once_per_turn | unlimited | once
+#       trigger: on_play      # 仅 trigger 需要
+#       target:               # 选择器
+#         side: ally          # ally | enemy | both | self
+#         filter: { type: strategist }
+#         count: 1            # 数字 或 all
+#         mode: choose        # choose | random | first | lowest_health
+#       effects:
+#         - action: draw
+#           value: 2
+#
+# ============================================================
+# 录入示例（**仅供参考格式，不是已定数据**，取消注释即可复用）
+# ============================================================
+#
+# - id: shu_guanyu
+#   name: 关羽
+#   faction: shu
+#   type: general
+#   cost: 6
+#   attack: 5
+#   health: 5
+#   keywords: [wu_sheng]
+#   skills: []
+#   bonds: []
+#   memo: "免疫一次伤害，站场久攻不下"
+#   flavor: "身长九尺，髯长二尺；丹凤眼，卧蚕眉。"
+#   _meta:
+#     source: 示例
+#     status: 待确认
+#     open: [数值是否照 6 费基准, 是否给「忠义」亡语]
+
+# ============================================================
+# 以下为已录入条目
+# ============================================================
+
+# ---------- 吴国 · 武将 ----------
+
+- id: wu_songqian
+  name: 宋谦
+  faction: wu
+  type: general
+  cost: 2
+  attack: 2
+  health: 3
+  keywords: []
+  skills: []
+  bonds: []
+  memo: "2 费 2/3 扎实身材，无技能纯站场"    # 我拟（照数值事实描述），可用你的原话替换
+  flavor: ""                                # 待补
+  _meta:
+    source: 口述
+    date: "2026-09-11"
+    status: 待整理
+    balance: "属性 5 = 预算 5，偏差 0.0（达标）"
+    open:
+      - memo 为我拟，待你确认或替换
+      - flavor 风味文本待补
+      - 是否刻意留白板（无关键词/技能），还是后续要加一个
+      - "⚠️ 与李异（2 费 2/2）同费同攻但多 1 血 —— 宋谦全面压制李异，两张里需有一张改数值区分"
+
+- id: wu_zhuran
+  name: 朱然
+  faction: wu
+  type: general
+  cost: 2
+  attack: 2
+  health: 2
+  keywords: [jia_dun]        # 「镇守」的机制落点 = 已实现的「架盾」关键词
+  skills: []                 # 不另开技能，原因见 _meta.open 第 1 条
+  bonds: []
+  memo: "2 费前排嘲讽，敌方必须先打掉它"     # 我拟
+  flavor: ""
+  _meta:
+    source: 口述
+    date: "2026-09-11"
+    status: 待整理
+    balance: "属性 4 + 关键词 -1 = 3.0 / 预算 5，偏差 -2.0（⚠ 偏弱）"
+    open:
+      - "「镇守」= 架盾：架盾只有关键词 jia_dun 在 core/src/state.ts:117 有实现；jia_dun_status 这个状态在 core 里零引用，写成「施加架盾状态」的技能会空转"
+      - "卡面显示「架盾」还是「镇守」？keywords.yaml 的 name 是全局的，改名会连带影响盾兵"
+      - "偏弱 2 点，建议 3/3（=5，完美）或 3/2（=4，-1 达标）；维持 2/2 会明显吃亏"
+
+- id: wu_quancong
+  name: 全琮
+  faction: wu
+  type: general
+  cost: 3
+  attack: 3
+  health: 2
+  keywords: []
+  skills: []
+  bonds: []
+  memo: "3 费 3/2，吴国中坚白板曲线"         # 我拟
+  flavor: ""
+  _meta:
+    source: 口述
+    date: "2026-09-11"
+    status: 待整理
+    balance: "属性 5 = 5.0 / 预算 7，偏差 -2.0（⚠ 偏弱）"
+    open:
+      - "3 费白板基准是 3/4 或 4/3（=7）；建议 +1 血或 +1 攻，或补一个关键词"
+      - flavor 风味文本待补
+
+- id: wu_mazhong
+  name: 马忠
+  faction: wu
+  type: general
+  cost: 3
+  attack: 2
+  health: 3
+  keywords: []
+  skills:
+    # ⚠️ 以下为「设伏」的**拟译**，当前引擎跑不了（见 _meta.open）
+    - id: she_fu
+      name: 设伏
+      kind: trigger
+      trigger: on_play
+      target: { side: enemy, filter: { type: character }, count: 1 }
+      effects:
+        - { action: apply_status, status: zhen_she, stacks: 1, duration: 1 }
+  bonds: []
+  memo: "入场给敌方一个人物下套，50% 让它动不了"   # 我拟
+  flavor: ""
+  _meta:
+    source: 口述
+    date: "2026-09-11"
+    status: 待确认
+    balance: "属性 5 + 技能 5 = 10.0 / 预算 7，偏差 +3.0（⚠ 偏强；若按 50% 打折约 +0.5）"
+    open:
+      - "⚠️ DSL 缺口 1：「敌方的第一个行动的人物」——现有 trigger 只有 on_play/on_death/on_damaged/turn_start/turn_end/on_attack/on_defend，没有「敌方角色宣告行动时」这个时机。需先扩 docs/gdd/13-balance-data-model.md §7 再加代码"
+      - "⚠️ DSL 缺口 2：50% 概率——效果 DSL 没有概率字段，数值模型也没有概率折扣（TRIGGER_RATE 只有按时机的折扣），所以上面 +3.0 是偏悲观的高估"
+      - "12-randomness 规则三的允许清单（伤害浮动/随机目标/随机召唤位/随机抽牌）不含「概率禁止行动」，规则一判据是「单次随机不直接决定胜负」——本条大概率可放行，但需你确认并写进 12-randomness"
+      - "「禁止行动」≠ 震慑：震慑只封普攻与主动技，触发技/光环/反击仍生效，描述需收敛"
+      - "结算方式待定：埋雷保留到触发为止，还是仅限本回合"
+      - "⚠️ 与朱然/全琮同属吴国 3 费，注意曲线扎堆"
+
+- id: wu_liyi
+  name: 李异
+  faction: wu
+  type: general
+  cost: 2
+  attack: 2
+  health: 2
+  keywords: []
+  skills: []
+  bonds: []
+  memo: "2 费 2/2 普通卡，低费填充"          # 我拟
+  flavor: ""
+  _meta:
+    source: 口述
+    date: "2026-09-11"
+    status: 待整理
+    balance: "属性 4 = 4.0 / 预算 5，偏差 -1.0（✓ 达标）"
+    open:
+      - "⚠️ 被同费同阵营的宋谦（2 费 2/3）完全压制：同攻、少 1 血、同费。两张需改一张"
+      - memo 为我拟，可替换
+
+# ---------- 吴国 · 谋臣 ----------
+
+- id: wu_lusu
+  name: 鲁肃
+  faction: wu
+  type: strategist           # 你已标注谋臣；未标注的默认武将
+  cost: 4
+  attack: 1                  # ⚠️ 违反硬规则：谋臣攻击力必须为 0（校验直接报错）
+  health: 4
+  keywords: []
+  skills:
+    - id: zhangyi_shucai
+      name: 仗义疏财
+      kind: active
+      cost: 0
+      frequency: once_per_turn
+      effects:
+        - { action: draw, value: 2 }     # ⚠️ 「将己方手牌赠与对方」无对应 action，见 _meta.open
+  bonds: []
+  memo: "每回合送对手 1 张手牌，自己抽 2 张"   # 我拟
+  flavor: ""
+  _meta:
+    source: 口述
+    date: "2026-09-11"
+    status: 待确认
+    balance: "当前 1 攻打法：✗ 报错。改 0 攻后 = 属性 4 + 技能 4.8 = 8.8 / 预算 9，偏差 -0.2（✓ 达标）"
+    open:
+      - "✗ 硬规则冲突：谋臣攻击力必须为 0（core/tools/validate.ts 规则⑤）。二选一：① 改 0 攻 4 血 —— 数值恰好达标，推荐；② 类型改武将 general —— 但 4 费 1/4 只有 5/9，严重偏弱"
+      - "⚠️ DSL 缺口：「将己方手牌赠与对方」没有对应 action（现有 14 个 action 无 give/discard），需先扩 13-balance-data-model.md §7"
+      - "序号待定：「赠与」由己方选牌还是随机？给哪张牌直接决定强度，也决定随机性分级"
+      - "「可选择」= 非强制：确认不发动时是否什么都不发生（既不送也不抽）"
+      - "技能消耗写 0 统率，但送出手牌本身就是代价 —— 确认是否还要额外统率"
+      - flavor 风味文本待补

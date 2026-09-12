@@ -1,0 +1,126 @@
+{
+  "keywords": [
+    {
+      "id": "zhong_yi",
+      "name": "忠义",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": null,
+      "memo": "阵亡时触发亡语效果"
+    },
+    {
+      "id": "yi_ji",
+      "name": "遗计",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -2,
+      "memo": "阵亡时抽 1 张牌"
+    },
+    {
+      "id": "ji_xing",
+      "name": "疾行",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1.5,
+      "memo": "入场当回合即可攻击"
+    },
+    {
+      "id": "jia_dun",
+      "name": "架盾",
+      "type": "buff",
+      "grants": [
+        "jia_dun_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "memo": "仅前军生效：敌方必须先攻击它"
+    },
+    {
+      "id": "wu_sheng",
+      "name": "武圣",
+      "type": "buff",
+      "grants": [
+        "wu_sheng_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "memo": "免疫一次伤害"
+    },
+    {
+      "id": "shen_she",
+      "name": "神射",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -0.5,
+      "memo": "可攻击任意列的人物卡"
+    },
+    {
+      "id": "lian_ji",
+      "name": "连击",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1.5,
+      "memo": "每回合可攻击 2 次"
+    },
+    {
+      "id": "yin_xue",
+      "name": "饮血",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1,
+      "memo": "造成伤害时为主将回复等量生命"
+    },
+    {
+      "id": "qi_xi",
+      "name": "奇袭",
+      "type": "buff",
+      "grants": [
+        "qi_xi_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "memo": "不能被指定为攻击目标，攻击后失去"
+    },
+    {
+      "id": "xian_gong",
+      "name": "先攻",
+      "type": "buff",
+      "grants": [
+        "xian_gong_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "memo": "先结算伤害，目标阵亡则不受反击"
+    },
+    {
+      "id": "jie_zhen",
+      "name": "结阵",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -0.5,
+      "memo": "相邻有友方步兵时本次普攻 +1"
+    },
+    {
+      "id": "wu_shuang",
+      "name": "无双",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -2,
+      "memo": "攻击时不受到反击伤害"
+    }
+  ],
+  "forbidden_combos": [
+    [
+      "jia_dun",
+      "qi_xi"
+    ]
+  ]
+}

@@ -1,0 +1,458 @@
+/* ============================================================
+   酒话三国 · 卡面视觉规范（v3）
+
+   定稿风格：立绘铺满 + 暗金古典 + 无装饰
+   统一尺寸：所有卡牌 56 × 78 pt
+
+   本次修正（依据截图评审）：
+     · 提亮阵营色板 —— 卡牌必须从深色背景里"跳"出来
+     · 费用宝石移入卡内左上角，卡名留出 padding，不再重叠
+     · 手牌关键词移到底部，不再压住描述文字
+     · 加内高光与外投影，增强立体感
+   ============================================================ */
+
+:root {
+  --gold: #d4af6a;
+  --gold-hi: #f7e7bf;
+  --gold-dim: #8a6d38;
+  --ink: #f5ecdc;
+  --ink-dim: #b3a894;
+  --card-radius: 5px;
+}
+
+/* ---------- 阵营色板（提亮版） ---------- */
+/* f1 亮 / f2 中 / f3 暗 */
+.f-shu     { --f1: #8fe0b4; --f2: #4a9b70; --f3: #245840; --acc: #c9ffe2; }
+.f-wei     { --f1: #8fc4f0; --f2: #4a7cb0; --f3: #254868; --acc: #cfe8ff; }
+.f-wu      { --f1: #e8a08a; --f2: #a85242; --f3: #5e241a; --acc: #ffd6c4; }
+.f-qun     { --f1: #dcc48e; --f2: #9a7c46; --f3: #503c1e; --acc: #ffe8c0; }
+.f-neutral { --f1: #cfc6b4; --f2: #938a78; --f3: #4e4840; --acc: #f0e8d8; }
+
+/* ============================================================
+   卡面基础
+   ============================================================ */
+.cr-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--card-radius);
+  background: linear-gradient(168deg, var(--f1) 0%, var(--f2) 72%, var(--f3) 100%);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.95),
+    0 0 0 2px var(--gold-dim),
+    0 0 0 3px rgba(0,0,0,.75),
+    0 0 0 4px rgba(212,175,106,.25),
+    0 7px 16px rgba(0,0,0,.9),
+    0 2px 4px rgba(0,0,0,.7),
+    inset 0 1px 0 rgba(255,255,255,.18);
+  overflow: hidden;
+  color: var(--ink);
+  user-select: none;
+}
+/* 顶部高光 —— 让卡面有"被光照到"的质感 */
+.cr-card::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: var(--card-radius);
+  background: linear-gradient(178deg,
+    rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 14%, transparent 38%);
+  pointer-events: none;
+  z-index: 5;
+}
+.cr-card::before {
+  content: "";
+  position: absolute; inset: -5px;
+  border-radius: calc(var(--card-radius) + 5px);
+  background: radial-gradient(ellipse at 50% 40%,
+    color-mix(in srgb, var(--acc) 30%, transparent), transparent 70%);
+  opacity: 0;
+  transition: opacity .25s;
+  pointer-events: none;
+}
+.cr-card:hover::before, .cr-card.is-selected::before { opacity: 1; }
+.cr-card.is-selected {
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.9),
+    0 0 0 2px var(--gold-hi),
+    0 0 0 3px rgba(0,0,0,.6),
+    0 0 18px color-mix(in srgb, var(--gold) 70%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.2);
+}
+
+/* ---------- 立绘层 ---------- */
+.cr-portrait {
+  position: absolute; inset: 0;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  background: var(--f3);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.35),
+    inset 0 0 0 3px rgba(255,255,255,.14),
+    inset 0 0 0 4px rgba(0,0,0,.28),
+    inset 0 0 12px rgba(0,0,0,.22);
+}
+.cr-portrait-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255,255,255,.34) 0%, transparent 52%),
+    linear-gradient(180deg, var(--f1) 0%, var(--f2) 62%, var(--f3) 100%);
+}
+.cr-portrait-tex {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    var(--tex-angle, 120deg),
+    rgba(255,255,255,.06) 0 2px,
+    transparent 2px 9px);
+  mix-blend-mode: overlay;
+}
+.cr-art {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+}
+.cr-glyph {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-weight: 900;
+  font-size: 28px;
+  color: rgba(30,24,18,.13);
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.55),
+    0 -1px 0 rgba(0,0,0,.25),
+    0 0 26px rgba(255,255,255,.35);
+  line-height: 1;
+}
+/* 上下压暗，保证名称与数值可读 */
+.cr-portrait::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to top, rgba(0,0,0,.5) 0%, rgba(0,0,0,.14) 8%, transparent 16%);
+  pointer-events: none;
+}
+
+/* ---------- 名称条 ---------- */
+.cr-name {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--gold-hi);
+  text-shadow: 0 1px 2px #000, 0 0 8px color-mix(in srgb, var(--gold) 50%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: linear-gradient(180deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.42) 74%, transparent 100%);
+  z-index: 3;
+}
+
+/* ---------- 关键词 ---------- */
+.cr-kw {
+  position: absolute;
+  display: flex;
+  gap: 1px;
+  z-index: 3;
+}
+.cr-kw i {
+  font-style: normal;
+  font-size: 8px;
+  line-height: 1.35;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(212,175,106,.5), rgba(0,0,0,.7));
+  border: 1px solid color-mix(in srgb, var(--gold) 65%, transparent);
+  color: var(--gold-hi);
+  white-space: nowrap;
+}
+.cr-kw i.is-off {
+  background: rgba(0,0,0,.5);
+  border-color: #3a352c;
+  color: #7a7264;
+  text-decoration: line-through;
+}
+/* 战场卡：关键词在右上竖排 */
+.cr-board .cr-kw { right: 1px; top: 15px; flex-direction: column; align-items: flex-end; }
+/* 手牌：关键词在底部横排，避免压住描述 */
+.cr-hand .cr-kw { left: 3px; right: 3px; bottom: 19px; flex-direction: row; justify-content: center; flex-wrap: wrap; }
+
+/* ---------- 攻/血宝石 ---------- */
+.cr-stat {
+  position: absolute;
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px #0d0a07, 0 1px 3px rgba(0,0,0,.85);
+  z-index: 4;
+}
+.cr-stat.atk {
+  left: 1px; bottom: 1px;
+  background: radial-gradient(circle at 35% 28%, #ffe0b0, #d18f34 58%, #7a4710 100%);
+  text-shadow: 0 1px 2px #4a2a06;
+}
+.cr-stat.hp {
+  right: 1px; bottom: 1px;
+  background: radial-gradient(circle at 35% 28%, #ffc4b4, #c44433 58%, #63180e 100%);
+  text-shadow: 0 1px 2px #4a0d06;
+}
+.cr-stat.is-hurt { background: radial-gradient(circle at 35% 28%, #ffd8cc, #9a3020 58%, #40100a 100%); }
+
+/* ---------- 费用宝石 / 阵营纹章（移入卡内） ---------- */
+.cr-costnum {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 11px; height: 11px; margin-right: 2px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #fff0c4, var(--gold) 55%, #8a6a2e 100%);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.8);
+  color: #33240d; font-size: 8px; font-weight: 900;
+  flex: 0 0 auto;
+}
+.cr-cost {
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 17px; height: 17px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900;
+  font-size: 11px;
+  color: #33240d;
+  background: radial-gradient(circle at 35% 28%, #fff0c4, var(--gold) 55%, #8a6a2e 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px #0d0a07, 0 1px 3px rgba(0,0,0,.8);
+  z-index: 6;
+}
+.cr-crest {
+  position: absolute;
+  right: 2px; top: 2px;
+  width: 14px; height: 14px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, var(--f1), var(--f3));
+  box-shadow: 0 0 0 1.5px #0d0a07;
+  color: var(--acc);
+  font-weight: 800;
+  font-size: 9px;
+  z-index: 6;
+}
+
+/* ---------- 描述（仅手牌） ---------- */
+.cr-desc {
+  position: absolute;
+  left: 4px; right: 4px; top: 16px;
+  padding: 2px 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(20,14,10,.5), rgba(20,14,10,.32));
+  font-size: 7.5px;
+  line-height: 1.3;
+  color: #fff8ec;
+  text-align: center;
+  text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.9);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  z-index: 3;
+}
+.cr-type {
+  position: absolute;
+  left: 0; right: 0; bottom: 21px;
+  text-align: center;
+  font-size: 8px;
+  letter-spacing: .3em;
+  color: var(--ink-dim);
+  z-index: 3;
+}
+
+/* ---------- 变体差异 ---------- */
+/* 手牌：显示费用/纹章/描述，名称留出左侧空间给费用宝石 */
+.cr-hand .cr-name { justify-content: flex-start; padding: 0 3px; font-size: 9px; }
+/* 战场卡：不显示费用/纹章/描述 */
+.cr-hand .cr-crest { display: none; }
+.cr-board .cr-cost,
+.cr-board .cr-crest,
+.cr-board .cr-desc,
+.cr-board .cr-type { display: none; }
+.cr-board .cr-name { font-size: 10px; }
+
+/* ============================================================
+   主公卡
+   ============================================================ */
+.cr-lord .cr-portrait::after {
+  background:
+    linear-gradient(to top, rgba(0,0,0,.84) 0%, rgba(0,0,0,.34) 18%, transparent 34%);
+}
+.cr-lord .cr-name { font-size: 12px; height: 16px; }
+.cr-lord .cr-lord-hp {
+  position: absolute;
+  left: 4px; bottom: 4px;
+  font-size: 18px; font-weight: 900;
+  color: #ff9a86;
+  text-shadow: 0 2px 0 #3a0d06, 0 0 12px rgba(255,110,90,.7);
+  z-index: 4;
+  line-height: 1;
+}
+.cr-lord .cr-lord-armor {
+  position: absolute;
+  left: 4px; bottom: 26px;
+  font-size: 10px; font-weight: 800;
+  color: #9fd0ff;
+  text-shadow: 0 1px 3px #06263a;
+  z-index: 4;
+}
+.cr-lord .cr-lord-skill {
+  position: absolute;
+  right: 3px; bottom: 4px;
+  font-size: 8.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--gold);
+  color: var(--gold-hi);
+  background: rgba(20,14,8,.85);
+  z-index: 5;
+  white-space: nowrap;
+}
+.cr-lord.is-target {
+  box-shadow: 0 0 0 1px #000, 0 0 0 2px #7fd18a, 0 0 20px rgba(111,191,115,.9);
+}
+
+/* ============================================================
+   动画
+   ============================================================ */
+.cr-flying {
+  position: fixed;
+  z-index: 200;
+  pointer-events: none;
+  transition: transform .38s cubic-bezier(.22,.85,.3,1), opacity .38s ease-out;
+  will-change: transform;
+}
+.cr-land-flash {
+  position: absolute; inset: -4px;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 50%, rgba(255,235,180,.9), transparent 68%);
+  animation: landFlash .42s ease-out forwards;
+  pointer-events: none;
+  z-index: 8;
+}
+@keyframes landFlash {
+  0%   { opacity: 0; transform: scale(.7); }
+  35%  { opacity: .95; transform: scale(1.06); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+.cr-land-bounce { animation: landBounce .3s ease-out; }
+@keyframes landBounce {
+  0%   { transform: scale(1.18); }
+  55%  { transform: scale(.96); }
+  100% { transform: scale(1); }
+}
+.cr-lunge { animation: lunge .34s ease-in-out; }
+@keyframes lunge {
+  0%   { transform: translate(0,0); }
+  45%  { transform: translate(var(--lx,0), var(--ly,0)) scale(1.08); }
+  100% { transform: translate(0,0); }
+}
+.cr-hit { animation: hitShake .3s ease-out; }
+@keyframes hitShake {
+  0%,100% { transform: translate(0,0); }
+  20% { transform: translate(-3px,1px); }
+  45% { transform: translate(3px,-1px); }
+  70% { transform: translate(-2px,0); }
+}
+.cr-dmg {
+  position: absolute;
+  font-size: 18px; font-weight: 900;
+  color: #ffe0b0;
+  text-shadow: 0 2px 0 #5a2a06, 0 0 12px rgba(255,180,80,1);
+  pointer-events: none;
+  animation: dmgFloat .7s ease-out forwards;
+  z-index: 60;
+}
+@keyframes dmgFloat {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(.6); }
+  25%  { opacity: 1; transform: translate(-50%, -10px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -34px) scale(1); }
+}
+.cr-dying { animation: die .38s ease-in forwards; }
+@keyframes die {
+  0%   { opacity: 1; transform: scale(1) rotate(0); }
+  100% { opacity: 0; transform: scale(.72) rotate(-7deg); }
+}
+.cr-kw-pulse { animation: kwPulse .5s ease-out; }
+@keyframes kwPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,220,140,.7); }
+  100% { box-shadow: 0 0 0 9px rgba(255,220,140,0); }
+}
+.cr-draw-in { animation: drawIn .32s ease-out; }
+@keyframes drawIn {
+  0%   { opacity: 0; transform: translateY(26px) scale(.86); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+
+/* ============================================================
+   主公（人物样式：拱形头像框 + 名牌 + 生命/护甲 + 主公技）
+   ============================================================ */
+.cr-hero {
+  position: relative;
+  width: 100%; height: 100%;
+  border-radius: 48% 48% 14px 14px / 34% 34% 14px 14px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--f1) 0%, var(--f2) 62%, var(--f3) 100%);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.9),
+    0 0 0 3px var(--gold-dim),
+    0 0 0 4px rgba(0,0,0,.65),
+    0 8px 22px rgba(0,0,0,.85),
+    inset 0 2px 0 rgba(255,255,255,.2);
+}
+.cr-hero .cr-portrait { border-radius: inherit; }
+.cr-hero .cr-portrait::after {
+  background:
+    linear-gradient(to top, rgba(0,0,0,.9) 0%, rgba(0,0,0,.35) 22%, transparent 44%);
+}
+.cr-hero .cr-glyph { font-size: 42px; }
+/* 内嵌金色细线，像英雄头像框 */
+.cr-hero-frame {
+  position: absolute; inset: 4px;
+  border-radius: 48% 48% 11px 11px / 34% 34% 11px 11px;
+  box-shadow: inset 0 0 0 1px rgba(255,226,178,.28);
+  pointer-events: none; z-index: 3;
+}
+/* 主公技：右上角圆形徽章 */
+.cr-hero-skill {
+  position: absolute; right: 3px; top: 24px;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #ffe9b0, var(--gold) 55%, #7a5c26 100%);
+  box-shadow: 0 0 0 2px rgba(0,0,0,.8), 0 0 10px rgba(212,175,106,.5);
+  color: #2a1d0c; font-size: 12px; font-weight: 900;
+  z-index: 5; cursor: pointer;
+}
+.cr-hero-skill:hover { filter: brightness(1.2); }
+/* 底部名牌 */
+.cr-hero-plate {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 4px 4px 6px;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,.6) 38%, rgba(0,0,0,.86));
+  z-index: 4;
+}
+.cr-hero-stats { display: flex; align-items: center; gap: 6px; line-height: 1; }
+.cr-hero-name {
+  font-size: 12px; font-weight: 900; line-height: 1.1; letter-spacing: .06em;
+  color: var(--gold-hi);
+  text-shadow: 0 1px 3px #000, 0 0 8px rgba(212,175,106,.5);
+}
+.cr-hero-hp { font-size: 13px; font-weight: 900; color: #ff9a86; text-shadow: 0 1px 3px #3a0d06; }
+.cr-hero-armor { font-size: 11px; font-weight: 800; color: #9fd0ff; text-shadow: 0 1px 3px #06263a; }
+.cr-hero.is-target {
+  box-shadow:
+    0 0 0 1px #000, 0 0 0 3px #7fd18a, 0 0 22px rgba(111,191,115,.9),
+    0 8px 22px rgba(0,0,0,.85);
+}

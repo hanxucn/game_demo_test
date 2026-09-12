@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>《酒话三国》机制设计文档</title>
+<style>
+:root {
+  --bg: #14110e;
+  --panel: #1d1915;
+  --panel-2: #241f19;
+  --ink: #e9e2d5;
+  --ink-dim: #b6ac9c;
+  --gold: #c8a15a;
+  --red: #a8402f;
+  --green: #4e7a4a;
+  --blue: #3f6b93;
+  --line: #3a3229;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  line-height: 1.75;
+  font-size: 15px;
+}
+a { color: var(--gold); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #2c261f;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.9em;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  color: #e6c98d;
+}
+pre {
+  background: #191510;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 6px;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+pre code { background: none; border: none; padding: 0; color: #d8cdb8; }
+.layout { display: flex; align-items: flex-start; }
+nav {
+  position: sticky;
+  top: 0;
+  flex: 0 0 250px;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 26px 16px;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+}
+nav .brand { font-size: 17px; color: var(--gold); font-weight: 700; letter-spacing: 1px; }
+nav .sub { font-size: 12px; color: var(--ink-dim); margin: 4px 0 18px; }
+nav a {
+  display: block;
+  padding: 6px 9px;
+  border-radius: 5px;
+  color: var(--ink-dim);
+  font-size: 13.5px;
+}
+nav a:hover { background: var(--panel-2); color: var(--ink); text-decoration: none; }
+main { flex: 1 1 auto; min-width: 0; padding: 34px 46px 120px; max-width: 1080px; }
+section { margin-bottom: 76px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
+section:last-child { border-bottom: none; }
+h1 { font-size: 26px; color: var(--gold); border-bottom: 2px solid var(--line); padding-bottom: 10px; margin-top: 0; }
+h2 { font-size: 20px; color: #e0c489; margin-top: 38px; }
+h3 { font-size: 16.5px; color: #d9c9a6; margin-top: 26px; }
+h4 { font-size: 15px; color: var(--ink-dim); margin-top: 20px; }
+blockquote {
+  margin: 16px 0;
+  padding: 10px 16px;
+  background: #221c16;
+  border-left: 3px solid var(--red);
+  border-radius: 0 6px 6px 0;
+  color: #ddd2c0;
+}
+.table-wrap { overflow-x: auto; margin: 16px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--line); padding: 8px 11px; text-align: left; vertical-align: top; }
+th { background: #2a231c; color: var(--gold); font-weight: 600; white-space: nowrap; }
+tr:nth-child(even) td { background: #1a1611; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 26px 0; }
+strong { color: #f0e6d2; }
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  nav { position: static; height: auto; width: 100%; flex: none; border-right: none; border-bottom: 1px solid var(--line); }
+  main { padding: 22px 18px 80px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav>
+    <div class="brand">酒话三国</div>
+    <div class="sub">机制设计文档 · 单页阅读版</div>
+    <a href="#readme">《酒话三国》机制设计文档</a>
+    <a href="#01-overview">01 · 总览与设计支柱</a>
+    <a href="#02-battlefield">02 · 战场与攻击规则</a>
+    <a href="#03-turn-flow">03 · 对局流程与回合结构</a>
+    <a href="#04-resources">04 · 资源与节奏</a>
+    <a href="#05-cards">05 · 卡牌总则与模板</a>
+    <a href="#06-keywords">06 · 关键词体系</a>
+    <a href="#07-troops">07 · 兵种与特殊兵种进化</a>
+    <a href="#08-heroes">08 · 主公与阵营</a>
+    <a href="#09-bonds">09 · 羁绊系统</a>
+    <a href="#10-skills-statuses">10 · 技能模型与状态系统</a>
+    <a href="#11-events-tactics-jiuling">11 · 事件卡、战法卡与酒令</a>
+    <a href="#12-randomness">12 · 随机性设计准则</a>
+    <a href="#13-balance-data-model">13 · 数值模型与数据格式</a>
+    <a href="#14-open-questions">14 · 待决项、待填清单与决策记录</a>
+    <a href="#15-card-visual">15 · 卡面视觉与战场背景规范</a>
+  </nav>
+  <main>
+<section id="readme">
+<h1>《酒话三国》机制设计文档</h1>
+<blockquote>版本 v0.1（机制骨架）· 平台：微信/抖音小游戏（横屏）· 引擎：Cocos Creator 3.8 LTS + TypeScript</blockquote>
+<h2>这套文档是什么</h2>
+<p>这是《酒话三国》的<strong>唯一机制真源</strong>。任何一张卡、一个状态、一次结算，都以本文档为准。<br>文档的设计目标是：<strong>能被直接翻译成数据文件，不需要再回来问"这个怎么算"</strong>。</p>
+<h2>阅读顺序</h2>
+<div class="table-wrap"><table><thead><tr><th>顺序</th><th>文件</th><th>内容</th><th>状态</th></tr></thead><tbody><tr><td>1</td><td><a href="01-overview.md">01-overview</a></td><td>设计支柱、目标体验、对局参数、天时地利人和</td><td>已定</td></tr><tr><td>2</td><td><a href="02-battlefield.md">02-battlefield</a></td><td>5×2 战场、部署、攻击、穿透、主将保护、架盾</td><td>已定</td></tr><tr><td>3</td><td><a href="03-turn-flow.md">03-turn-flow</a></td><td>开局、回合结构、胜负、粮尽</td><td>已定</td></tr><tr><td>4</td><td><a href="04-resources.md">04-resources</a></td><td>统率值、护甲、曲线、30 HP 论证</td><td>已定</td></tr><tr><td>5</td><td><a href="05-cards.md">05-cards</a></td><td>六类卡牌总则、卡牌模板、两条高费卡路线</td><td>已定（人物卡待填）</td></tr><tr><td>6</td><td><a href="06-keywords.md">06-keywords</a></td><td>12 个关键词</td><td>已定</td></tr><tr><td>7</td><td><a href="07-troops.md">07-troops</a></td><td>三兵种、进化链</td><td>已定（数值待调）</td></tr><tr><td>8</td><td><a href="08-heroes.md">08-heroes</a></td><td>四主公与主公技</td><td>已定（曹操/群雄待选）</td></tr><tr><td>9</td><td><a href="09-bonds.md">09-bonds</a></td><td>羁绊系统（同场 + 对抗）</td><td>草案</td></tr><tr><td>10</td><td><a href="10-skills-statuses.md">10-skills-statuses</a></td><td>技能模型、状态全集、结算时机表</td><td>已定</td></tr><tr><td>11</td><td><a href="11-events-tactics-jiuling.md">11-events-tactics-jiuling</a></td><td>事件卡、战法卡、酒令</td><td>草案</td></tr><tr><td>12</td><td><a href="12-randomness.md">12-randomness</a></td><td>随机性设计准则</td><td>已定</td></tr><tr><td>13</td><td><a href="13-balance-data-model.md">13-balance-data-model</a></td><td>总价值预算模型、技能定价、schema、DSL</td><td>已定</td></tr><tr><td>14</td><td><a href="14-open-questions.md">14-open-questions</a></td><td>待决项、待填清单、决策记录</td><td>持续更新</td></tr><tr><td>15</td><td><a href="15-card-visual.md">15-card-visual</a></td><td>卡面视觉与动画规范</td><td>已定</td></tr></tbody></table></div>
+<h2>术语表</h2>
+<div class="table-wrap"><table><thead><tr><th>术语</th><th>英文</th><th>定义</th></tr></thead><tbody><tr><td>主公</td><td>Lord</td><td>玩家的化身，30 HP，不参与普通攻击，拥有一个主动技</td></tr><tr><td>统率值</td><td>Command</td><td>唯一资源，初始 1、每回合 +1、上限 10</td></tr><tr><td>护甲</td><td>Armor</td><td>附加于主公的伤害缓冲，永久保留、优先于生命被扣除</td></tr><tr><td>人物卡</td><td>Character</td><td>会留在场上、拥有攻/血属性的卡（兵种卡、武将卡、谋臣卡）</td></tr><tr><td>非人物卡</td><td>Non-character</td><td>一次性结算的卡（事件卡、战法卡、特殊兵种卡）</td></tr><tr><td>前军 / 后军</td><td>Front / Back Row</td><td>每方两排，每排 5 格</td></tr><tr><td>列</td><td>Lane</td><td>1–5，从玩家视角自左向右编号；双方列号在屏幕上对齐</td></tr><tr><td>同列</td><td>Same Lane</td><td>双方屏幕位置相同的列</td></tr><tr><td>穿透</td><td>Piercing</td><td>目标列前军为空时，近战可攻击该列后军</td></tr><tr><td>架盾</td><td>Shield Wall</td><td>关键词：全局嘲讽，仅前军生效，必须先被击破</td></tr><tr><td>神射</td><td>Marksmanship</td><td>关键词：可攻击任意列的人物卡</td></tr><tr><td>结阵</td><td>Formation</td><td>关键词：相邻存在友方步兵时普攻 +1</td></tr><tr><td>先攻</td><td>First Strike</td><td>关键词：先结算伤害，目标阵亡则不受反击</td></tr><tr><td>无双</td><td>Peerless</td><td>关键词：攻击时不受到反击伤害</td></tr><tr><td>粮尽</td><td>Starvation</td><td>牌库抽空后每次抽牌的递增伤害</td></tr></tbody></table></div>
+<h2>与《炉石传说》的核心差异</h2>
+<div class="table-wrap"><table><thead><tr><th>维度</th><th>炉石</th><th>酒话三国</th></tr></thead><tbody><tr><td>战场</td><td>单排 7 格</td><td><strong>5 列 × 2 排 = 10 格</strong></td></tr><tr><td>攻击范围</td><td>任意目标（除嘲讽）</td><td><strong>近战只能打同列；弓箭手可跨列</strong></td></tr><tr><td>嘲讽</td><td>全局嘲讽，任何位置生效</td><td><strong>架盾仅前军生效，且不阻挡对主将的攻击</strong></td></tr><tr><td>主将保护</td><td>靠嘲讽</td><td><strong>靠阵型：需清空一整列才能攻击主将</strong></td></tr><tr><td>兵种</td><td>无</td><td><strong>步兵/盾兵/弓箭手，各有专属关键词</strong></td></tr><tr><td>升级</td><td>无</td><td><strong>特殊兵种卡可将场上兵种进化为精锐</strong></td></tr><tr><td>事件</td><td>无</td><td><strong>事件卡对双方同时生效（天道无情）</strong></td></tr><tr><td>开局</td><td>换牌 + 硬币</td><td><strong>换牌 + 三选一酒令 + 掷先手</strong></td></tr><tr><td>羁绊</td><td>无</td><td><strong>同场羁绊 + 对抗羁绊</strong></td></tr></tbody></table></div>
+<h2>卖点清单（产品层面）</h2>
+<ol><li><strong>历史人物卡牌</strong>——四阵营 + 主公 + 武将 + 谋臣，靠关键词与技能形成辨识度</li><li><strong>事件卡与战法卡</strong>——三国历史事件与兵法，对双方生效的"天道"设计</li><li><strong>随机性与不确定感</strong>——天时（事件）、地利（阵型）、人和（羁绊）三轴</li><li><strong>人物组合</strong>——同场羁绊与对抗羁绊，构筑与收集的核心驱动力</li><li><strong>破阵斩将</strong>——清空一列才能打主公，三国战场的空间感</li></ol>
+<h2>内容产能原则（工程约束）</h2>
+<blockquote><strong>加一张新卡的边际成本 = 只改数据文件。</strong></blockquote>
+<p>若任何一张卡需要写代码才能实现，说明数据模型或效果 DSL 需要扩展，而不是加特例。<br>这条原则决定了本项目的工程架构（见 <code>docs/00-tech-selection.md</code> 与 <code>docs/01-ai-assisted-delivery-plan.md</code>）。</p>
+<h2>状态标记约定</h2>
+<ul><li><strong>已定</strong>：可以直接进入实现</li><li><strong>草案</strong>：机制成立，数值或细节待确认</li><li><strong>待填</strong>：等待策划提供内容（人物卡、事件卡、战法卡具体设计）</li><li><strong>待调</strong>：数值超出/低于预算，需要在实机测试中调整</li></ul>
+</section>
+<section id="01-overview">
+<h1>01 · 总览与设计支柱</h1>
+<h2>1. 一句话定位</h2>
+<blockquote><strong>一款以三国为背景、5 列破阵为核心机制的阵营卡牌对战游戏。</strong></blockquote>
+<p>玩家选择蜀、魏、吴、群雄四阵营之一，以对应主公出战，通过兵种布阵、武将技能、事件与战法卡，击破对方主公。</p>
+<h2>2. 三条设计支柱</h2>
+<h3>支柱一：规则极简，卡牌承载深度</h3>
+<ul><li>战场规则只有 <strong>4 条</strong>（见 §4）；</li><li>所有战术深度来自<strong>卡牌的关键词、技能与羁绊</strong>，而不是规则本身的复杂度；</li><li>检验标准：新玩家 3 分钟内理解全部规则，30 局后仍在发现新组合。</li></ul>
+<h3>支柱二：内容为王</h3>
+<ul><li>长期留存来自<strong>历史人物卡牌、事件卡、战法卡、羁绊组合</strong>的质量与数量；</li><li>因此内容必须<strong>数据驱动</strong>：加卡只改数据文件，不改代码；</li><li>每张卡必须具备"一句话记忆点"（见 <code>05-cards.md</code>）。</li></ul>
+<h3>支柱三：破阵斩将的空间感</h3>
+<ul><li>攻击主将需要清空一整列，让"破阵"成为核心战术目标；</li><li>位置（列/排）是真实决策：近战只能打同列、弓箭手可跨列、盾兵只有在前军才挡人；</li><li>但位置规则不得超过 4 条，避免认知负荷压过卡牌深度。</li></ul>
+<h2>3. 目标体验</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>目标</th></tr></thead><tbody><tr><td>单局时长</td><td><strong>6–8 分钟</strong></td></tr><tr><td>回合数</td><td>10–14 回合</td></tr><tr><td>单局决策密度</td><td>每回合 3–6 个有效决策</td></tr><tr><td>学习成本</td><td>3 分钟理解规则，1 局上手，10 局理解兵种克制关系</td></tr><tr><td>情绪曲线</td><td>前期铺阵 → 中期博弈 → 后期破阵斩杀</td></tr><tr><td>失败归因</td><td>玩家能说清"我为什么输"（随机性可读，见 <code>12-randomness.md</code>）</td></tr></tbody></table></div>
+<h2>4. 核心规则一览（4 条）</h2>
+<ol><li><strong>近战只能攻击同列</strong>：目标列前军为空则打后军，两排皆空则可攻击主将</li><li><strong>前空打后（穿透）</strong>：目标列前军为空时，近战可攻击该列后军</li><li><strong>全空打主将</strong>：攻击者所在列的两排皆空时，才能攻击敌方主将</li><li><strong>架盾最高优先级</strong>：只要场上存在敌方架盾人物，任何普通攻击都必须先打它（可跨列）</li></ol>
+<h2>5. 天时 / 地利 / 人和：随机性与协同的三条轴</h2>
+<p>这是本作对"随机性"的框架化处理，也是三国题材最自然的表达。</p>
+<div class="table-wrap"><table><thead><tr><th>轴</th><th>载体</th><th>作用</th><th>玩家感知</th></tr></thead><tbody><tr><td><strong>天时</strong></td><td>事件卡、随机事件</td><td>不可控的外部冲击</td><td>"天灾来了，双方都要受损"</td></tr><tr><td><strong>地利</strong></td><td>阵型、位置、列</td><td>可控的空间决策</td><td>"我守住这条列就赢了"</td></tr><tr><td><strong>人和</strong></td><td>羁绊、阵营、主公技</td><td>长期构筑与组合</td><td>"刘关张同场才够猛"</td></tr></tbody></table></div>
+<p>三条轴各自有明确的玩家预期，因此失败原因永远可归因——<strong>这是随机性设计的第一原则</strong>。</p>
+<h2>6. 对局参数总表</h2>
+<div class="table-wrap"><table><thead><tr><th>参数</th><th>值</th><th>说明</th></tr></thead><tbody><tr><td>主公生命</td><td>30</td><td>见 <code>04-resources.md</code></td></tr><tr><td>统率值</td><td>1 → 10，每回合 +1</td><td>打牌消耗</td></tr><tr><td>卡组张数</td><td>30</td><td>单一阵营</td></tr><tr><td>起手牌</td><td>先手 3 张 / 后手 4 张</td><td>后手额外获得「传国玉玺」</td></tr><tr><td>换牌</td><td>起手可换一次（任意张数）</td><td></td></tr><tr><td>手牌上限</td><td>10</td><td>超出弃牌</td></tr><tr><td>每回合抽牌</td><td>1</td><td>牌库空触发粮尽</td></tr><tr><td>战场规模</td><td>每方 5 列 × 2 排 = 10 格</td><td>横屏</td></tr><tr><td>人物卡每回合攻击次数</td><td>1（「连击」为 2）</td><td></td></tr><tr><td>新入场人物</td><td>当回合不能攻击（「疾行」除外）</td><td></td></tr><tr><td>主将</td><td>不参与普通攻击，拥有 1 个主动技</td><td>每回合限 1 次</td></tr></tbody></table></div>
+<h2>7. 非目标（明确不做什么）</h2>
+<p>以下内容<strong>不在 v1 范围</strong>，避免范围膨胀：</p>
+<ul><li>❌ 单位移动（换位由战法卡提供）</li><li>❌ 实时 PvP（v1 做 PvE + 异步对战）</li><li>❌ 第二个资源（只有统率值）</li><li>❌ 混阵营卡组</li><li>❌ 装备/武器系统</li><li>❌ 局内成长（等级/天赋）</li></ul>
+<h2>8. 与工程架构的对应关系</h2>
+<div class="table-wrap"><table><thead><tr><th>设计概念</th><th>工程实现</th></tr></thead><tbody><tr><td>规则 4 条</td><td><code>core</code> 中的攻击合法性判定函数</td></tr><tr><td>关键词（12 个）</td><td><code>core</code> 中的关键词注册表，每个关键词一个实现</td></tr><tr><td>状态（12 个）</td><td>状态系统 + 结算时机表驱动</td></tr><tr><td>羁绊</td><td><code>bonds.yaml</code> + 条件求值器，不写代码</td></tr><tr><td>卡牌</td><td><code>cards.yaml</code> + 效果 DSL（见 <code>13-balance-data-model.md</code>）</td></tr><tr><td>事件/战法</td><td>与卡牌同一套 DSL，<code>target: 双方</code> 表达"天道无情"</td></tr></tbody></table></div>
+</section>
+<section id="02-battlefield">
+<h1>02 · 战场与攻击规则</h1>
+<blockquote>状态：<strong>已定</strong>。本文件是整个游戏的规则地基，所有卡牌效果都在这套规则上叠加。</blockquote>
+<h2>1. 战场结构</h2>
+<p>每方 <strong>5 列 × 2 排 = 10 格</strong>，主将位于本方阵型的<strong>最远端</strong>（阵型之后，不占格）。</p>
+<p><strong>从外到内的空间顺序</strong>（以我方视角，屏幕从上到下）：</p>
+<pre><code>敌 主 公  →  敌 后 军  →  敌 前 军  →  ══中线══  →  我 前 军  →  我 后 军  →  我 主 公
+   最远                                            最远</code></pre>
+<pre><code>                          ┌──────────┐
+                          │ 敌 主 公 │   ← 敌最远端
+                          └──────────┘
+                    ┌────┬────┬────┬────┬────┐
+        敌 后 军 →  │    │    │    │    │    │
+                    ├────┼────┼────┼────┼────┤
+        敌 前 军 →  │    │    │    │    │    │
+                    └────┴────┴────┴────┴────┘
+        ══════════════════════════════════════════
+                    ┌────┬────┬────┬────┬────┐
+        我 前 军 →  │    │    │    │    │    │
+                    ├────┼────┼────┼────┼────┤
+        我 后 军 →  │    │    │    │    │    │
+                    └────┴────┴────┴────┴────┘
+                          ┌──────────┐
+                          │ 我 主 公 │   ← 我最远端
+                          └──────────┘
+                    ↑    ↑    ↑    ↑    ↑
+                   列1  列2  列3  列4  列5</code></pre>
+<p><strong>进攻路径</strong>：我方某列的人物卡 → 该列敌方前军 → 该列敌方后军 → <strong>敌方主公</strong>。<br>因此"清空一列"= 击破该列的<strong>前军与后军两排</strong>，之后才能沿该列直取敌方主公。</p>
+<h3>坐标系统</h3>
+<ul><li><strong>列（Lane）</strong>：1–5，从玩家视角自左向右编号；<strong>双方的列号在屏幕上对齐</strong>（我方列 3 正对敌方列 3）</li><li><strong>排（Row）</strong>：<code>前军</code> / <code>后军</code></li><li><strong>格（Slot）</strong>：<code>(列, 排)</code>，例如 <code>(3, 前军)</code></li><li><strong>同列</strong>：双方屏幕位置相同的列，即"正对面"</li></ul>
+<h3>格子容量</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>每格</td><td>最多 1 张人物卡</td></tr><tr><td>每方上限</td><td>10 张人物卡</td></tr><tr><td>空格</td><td>属于正常状态，空格构成"穿透"与"破阵"的基础</td></tr></tbody></table></div>
+<h2>2. 部署规则</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>落牌位置</td><td>可放在<strong>己方任意空格</strong>（前军或后军，任意列）</td></tr><tr><td>近战放后军</td><td>允许，但会被己方前军挡住而无法攻击（自然惩罚，见 §3.2）</td></tr><tr><td>满格</td><td>场上无空格时不能部署新人物卡</td></tr><tr><td>入场当回合</td><td><strong>不能攻击</strong>（「疾行」除外），但可以触发"入场"技能</td></tr><tr><td>入场触发</td><td>按"战吼/入场"结算，时机见 <code>10-skills-statuses.md</code> 结算时机表</td></tr></tbody></table></div>
+<h2>3. 普通攻击</h2>
+<h3>3.1 谁能攻击</h3>
+<div class="table-wrap"><table><thead><tr><th>卡类</th><th>能否普通攻击</th></tr></thead><tbody><tr><td>兵种卡（步兵/盾兵/弓箭手）</td><td>✅</td></tr><tr><td>武将卡</td><td>✅</td></tr><tr><td>谋臣卡</td><td>❌ 永远不能普通攻击（靠技能输出）</td></tr><tr><td>主将</td><td>❌ 只有主动技</td></tr><tr><td>被「震慑」的人物</td><td>❌ 不能攻击，也不能使用主动技</td></tr><tr><td>当回合入场的人物</td><td>❌（「疾行」除外）</td></tr><tr><td>已攻击过的本回合</td><td>❌（「连击」允许 2 次）</td></tr></tbody></table></div>
+<h3>3.2 近战攻击目标（步兵、盾兵、武将）</h3>
+<p>按以下<strong>优先级顺序</strong>判定合法目标：</p>
+<pre><code>① 场上存在敌方「架盾」人物卡？
+   → 目标必须是架盾人物卡（可跨列，无视同列限制）★ 架盾是唯一例外
+② 否则：攻击者所在列的敌方前军有人物卡？
+   → 目标是它
+③ 否则：攻击者所在列的敌方后军有人物卡？
+   → 目标是它（穿透）
+④ 否则（该列两排皆空）：
+   → 目标可以是敌方主将</code></pre>
+<p><strong>被自己人挡住</strong>：若攻击者位于后军，且其正前方同列有<strong>友方</strong>人物卡，则<strong>无法发动普通攻击</strong>（近战路径被己方挡住）。</p>
+<blockquote>弓箭手不受此限制（见 §3.3）；此规则让"把近战放后军"成为明确的错误选择。</blockquote>
+<h3>3.3 远程攻击目标（弓箭手「神射」）</h3>
+<pre><code>① 场上存在敌方「架盾」人物卡？
+   → 目标必须是架盾人物卡（架盾优先级高于神射）
+② 否则：可攻击任意列的敌方人物卡（无视距离与同列限制）
+③ 攻击主将：仍需满足"攻击者所在列两排皆空"（主将保护见 §4）</code></pre>
+<blockquote><strong>神射的价值是"跨列施压"</strong>：近战必须站在对应列才能攻击，弓箭手不需要。<br>神射<strong>不能</strong>绕过架盾——否则盾兵失去意义。</blockquote>
+<h3>3.4 攻击结算顺序</h3>
+<p>一次普通攻击按以下顺序结算：</p>
+<pre><code>1. 攻击者 → 目标：造成等同于攻击者攻击力的伤害
+2. 若目标为人物卡且存活 → 目标反击：对攻击者造成等同于目标攻击力的伤害
+3. 例外：
+   · 攻击者有「先攻」→ 先结算第 1 步；若目标阵亡，则跳过第 2 步（不受反击）
+   · 攻击者有「无双」→ 跳过第 2 步（不受反击）
+   · 目标为主将 → 主将不反击
+4. 伤害结算（护甲/免疫/武圣等修正）→ 见 `10-skills-statuses.md`
+5. 死亡结算：血量 ≤ 0 的人物卡移出战场，触发「忠义/遗计」等亡语</code></pre>
+<h2>4. 主将保护（破阵斩将）</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>攻击主将的条件</td><td>① 场上无敌方架盾人物卡；② <strong>攻击者所在列的两排皆空</strong></td></tr><tr><td>为什么</td><td>让"破阵"成为核心战术目标，而不是无脑打脸</td></tr><tr><td>主将反击</td><td>无</td></tr><tr><td>主将受伤</td><td>先扣护甲，护甲为 0 后扣生命</td></tr><tr><td>主将阵亡</td><td>生命 ≤ 0 → 该方立即失败</td></tr></tbody></table></div>
+<blockquote><strong>战术推论</strong>：主将位于最远端，因此<strong>某一列的后军是主将在该列的最后一道防线</strong>。<br>后军被清空后，该列只剩前军作为屏障；两排皆空时该列即被"打穿"，敌方沿此列直取主将。<br>这意味着"往受威胁的列补一个廉价单位"是有效的防守手段（补空列 / lane denial）。</blockquote>
+<h3>4.1 三泄压阀（防止对局拖死）</h3>
+<p>主将保护会拖慢节奏，因此设计三个泄压阀：</p>
+<ol><li><strong>计谋直伤</strong>：谋臣的主动技、战法卡、事件卡<strong>可以直接伤害主将</strong>（无视阵型保护）——"计谋伤人"</li><li><strong>粮尽</strong>：牌库抽空后，每回合抽牌时受到递增伤害（1、2、3…）</li><li><strong>破阵奖励</strong>：清空一列后，该列的攻击者在本回合获得 +1 攻击（鼓励破阵）</li></ol>
+<h2>5. 架盾（盾兵的全局嘲讽）</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>生效条件</td><td><strong>仅当盾兵位于前军时生效</strong>；位于后军则失去架盾</td></tr><tr><td>效果</td><td>敌方任何普通攻击<strong>必须先攻击架盾人物</strong>（可跨列）</td></tr><tr><td>优先级</td><td>高于同列限制、高于「神射」</td></tr><tr><td>对主将</td><td><strong>架盾不阻挡对主将的攻击</strong>（主将的保护由阵型负责）</td></tr><tr><td>破盾手段</td><td>① 直接击杀架盾人物；② <strong>谋臣的计略伤害无视架盾</strong>；③ 战法/事件卡</td></tr><tr><td>多个架盾</td><td>存在多个架盾人物时，攻击者可任选其一作为目标</td></tr></tbody></table></div>
+<blockquote><strong>设计意图</strong>：架盾保护的是<strong>将士</strong>（挡住敌方点杀你的谋臣、残血武将），而不是主公。<br>主将由阵型保护。两种保护各司其职，避免"双层护盾"把对局拖死。</blockquote>
+<h2>6. 列数权衡（决策记录 ADR-001）</h2>
+<h3>背景</h3>
+<p>主将可被攻击的条件是"攻击者所在列两排皆空"。防守方要封死所有列，至少需要 <strong>N 个单位</strong>（N = 列数），而受统率限制，实战场上通常只有 3–6 个单位。</p>
+<h3>结论</h3>
+<div class="table-wrap"><table><thead><tr><th>列数</th><th>封死所需单位</th><th>节奏倾向</th></tr></thead><tbody><tr><td>4 列</td><td>4</td><td>偏慢、偏控制</td></tr><tr><td><strong>5 列（采用）</strong></td><td>5</td><td><strong>居中</strong></td></tr><tr><td>6 列</td><td>6</td><td>偏快、偏铺场</td></tr></tbody></table></div>
+<ul><li><strong>采用 5 列 × 2 排</strong>：节奏居中，配合 30 HP + 6–8 分钟目标；</li><li>"补空列"（lane denial）成为核心技巧：1 费的 2/1 步兵不只是站场，还是堵隘口的工具；</li><li>6 列在横屏下 UI 同样可行，作为<strong>可选方案</strong>保留（若实测对局过慢可改）。</li></ul>
+<h3>降级预案</h3>
+<p>若真机测试发现 5 列在部分机型上可读性不足 → 退回 4 列 × 2 排，并把主公生命降至 25 以补偿节奏。</p>
+<h2>7. UI 约束（横屏）</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>约束</th></tr></thead><tbody><tr><td>方向</td><td>横屏（<code>game.json</code> → <code>deviceOrientation: "landscape"</code>）</td></tr><tr><td>设计基准</td><td>736 × 414（微信 <code>displayMode: mobile</code>）</td></tr><tr><td><strong>适配策略</strong></td><td><strong>fit-height（高度铺满）+ 宽度自适应</strong>；横向 5 列用 Widget 百分比布局，不写死像素宽</td></tr><tr><td>每列宽度</td><td>约 140pt（设计尺寸）；物理宽度随屏幕变化：iPhone SE 约 127px → iPad 约 191px</td></tr><tr><td>卡面内容</td><td>卡名（≤4 字）+ 攻/血数字 + 关键词图标；<strong>不在卡面放描述文字</strong></td></tr><tr><td>关键词说明</td><td>长按/点击卡牌弹出详情面板</td></tr><tr><td>状态显示</td><td>图标 + 层数角标；异常状态用红色描边</td></tr><tr><td>列高亮</td><td>悬停/选中时高亮该列的合法目标</td></tr><tr><td><strong>最小机型风险</strong></td><td>iPhone SE / 12 mini 横屏（375pt 高）下兵阵卡约 <strong>127 × 51 px</strong>，卡名 11.8px、数值 10.9px——可读但无余量，<strong>必须真机验证</strong></td></tr><tr><td><strong>手牌补偿</strong></td><td>最小机型手牌卡仅 56 × 65 px，需<strong>点按放大预览</strong></td></tr><tr><td>降级方案</td><td>若真机反馈卡面过挤 → 设计高度改 375 + 紧凑单行卡面（行高 46pt）</td></tr></tbody></table></div>
+<blockquote>实测数据与交互原型见 <code>prototype/README.md</code> 与 <code>prototype/battlefield-wireframe.html</code>。</blockquote>
+<h2>8. 待决与依赖</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>状态</th></tr></thead><tbody><tr><td>架盾与主将的关系（方案 A）</td><td>已定（备选 B/C 记录在 <code>14-open-questions.md</code>）</td></tr><tr><td>破阵奖励的具体数值（+1 攻）</td><td>待调</td></tr><tr><td>是否允许手动调整已有单位的位置</td><td>已定：不允许（由战法卡提供）</td></tr></tbody></table></div>
+</section>
+<section id="03-turn-flow">
+<h1>03 · 对局流程与回合结构</h1>
+<blockquote>状态：<strong>已定</strong></blockquote>
+<h2>1. 对局建立流程</h2>
+<pre><code>① 双方选择阵营（蜀 / 魏 / 吴 / 群雄）
+      ↓ 自动任命主公（刘备 / 曹操 / 孙权 / 董卓）
+② 双方各选一个「酒令」（开局三选一，见 11-events-tactics-jiuling.md）
+      ↓ 酒令在整局内持续生效
+③ 双方换牌（起手可替换任意张数，每张仅一次机会）
+      ↓
+④ 掷点决定先手（系统随机，不比较卡牌统率）
+      ↓ 后手额外获得「传国玉玺」
+⑤ 先手方开始第 1 回合</code></pre>
+<h3>1.1 为什么先手用掷点而不是"比统率"</h3>
+<ul><li>早期方案（各抽一张比统率）会<strong>泄露牌库信息</strong>，且引入不必要的前置随机；</li><li>掷点简单、可读、无信息泄露；</li><li>后手补偿用「传国玉玺」补足节奏差。</li></ul>
+<h3>1.2 起手与补偿</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>先手</th><th>后手</th></tr></thead><tbody><tr><td>起手牌</td><td>3 张</td><td>4 张</td></tr><tr><td>额外</td><td>—</td><td>「传国玉玺」×1</td></tr><tr><td>第 1 回合统率</td><td>1</td><td>1</td></tr></tbody></table></div>
+<p><strong>传国玉玺</strong>：0 统率，非人物卡，使用后本回合统率值 +1；使用后消耗，不占手牌上限。</p>
+<h2>2. 回合结构</h2>
+<p>回合分为三个阶段，顺序固定：</p>
+<pre><code>┌─────────────────────────────────────────────┐
+│ ① 回合开始阶段                                │
+│   1. 统率值上限 +1（最高 10），统率值恢复至上限   │
+│   2. 抽 1 张牌（牌库空 → 触发粮尽，见 §4）      │
+│   3. 结算「回合开始」类效果：                    │
+│      · 顺序：己方人物卡从左到右、先前军后后军     │
+│      · 例：急救回血、陷阵营回血、光环生效、中毒结算 │
+├─────────────────────────────────────────────┤
+│ ② 行动阶段（自由顺序，无次数限制除下述）          │
+│   · 使用卡牌（消耗统率值）                       │
+│   · 发起普通攻击（每张人物卡每回合 1 次）          │
+│   · 使用主将主动技（每回合 1 次）                 │
+│   · 使用酒令效果（按酒令定义）                    │
+│   · 顺序完全自由：可先攻击再出牌，也可穿插         │
+├─────────────────────────────────────────────┤
+│ ③ 回合结束阶段                                 │
+│   1. 结算「回合结束」类效果（例：中毒、灼烧）       │
+│   2. 清除「本回合」临时效果（例：本回合 +2 攻）     │
+│   3. 手牌上限检查：超过 10 张则弃牌至 10 张        │
+│   4. 交出行动权给对手                           │
+└─────────────────────────────────────────────┘</code></pre>
+<h3>2.1 为什么不分"出牌阶段 / 战斗阶段"</h3>
+<ul><li>与炉石一致的自由顺序，学习成本最低；</li><li>卡牌游戏的核心乐趣之一是"先攻击再出牌还是先出牌再攻击"的顺序决策；</li><li>阶段划分会把这个决策空间砍掉。</li></ul>
+<h3>2.2 结算顺序的重要性</h3>
+<p>当多个效果同时触发时，顺序会决定结果（例如"回合开始回血"与"回合开始掉血"的先后）。<br>完整规则见 <code>10-skills-statuses.md</code> §结算时机表。</p>
+<h2>3. 胜负判定</h2>
+<div class="table-wrap"><table><thead><tr><th>条件</th><th>结果</th></tr></thead><tbody><tr><td>敌方主将生命 ≤ 0</td><td>己方胜利</td></tr><tr><td>己方主将生命 ≤ 0</td><td>己方失败</td></tr><tr><td>双方主将同时归零</td><td><strong>平局</strong></td></tr><tr><td>一方投降</td><td>对方胜利</td></tr><tr><td>回合数达到上限（默认 40 回合）</td><td>主将生命值高者胜；相同则平局</td></tr><tr><td>一方连续超时（默认 2 次，每次 60 秒）</td><td>该方判负</td></tr></tbody></table></div>
+<blockquote>护甲在生命之前被扣除，因此"护甲未破"时不会因伤害导致失败。</blockquote>
+<h2>4. 粮尽（牌库耗尽）</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>触发</td><td>回合开始阶段抽牌时，牌库为空</td></tr><tr><td>伤害</td><td>第 1 次 1 点，之后每次递增 1 点（1、2、3…）</td></tr><tr><td>目标</td><td>抽牌方的主将（先扣护甲）</td></tr><tr><td>计数</td><td>每方独立累计，不重置</td></tr><tr><td>设计意图</td><td>防止无限拖延，给"控制流"对局一个自然终点</td></tr></tbody></table></div>
+<h2>5. 时间与超时</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>每回合时限</td><td>60 秒（可配置）</td></tr><tr><td>超时处理</td><td>自动结束当前回合，交出行动权</td></tr><tr><td>连续超时</td><td>2 次判负</td></tr><tr><td>断线重连</td><td>60 秒内可恢复；超时视为投降</td></tr></tbody></table></div>
+<blockquote>时限与重连策略在 v1 的 PvE 场景下不启用，仅用于后续 PvP。</blockquote>
+<h2>6. 对局参数速查</h2>
+<div class="table-wrap"><table><thead><tr><th>参数</th><th>值</th></tr></thead><tbody><tr><td>主公生命</td><td>30</td></tr><tr><td>统率值</td><td>1 → 10</td></tr><tr><td>卡组</td><td>30 张</td></tr><tr><td>起手</td><td>先手 3 / 后手 4 + 传国玉玺</td></tr><tr><td>换牌</td><td>一次，任意张数</td></tr><tr><td>手牌上限</td><td>10</td></tr><tr><td>每回合抽牌</td><td>1</td></tr><tr><td>回合上限</td><td>40</td></tr><tr><td>目标时长</td><td>6–8 分钟 / 10–14 回合</td></tr></tbody></table></div>
+<h2>7. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>归属</th></tr></thead><tbody><tr><td>Q-03-1</td><td>回合时限 60 秒是否合适（PvP 阶段再定）</td><td>后期</td></tr><tr><td>Q-03-2</td><td>平局处理是否需要"突然死亡"机制</td><td>待定</td></tr></tbody></table></div>
+</section>
+<section id="04-resources">
+<h1>04 · 资源与节奏</h1>
+<blockquote>状态：<strong>已定</strong>（部分数值待调）</blockquote>
+<h2>1. 统率值（唯一资源）</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>初始值</td><td>1</td></tr><tr><td>成长</td><td>每回合开始阶段 +1</td></tr><tr><td>上限</td><td>10</td></tr><tr><td>恢复</td><td>每回合开始阶段恢复至当前上限（<strong>不保留上回合剩余</strong>）</td></tr><tr><td>用途</td><td>打出卡牌、使用主将主动技</td></tr><tr><td>类型</td><td>数值型，可被「断粮」等效果临时降低上限</td></tr></tbody></table></div>
+<h3>1.1 曲线</h3>
+<div class="table-wrap"><table><thead><tr><th>回合</th><th>统率上限</th><th>该回合可做的典型操作</th></tr></thead><tbody><tr><td>1</td><td>1</td><td>出一张 1 费卡</td></tr><tr><td>2</td><td>2</td><td>一张 2 费 或 两张 1 费</td></tr><tr><td>3</td><td>3</td><td>3 费武将 / 2 费 + 1 费</td></tr><tr><td>4</td><td>4</td><td>4 费武将 + 主公技</td></tr><tr><td>5</td><td>5</td><td>5 费核心卡</td></tr><tr><td>6</td><td>6</td><td>大牌 + 技能组合</td></tr><tr><td>7–10</td><td>7–10</td><td>高费武将 / 组合技爆发</td></tr></tbody></table></div>
+<blockquote><strong>设计意图</strong>：1→10 的曲线是卡牌游戏最成熟的节奏模型，它天然产生"前期铺场、中期博弈、后期爆发"的情绪曲线。</blockquote>
+<h2>2. 护甲</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>归属</td><td>附加于<strong>主将</strong>（v1 不支持给人物卡加护甲）</td></tr><tr><td>结算</td><td>受到伤害时<strong>优先扣除护甲</strong>，护甲为 0 后才扣生命</td></tr><tr><td>保留</td><td><strong>永久保留</strong>，不随回合清除</td></tr><tr><td>上限</td><td>无上限</td></tr><tr><td>来源</td><td>孙权「坐断东南」、部分战法卡</td></tr><tr><td>与治疗的区别</td><td>治疗只能恢复生命（不超过 30），不能加护甲</td></tr></tbody></table></div>
+<blockquote><strong>设计意图</strong>：护甲是"吴"的防守标识，也是对抗"计谋直伤"的手段。</blockquote>
+<h2>3. 主公生命 30 的论证</h2>
+<h3>3.1 为什么 30 是合理的</h3>
+<p>高费武将的攻击力可以很高（例如 8），而主将保护规则要求"清空一列"才能攻击主将，因此：</p>
+<pre><code>30 HP ÷ 8 攻击 = 4 次未受阻挡的攻击</code></pre>
+<ul><li>4 次攻击意味着至少 4 个回合的铺垫与破阵，节奏成立；</li><li>若主将可被无脑打脸（无阵型保护），对局会退化为"谁先抽到高攻武将"，30 HP 反而不够。</li></ul>
+<h3>3.2 高攻武将的定位</h3>
+<div class="table-wrap"><table><thead><tr><th>定位</th><th>说明</th></tr></thead><tbody><tr><td>破阵后的收割者</td><td>需要先清空一列，才能让高攻武将打主将</td></tr><tr><td>清场主力</td><td>8 攻可以一击秒杀绝大多数兵种</td></tr><tr><td>需要保护</td><td>高攻武将通常血不高，容易被计谋/战法针对</td></tr></tbody></table></div>
+<h3>3.3 数值校验示例（占位，非最终设计）</h3>
+<p>以"8 费、8 攻击"的武将为例：</p>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>值</th></tr></thead><tbody><tr><td>8 费白板基准</td><td>2 × 8 + 1 = <strong>17 属性点</strong></td></tr><tr><td>8/8 的属性点</td><td>8 + 8 = <strong>16 点</strong></td></tr><tr><td>剩余预算</td><td>1 点</td></tr><tr><td>「无双」的成本</td><td>约 −2 点</td></tr><tr><td>结论</td><td>8 费 8/8 + 无双 超模约 1 点，<strong>可接受</strong>；或调为 7/8 + 无双</td></tr></tbody></table></div>
+<blockquote>详细定价方法见 <code>13-balance-data-model.md</code>。</blockquote>
+<h2>4. 传国玉玺（后手补偿）</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>费用</td><td>0 统率</td></tr><tr><td>类型</td><td>非人物卡</td></tr><tr><td>效果</td><td>本回合统率值 +1</td></tr><tr><td>消耗</td><td>使用后从手牌移除</td></tr><tr><td>归属</td><td>仅后手方获得 1 张</td></tr></tbody></table></div>
+<blockquote>等价于炉石的"幸运币"，用于补偿先手优势。</blockquote>
+<h2>5. 粮尽（防拖延机制）</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>触发</td><td>回合开始阶段抽牌时牌库为空</td></tr><tr><td>伤害</td><td>第 1 次 1 点，之后递增（1、2、3…）</td></tr><tr><td>目标</td><td>抽牌方主将（先扣护甲）</td></tr><tr><td>计数</td><td>每方独立累计</td></tr></tbody></table></div>
+<blockquote>详见 <code>03-turn-flow.md</code> §4。</blockquote>
+<h2>6. 节奏控制清单</h2>
+<div class="table-wrap"><table><thead><tr><th>目标</th><th>手段</th></tr></thead><tbody><tr><td>对局不超过 8 分钟</td><td>回合上限 40、粮尽、主将 30 HP</td></tr><tr><td>避免"谁也破不了阵"</td><td>计谋直伤 + 粮尽 + 破阵奖励</td></tr><tr><td>避免"3 回合速攻"</td><td>主将需清空一列 + 架盾保护 + 1 费兵种血量</td></tr><tr><td>保证后期有爆发</td><td>统率上限 10 + 高费武将</td></tr></tbody></table></div>
+<h2>7. 待调项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>当前值</th><th>调整方向</th></tr></thead><tbody><tr><td>T-04-1</td><td>主公生命</td><td>30</td><td>实测对局时长 &gt; 9 分钟则降到 25</td></tr><tr><td>T-04-2</td><td>破阵奖励</td><td>+1 攻击（本回合）</td><td>视破阵难度调整</td></tr><tr><td>T-04-3</td><td>粮尽起始伤害</td><td>1</td><td>实测控制流强度后调整</td></tr><tr><td>T-04-4</td><td>回合上限</td><td>40</td><td>若普遍打满则下调</td></tr></tbody></table></div>
+</section>
+<section id="05-cards">
+<h1>05 · 卡牌总则与模板</h1>
+<blockquote>状态：<strong>已定</strong>（人物卡的具体数值与技能<strong>待填</strong>）</blockquote>
+<h2>1. 六类卡牌</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>类型</th><th>留场</th><th>有攻/血</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>普通兵种卡</td><td>✅</td><td>✅</td><td>步兵 / 盾兵 / 弓箭手，基础单位</td></tr><tr><td>2</td><td>武将卡</td><td>✅</td><td>✅</td><td>以武力为主，通常有高攻或强力技能</td></tr><tr><td>3</td><td>谋臣卡</td><td>✅</td><td><strong>攻 ≤ 1</strong></td><td><strong>不能普通攻击</strong>，靠主动技与计略输出</td></tr><tr><td>4</td><td>事件卡</td><td>❌</td><td>❌</td><td>三国历史事件，<strong>对双方同时生效</strong></td></tr><tr><td>5</td><td>战法卡</td><td>❌</td><td>❌</td><td>兵书战法，单次战术效果</td></tr><tr><td>6</td><td>特殊兵种卡</td><td>❌</td><td>❌</td><td><strong>进化卡</strong>：将场上特定兵种进化为精锐</td></tr></tbody></table></div>
+<blockquote><strong>人物卡</strong> = 类型 1/2/3（留场）；<strong>非人物卡</strong> = 类型 4/5/6（一次性结算）。</blockquote>
+<h2>2. 卡牌字段模板</h2>
+<p>每张卡在数据文件中包含以下字段（完整 schema 见 <code>13-balance-data-model.md</code>）：</p>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>必填</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td><code>id</code></td><td>✅</td><td>string</td><td>唯一标识，如 <code>shu_guanyu</code></td></tr><tr><td><code>name</code></td><td>✅</td><td>string</td><td>卡名，<strong>≤4 字</strong>（卡面显示限制）</td></tr><tr><td><code>faction</code></td><td>✅</td><td>enum</td><td><code>shu</code> / <code>wei</code> / <code>wu</code> / <code>qun</code> / <code>neutral</code></td></tr><tr><td><code>type</code></td><td>✅</td><td>enum</td><td><code>troop</code> / <code>general</code> / <code>strategist</code> / <code>event</code> / <code>tactic</code> / <code>elite</code></td></tr><tr><td><code>cost</code></td><td>✅</td><td>number</td><td>统率值消耗，0–10</td></tr><tr><td><code>attack</code></td><td>人物卡必填</td><td>number</td><td>攻击力；<strong>谋臣上限 1</strong>（默认预设，见 ADR-015/018）</td></tr><tr><td><code>health</code></td><td>人物卡必填</td><td>number</td><td>生命值</td></tr><tr><td><code>keywords</code></td><td>可选</td><td>string[]</td><td>关键词列表，见 <code>06-keywords.md</code></td></tr><tr><td><code>skills</code></td><td>可选</td><td>object[]</td><td>技能定义，见 <code>10-skills-statuses.md</code></td></tr><tr><td><code>bonds</code></td><td>可选</td><td>string[]</td><td>参与的羁绊 id，见 <code>09-bonds.md</code></td></tr><tr><td><code>upgradeTarget</code></td><td>进化卡必填</td><td>object</td><td>目标兵种与进化结果</td></tr><tr><td><code>flavor</code></td><td>可选</td><td>string</td><td>风味文本（<strong>不显示在卡面</strong>，用于收藏页）</td></tr><tr><td><code>memo</code></td><td>✅</td><td>string</td><td><strong>一句话记忆点</strong>（设计用，不显示）</td></tr></tbody></table></div>
+<h3>2.1 一句话记忆点规范</h3>
+<p>每张卡必须能用一句话说清"它为什么值得被记住"：</p>
+<ul><li>❌ 反例："攻击力 4，生命值 5 的武将"</li><li>✅ 正例："阵亡时对全体敌人造成 2 点伤害"</li><li>✅ 正例："只要它在场，我方弓箭手攻击 +1"</li></ul>
+<p><strong>检验方法</strong>：玩家在抽到这张卡时，能否立刻说出它的价值。</p>
+<h2>3. 两条高费卡设计路线</h2>
+<p>高费卡（≥6 统率）必须选择以下两条路线之一，不允许"什么都占"：</p>
+<h3>路线 A：低属性 + 强技能</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>说明</th></tr></thead><tbody><tr><td>属性</td><td>低于同费白板基准</td></tr><tr><td>技能</td><td>价值高、有决定性影响</td></tr><tr><td>代表</td><td>诸葛亮、周瑜、郭嘉（待填具体数值）</td></tr><tr><td><strong>风险</strong></td><td>方差大——技能被打断就废</td></tr><tr><td><strong>对策</strong></td><td>① 技能可互动（需铺垫/可被震慑/可被移除）；② 提供保底小收益</td></tr></tbody></table></div>
+<h3>路线 B：高属性 + 无技能（或少技能）</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>说明</th></tr></thead><tbody><tr><td>属性</td><td>达到或略高于同费白板基准</td></tr><tr><td>技能</td><td>无，或只有一个廉价关键词</td></tr><tr><td>代表</td><td>吕布、许褚、张飞（待填具体数值）</td></tr><tr><td><strong>风险</strong></td><td>被一张解场卡一换一</td></tr><tr><td><strong>对策</strong></td><td>① 给"抗解"关键词（武圣/忠义/无双）；② 靠低费铺垫与保护</td></tr></tbody></table></div>
+<h3>3.1 为什么必须二选一</h3>
+<p>同时拥有高属性与强技能的高费卡，会在所有对局中成为"必带"，压缩构筑多样性。<br>若确实需要"又高又强"的卡，请将其费用提高到 9–10，或附加明确的负面代价。</p>
+<h2>4. 卡面 UI 元素</h2>
+<p>卡面<strong>只显示</strong>以下内容（横屏约 147pt × 180pt）：</p>
+<pre><code>┌──────────────────┐
+│ ①统率值   ②阵营  │
+│                  │
+│   ③ 卡 名         │
+│                  │
+│   ④ 关键词图标    │
+│                  │
+│ ⑤攻击   ⑥生命    │
+└──────────────────┘</code></pre>
+<div class="table-wrap"><table><thead><tr><th>元素</th><th>显示规则</th></tr></thead><tbody><tr><td>① 统率值</td><td>左上角数字</td></tr><tr><td>② 阵营</td><td>右上角色块（蜀=绿 / 魏=蓝 / 吴=红 / 群=灰）</td></tr><tr><td>③ 卡名</td><td>≤4 字，居中</td></tr><tr><td>④ 关键词图标</td><td>最多 3 个，超出显示"+"；点击卡牌查看详情</td></tr><tr><td>⑤ 攻击</td><td>左下角；谋臣为 0 攻时显示"—"</td></tr><tr><td>⑥ 生命</td><td>右下角；受伤害后显示当前值（红色）</td></tr></tbody></table></div>
+<p><strong>不显示</strong>：技能描述文字、风味文本、羁绊信息（这些在点击详情面板中展示）。</p>
+<h2>5. 卡牌模板（供策划填写）</h2>
+<h3>5.1 人物卡模板</h3>
+<pre><code>- id: shu_xxx
+  name: （≤4 字）
+  faction: shu
+  type: general          # troop | general | strategist
+  cost: 0                # 0-10
+  attack: 0
+  health: 0
+  keywords: []           # 见 06-keywords.md
+  skills: []             # 见 10-skills-statuses.md
+  bonds: []              # 见 09-bonds.md
+  memo: ""               # 一句话记忆点
+  flavor: ""</code></pre>
+<h3>5.2 非人物卡模板</h3>
+<pre><code>- id: tactic_xxx
+  name: （≤4 字）
+  faction: neutral       # 或具体阵营
+  type: tactic           # event | tactic | elite
+  cost: 0
+  target: ""             # 选择器，见 13-balance-data-model.md
+  effects: []            # 效果列表
+  memo: ""
+  flavor: ""</code></pre>
+<h2>6. 命名与文案规范</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规范</th></tr></thead><tbody><tr><td>卡名</td><td>≤4 字；优先使用人物本名或广为人知的称号</td></tr><tr><td>同名冲突</td><td>若同一人物有多种形态，用副标题区分（如「关羽·武圣」）</td></tr><tr><td>技能名</td><td>≤4 字，优先使用史书/演义中的原词</td></tr><tr><td>风味文本</td><td>引用或化用演义原文，不超过 30 字</td></tr><tr><td>用词统一</td><td>统一使用"主公/人物卡/统率值/架盾"等术语表词汇</td></tr></tbody></table></div>
+<h2>7. 待填清单</h2>
+<p>以下内容等待策划提供（填入 §5 模板后即可直接进入实现）：</p>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>内容</th><th>数量目标（v1）</th></tr></thead><tbody><tr><td>1</td><td>蜀国武将</td><td>8–10</td></tr><tr><td>2</td><td>魏国武将</td><td>8–10</td></tr><tr><td>3</td><td>吴国武将</td><td>8–10</td></tr><tr><td>4</td><td>群雄武将</td><td>6–8</td></tr><tr><td>5</td><td>谋臣（四阵营合计）</td><td>8–12</td></tr><tr><td>6</td><td>事件卡</td><td>8–12</td></tr><tr><td>7</td><td>战法卡</td><td>12–16</td></tr><tr><td>8</td><td>特殊兵种卡</td><td>3–6</td></tr><tr><td>9</td><td>酒令</td><td>4–8</td></tr><tr><td>10</td><td>主公技最终方案（曹操/群雄待选）</td><td>2</td></tr></tbody></table></div>
+<blockquote>合计约 <strong>65–95 张卡</strong>，是 2–3 个月 demo 的合理内容量。</blockquote>
+</section>
+<section id="06-keywords">
+<h1>06 · 关键词体系</h1>
+<blockquote>状态：<strong>已定</strong>。关键词是内容产能的"词汇表"——AI 批量产卡时按关键词组合，即可保持风格一致与强度可控。</blockquote>
+<h2>1. 关键词与状态的关系</h2>
+<div class="table-wrap"><table><thead><tr><th>概念</th><th>定义</th><th>例子</th></tr></thead><tbody><tr><td><strong>关键词</strong></td><td>卡牌<strong>自带</strong>的常驻特性，写在卡面上</td><td>盾兵自带「架盾」</td></tr><tr><td><strong>状态</strong></td><td>对局中被<strong>施加</strong>的临时效果，可被驱散</td><td>被施加「震慑」</td></tr></tbody></table></div>
+<p><strong>桥接规则</strong>：部分关键词会<strong>授予对应状态</strong>（只要条件满足）：</p>
+<div class="table-wrap"><table><thead><tr><th>关键词</th><th>授予的状态</th><th>条件</th></tr></thead><tbody><tr><td>架盾</td><td>架盾</td><td>该人物位于<strong>前军</strong>时</td></tr><tr><td>先攻</td><td>先攻</td><td>永久</td></tr><tr><td>奇袭</td><td>奇袭</td><td>直到其发起攻击</td></tr><tr><td>武圣</td><td>武圣</td><td>直到免疫一次伤害</td></tr><tr><td>结阵</td><td>结阵</td><td>攻击时动态判定</td></tr></tbody></table></div>
+<h2>2. 关键词一览</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>关键词</th><th>一句话</th><th>价值（属性点）</th></tr></thead><tbody><tr><td>1</td><td>忠义</td><td>阵亡时触发亡语效果</td><td>视效果而定</td></tr><tr><td>2</td><td>遗计</td><td>阵亡时抽 1 张牌</td><td>−2</td></tr><tr><td>3</td><td>疾行</td><td>入场当回合即可攻击</td><td>−1.5</td></tr><tr><td>4</td><td>架盾</td><td>仅前军生效的全局嘲讽</td><td>−1</td></tr><tr><td>5</td><td>武圣</td><td>免疫一次伤害</td><td>−1</td></tr><tr><td>6</td><td>神射</td><td>可攻击任意列的人物卡</td><td>−0.5</td></tr><tr><td>7</td><td>连击</td><td>每回合可攻击 2 次</td><td>−1.5</td></tr><tr><td>8</td><td>饮血</td><td>造成伤害时为主将回复等量生命</td><td>−1</td></tr><tr><td>9</td><td>奇袭</td><td>不能被指定为攻击目标</td><td>−1</td></tr><tr><td>10</td><td>先攻</td><td>先结算伤害，目标阵亡则不受反击</td><td>−1</td></tr><tr><td>11</td><td>结阵</td><td>相邻有友方步兵时普攻 +1</td><td>−0.5</td></tr><tr><td>12</td><td>无双</td><td>攻击时不受到反击伤害</td><td>−2</td></tr></tbody></table></div>
+<blockquote>价值用于总价值预算（见 <code>13-balance-data-model.md</code>）。数值为初始估值，实机测试后校准。</blockquote>
+<h2>3. 关键词详解</h2>
+<h3>3.1 忠义</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>该人物卡阵亡时，触发其描述的亡语效果</td></tr><tr><td>触发时机</td><td>死亡结算后（见 <code>10-skills-statuses.md</code> 结算时机表）</td></tr><tr><td>叠加</td><td>不叠加；每张卡只有一个忠义效果</td></tr><tr><td>UI</td><td>图标：白色羽扇 / 灰色描边</td></tr><tr><td>设计注意</td><td>亡语不能过强，否则"送死流"会成为唯一解</td></tr></tbody></table></div>
+<h3>3.2 遗计</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>该人物卡阵亡时，其控制者抽 1 张牌</td></tr><tr><td>与忠义的关系</td><td>是忠义的<strong>固定形态</strong>，独立成关键词以便定价与批量产卡</td></tr><tr><td>触发时机</td><td>同忠义</td></tr><tr><td>设计注意</td><td>抽牌价值约 3 属性点，故关键词价值记为 −2（已扣除"需要死亡"的概率折扣）</td></tr></tbody></table></div>
+<h3>3.3 疾行</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>入场当回合即可发起普通攻击</td></tr><tr><td>不提供</td><td>额外攻击次数（本回合仍只能攻击 1 次，除非同时有「连击」）</td></tr><tr><td>触发时机</td><td>入场即获得，永久</td></tr><tr><td>设计注意</td><td>疾行 + 高攻 = 强突进；需控制属性预算</td></tr></tbody></table></div>
+<h3>3.4 架盾</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>敌方任何普通攻击必须先攻击该人物（可跨列）</td></tr><tr><td><strong>生效条件</strong></td><td><strong>仅当该人物位于前军</strong>；位于后军则失去架盾</td></tr><tr><td>优先级</td><td>高于同列限制、高于「神射」</td></tr><tr><td>对主将</td><td><strong>不阻挡</strong>对主将的攻击</td></tr><tr><td>破盾</td><td>击杀该人物；或使用谋臣计略/战法/事件（计略伤害无视架盾）</td></tr><tr><td>UI</td><td>图标：盾牌；位于后军时图标置灰</td></tr><tr><td>设计注意</td><td>架盾保护的是<strong>将士</strong>，不是主公；主将由阵型保护</td></tr></tbody></table></div>
+<h3>3.5 武圣</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>免疫一次伤害（无论来源）</td></tr><tr><td>消耗</td><td>免疫一次后关键词消失</td></tr><tr><td>触发时机</td><td>伤害结算前判定</td></tr><tr><td>与护甲的区别</td><td>武圣对<strong>该人物卡</strong>生效；护甲只对<strong>主将</strong>生效</td></tr><tr><td>设计注意</td><td>是路线 B（高属性无技能）的"抗解"手段</td></tr></tbody></table></div>
+<h3>3.6 神射</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>可攻击<strong>任意列</strong>的敌方人物卡，无需同列</td></tr><tr><td>限制</td><td>仍须遵守架盾；攻击主将仍需满足"所在列两排皆空"</td></tr><tr><td>不受影响</td><td>不受"被自己人挡住"限制（可从后军越排攻击）</td></tr><tr><td>设计注意</td><td>神射的价值是"跨列施压"，不是"无视嘲讽"</td></tr></tbody></table></div>
+<h3>3.7 连击</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>每回合可发起 2 次普通攻击</td></tr><tr><td>攻击次数</td><td>每张人物卡每回合默认 1 次，连击提升为 2 次</td></tr><tr><td>结算</td><td>两次攻击分别结算伤害与反击</td></tr><tr><td>设计注意</td><td>连击 + 高攻 = 极高爆发，属性必须显著下调</td></tr></tbody></table></div>
+<h3>3.8 饮血</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>该人物造成伤害时，为己方主将恢复等量生命</td></tr><tr><td>治疗上限</td><td>主将生命不超过 30</td></tr><tr><td>不与护甲互动</td><td>不增加护甲</td></tr><tr><td>触发</td><td>普通攻击、主动技造成的伤害均触发</td></tr><tr><td>设计注意</td><td>饮血在持久战中价值极高，需控制属性</td></tr></tbody></table></div>
+<h3>3.9 奇袭</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>不能被敌方指定为攻击目标</td></tr><tr><td>失去条件</td><td>该人物发起攻击后立即失去奇袭</td></tr><tr><td>不受保护</td><td>仍会被群体伤害（AoE）、事件卡、随机目标效果命中</td></tr><tr><td>UI</td><td>卡面半透明 + 潜行图标</td></tr><tr><td>设计注意</td><td>奇袭 + 高攻 = 无法被先手处理，属性需下调</td></tr></tbody></table></div>
+<h3>3.10 先攻</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>攻击时先结算自己的伤害；若目标阵亡，则不受反击</td></tr><tr><td>触发</td><td>仅普通攻击；反击方不享受先攻</td></tr><tr><td>双方都有先攻</td><td>同时结算，均不享受"目标阵亡则免反击"的优待</td></tr><tr><td>设计注意</td><td>先攻对"高攻低血"单位价值最大</td></tr></tbody></table></div>
+<h3>3.11 结阵</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>若同列或左右相邻列存在 ≥1 名友方<strong>步兵</strong>，本次普攻 +1 伤害</td></tr><tr><td>判定时机</td><td>每次攻击时动态判定（不改变面板攻击力）</td></tr><tr><td>相邻范围</td><td>同列（前后）+ 左右相邻列（共最多 5 格）</td></tr><tr><td>不叠加</td><td>无论有几个相邻步兵，都只 +1</td></tr><tr><td>UI</td><td>满足条件时卡牌发光 + 图标高亮</td></tr><tr><td>设计注意</td><td>步兵是"集群推进"兵种，鼓励铺阵</td></tr></tbody></table></div>
+<h3>3.12 无双</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>该人物发起普通攻击时，不受到目标的反击伤害</td></tr><tr><td>不等于先攻</td><td>先攻是"抢在反击前结算"；无双是"根本不挨反击"</td></tr><tr><td>不提供</td><td>不免疫主动技/战法/事件造成的伤害</td></tr><tr><td>设计注意</td><td>价值最高的关键词之一，通常只出现在顶级武将上</td></tr></tbody></table></div>
+<h2>4. 关键词组合的定价规则</h2>
+<p>多个关键词同时出现时，<strong>总价值 = 各关键词价值之和 × 0.9</strong>（折扣系数，避免组合过强）。</p>
+<p>例：<code>疾行（−1.5）+ 先攻（−1）= −2.5 × 0.9 = −2.25</code>，向上取整为 −2.5。</p>
+<h2>5. 关键词与 UI 的对应</h2>
+<div class="table-wrap"><table><thead><tr><th>优先级</th><th>显示方式</th></tr></thead><tbody><tr><td>最多 3 个关键词</td><td>卡面显示图标</td></tr><tr><td>超过 3 个</td><td>显示前 3 个 + "+N"，点击查看</td></tr><tr><td>失去条件的关键词（如后军的架盾、已消耗的武圣）</td><td>图标置灰并加删除线</td></tr></tbody></table></div>
+<h2>6. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>说明</th></tr></thead><tbody><tr><td>Q-06-1</td><td>是否需要「反制」类关键词（如"免疫计略伤害"）</td><td>v1 暂不做</td></tr><tr><td>Q-06-2</td><td>「忠义」与「遗计」是否合并</td><td>暂不合并，便于定价</td></tr><tr><td>Q-06-3</td><td>关键词价值表的最终数值</td><td>实机测试后校准</td></tr></tbody></table></div>
+</section>
+<section id="07-troops">
+<h1>07 · 兵种与特殊兵种进化</h1>
+<blockquote>状态：<strong>已定</strong>（数值待调）</blockquote>
+<h2>1. 三兵种</h2>
+<div class="table-wrap"><table><thead><tr><th>兵种</th><th>攻击</th><th>生命</th><th>关键词</th><th>定位</th><th>数值状态</th></tr></thead><tbody><tr><td>步兵</td><td>2</td><td>1</td><td>结阵</td><td>集群推进 / 堵隘口</td><td>✅ 合规</td></tr><tr><td>盾兵</td><td>1</td><td>2</td><td>架盾（仅前军生效）</td><td>保护将士</td><td>⚠️ <strong>待调</strong></td></tr><tr><td>弓箭手</td><td>1</td><td>1</td><td>神射</td><td>跨列点杀谋臣</td><td>⚠️ <strong>待调</strong></td></tr></tbody></table></div>
+<blockquote>三者均为 <strong>1 统率</strong>卡，无硬性相克关系，靠位置与关键词形成三角。</blockquote>
+<h2>2. 三角关系</h2>
+<pre><code>        盾兵（架盾）
+       挡住近战与远程的普通攻击
+            ↓ 克制
+        谋臣（计略无视架盾）
+       唯一能绕过架盾的输出手段
+            ↓ 克制
+        弓箭手 / 突进武将
+       谋臣无普攻、血少，被越列点杀</code></pre>
+<p><strong>注意</strong>：这不是"石头剪刀布"式的硬相克（没有伤害加成），而是<strong>定位上的相互制约</strong>，玩家不需要记克制表。</p>
+<h2>3. 数值待调说明</h2>
+<p>按总价值预算模型（<code>13-balance-data-model.md</code>），1 费白板基准 = <strong>2×1+1 = 3 属性点</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>兵种</th><th>属性点</th><th>关键词成本</th><th>总价值</th><th>判定</th><th>调整选项</th></tr></thead><tbody><tr><td>步兵</td><td>3</td><td>结阵 −0.5</td><td>2.5</td><td>略低，可接受（结阵是条件性的）</td><td>保持</td></tr><tr><td>盾兵</td><td>3</td><td>架盾 −1</td><td>4.0</td><td><strong>超模 1 点</strong></td><td>① 改为 1 费 1/1（2 点 + 1 = 3）② 改为 2 费 1/3（4 点 + 1 = 5 vs 基准 5）✅</td></tr><tr><td>弓箭手</td><td>2</td><td>神射 −0.5</td><td>2.5</td><td><strong>偏弱 0.5 点</strong></td><td>① 改为 1 费 1/2（3 + 0.5 = 3.5，略超）② 改为 2 费 2/2（4 + 0.5 = 4.5 vs 基准 5）✅</td></tr></tbody></table></div>
+<p><strong>推荐</strong>：</p>
+<ul><li>盾兵 → <strong>2 费 1/3 + 架盾</strong></li><li>弓箭手 → <strong>2 费 2/2 + 神射</strong> 或 <strong>1 费 1/2 + 神射</strong>（后者更符合"廉价远程"的定位，需实测）</li></ul>
+<blockquote>这三张卡是整个兵种体系的基准，必须在实机测试中优先校准。</blockquote>
+<h2>4. 特殊兵种卡（进化卡）</h2>
+<h3>4.1 三张进化卡</h3>
+<div class="table-wrap"><table><thead><tr><th>进化卡</th><th>目标兵种</th><th>进化结果</th><th>费用</th><th>数值校验</th></tr></thead><tbody><tr><td>虎豹骑</td><td>步兵</td><td>+1 攻击 / +1 生命，获得<strong>先攻</strong></td><td>3</td><td>见 §4.3</td></tr><tr><td>陷阵营</td><td>盾兵</td><td>+0 攻击 / +2 生命，<strong>回合开始恢复 1 点生命</strong></td><td>3</td><td>见 §4.3</td></tr><tr><td>白马义从</td><td>弓箭手</td><td>+1 攻击，攻击后<strong>不受到反击伤害</strong></td><td>3</td><td>见 §4.3</td></tr></tbody></table></div>
+<h3>4.2 进化规则（重要）</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td><strong>目标限制</strong></td><td><strong>只针对特定兵种</strong>，与站位无关；只能对己方场上的对应兵种使用</td></tr><tr><td>保留伤害</td><td><strong>保留已受伤害</strong>（不白送治疗）</td></tr><tr><td>关键词替换</td><td>进化后<strong>替换</strong>原兵种的关键词（虎豹骑失去结阵、获得先攻）</td></tr><tr><td>状态保留</td><td>原有 buff / debuff <strong>全部保留</strong></td></tr><tr><td>卡牌 ID</td><td>变为新卡牌 ID（如 <code>shu_infantry</code> → <code>wei_tiger_cavalry</code>）</td></tr><tr><td>入场效果</td><td><strong>不触发</strong>（视为形态转换，不是新单位）</td></tr><tr><td>攻击次数</td><td><strong>不重置</strong>（若本回合已攻击过，进化后不能再次攻击）</td></tr><tr><td>攻击力变化</td><td>若进化提升了攻击力，当回合已攻击过则不改变已结算的伤害</td></tr></tbody></table></div>
+<h3>4.3 进化卡的价值定价</h3>
+<p>进化卡的价值 = 属性提升 + 关键词获得 − 前置条件折扣。</p>
+<div class="table-wrap"><table><thead><tr><th>进化卡</th><th>属性提升</th><th>关键词获得</th><th>原始价值</th><th>前置折扣</th><th>净价值</th><th>3 费基准</th></tr></thead><tbody><tr><td>虎豹骑</td><td>+2 点（+1/+1）</td><td>先攻 −1</td><td>3</td><td>×0.8（需场上有步兵）</td><td>2.4</td><td>7 点预算中占 2.4</td></tr><tr><td>陷阵营</td><td>+2 点（+0/+2）</td><td>回合回血 ≈ −1.5</td><td>3.5</td><td>×0.8</td><td>2.8</td><td>同上</td></tr><tr><td>白马义从</td><td>+1 点（+1/0）</td><td>无双（部分）≈ −1.5</td><td>2.5</td><td>×0.8</td><td>2.0</td><td>同上</td></tr></tbody></table></div>
+<blockquote>进化卡的"3 费"是<strong>额外投入</strong>：玩家需要先有对应兵种（已花 1–2 费），再花 3 费升级。<br>因此进化卡不能太强，否则"铺兵 + 进化"会成为压倒性的唯一解。当前数值偏保守，需实测。</blockquote>
+<h3>4.4 为什么进化卡不涉及站位</h3>
+<ul><li>进化是<strong>兵种形态转换</strong>，不是位置操作；</li><li>玩家关心的是"我场上有这个兵种吗"，而不是"它站在哪里"；</li><li>这样进化卡的规则最简（1 条目标限制），也最容易用数据表达。</li></ul>
+<h2>5. 兵种与阵营的关系</h2>
+<div class="table-wrap"><table><thead><tr><th>阵营</th><th>兵种倾向</th><th>说明</th></tr></thead><tbody><tr><td>蜀</td><td>步兵为主</td><td>结阵集群，人多势众</td></tr><tr><td>魏</td><td>盾兵为主</td><td>稳守反击，护住谋臣</td></tr><tr><td>吴</td><td>弓箭手为主</td><td>远程压制，跨列施压</td></tr><tr><td>群雄</td><td>混合 / 高风险</td><td>兵种混杂，靠强力单体取胜</td></tr></tbody></table></div>
+<blockquote>这是<strong>牌池倾向</strong>，不是硬性限制：任何阵营都可以使用三种兵种，只是各自的强化卡与协同卡不同。</blockquote>
+<h2>6. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>归属</th></tr></thead><tbody><tr><td>Q-07-1</td><td>盾兵最终数值（2 费 1/3 vs 1 费 1/1）</td><td>实机测试</td></tr><tr><td>Q-07-2</td><td>弓箭手最终数值（2 费 2/2 vs 1 费 1/2）</td><td>实机测试</td></tr><tr><td>Q-07-3</td><td>是否增加第 4 个兵种（如骑兵）</td><td>v1 不做</td></tr><tr><td>Q-07-4</td><td>进化卡是否可对"已进化的兵种"再次使用</td><td>暂定不可</td></tr></tbody></table></div>
+</section>
+<section id="08-heroes">
+<h1>08 · 主公与阵营</h1>
+<blockquote>状态：<strong>已定</strong>（曹操与群雄主公技能待最终选择）</blockquote>
+<h2>1. 四主公</h2>
+<div class="table-wrap"><table><thead><tr><th>阵营</th><th>主公</th><th>生命</th><th>主动技</th><th>效果</th></tr></thead><tbody><tr><td>蜀</td><td>刘备</td><td>30</td><td><strong>仁德</strong></td><td>为一名友方人物恢复 2 点生命</td></tr><tr><td>魏</td><td>曹操</td><td>30</td><td><strong>号令</strong></td><td>使一名友方人物本回合 +2 攻击</td></tr><tr><td>吴</td><td>孙权</td><td>30</td><td><strong>坐断东南</strong></td><td>获得 2 点护甲</td></tr><tr><td>群雄</td><td>董卓</td><td>30</td><td><strong>暴虐</strong></td><td>抽 1 张牌，并对自己的主将造成 1 点伤害</td></tr></tbody></table></div>
+<h3>1.1 主公技统一规则</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>费用</td><td><strong>1 统率</strong></td></tr><tr><td>频率</td><td><strong>每回合 1 次</strong></td></tr><tr><td>时机</td><td>行动阶段任意时刻</td></tr><tr><td>目标</td><td>按技能定义（可为友方人物、自身、无目标）</td></tr><tr><td>被震慑影响</td><td>主公不会被震慑（震慑只作用于人物卡）</td></tr><tr><td>反击</td><td>主公不参与普通攻击，不会被反击</td></tr></tbody></table></div>
+<h3>1.2 主公不参与普通攻击</h3>
+<ul><li>主公<strong>没有攻击力</strong>，不能发起普通攻击；</li><li>主公只有主动技一个操作；</li><li>这样主将的定位是"统帅"，而不是"战斗单位"，也避免了"主公互砍"的怪异局面。</li></ul>
+<h2>2. 主公技设计说明</h2>
+<h3>2.1 蜀 · 刘备「仁德」</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>为一名友方人物恢复 2 点生命</td></tr><tr><td>价值</td><td>约 1 费（2 点治疗 ≈ 0.8 属性点 × 回合效率）</td></tr><tr><td>定位</td><td>持久战、保护核心武将</td></tr><tr><td>势力倾向</td><td>回复 / 增益</td></tr><tr><td>备注</td><td>可对满血人物使用（无效果但不消耗回合以外资源）</td></tr></tbody></table></div>
+<h3>2.2 魏 · 曹操「号令」</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>使一名友方人物<strong>本回合</strong> +2 攻击</td></tr><tr><td>价值</td><td>约 1 费</td></tr><tr><td>定位</td><td>进攻节奏、斩杀</td></tr><tr><td>势力倾向</td><td>铺场 / 统率</td></tr><tr><td>备注</td><td>临时增益，回合结束清除</td></tr></tbody></table></div>
+<p><strong>备选方案（待选）</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>方案</th><th>效果</th><th>优劣</th></tr></thead><tbody><tr><td>A（当前）</td><td>一名友方人物本回合 +2 攻击</td><td>简单、进攻性强</td></tr><tr><td>B</td><td>召唤一个 1/1 步兵</td><td>铺场强，但 1/1 ≈ 1 费，略超</td></tr><tr><td>C</td><td>抽 1 张牌，并对自己的主将造成 1 点伤害</td><td>资源型，但与董卓重复</td></tr></tbody></table></div>
+<h3>2.3 吴 · 孙权「坐断东南」</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>获得 2 点护甲</td></tr><tr><td>价值</td><td>约 1 费</td></tr><tr><td>定位</td><td>防守反击、拖延</td></tr><tr><td>势力倾向</td><td>远程 / 护甲</td></tr><tr><td>备注</td><td>护甲永久保留，可累积；配合弓箭手打持久战</td></tr></tbody></table></div>
+<h3>2.4 群雄 · 董卓「暴虐」</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>效果</td><td>抽 1 张牌，并对自己的主将造成 1 点伤害</td></tr><tr><td>价值</td><td>约 1 费（抽牌 ≈ 3 点 − 自伤 ≈ 1 点）</td></tr><tr><td>定位</td><td>资源换强度、高风险高回报</td></tr><tr><td>势力倾向</td><td>混乱 / 高风险</td></tr><tr><td>备注</td><td>自伤可被护甲吸收；后期低血量时需谨慎使用</td></tr></tbody></table></div>
+<p><strong>备选方案（待选）</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>方案</th><th>效果</th><th>说明</th></tr></thead><tbody><tr><td>A（当前）</td><td>董卓「暴虐」：抽 1 张，自伤 1</td><td>风格最鲜明</td></tr><tr><td>B</td><td>袁绍「望族」：召唤一个 1/1 步兵</td><td>更保守，但与"群雄混乱"主题不符</td></tr></tbody></table></div>
+<h2>3. 势力差异化（靠牌池，不靠额外规则）</h2>
+<p>v1 <strong>只保留"主动技"一个主公系统</strong>，阵营差异全部由<strong>牌池倾向</strong>承担：</p>
+<div class="table-wrap"><table><thead><tr><th>阵营</th><th>关键词/机制倾向</th><th>玩法风格</th></tr></thead><tbody><tr><td>蜀</td><td>回复、增益、结阵、忠义</td><td>稳、持久、集群推进</td></tr><tr><td>魏</td><td>铺场、统率、先攻、疾行</td><td>快、压制、兵力优势</td></tr><tr><td>吴</td><td>神射、护甲、控制、饮血</td><td>远程消耗、防守反击</td></tr><tr><td>群雄</td><td>无双、混乱、高风险高回报</td><td>单体强力、赌博式爆发</td></tr></tbody></table></div>
+<blockquote><strong>为什么不用"势力被动"</strong>：两个系统（被动 + 主动技）会显著增加学习成本与平衡难度，而牌池倾向已经足够表达阵营差异。</blockquote>
+<h2>4. 主公在战场上的位置</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>位置</td><td>本方阵型的<strong>最远端</strong>（阵型之后，屏幕最外侧），<strong>不占格</strong></td></tr><tr><td>是否可被选择为目标</td><td>可以，但需满足"攻击者所在列两排皆空"且"无敌方架盾"</td></tr><tr><td>是否可被战法/计略指定</td><td><strong>可以</strong>（计谋直伤是破阵之外的唯一路径）</td></tr><tr><td>主将是否受状态影响</td><td>只受护甲、伤害、粮尽影响；不受震慑/混乱/中毒等人物卡状态</td></tr></tbody></table></div>
+<h2>5. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>归属</th><th>截止</th></tr></thead><tbody><tr><td>Q-08-1</td><td>曹操主公技最终方案（A/B/C）</td><td>策划</td><td>内容填充期</td></tr><tr><td>Q-08-2</td><td>群雄主公最终方案（董卓/袁绍）</td><td>策划</td><td>内容填充期</td></tr><tr><td>Q-08-3</td><td>是否需要"主公专属卡"（每阵营 1–2 张）</td><td>策划</td><td>v1 可选</td></tr><tr><td>Q-08-4</td><td>主公技是否允许对敌方使用（如造成伤害）</td><td>设计</td><td>v1 暂不允许</td></tr></tbody></table></div>
+</section>
+<section id="09-bonds">
+<h1>09 · 羁绊系统</h1>
+<blockquote>状态：<strong>草案</strong>（机制已定，具体羁绊与人物名单待策划确认）</blockquote>
+<h2>1. 为什么需要羁绊</h2>
+<p>产品的核心卖点之一是"<strong>各个不同人物的特点组合</strong>"。关键词解决"单卡辨识度"，羁绊解决"<strong>组合价值</strong>"：</p>
+<ul><li>让玩家有收集与构筑的动力（"我要凑齐刘关张"）；</li><li>让同一张卡在不同阵容里价值不同（关羽在蜀国 vs 在混编阵容）；</li><li>完全数据驱动，<strong>加一个羁绊 = 加一段 YAML，不写代码</strong>。</li></ul>
+<h2>2. 两种羁绊</h2>
+<div class="table-wrap"><table><thead><tr><th>类型</th><th>触发条件</th><th>例子</th></tr></thead><tbody><tr><td><strong>同场羁绊</strong></td><td>己方场上同时存在指定人物集合</td><td>桃园结义：刘关张同场</td></tr><tr><td><strong>对抗羁绊</strong></td><td>敌方场上有指定人物，己方有指定人物</td><td>三英战吕布：敌方有吕布，己方有刘/关/张</td></tr></tbody></table></div>
+<h3>2.1 对抗羁绊为什么值得做</h3>
+<p>这是本作最有三国味的设计：</p>
+<ul><li>它把"人物关系"变成<strong>跨阵营的博弈</strong>——你带吕布，对手的刘关张就更强；</li><li>它让对局有了"宿命感"，而不是纯粹的数值堆叠；</li><li>它是<strong>对称的</strong>（谁带谁受益/受损都明确），不会产生不公平。</li></ul>
+<h2>3. 结算时机</h2>
+<div class="table-wrap"><table><thead><tr><th>时机</th><th>动作</th></tr></thead><tbody><tr><td>任意人物卡入场后</td><td>重新检查所有羁绊条件</td></tr><tr><td>任意人物卡阵亡后</td><td>重新检查所有羁绊条件（<strong>羁绊可能失效</strong>）</td></tr><tr><td>羁绊生效</td><td>授予对应的增益（属性修正或关键词）</td></tr><tr><td>羁绊失效</td><td>移除该增益；若属性下降导致血量 ≤ 0，则触发死亡结算</td></tr></tbody></table></div>
+<p><strong>关键规则</strong>：羁绊是<strong>动态</strong>的，不是永久标记。刘关张死了一个，另外两个立刻失去加成。</p>
+<h2>4. 羁绊草案（10 个，人物名单待策划确认）</h2>
+<h3>4.1 同场羁绊（6 个）</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>羁绊名</th><th>条件</th><th>效果</th><th>状态</th></tr></thead><tbody><tr><td>1</td><td>桃园结义</td><td>刘备 + 关羽 + 张飞 同场</td><td>三者各 +1 攻击 / +1 生命</td><td>草案</td></tr><tr><td>2</td><td>五虎上将</td><td>关羽/张飞/赵云/马超/黄忠 中任意 3 名</td><td>这三名获得「先攻」</td><td>草案</td></tr><tr><td>3</td><td>卧龙凤雏</td><td>诸葛亮 + 庞统 同场</td><td>己方谋臣计略伤害 +1</td><td>草案</td></tr><tr><td>4</td><td>虎豹骑阵</td><td>曹操 + 2 名虎豹骑 同场</td><td>己方所有虎豹骑 +1 攻击</td><td>草案</td></tr><tr><td>5</td><td>五子良将</td><td>张辽/乐进/于禁/张郃/徐晃 中任意 3 名</td><td>回合开始时抽 1 张牌</td><td>草案</td></tr><tr><td>6</td><td>江东双璧</td><td>周瑜 + 陆逊 同场</td><td>己方弓箭手攻击 +1</td><td>草案</td></tr></tbody></table></div>
+<h3>4.2 对抗羁绊（4 个）</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>羁绊名</th><th>条件</th><th>效果</th><th>状态</th></tr></thead><tbody><tr><td>7</td><td>三英战吕布</td><td>敌方有吕布；己方有刘备/关羽/张飞</td><td>己方这三人 +1 攻击</td><td>草案</td></tr><tr><td>8</td><td>既生瑜何生亮</td><td>敌方有诸葛亮；己方有周瑜</td><td>周瑜计略伤害 +2</td><td>草案</td></tr><tr><td>9</td><td>血 仇</td><td>敌方有华雄；己方有关羽</td><td>关羽 +2 攻击</td><td>草案</td></tr><tr><td>10</td><td>挟天子</td><td>敌方有曹操；己方有刘备</td><td>刘备主公技费用 −1（最低 0）</td><td>草案</td></tr></tbody></table></div>
+<h2>5. 数据格式</h2>
+<pre><code>- id: taoyuan
+  name: 桃园结义
+  type: ally            # ally = 同场羁绊 | rival = 对抗羁绊
+  condition:
+    require: [shu_liubei, shu_guanyu, shu_zhangfei]   # 必须全部在场（己方）
+  effects:
+    - target: { self: true }        # 作用于条件中的己方人物
+      modify: { attack: 1, health: 1 }
+  memo: "刘关张同场，三人齐涨"</code></pre>
+<pre><code>- id: three_heroes_vs_lvbu
+  name: 三英战吕布
+  type: rival
+  condition:
+    enemy_has: [qun_lvbu]                              # 敌方场上有
+    require: [shu_liubei, shu_guanyu, shu_zhangfei]    # 己方场上有（任一即可，见 note）
+  match: any                                           # any = 满足任意一个即触发
+  effects:
+    - target: { matched: true }
+      modify: { attack: 1 }
+  memo: "吕布在场，刘关张斗志更盛"</code></pre>
+<h3>5.1 字段说明</h3>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>取值</th><th>说明</th></tr></thead><tbody><tr><td><code>type</code></td><td><code>ally</code> / <code>rival</code></td><td>同场 / 对抗</td></tr><tr><td><code>condition.require</code></td><td>人物 id 数组</td><td>己方必须存在的人物</td></tr><tr><td><code>condition.enemy_has</code></td><td>人物 id 数组</td><td>敌方必须存在的人物（仅 rival）</td></tr><tr><td><code>match</code></td><td><code>all</code> / <code>any</code></td><td>默认 <code>all</code>；<code>any</code> 表示满足任一即可</td></tr><tr><td><code>effects[].target</code></td><td>选择器</td><td><code>self</code>（条件人物）/ <code>matched</code>（匹配到的人物）/ <code>all_allies</code></td></tr><tr><td><code>effects[].modify</code></td><td>属性修正</td><td><code>attack</code> / <code>health</code> / <code>keywords</code></td></tr></tbody></table></div>
+<h2>6. 平衡注意事项</h2>
+<div class="table-wrap"><table><thead><tr><th>风险</th><th>说明</th><th>对策</th></tr></thead><tbody><tr><td>羁绊过强</td><td>凑齐即无敌，压缩构筑多样性</td><td>单个羁绊总价值控制在 2–4 属性点</td></tr><tr><td>羁绊失效猝死</td><td>属性下降导致血量 ≤ 0</td><td>血量不会因羁绊失效降到 0 以下，最低保留 1 点（<strong>待确认</strong>）</td></tr><tr><td>对抗羁绊被滥用</td><td>玩家故意带弱卡触发对手羁绊？</td><td>对抗羁绊只加成<strong>己方</strong>，不影响敌方</td></tr><tr><td>条件过于苛刻</td><td>玩家永远凑不齐</td><td>三卡羁绊条件优先；避免 4 卡以上</td></tr></tbody></table></div>
+<h3>6.1 羁绊失效的血量处理（待决）</h3>
+<div class="table-wrap"><table><thead><tr><th>方案</th><th>规则</th><th>倾向</th></tr></thead><tbody><tr><td>A</td><td>血量不会因羁绊失效降到 1 以下</td><td>更友好，避免"突然死亡"</td></tr><tr><td>B</td><td>正常结算，可能死亡</td><td>更严谨，但玩家体验差</td></tr></tbody></table></div>
+<blockquote>推荐 <strong>A</strong>，并写入 <code>14-open-questions.md</code> 待确认。</blockquote>
+<h2>7. 与 UI 的配合</h2>
+<div class="table-wrap"><table><thead><tr><th>场景</th><th>表现</th></tr></thead><tbody><tr><td>羁绊即将凑齐</td><td>手牌中的关键人物卡高亮提示"可与场上 XX 组成羁绊"</td></tr><tr><td>羁绊已生效</td><td>场上人物卡显示羁绊图标 + 连线效果</td></tr><tr><td>羁绊失效</td><td>图标淡出 + 短暂提示"羁绊已失效"</td></tr><tr><td>对抗羁绊触发</td><td>屏幕边缘短暂提示"宿敌相遇"</td></tr></tbody></table></div>
+<h2>8. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>归属</th></tr></thead><tbody><tr><td>Q-09-1</td><td>10 个羁绊的人物名单与效果最终确认</td><td>策划</td></tr><tr><td>Q-09-2</td><td>羁绊失效的血量处理（方案 A/B）</td><td>策划</td></tr><tr><td>Q-09-3</td><td>是否需要"阵营羁绊"（同阵营 N 名即生效）</td><td>v1 暂不做</td></tr><tr><td>Q-09-4</td><td>羁绊效果是否显示在卡面详情中</td><td>是</td></tr></tbody></table></div>
+</section>
+<section id="10-skills-statuses">
+<h1>10 · 技能模型与状态系统</h1>
+<blockquote>状态：<strong>已定</strong>。本文件是 <code>core</code> 规则引擎的直接实现依据。</blockquote>
+<h2>1. 技能模型</h2>
+<p>所有人物卡的技能归入三类：</p>
+<div class="table-wrap"><table><thead><tr><th>类型</th><th>英文</th><th>触发方式</th><th>消耗</th><th>典型归属</th></tr></thead><tbody><tr><td><strong>主动技</strong></td><td><code>active</code></td><td>玩家主动使用</td><td>统率值</td><td>谋臣</td></tr><tr><td><strong>触发技</strong></td><td><code>trigger</code></td><td>满足条件自动触发</td><td>免费</td><td>武将、兵种</td></tr><tr><td><strong>光环</strong></td><td><code>aura</code></td><td>持续生效，条件满足时</td><td>免费</td><td>主公、武将</td></tr></tbody></table></div>
+<h3>1.1 主动技</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>使用时机</td><td>行动阶段</td></tr><tr><td>消耗</td><td>统率值（0–3）</td></tr><tr><td>频率</td><td>每回合 1 次（默认）</td></tr><tr><td>被震慑</td><td><strong>不能使用</strong></td></tr><tr><td>被混乱</td><td><strong>可以使用，但目标随机</strong>（在合法目标中）</td></tr><tr><td>目标</td><td>按技能定义的选择器</td></tr></tbody></table></div>
+<h3>1.2 触发技</h3>
+<div class="table-wrap"><table><thead><tr><th>触发时机</th><th>标识</th><th>说明</th></tr></thead><tbody><tr><td>入场</td><td><code>on_play</code></td><td>打出后立即触发（俗称"战吼"）</td></tr><tr><td>阵亡</td><td><code>on_death</code></td><td>死亡结算后触发（「忠义」「遗计」）</td></tr><tr><td>受到伤害</td><td><code>on_damaged</code></td><td>每次受到伤害后触发</td></tr><tr><td>回合开始</td><td><code>turn_start</code></td><td>己方回合开始阶段</td></tr><tr><td>回合结束</td><td><code>turn_end</code></td><td>己方回合结束阶段</td></tr><tr><td>攻击时</td><td><code>on_attack</code></td><td>发起普通攻击时</td></tr><tr><td>被攻击时</td><td><code>on_defend</code></td><td>成为攻击目标时</td></tr></tbody></table></div>
+<h3>1.3 光环</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>生效条件</td><td>拥有者存活且条件满足</td></tr><tr><td>影响范围</td><td>按定义（自身 / 全体友方 / 特定兵种 / 特定列）</td></tr><tr><td>重算时机</td><td>入场、死亡、羁绊变化后立即重算</td></tr><tr><td>与状态的区别</td><td>光环不产生"状态"，只是动态修正</td></tr></tbody></table></div>
+<h2>2. 技能定义字段</h2>
+<pre><code>skills:
+  - id: caochuan
+    name: 草船借箭
+    kind: active                # active | trigger | aura
+    cost: 2                     # 仅 active
+    frequency: once_per_turn    # once_per_turn | unlimited | once
+    target:                     # 选择器，见 13-balance-data-model.md
+      side: ally
+      filter: { type: strategist }
+      count: 1
+    condition: {}               # 可选
+    effects:
+      - action: draw
+        value: 2</code></pre>
+<h2>3. 状态全集</h2>
+<h3>3.1 增益状态</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>状态</th><th>效果</th><th>叠加</th><th>持续</th><th>关键时机</th></tr></thead><tbody><tr><td>1</td><td><strong>振奋</strong></td><td>攻击 +N</td><td>层数叠加</td><td>永久或指定回合</td><td>攻击结算时</td></tr><tr><td>2</td><td><strong>急救</strong></td><td>回合开始恢复 N 点生命</td><td>层数叠加</td><td>永久</td><td>回合开始</td></tr><tr><td>3</td><td><strong>架盾</strong></td><td>全局嘲讽（仅前军生效）</td><td>不叠加</td><td>条件性</td><td>目标选择时</td></tr><tr><td>4</td><td><strong>先攻</strong></td><td>先结算伤害，目标阵亡则不受反击</td><td>不叠加</td><td>永久</td><td>伤害结算</td></tr><tr><td>5</td><td><strong>奇袭</strong></td><td>不能被指定为攻击目标</td><td>不叠加</td><td>攻击后失去</td><td>目标选择时</td></tr><tr><td>6</td><td><strong>武圣</strong></td><td>免疫一次伤害</td><td>不叠加</td><td>消耗后失去</td><td>伤害结算前</td></tr><tr><td>7</td><td><strong>护甲</strong></td><td>吸收伤害（<strong>仅主将</strong>）</td><td>层数叠加</td><td>永久</td><td>伤害结算前</td></tr></tbody></table></div>
+<h3>3.2 减益状态</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>状态</th><th>效果</th><th>叠加</th><th>持续</th><th>关键时机</th></tr></thead><tbody><tr><td>8</td><td><strong>震慑</strong></td><td>不能普通攻击、不能使用主动技</td><td>不叠加</td><td>N 回合</td><td>攻击声明 / 技能使用</td></tr><tr><td>9</td><td><strong>混乱</strong></td><td>普通攻击与主动技的目标<strong>在合法目标中随机</strong></td><td>不叠加</td><td>N 回合</td><td>目标选择时</td></tr><tr><td>10</td><td><strong>中毒</strong></td><td>回合结束时失去 N 点生命</td><td>层数叠加</td><td>永久</td><td>回合结束</td></tr><tr><td>11</td><td><strong>虚弱</strong></td><td>攻击 −N</td><td>层数叠加</td><td>N 回合</td><td>攻击结算时</td></tr><tr><td>12</td><td><strong>断粮</strong></td><td>统率值上限 −N</td><td>层数叠加</td><td>N 回合</td><td>回合开始</td></tr></tbody></table></div>
+<h3>3.3 叠加规则</h3>
+<div class="table-wrap"><table><thead><tr><th>类型</th><th>规则</th></tr></thead><tbody><tr><td><strong>数值型</strong>（振奋/急救/中毒/虚弱/断粮/护甲）</td><td>按<strong>层数累加</strong>（2 层振奋 = +2 攻击）</td></tr><tr><td><strong>标志型</strong>（架盾/先攻/奇袭/武圣/震慑/混乱）</td><td><strong>不叠加</strong>，只判定"存在与否"</td></tr><tr><td>同名标志型重复施加</td><td>刷新持续时间，不叠加效果</td></tr></tbody></table></div>
+<h3>3.4 震慑的具体限制</h3>
+<div class="table-wrap"><table><thead><tr><th>行为</th><th>是否允许</th></tr></thead><tbody><tr><td>普通攻击</td><td>❌</td></tr><tr><td>主动技</td><td>❌</td></tr><tr><td>触发技</td><td>✅（被动仍生效）</td></tr><tr><td>光环</td><td>✅</td></tr><tr><td>被攻击</td><td>✅</td></tr><tr><td>反击</td><td>✅（被攻击时仍会反击）</td></tr></tbody></table></div>
+<h3>3.5 混乱的具体规则</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>影响范围</td><td>普通攻击、主动技</td></tr><tr><td>目标选择</td><td>在<strong>合法目标集合</strong>中随机（仍受架盾、同列等规则约束）</td></tr><tr><td>无合法目标</td><td>该行为无法执行（不消耗统率）</td></tr><tr><td>是否影响触发技</td><td>❌</td></tr></tbody></table></div>
+<h2>4. 结算时机表（核心）</h2>
+<blockquote>这张表是 <code>core</code> 的实现规范。任何卡牌效果都必须挂在以下某个时机上，不允许"任意时刻"。</blockquote>
+<div class="table-wrap"><table><thead><tr><th>序</th><th>时机</th><th>触发内容</th><th>顺序细则</th></tr></thead><tbody><tr><td>1</td><td>回合开始</td><td>统率值上限 +1（≤10），统率值回满</td><td>—</td></tr><tr><td>2</td><td>回合开始</td><td>抽 1 张牌</td><td>牌库空 → 粮尽伤害</td></tr><tr><td>3</td><td>回合开始</td><td>回合开始类效果</td><td>① 急救回血 ② 光环重算 ③ 断粮修正（作用于下回合上限）</td></tr><tr><td>4</td><td>出牌</td><td>检查统率是否足够</td><td>含断粮修正后的上限</td></tr><tr><td>5</td><td>出牌</td><td>消耗统率值</td><td>—</td></tr><tr><td>6</td><td>入场</td><td>入场触发技</td><td>按卡牌定义的顺序</td></tr><tr><td>7</td><td>入场后</td><td><strong>羁绊重算</strong></td><td>检查全部羁绊，授予/移除增益</td></tr><tr><td>8</td><td>攻击声明</td><td>合法性检查</td><td>① 是否被震慑 ② 攻击次数是否用完 ③ 是否当回合入场 ④ 是否被自己人挡住</td></tr><tr><td>9</td><td>攻击声明</td><td>目标选择</td><td>① 架盾优先级 ② 同列/跨列规则 ③ 混乱时随机</td></tr><tr><td>10</td><td>伤害结算前</td><td>免疫判定</td><td>武圣 → 消耗并免疫；其他免疫效果</td></tr><tr><td>11</td><td>伤害结算前</td><td>护甲吸收</td><td>仅主将；护甲归零后剩余伤害进入下一步</td></tr><tr><td>12</td><td>伤害结算</td><td>先攻判定</td><td>有先攻方先造成伤害；若目标阵亡 → 跳过反击</td></tr><tr><td>13</td><td>伤害结算</td><td>造成伤害</td><td>攻击力 = 面板 + 振奋 − 虚弱 + 结阵（动态）</td></tr><tr><td>14</td><td>伤害结算</td><td>反击</td><td>无双/先攻例外；主将不反击</td></tr><tr><td>15</td><td>伤害结算后</td><td>饮血回血</td><td>为主将恢复等量生命（≤30）</td></tr><tr><td>16</td><td>伤害结算后</td><td>受到伤害触发技</td><td><code>on_damaged</code></td></tr><tr><td>17</td><td>死亡结算</td><td>移出战场</td><td>血量 ≤ 0</td></tr><tr><td>18</td><td>死亡结算</td><td>亡语触发</td><td>忠义 / 遗计</td></tr><tr><td>19</td><td>死亡结算后</td><td><strong>羁绊重算</strong></td><td>羁绊可能失效</td></tr><tr><td>20</td><td>回合结束</td><td>回合结束类效果</td><td>① 中毒结算 ② <code>turn_end</code> 触发技</td></tr><tr><td>21</td><td>回合结束</td><td>清除临时效果</td><td>"本回合"类增益/减益</td></tr><tr><td>22</td><td>回合结束</td><td>手牌上限检查</td><td>&gt;10 张则弃至 10 张</td></tr><tr><td>23</td><td>回合结束</td><td>交出行动权</td><td>—</td></tr></tbody></table></div>
+<h2>5. 交互边界（必须实现的用例）</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>场景</th><th>正确结果</th></tr></thead><tbody><tr><td>1</td><td>有「先攻」的攻击者攻击有「武圣」的目标</td><td>攻击者先造成伤害 → 武圣免疫该次伤害 → 目标存活 → <strong>目标反击</strong>（先攻的"目标阵亡则免反击"不成立）</td></tr><tr><td>2</td><td>「无双」攻击者攻击有「先攻」的目标</td><td>攻击者造成伤害 → 无双跳过反击 → 目标若存活仍会反击？<strong>否</strong>：反击属于被攻击方，无双免除的是攻击者受到的伤害，因此目标不反击</td></tr><tr><td>3</td><td>「混乱」人物攻击，场上存在「架盾」</td><td>在<strong>架盾人物集合</strong>中随机选择目标</td></tr><tr><td>4</td><td>后军的盾兵</td><td><strong>失去架盾</strong>，不再强制敌方目标选择</td></tr><tr><td>5</td><td>盾兵同时拥有「奇袭」</td><td><strong>不允许共存</strong>（会导致架盾死锁），见 §6</td></tr><tr><td>6</td><td>「结阵」步兵攻击时相邻步兵被击杀</td><td>按<strong>攻击声明时</strong>的场面判定</td></tr><tr><td>7</td><td>羁绊加成导致血量变化后羁绊失效</td><td>血量最低保留 1 点（<strong>待确认</strong>，见 <code>09-bonds.md</code> §6.1）</td></tr><tr><td>8</td><td>中毒人物在回合结束前被击杀</td><td>不再结算中毒</td></tr><tr><td>9</td><td>「震慑」人物被攻击</td><td>仍会正常反击</td></tr><tr><td>10</td><td>主将被「震慑」</td><td>无效（震慑只作用于人物卡）</td></tr></tbody></table></div>
+<h2>6. 禁止的关键词组合</h2>
+<div class="table-wrap"><table><thead><tr><th>组合</th><th>原因</th></tr></thead><tbody><tr><td>架盾 + 奇袭</td><td>架盾要求"必须优先攻击它"，奇袭要求"不能被指定" → 死锁</td></tr><tr><td>架盾 + 无双</td><td>不是禁止，但价值叠加过高，需严格控预算</td></tr></tbody></table></div>
+<blockquote>数据校验器需在 CI 中检查非法组合（见 <code>13-balance-data-model.md</code> §校验规则）。</blockquote>
+<h2>7. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>归属</th></tr></thead><tbody><tr><td>Q-10-1</td><td>是否需要"驱散"机制（移除减益）</td><td>v1 暂不做</td></tr><tr><td>Q-10-2</td><td>羁绊失效的血量保护（最低 1 点）</td><td>待策划确认</td></tr><tr><td>Q-10-3</td><td>「混乱」是否应改为"攻击最近的敌人"</td><td>v1 用随机，更简单</td></tr><tr><td>Q-10-4</td><td>状态图标与层数角标的 UI 规范</td><td>美术</td></tr></tbody></table></div>
+</section>
+<section id="11-events-tactics-jiuling">
+<h1>11 · 事件卡、战法卡与酒令</h1>
+<blockquote>状态：<strong>草案</strong>（机制已定，具体卡牌待策划确认）</blockquote>
+<h2>1. 事件卡：「天道无情」原则</h2>
+<h3>1.1 核心公式</h3>
+<blockquote><strong>事件卡 = 对双方同时生效的对称效果 + 施放者的时机优势</strong></blockquote>
+<p>这是本作对"事件卡"的定义，也是它区别于炉石法术的地方：</p>
+<ul><li>天灾人祸<strong>不认敌我</strong>（灾年、瘟疫、南蛮入侵都伤害所有人）；</li><li>但施放者可以选择<strong>时机</strong>——在自己占优、或对手关键人物残血时引爆；</li><li>因此事件卡是"<strong>放大器</strong>"，不是"解场牌"。</li></ul>
+<h3>1.2 设计规则</h3>
+<div class="table-wrap"><table><thead><tr><th>规则</th><th>说明</th></tr></thead><tbody><tr><td>对称性</td><td>基础效果对双方完全相同</td></tr><tr><td>时机优势</td><td>施放者可额外获得一个小收益（如抽 1 张、自身单位不受影响）</td></tr><tr><td>费用</td><td>2–6 统率</td></tr><tr><td>目标</td><td>通常是"全场"或"某一排"</td></tr><tr><td>不能是纯优势</td><td>若一张事件卡只对敌方生效，它应归类为<strong>战法卡</strong></td></tr></tbody></table></div>
+<h3>1.3 事件卡草案</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>卡名</th><th>费用</th><th>效果</th><th>施放者额外收益</th><th>状态</th></tr></thead><tbody><tr><td>1</td><td>灾 年</td><td>2</td><td>双方所有人物卡失去 1 点生命</td><td>无</td><td>草案</td></tr><tr><td>2</td><td>五谷丰登</td><td>3</td><td>双方主将各恢复 3 点生命</td><td>施放者抽 1 张牌</td><td>草案</td></tr><tr><td>3</td><td>南蛮入侵</td><td>4</td><td>双方所有<strong>前军</strong>人物卡受到 2 点伤害</td><td>无</td><td>草案</td></tr><tr><td>4</td><td>黄巾之乱</td><td>3</td><td>双方各召唤 2 个 1/1 黄巾兵（随机空格）</td><td>施放者的黄巾兵获得「疾行」</td><td>草案</td></tr><tr><td>5</td><td>火烧洛阳</td><td>5</td><td>摧毁双方<strong>后军</strong>的所有人物卡</td><td>无</td><td>草案</td></tr><tr><td>6</td><td>瘟疫</td><td>3</td><td>双方所有人物卡获得「中毒 1」</td><td>无</td><td>草案</td></tr></tbody></table></div>
+<blockquote>⚠️ <strong>5 列下"行目标 = 5 个"</strong>：<code>南蛮入侵</code>、<code>火烧洛阳</code> 这类行效果比 4 列时强 25%，费用与伤害需实测校准。</blockquote>
+<h3>1.4 数据格式</h3>
+<pre><code>- id: event_zainian
+  name: 灾年
+  faction: neutral
+  type: event
+  cost: 2
+  target:
+    side: both          # 双方
+    filter: { type: character }
+  effects:
+    - action: damage
+      value: 1
+  memo: "全场掉血，谁先放谁掌握节奏"</code></pre>
+<h2>2. 战法卡</h2>
+<h3>2.1 与事件卡的区别</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>事件卡</th><th>战法卡</th></tr></thead><tbody><tr><td>影响对象</td><td>双方对称</td><td>单方（通常是己方或敌方）</td></tr><tr><td>定位</td><td>放大器 / 节奏控制</td><td>战术解 / 组合技</td></tr><tr><td>费用</td><td>2–6</td><td>1–5</td></tr></tbody></table></div>
+<h3>2.2 分类与草案</h3>
+<div class="table-wrap"><table><thead><tr><th>分类</th><th>卡名</th><th>费用</th><th>效果</th><th>状态</th></tr></thead><tbody><tr><td><strong>伤害</strong></td><td>火 攻</td><td>3</td><td>对敌方一名人物卡造成 4 点伤害</td><td>草案</td></tr><tr><td><strong>伤害</strong></td><td>箭 雨</td><td>4</td><td>对敌方某一列的两名人物卡各造成 3 点伤害</td><td>草案</td></tr><tr><td><strong>伤害（主将）</strong></td><td>反间计</td><td>4</td><td>对敌方主将造成 4 点伤害（无视阵型）</td><td>草案</td></tr><tr><td><strong>位移</strong></td><td>暗渡陈仓</td><td>2</td><td>将一名己方人物卡移动到己方任意空格</td><td>草案</td></tr><tr><td><strong>位移</strong></td><td>围魏救赵</td><td>3</td><td>将一名敌方人物卡移回其手牌（若手牌已满则改为受到 3 点伤害）</td><td>草案</td></tr><tr><td><strong>增益</strong></td><td>暂避其锋</td><td>2</td><td>本回合内，一名己方人物卡受到的伤害 −2</td><td>草案</td></tr><tr><td><strong>增益</strong></td><td>背水一战</td><td>3</td><td>一名己方人物卡本回合 +3 攻击，回合结束时受到 2 点伤害</td><td>草案</td></tr><tr><td><strong>控制</strong></td><td>离间计</td><td>3</td><td>敌方一名人物卡获得「混乱 1」</td><td>草案</td></tr><tr><td><strong>控制</strong></td><td>空城计</td><td>3</td><td>敌方一名人物卡获得「震慑 1」</td><td>草案</td></tr><tr><td><strong>资源</strong></td><td>草船借箭</td><td>2</td><td>抽 2 张牌</td><td>草案</td></tr><tr><td><strong>召唤</strong></td><td>借 兵</td><td>2</td><td>在己方随机空格召唤一个 1/1 步兵</td><td>草案</td></tr><tr><td><strong>进化</strong></td><td>（见特殊兵种卡）</td><td>3</td><td>见 <code>07-troops.md</code></td><td>已定</td></tr></tbody></table></div>
+<h3>2.3 战法卡的设计要点</h3>
+<div class="table-wrap"><table><thead><tr><th>要点</th><th>说明</th></tr></thead><tbody><tr><td>提供"解场"手段</td><td>必须有 2–3 张能处理高攻武将的卡，否则"抽到吕布就赢"</td></tr><tr><td>提供"计谋直伤"</td><td>必须有 2–3 张能直接伤害主将的卡，作为破阵之外的第二条胜利路径</td></tr><tr><td>提供"位移"</td><td>暗渡陈仓这类卡是 5 列网格的专属价值</td></tr><tr><td>不做"无条件清场"</td><td>全场清场会让对局节奏崩塌</td></tr></tbody></table></div>
+<h2>3. 酒令（招牌机制）</h2>
+<h3>3.1 规则</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规则</th></tr></thead><tbody><tr><td>选择时机</td><td>开局，双方各选 1 个（三选一）</td></tr><tr><td>持续时间</td><td>整局</td></tr><tr><td>是否可见</td><td>双方互相可见（信息透明）</td></tr><tr><td>解锁方式</td><td>成就/进度解锁，<strong>不进入付费墙</strong></td></tr><tr><td>数量</td><td>v1 提供 4–8 个</td></tr></tbody></table></div>
+<h3>3.2 酒令草案</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>酒令</th><th>效果</th><th>定位</th></tr></thead><tbody><tr><td>1</td><td><strong>温酒斩华雄</strong></td><td>你打出的第一张武将卡统率消耗 −1（最低 0）</td><td>前期节奏</td></tr><tr><td>2</td><td><strong>对酒当歌</strong></td><td>每回合首次抽牌时额外抽 1 张，然后弃 1 张</td><td>手牌质量</td></tr><tr><td>3</td><td><strong>青梅煮酒</strong></td><td>每回合第一次受到的伤害 −1</td><td>防守</td></tr><tr><td>4</td><td><strong>煮酒论英雄</strong></td><td>开局获得一张本阵营史诗卡，第 5 回合起可用</td><td>后期爆发</td></tr></tbody></table></div>
+<h3>3.3 设计要点</h3>
+<div class="table-wrap"><table><thead><tr><th>要点</th><th>说明</th></tr></thead><tbody><tr><td>每个酒令都要"有代价或有限制"</td><td>否则会出现"唯一最优解"</td></tr><tr><td>不与付费绑定</td><td>避免 pay-to-win 与合规风险</td></tr><tr><td>效果必须可读</td><td>玩家能一眼看出它如何影响这局</td></tr><tr><td>数量控制</td><td>v1 只做 4 个，后续通过版本更新扩展</td></tr></tbody></table></div>
+<h3>3.4 数据格式</h3>
+<pre><code>- id: jiuling_wenjiu
+  name: 温酒斩华雄
+  effects:
+    - action: cost_modifier
+      target: { filter: { type: general }, limit: 1 }
+      value: -1
+  memo: "第一张武将更便宜"</code></pre>
+<h2>4. 卡牌数量与内容产能</h2>
+<div class="table-wrap"><table><thead><tr><th>类别</th><th>v1 目标数量</th></tr></thead><tbody><tr><td>事件卡</td><td>8–12</td></tr><tr><td>战法卡</td><td>12–16</td></tr><tr><td>特殊兵种卡</td><td>3–6</td></tr><tr><td>酒令</td><td>4</td></tr></tbody></table></div>
+<blockquote>加上人物卡（约 40–50 张），v1 总卡量约 <strong>65–85 张</strong>。</blockquote>
+<h2>5. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>归属</th></tr></thead><tbody><tr><td>Q-11-1</td><td>事件卡的"施放者额外收益"是否统一为"抽 1 张"</td><td>策划</td></tr><tr><td>Q-11-2</td><td>战法卡是否需要"反制"（打断对手战法）</td><td>v1 暂不做</td></tr><tr><td>Q-11-3</td><td>酒令数量与最终效果</td><td>策划</td></tr><tr><td>Q-11-4</td><td>事件卡在 5 列下的数值校准</td><td>实机测试</td></tr></tbody></table></div>
+</section>
+<section id="12-randomness">
+<h1>12 · 随机性设计准则</h1>
+<blockquote>状态：<strong>已定</strong>。随机性是本作的核心卖点之一，也是最容易做坏的地方——本文件给出硬性约束。</blockquote>
+<h2>1. 五条硬规则</h2>
+<h3>规则一：随机性只决定过程，不决定胜负</h3>
+<ul><li>✅ 允许："随机对一名敌方人物造成 3 点伤害"</li><li>❌ 禁止："50% 概率直接消灭目标"、"50% 概率本局获胜"</li><li>判据：<strong>单次随机结果的极端情况，不应直接导致一方失败。</strong></li></ul>
+<h3>规则二：随机性必须可读</h3>
+<ul><li>✅ 允许："随机一名敌方人物"</li><li>❌ 禁止："随机一个效果"（玩家无法预判范围）</li><li>判据：玩家在使用这张卡前，能说出<strong>所有可能的结果范围</strong>。</li></ul>
+<h3>规则三：随机性有上下限</h3>
+<div class="table-wrap"><table><thead><tr><th>类型</th><th>约束</th></tr></thead><tbody><tr><td>伤害浮动</td><td>≤ ±20%（例：6 点伤害浮动为 5–7）</td></tr><tr><td>随机目标</td><td>必须在<strong>合法目标集合</strong>内（受架盾、同列等规则约束）</td></tr><tr><td>随机召唤位置</td><td>只能是己方空格</td></tr><tr><td>随机抽牌</td><td>从牌库随机，不额外增加张数</td></tr></tbody></table></div>
+<h3>规则四：随机性可被对冲</h3>
+<ul><li>至少提供 2–3 张能<strong>降低随机性</strong>的卡（如"指定目标"的战法、"查看牌库顶"的效果）；</li><li>玩家的站位决策可以<strong>改变随机目标的合法集合</strong>（例如把人物散开，降低被随机命中核心的概率）；</li><li>判据：<strong>技术好的玩家，长期胜率应显著高于随机决策的玩家。</strong></li></ul>
+<h3>规则五：开包/抽卡概率必须公示</h3>
+<ul><li>内购开包（若做）必须在游戏内公示各稀有度概率；</li><li>局内随机（抽牌、随机目标）不需要公示，但必须有保底体验；</li><li>合规要求见 <code>docs/00-tech-selection.md</code> §4（版号与内容红线）。</li></ul>
+<h2>2. 天时 / 地利 / 人和</h2>
+<p>随机性与协同的三条轴，每条轴都有明确的玩家预期：</p>
+<div class="table-wrap"><table><thead><tr><th>轴</th><th>载体</th><th>玩家可控性</th><th>情绪</th></tr></thead><tbody><tr><td><strong>天时</strong></td><td>事件卡、随机事件</td><td>低（只能选择时机）</td><td>"天灾来了，双方都受损"</td></tr><tr><td><strong>地利</strong></td><td>阵型、位置、列</td><td><strong>高</strong>（每回合的站位决策）</td><td>"我守住这条列"</td></tr><tr><td><strong>人和</strong></td><td>羁绊、阵营、主公技</td><td><strong>高</strong>（构筑阶段决定）</td><td>"刘关张同场才够猛"</td></tr></tbody></table></div>
+<p><strong>设计意图</strong>：随机性（天时）只占三分之一，另外三分之二由玩家的构筑与站位决定。这样"我为什么输"永远可以归因。</p>
+<h2>3. 随机性分级</h2>
+<div class="table-wrap"><table><thead><tr><th>级别</th><th>定义</th><th>本作使用</th></tr></thead><tbody><tr><td>L0</td><td>完全确定</td><td>✅ 大部分卡牌</td></tr><tr><td>L1</td><td>有界随机（浮动/随机目标，范围明确）</td><td>✅ 混乱、随机伤害</td></tr><tr><td>L2</td><td>范围随机（随机召唤、随机抽牌）</td><td>✅ 黄巾之乱、草船借箭</td></tr><tr><td>L3</td><td>结构随机（卡组顺序、起手、先手）</td><td>✅ 卡牌游戏固有</td></tr><tr><td><strong>L4</strong></td><td><strong>单次决定胜负</strong></td><td>❌ <strong>禁止</strong></td></tr></tbody></table></div>
+<h2>4. 随机性来源清单</h2>
+<div class="table-wrap"><table><thead><tr><th>来源</th><th>级别</th><th>玩家可控性</th><th>说明</th></tr></thead><tbody><tr><td>卡组顺序</td><td>L3</td><td>构筑可控</td><td>30 张卡组，曲线设计影响体验</td></tr><tr><td>起手牌 / 抽牌</td><td>L3</td><td>构筑可控 + 换牌</td><td>换牌一次</td></tr><tr><td>掷先手</td><td>L3</td><td>不可控</td><td>对称 + 后手补偿</td></tr><tr><td>酒令选择</td><td>L3</td><td><strong>可控</strong>（三选一）</td><td>开局策略</td></tr><tr><td>事件卡</td><td>L1–L2</td><td>时机可控</td><td>对称效果，施放者掌握时机</td></tr><tr><td>混乱状态</td><td>L1</td><td>站位可控</td><td>目标在合法集合中随机</td></tr><tr><td>随机召唤位置</td><td>L1</td><td>站位可控</td><td>只能是己方空格</td></tr><tr><td>随机伤害浮动（若使用）</td><td>L1</td><td>无</td><td>上限 ±20%</td></tr><tr><td><strong>概率性行动失效</strong></td><td>L1</td><td>站位与时机可控</td><td><strong>公共特性</strong>（ADR-013）：以公开概率使指定敌方人物一段时间内无法行动。多个武将 / 战法可复用同一机制，不视为设计重合</td></tr></tbody></table></div>
+<h3>4.1 概率性行动失效的约束（ADR-013）</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>约束</th></tr></thead><tbody><tr><td>概率公开</td><td>必须是<strong>明示的固定概率</strong>（如"一半概率"），不允许隐藏概率</td></tr><tr><td>作用范围</td><td>只作用于<strong>人物卡</strong>的"行动"，不允许直接作用于主将或直接造成伤害</td></tr><tr><td>持续时间</td><td>必须<strong>有上限</strong>（通常 1 回合），不允许永久封锁</td></tr><tr><td>为什么不属于 L4</td><td>单次失效只是<strong>推迟一个动作</strong>，不改变场面归属，也不直接决定胜负（规则一）</td></tr><tr><td>与"随机消灭"的区别</td><td>失效是<strong>可恢复的过程代价</strong>；消灭是<strong>不可逆的结果</strong>，故后者仍在 §5 禁止</td></tr></tbody></table></div>
+<h2>5. 反模式清单（明确禁止）</h2>
+<div class="table-wrap"><table><thead><tr><th>反模式</th><th>为什么禁止</th></tr></thead><tbody><tr><td>"掷骰定输赢"</td><td>违反规则一</td></tr><tr><td>"随机消灭一个敌方人物"</td><td>极端结果等于直接改变胜负</td></tr><tr><td>"随机获得一张牌"但可能获得任意牌</td><td>不可读，玩家无法预判</td></tr><tr><td>无上限的随机伤害</td><td>违反规则三</td></tr><tr><td>随机目标可命中主将且伤害高</td><td>破阵机制被绕过</td></tr><tr><td>抽卡开箱不公示概率</td><td>合规风险</td></tr></tbody></table></div>
+<h2>6. 与工程实现的对应</h2>
+<div class="table-wrap"><table><thead><tr><th>要求</th><th>实现</th></tr></thead><tbody><tr><td>随机性可复现</td><td>确定性 RNG + seed（<code>core</code> 的 <code>Rng</code> 模块）</td></tr><tr><td>随机性可测试</td><td>固定 seed 跑 golden replay，断言最终状态</td></tr><tr><td>随机性可审计</td><td>每局记录 seed，可用于回放与申诉</td></tr><tr><td>随机性可分析</td><td>平衡模拟器跑 10 万局，统计胜率与方差</td></tr></tbody></table></div>
+<blockquote>这也是为什么 <code>core</code> 必须是<strong>确定性</strong>的：同一 seed + 同一操作序列 = 同一结果。</blockquote>
+<h2>7. 待决项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>归属</th></tr></thead><tbody><tr><td>Q-12-1</td><td>是否引入伤害浮动（当前设计为固定伤害）</td><td>v1 暂不引入</td></tr><tr><td>Q-12-2</td><td>随机保底机制（如连续 N 次抽到低费牌后必出高费）</td><td>v1 不做</td></tr><tr><td>Q-12-3</td><td>内购开包的概率公示方案</td><td>商业化阶段</td></tr></tbody></table></div>
+</section>
+<section id="13-balance-data-model">
+<h1>13 · 数值模型与数据格式</h1>
+<blockquote>状态：<strong>已定</strong>。本文件是 <code>core</code> 与内容管线的直接输入。</blockquote>
+<h2>1. 总价值预算模型</h2>
+<blockquote><strong>总价值 = 属性点 + 关键词价值 + 技能价值 + 羁绊协同价值 − 负面代价</strong></blockquote>
+<h3>1.1 为什么不是"费用绑定属性"</h3>
+<p>费用<strong>不绑定属性</strong>——高费卡可以是"低属性 + 强技能"，也可以是"高属性 + 无技能"。<br>费用绑定的是<strong>总价值</strong>，属性只是其中一个可分配项。</p>
+<div class="table-wrap"><table><thead><tr><th>卡</th><th>属性点</th><th>技能/关键词</th><th>总价值</th><th>8 费基准</th><th>判定</th></tr></thead><tbody><tr><td>路线 B：8 费 8/8 + 无双</td><td>16</td><td>−2</td><td>18</td><td>17</td><td>超 1，可接受</td></tr><tr><td>路线 A：8 费 4/4 + 强力计略</td><td>8</td><td>+9</td><td>17</td><td>17</td><td>✅</td></tr></tbody></table></div>
+<h3>1.2 适用区分</h3>
+<div class="table-wrap"><table><thead><tr><th>卡类</th><th>定价方式</th></tr></thead><tbody><tr><td>基础兵种卡（无技能）</td><td><strong>属性基准严格适用</strong></td></tr><tr><td>人物卡（有技能/关键词）</td><td><strong>总价值预算适用</strong>，属性可高可低</td></tr><tr><td>事件卡 / 战法卡 / 进化卡</td><td>按<strong>等效效果价值</strong>定价（见 §3）</td></tr></tbody></table></div>
+<h2>2. 属性点基准</h2>
+<blockquote><strong>白板属性点 ≈ 2 × 统率 + 1</strong></blockquote>
+<div class="table-wrap"><table><thead><tr><th>统率</th><th>基准属性点</th><th>典型白板</th></tr></thead><tbody><tr><td>1</td><td>3</td><td>2/1、1/2</td></tr><tr><td>2</td><td>5</td><td>3/2、2/3</td></tr><tr><td>3</td><td>7</td><td>4/3、3/4</td></tr><tr><td>4</td><td>9</td><td>4/5、5/4</td></tr><tr><td>5</td><td>11</td><td>5/6、6/5</td></tr><tr><td>6</td><td>13</td><td>6/7、7/6</td></tr><tr><td>7</td><td>15</td><td>7/8、8/7</td></tr><tr><td>8</td><td>17</td><td>8/8</td></tr><tr><td>9</td><td>19</td><td>9/9</td></tr><tr><td>10</td><td>21</td><td>10/10</td></tr></tbody></table></div>
+<blockquote>该曲线由《炉石传说》白板单位实测归纳，误差 ≤ 1 点。</blockquote>
+<h2>3. 关键词价值表</h2>
+<div class="table-wrap"><table><thead><tr><th>关键词</th><th>价值</th><th>备注</th></tr></thead><tbody><tr><td>结阵</td><td>−0.5</td><td>条件性</td></tr><tr><td>神射</td><td>−0.5</td><td>条件性</td></tr><tr><td>架盾</td><td>−1</td><td>全局嘲讽</td></tr><tr><td>武圣</td><td>−1</td><td>免疫一次</td></tr><tr><td>先攻</td><td>−1</td><td></td></tr><tr><td>奇袭</td><td>−1</td><td></td></tr><tr><td>饮血</td><td>−1</td><td></td></tr><tr><td>疾行</td><td>−1.5</td><td></td></tr><tr><td>连击</td><td>−1.5</td><td></td></tr><tr><td>遗计</td><td>−2</td><td>已含死亡概率折扣</td></tr><tr><td>无双</td><td>−2</td><td></td></tr><tr><td>忠义</td><td>视效果</td><td>按等效价值另算</td></tr></tbody></table></div>
+<p><strong>组合折扣</strong>：多个关键词同时出现时，总价值 = 各关键词之和 × <strong>0.9</strong>。</p>
+<h2>4. 技能定价方法</h2>
+<pre><code>技能价值 = 等效效果价值 × 触发概率 × 可互动折扣</code></pre>
+<h3>4.1 等效效果价值</h3>
+<div class="table-wrap"><table><thead><tr><th>效果</th><th>价值</th></tr></thead><tbody><tr><td>造成 N 点伤害</td><td>N × 0.5</td></tr><tr><td>恢复 N 点生命</td><td>N × 0.4</td></tr><tr><td>抽 1 张牌</td><td>3</td></tr><tr><td>召唤 1/1</td><td>3</td></tr><tr><td>召唤 2/2</td><td>5</td></tr><tr><td>使目标无法行动 1 回合（震慑）</td><td>4–6（视目标强度）</td></tr><tr><td>全体 +1 攻击（光环）</td><td>受益单位数 × 1</td></tr><tr><td>获得 1 点护甲</td><td>1</td></tr></tbody></table></div>
+<h3>4.2 触发概率</h3>
+<div class="table-wrap"><table><thead><tr><th>触发类型</th><th>概率</th></tr></thead><tbody><tr><td>入场（战吼）</td><td>100%</td></tr><tr><td>回合开始（需存活）</td><td>~70%</td></tr><tr><td>回合结束（需存活）</td><td>~70%</td></tr><tr><td>阵亡（需死亡）</td><td>~60%</td></tr><tr><td>受到伤害后</td><td>视对局而定，默认 60%</td></tr></tbody></table></div>
+<h3>4.3 可互动折扣</h3>
+<div class="table-wrap"><table><thead><tr><th>情形</th><th>折扣</th></tr></thead><tbody><tr><td>技能可被震慑/移除打断</td><td>×0.8</td></tr><tr><td>技能需要铺垫（如先满足某条件）</td><td>×0.8</td></tr><tr><td>技能目标由对手选择</td><td>×0.7</td></tr><tr><td>技能必然生效且无法反制</td><td>×1.0（并需警惕超模）</td></tr></tbody></table></div>
+<h2>5. 校验规则（CI 自动检查）</h2>
+<p>数据校验器需在 CI 中执行以下检查：</p>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>检查</th><th>失败处理</th></tr></thead><tbody><tr><td>1</td><td>总价值超出同费预算 ±1.5 点</td><td>警告</td></tr><tr><td>2</td><td>总价值超出 ±3 点</td><td><strong>报错，阻止合并</strong></td></tr><tr><td>3</td><td>卡名长度 &gt; 4 字</td><td>报错</td></tr><tr><td>4</td><td>非法关键词组合（架盾 + 奇袭）</td><td>报错</td></tr><tr><td>5</td><td>谋臣卡攻击力 ≠ 0</td><td>报错</td></tr><tr><td>6</td><td>进化卡目标兵种不存在</td><td>报错</td></tr><tr><td>7</td><td>羁绊引用的人物 id 不存在</td><td>报错</td></tr><tr><td>8</td><td>效果引用了未注册的 action / status</td><td>报错</td></tr><tr><td>9</td><td>缺少 <code>memo</code>（一句话记忆点）</td><td>警告</td></tr><tr><td>10</td><td>同一阵营同类卡数量失衡（超过均值 ±50%）</td><td>警告</td></tr></tbody></table></div>
+<h2>6. 卡牌 Schema</h2>
+<pre><code># cards.yaml
+- id: shu_infantry              # 必填，唯一
+  name: 步兵                    # 必填，≤4 字
+  faction: neutral              # shu | wei | wu | qun | neutral
+  type: troop                   # troop | general | strategist | event | tactic | elite
+  cost: 1                       # 0-10
+  attack: 2                     # 人物卡必填
+  health: 1                     # 人物卡必填
+  keywords: [jie_zhen]          # 关键词 id
+  skills: []                    # 技能定义
+  bonds: []                     # 羁绊 id
+  memo: "相邻有步兵时攻击 +1"     # 必填，设计用
+  flavor: "结阵而战，进退有度"     # 可选，收藏页显示</code></pre>
+<h3>6.1 非人物卡</h3>
+<pre><code>- id: tactic_huogong
+  name: 火攻
+  faction: neutral
+  type: tactic
+  cost: 3
+  target:
+    side: enemy
+    filter: { type: character }
+    count: 1
+    mode: choose
+  effects:
+    - action: damage
+      value: 4
+  memo: "3 费 4 点单体伤害"</code></pre>
+<h3>6.2 进化卡</h3>
+<pre><code>- id: elite_hubaogi
+  name: 虎豹骑
+  faction: wei
+  type: elite
+  cost: 3
+  upgradeTarget:
+    from: { type: troop, troopKind: infantry, side: ally }
+    to:
+      id: wei_tiger_cavalry
+      name: 虎豹骑
+      attack: 3
+      health: 2
+      keywords: [xian_gong]
+  memo: "把步兵变成先攻骑兵"</code></pre>
+<h2>7. 效果 DSL</h2>
+<h3>7.1 结构</h3>
+<pre><code>effects:
+  - action: &lt;动作&gt;
+    target: &lt;选择器&gt;
+    value: &lt;数值&gt;
+    duration: &lt;持续&gt;
+    condition: &lt;条件&gt;</code></pre>
+<h3>7.2 动作表</h3>
+<div class="table-wrap"><table><thead><tr><th>action</th><th>参数</th><th>说明</th></tr></thead><tbody><tr><td><code>damage</code></td><td>value</td><td>造成伤害</td></tr><tr><td><code>heal</code></td><td>value</td><td>恢复生命（≤30）</td></tr><tr><td><code>draw</code></td><td>value</td><td>抽牌</td></tr><tr><td><code>summon</code></td><td>unit, count, position</td><td>召唤人物卡</td></tr><tr><td><code>apply_status</code></td><td>status, stacks, duration</td><td>施加状态</td></tr><tr><td><code>remove_status</code></td><td>status</td><td>移除状态</td></tr><tr><td><code>move</code></td><td>destination</td><td>移动到指定格</td></tr><tr><td><code>destroy</code></td><td>—</td><td>直接摧毁</td></tr><tr><td><code>modify</code></td><td>attack / health, value, duration</td><td>属性修正</td></tr><tr><td><code>gain_armor</code></td><td>value</td><td>获得护甲（主将）</td></tr><tr><td><code>cost_modifier</code></td><td>value, limit</td><td>费用修正</td></tr><tr><td><code>transform</code></td><td>to</td><td>变形/进化</td></tr><tr><td><code>random_pick</code></td><td>from, count</td><td>随机选择</td></tr></tbody></table></div>
+<h3>7.3 目标选择器</h3>
+<pre><code>target:
+  side: ally | enemy | both | self      # 阵营
+  filter:                               # 过滤条件
+    type: troop | general | strategist | character
+    keyword: xian_gong
+    faction: shu
+    lane: 1-5
+    row: front | back
+    health_max: 2
+    has_status: zhen_she
+  count: 1 | all | 2                    # 数量
+  mode: choose | random | first | lowest_health
+  require_empty: true                   # 是否要求空格</code></pre>
+<h3>7.4 事件卡的"双方"表达</h3>
+<pre><code>target:
+  side: both          # 双方同时生效 → 天道无情
+  filter: { type: character }</code></pre>
+<h2>8. 示例校验（占位数值，非最终设计）</h2>
+<div class="table-wrap"><table><thead><tr><th>卡</th><th>费用</th><th>属性点</th><th>关键词</th><th>技能</th><th>总价值</th><th>预算</th><th>判定</th></tr></thead><tbody><tr><td>步兵</td><td>1</td><td>3</td><td>结阵 −0.5</td><td>—</td><td>2.5</td><td>3</td><td>略低，可接受</td></tr><tr><td>盾兵</td><td>1</td><td>3</td><td>架盾 −1</td><td>—</td><td>4.0</td><td>3</td><td><strong>超模 1 点，需调</strong></td></tr><tr><td>弓箭手</td><td>1</td><td>2</td><td>神射 −0.5</td><td>—</td><td>2.5</td><td>3</td><td><strong>偏弱 0.5 点</strong></td></tr><tr><td>火攻（战法）</td><td>3</td><td>—</td><td>—</td><td>4 伤害 = 2</td><td>2.0</td><td>7</td><td>偏弱（单体伤害价值低）</td></tr><tr><td>灾年（事件）</td><td>2</td><td>—</td><td>—</td><td>双方各 −1 血</td><td>对称</td><td>5</td><td>需实测</td></tr></tbody></table></div>
+<blockquote>上表是<strong>示例</strong>，用于演示公式如何工作。人物卡的实际数值由策划提供后填入。</blockquote>
+<h2>9. 数据文件组织</h2>
+<pre><code>data/
+├── cards.yaml            # 所有卡牌
+├── keywords.yaml         # 关键词定义（id → 显示名、图标、价值）
+├── statuses.yaml         # 状态定义
+├── bonds.yaml            # 羁绊
+├── jiuling.yaml          # 酒令
+├── heroes.yaml           # 主公与主公技
+└── schema/
+    ├── card.schema.json
+    ├── bond.schema.json
+    └── jiuling.schema.json</code></pre>
+<h2>10. 待调项</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>项</th><th>说明</th></tr></thead><tbody><tr><td>T-13-1</td><td>关键词价值表的最终数值</td><td>实机测试后校准</td></tr><tr><td>T-13-2</td><td>技能定价的等效价值系数</td><td>用模拟器回归</td></tr><tr><td>T-13-3</td><td>组合折扣系数（当前 0.9）</td><td>观察组合卡强度</td></tr><tr><td>T-13-4</td><td>校验阈值（±1.5 / ±3）</td><td>依据团队容忍度调整</td></tr></tbody></table></div>
+</section>
+<section id="14-open-questions">
+<h1>14 · 待决项、待填清单与决策记录</h1>
+<blockquote>状态：<strong>持续更新</strong>。任何机制上的未定项都在这里登记，避免"口头约定"丢失。</blockquote>
+<h2>1. 待决项汇总</h2>
+<h3>1.1 高优先级（阻塞实现）</h3>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>问题</th><th>选项</th><th>推荐</th><th>归属</th><th>状态</th></tr></thead><tbody><tr><td>Q-07-1</td><td>盾兵最终数值</td><td>① 1 费 1/1 + 架盾 ② 2 费 1/3 + 架盾</td><td>②</td><td>策划</td><td>待定</td></tr><tr><td>Q-07-2</td><td>弓箭手最终数值</td><td>① 1 费 1/2 + 神射 ② 2 费 2/2 + 神射</td><td>①（更廉价）</td><td>策划</td><td>待定</td></tr><tr><td>Q-09-2</td><td>羁绊失效时血量处理</td><td>① 最低保留 1 点 ② 正常结算可能死亡</td><td>①</td><td>策划</td><td>待定</td></tr><tr><td>Q-08-1</td><td>曹操主公技</td><td>① 号令 +2 攻 ② 召唤 1/1 ③ 抽牌自伤</td><td>①</td><td>策划</td><td>待定</td></tr><tr><td>Q-08-2</td><td>群雄主公</td><td>① 董卓暴虐 ② 袁绍望族</td><td>①</td><td>策划</td><td>待定</td></tr></tbody></table></div>
+<h3>1.2 中优先级（影响平衡）</h3>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>问题</th><th>归属</th><th>状态</th></tr></thead><tbody><tr><td>T-04-1</td><td>主公生命 30 是否合适</td><td>实机测试</td><td>待测</td></tr><tr><td>T-04-2</td><td>破阵奖励 +1 攻是否过强</td><td>实机测试</td><td>待测</td></tr><tr><td>T-04-3</td><td>粮尽起始伤害</td><td>实机测试</td><td>待测</td></tr><tr><td>Q-11-1</td><td>事件卡"施放者额外收益"是否统一为抽 1 张</td><td>策划</td><td>待定</td></tr><tr><td>Q-11-4</td><td>事件卡在 5 列下的数值校准</td><td>实机测试</td><td>待测</td></tr><tr><td>T-13-1</td><td>关键词价值表最终数值</td><td>模拟器</td><td>待测</td></tr><tr><td>T-13-3</td><td>关键词组合折扣系数（当前 0.9）</td><td>模拟器</td><td>待测</td></tr></tbody></table></div>
+<h3>1.3 低优先级（v1 可不做）</h3>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>问题</th><th>结论</th></tr></thead><tbody><tr><td>Q-03-1</td><td>回合时限 60 秒</td><td>PvP 阶段再定</td></tr><tr><td>Q-03-2</td><td>平局是否需要突然死亡</td><td>v1 不做</td></tr><tr><td>Q-06-1</td><td>是否需要"反制"类关键词</td><td>v1 不做</td></tr><tr><td>Q-07-3</td><td>是否增加第 4 个兵种（骑兵）</td><td>v1 不做</td></tr><tr><td>Q-07-4</td><td>进化卡能否对已进化兵种再用</td><td>暂定不可</td></tr><tr><td>Q-09-3</td><td>是否需要"阵营羁绊"</td><td>v1 不做</td></tr><tr><td>Q-10-1</td><td>是否需要"驱散"机制</td><td>v1 不做</td></tr><tr><td>Q-10-3</td><td>混乱改为"攻击最近敌人"</td><td>v1 用随机</td></tr><tr><td>Q-11-2</td><td>战法是否需要反制</td><td>v1 不做</td></tr><tr><td>Q-12-1</td><td>是否引入伤害浮动</td><td>v1 不引入</td></tr><tr><td>Q-12-2</td><td>抽牌保底机制</td><td>v1 不做</td></tr></tbody></table></div>
+<h2>2. 待填清单（人物卡）</h2>
+<p>人物卡的具体数值与技能<strong>全部由策划提供</strong>，本文档不预设。</p>
+<h3>2.1 填写模板</h3>
+<p>见 <code>05-cards.md</code> §5.1。填写时需同时满足：</p>
+<ul><li>[ ] <code>memo</code>（一句话记忆点）已填</li><li>[ ] 若费用 ≥ 6，已明确选择路线 A（低属性强技能）或路线 B（高属性无技能）</li><li>[ ] 总价值在预算范围内（用 <code>13-balance-data-model.md</code> 的公式自检）</li><li>[ ] 卡名 ≤ 4 字</li><li>[ ] 未使用非法关键词组合（架盾 + 奇袭）</li></ul>
+<h3>2.2 数量目标</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>内容</th><th>v1 目标</th></tr></thead><tbody><tr><td>1</td><td>蜀国武将</td><td>8–10</td></tr><tr><td>2</td><td>魏国武将</td><td>8–10</td></tr><tr><td>3</td><td>吴国武将</td><td>8–10</td></tr><tr><td>4</td><td>群雄武将</td><td>6–8</td></tr><tr><td>5</td><td>谋臣（四阵营合计）</td><td>8–12</td></tr><tr><td>6</td><td>事件卡</td><td>8–12</td></tr><tr><td>7</td><td>战法卡</td><td>12–16</td></tr><tr><td>8</td><td>特殊兵种卡</td><td>3–6</td></tr><tr><td>9</td><td>酒令</td><td>4–8</td></tr></tbody></table></div>
+<h3>2.3 羁绊待确认</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>羁绊</th><th>待确认内容</th></tr></thead><tbody><tr><td>1</td><td>桃园结义</td><td>人物 id 与效果数值</td></tr><tr><td>2</td><td>五虎上将</td><td>五虎名单与"任意 3 名"是否合理</td></tr><tr><td>3</td><td>卧龙凤雏</td><td>计略伤害 +1 是否够强</td></tr><tr><td>4</td><td>虎豹骑阵</td><td>是否需要"曹操 + 2 虎豹骑"这么严</td></tr><tr><td>5</td><td>五子良将</td><td>五子名单</td></tr><tr><td>6</td><td>江东双璧</td><td>效果是否与吴的远程主题冲突</td></tr><tr><td>7</td><td>三英战吕布</td><td>对抗羁绊的触发条件</td></tr><tr><td>8</td><td>既生瑜何生亮</td><td>同上</td></tr><tr><td>9</td><td>血仇</td><td>同上</td></tr><tr><td>10</td><td>挟天子</td><td>主公技费用 −1 是否过强</td></tr></tbody></table></div>
+<h2>3. 决策记录（ADR）</h2>
+<div class="table-wrap"><table><thead><tr><th>编号</th><th>决策</th><th>结论</th><th>理由</th><th>日期</th></tr></thead><tbody><tr><td>ADR-001</td><td>战场列数</td><td><strong>5 列 × 2 排</strong></td><td>主将需"清空一列"才可被攻击，5 列时攻防节奏居中（4 列偏慢、6 列偏快）</td><td>机制设计期</td></tr><tr><td>ADR-002</td><td>架盾与主将的关系</td><td><strong>方案 A：架盾不阻挡对主将的攻击</strong></td><td>避免"嘲讽 + 阵型"双层护盾拖慢对局；盾兵保护将士、阵型保护主公，各司其职</td><td>机制设计期</td></tr><tr><td>ADR-003</td><td>架盾生效条件</td><td><strong>仅前军生效</strong></td><td>保留炉石式直觉，同时让"放哪一排"仍是决策</td><td>机制设计期</td></tr><tr><td>ADR-004</td><td>屏幕方向</td><td><strong>横屏</strong></td><td>5×2 战场 + 卡面文字需要横向空间；横屏下卡面可显示关键词文字</td><td>机制设计期</td></tr><tr><td>ADR-005</td><td>先手决定方式</td><td><strong>掷点 + 后手传国玉玺</strong></td><td>早期方案（比统率）会泄露牌库信息</td><td>机制设计期</td></tr><tr><td>ADR-006</td><td>进化卡与站位</td><td><strong>进化卡只针对特定兵种，与站位无关</strong></td><td>进化是兵种形态转换，规则最简、最易数据化</td><td>机制设计期</td></tr><tr><td>ADR-007</td><td>费用与属性的关系</td><td><strong>费用绑定总价值，不绑定属性</strong></td><td>允许"低属性 + 强技能"与"高属性 + 无技能"两条路线</td><td>机制设计期</td></tr><tr><td>ADR-008</td><td>神射是否绕过架盾</td><td><strong>不绕过</strong></td><td>否则盾兵失去意义；神射的价值是"跨列施压"</td><td>机制设计期</td></tr><tr><td>ADR-009</td><td>主将是否参与普通攻击</td><td><strong>不参与</strong></td><td>主将定位是统帅，避免"主公互砍"</td><td>机制设计期</td></tr><tr><td>ADR-010</td><td>回合是否分阶段</td><td><strong>不分出牌/战斗阶段（自由顺序）</strong></td><td>与炉石一致，保留"顺序决策"的乐趣</td><td>机制设计期</td></tr><tr><td>ADR-011</td><td>引擎与平台</td><td><strong>Cocos Creator 3.8 LTS + TypeScript，微信/抖音小游戏优先</strong></td><td>见 <code>docs/00-tech-selection.md</code></td><td>立项期</td></tr><tr><td>ADR-012</td><td>逻辑与引擎关系</td><td><strong><code>core</code> 纯 TypeScript、零引擎依赖</strong></td><td>换引擎只重写表现层；便于 AI 产卡与模拟</td><td>立项期</td></tr><tr><td>ADR-013</td><td>概率性行动失效的归属</td><td><strong>是「公共特性」，不是某人物 / 某计谋的专属效果</strong></td><td>马忠「设伏」与战法「攻心计」同效属<strong>预期设计</strong>：概率使敌方停止行动作为通用机制存在，允许多张卡复用，不按"设计重合"处理</td><td>2026-09-11</td></tr><tr><td>ADR-014</td><td>主公身份与人物卡的关系</td><td><strong>主公身份与人物卡解耦，同一人物允许两套卡</strong>：① 第一期标准模式仍固定四主公（曹操 / 刘备 / 孙权 / 董卓）；② 后续开放"选择非指定人物作为主公"；③ 四主公同时需要<strong>普通人物卡</strong>版本；④ <strong>标准模式下，主公的普通卡不得进入可用卡池</strong></td><td>已有 <code>data/heroes.yaml</code> 的四主公（主公技），照片稿中另有曹操 / 刘备的<strong>主公卡</strong>与未来普通卡；三者是不同模式下的不同产物，不能混为一谈</td><td>2026-09-11</td></tr><tr><td>ADR-015</td><td>谋臣攻击力是否必须为 0</td><td><strong>暂不强制</strong>：允许一部分谋臣带 1 攻、一部分 0 攻，是否统一归零<strong>待定</strong></td><td>手写稿 22 张谋臣里 20 张带攻（18 张为 1 攻），与现行硬规则全面冲突。先按设计稿收录，规则结论后置；<code>core</code> 校验规则⑤当前会对这些卡报错，规则改法待定</td><td>2026-09-11</td></tr><tr><td>ADR-016</td><td>费用上限</td><td><strong>上限 10 费</strong>。原稿超出者按「能力与强度」下调至 10 以内</td><td>手写稿出现 12、15 费，与 <code>05-cards.md</code> 的 0–10 区间及既有费用曲线脱节</td><td>2026-09-11</td></tr><tr><td>ADR-017</td><td>同一人物的多套设计</td><td><strong>两套技能都保留</strong>在人物信息里，后续再决定采用哪套或做改良</td><td>张郃 / 诸葛亮 / 袁绍 / 张梁各有两版方向不同的设计；直接二选一会丢弃设计信息</td><td>2026-09-11</td></tr><tr><td>ADR-018</td><td>人物卡的定型规则</td><td><strong>攻击 &gt; 1 → 武将；攻击 ≤ 1 且史实身份为谋臣 / 非武将（权臣、士大夫、宦官等）→ 谋臣</strong>。谋臣攻击<strong>默认上限 1</strong></td><td>手写稿有 55 张未标类型，需要一条可自动判定的规则；同时让「谋臣带 1 攻」有据可依</td><td>2026-09-11</td></tr><tr><td>ADR-019</td><td>术语以谁为准</td><td><strong>以项目术语表为准</strong>：统率（= 费用）、己方、技能。原稿用词保留在 <code>skill_text</code> 里，整理时归一。「概率」与「几率」都可用</td><td>手写稿写「统帅」「己放」「计能」，与项目用词不一致；不统一会在卡面与规则文本上露出</td><td>2026-09-11</td></tr><tr><td>ADR-020</td><td>攻 / 血数值与文字之间的连笔字</td><td><strong>是当时的修改笔误，不是数值内容</strong>。取数字即可，「攻」= 攻击力、「血」= 生命值</td><td>该笔画在约 10 张卡上反复出现，曾疑似「N 点攻」的「点」</td><td>2026-09-11</td></tr><tr><td>ADR-021</td><td>统率值方框的左边线</td><td><strong>框线不是数字「1」</strong>。据此：#149 出其不意 = 4 费、#153 = 4、#158 = 4、#157 = 3</td><td>该书写者画框时左边线是独立一竖笔，按数字读会得到 14/13 等离谱费用</td><td>2026-09-11</td></tr><tr><td>ADR-022</td><td>卡名下方「称号」栏的性质</td><td><strong>那些是技能名，不是卡牌类型</strong>：善射（黄祖）、西凉子弟（马岱）、守势（董厥）、劝谏（黄权）、犹豫不决（刘封）、将门虎子（关兴）、将风?（张苞）；#119「领袖」是草稿不作数</td><td>转录时按位置归档进了 <code>card_type</code>，导致类型字段混入 8 个称号</td><td>2026-09-11</td></tr><tr><td>ADR-023</td><td>张飞的定稿</td><td>蜀国，<strong>5 统率、5 攻 4 血</strong>，技能〈<strong>咆哮</strong>〉：每回合对所有敌方人物卡造成 1 点伤害</td><td>手写稿有 #93 与 #119 两处疑似张飞，需一次定死</td><td>2026-09-11</td></tr><tr><td>ADR-024</td><td>原稿「未定稿」的处理</td><td>原稿带问号「?」或设计者自称暂定的，<strong>原文照录 + 标记 <code>is_draft</code> / <code>draft_marks</code></strong>，不改数不删项</td><td>这些是「还没设计好」，不是「看不清」，混在一起会误导后续整理</td><td>2026-09-11</td></tr><tr><td>ADR-025</td><td>非人物卡缺攻血是否算数据缺口</td><td><strong>不算</strong>。属性卡、事件卡、计谋卡、战法卡本就没有攻血，缺费用也常是<strong>尚未想好</strong>，属预期</td><td>先前按「所有卡都要有攻血」统计，把 34 张非人物卡误报成数据不全</td><td>2026-09-11</td></tr></tbody></table></div>
+<blockquote>ADR-013 对应 <code>12-randomness.md</code> §3「L1 有界随机」的类型补充；ADR-014 要求卡牌数据能区分<br>「主公卡」与「普通人物卡」，并在构筑期按模式过滤——具体字段方案待整理卡池时补进<br><code>13-balance-data-model.md</code>。<br><br>ADR-015 落地时需同步改两处：<code>05-cards.md</code> §2 的「谋臣固定为 0」与 <code>core/tools/validate.ts</code><br>规则⑤。<strong>在结论出来前不要改代码</strong>，否则规则与设计稿来回打架。<br><br>ADR-016/017 的逐张落地记录在 <code>data/cards_decisions.draft.yaml</code>（决策层），<br>原始转录保持冻结，见 <code>data/transcribe/</code>。</blockquote>
+<h2>4. 待决项的登记规范</h2>
+<p>新增待决项时请遵循：</p>
+<ol><li>编号格式：<code>Q-&lt;文档号&gt;-&lt;序号&gt;</code>（问题）或 <code>T-&lt;文档号&gt;-&lt;序号&gt;</code>（数值待调）</li><li>必须写清<strong>选项</strong>与<strong>推荐项</strong></li><li>必须指定<strong>归属人</strong>与<strong>状态</strong></li><li>决策完成后，把结论写进 §3 ADR 表，并在原文档中更新</li></ol>
+<h2>5. 下一步</h2>
+<ol><li>策划按 <code>05-cards.md</code> §5 模板提供人物卡（先给 10 张跑通闭环）</li><li>工程按 <code>13-balance-data-model.md</code> 搭建 <code>data/</code> 与校验器</li><li>用 10 张卡 + 基础兵种跑通"每日可玩构建"，再批量填内容</li></ol>
+</section>
+<section id="15-card-visual">
+<h1>15 · 卡面视觉与战场背景规范</h1>
+<blockquote>状态：<strong>已定稿</strong>（视觉方向）· 美术资源待接入<br>可交互实现：<code>prototype/battlefield.html</code>、<code>prototype/card-gallery.html</code></blockquote>
+<hr>
+<h2>1. 定稿风格</h2>
+<div class="table-wrap"><table><thead><tr><th>维度</th><th>定稿</th></tr></thead><tbody><tr><td>卡面布局</td><td><strong>立绘铺满</strong>（portrait fills card）</td></tr><tr><td>材质主题</td><td><strong>暗金古典</strong>：<strong>浅底深框</strong>（卡内明亮如插画，卡框深色金属）</td></tr><tr><td>卡框装饰</td><td><strong>无装饰</strong>（金色双层描边 + 内嵌白线 + 暗角）</td></tr><tr><td>卡牌尺寸</td><td><strong>统一 47 × 66 pt</strong>（战场卡 = 手牌卡）</td></tr><tr><td>主公</td><td><strong>位于阵型正前方/正后方</strong>，用横贯的主公条（330 × 24 pt）：头像 + 名 + 生命/护甲 + 主公技按钮</td></tr><tr><td>背景</td><td><strong>三国古战场叙事场景</strong>（不是纯色/纹理）</td></tr><tr><td>卡面文字</td><td><strong>不放描述文字</strong>（56×78 放不下可读文字）→ 悬浮/点击看详情</td></tr></tbody></table></div>
+<blockquote><strong>关键修正（2026-09-09）</strong>：卡面从"深色底"改为"浅色底"。<br>实测发现深色卡面时卡牌亮度 0.12、背景 0.23——<strong>卡牌比背景还暗</strong>，视觉上糊成一团。<br>改为浅底深框后，卡牌亮度提升到 0.34，成功从背景中"跳"出来。</blockquote>
+<hr>
+<h2>2. 卡面分层</h2>
+<pre><code>① 立绘层（铺满卡面）：美术图 或 占位（大字 + 阵营渐变 + 纹理）
+   · 内嵌双层描边（白线 + 暗线）+ 内暗角 → 像"画框"
+② 名称条（顶部，含费用徽章，手牌 9pt）
+③ 关键词 chip（紧贴名称条下方）
+④ 攻/血宝石（底部左右两角，18pt 圆）
+⑤ 金框：4 层 box-shadow（黑描边 / 暗金 / 黑 / 淡金）+ 顶部高光</code></pre>
+<p><strong>卡面不放描述文字</strong>——56 × 78 pt 放不下可读的中文，且会与关键词、立绘互相打架。<br>完整描述放在悬浮/点击的详情面板里。</p>
+<h3>2.1 战场卡 vs 手牌卡</h3>
+<p><strong>同一张卡、同一尺寸</strong>，唯一区别是战场卡不显示费用宝石、阵营纹章与描述文字（空间留给立绘）。</p>
+<div class="table-wrap"><table><thead><tr><th>元素</th><th>手牌卡</th><th>战场卡</th></tr></thead><tbody><tr><td>立绘</td><td>✅</td><td>✅</td></tr><tr><td>名称</td><td>✅</td><td>✅</td></tr><tr><td>关键词</td><td>✅</td><td>✅</td></tr><tr><td>攻/血</td><td>✅</td><td>✅</td></tr><tr><td>费用 / 纹章 / 描述</td><td>✅</td><td>❌</td></tr></tbody></table></div>
+<hr>
+<h2>3. 尺寸与布局</h2>
+<h3>3.1 统一 47 × 66 pt</h3>
+<div class="table-wrap"><table><thead><tr><th>卡类</th><th>尺寸</th></tr></thead><tbody><tr><td>战场单位</td><td>47 × 66</td></tr><tr><td>手牌</td><td>47 × 66</td></tr><tr><td>主公</td><td>330 × 24（横条，不占格）</td></tr></tbody></table></div>
+<blockquote><strong>尺寸取舍（2026-09-09）</strong>：要让"空列直击主将"在视觉上成立，主公必须位于阵型正前方/正后方。<br>纵向预算为 <code>4×卡高 + 2×主公条 + 手牌区 + 间距 ≤ 414</code>，<br>因此卡牌从 56×78 降到 <strong>47×66</strong>（约 84%）。这是几何硬约束，不是随意缩小。</blockquote>
+<h3>3.2 战场布局（736 × 414 画布）</h3>
+<pre><code>┌────────────────────────────────────────────────────────┐
+│                     三国古战场背景                       │
+│  ┌──────┐   ┌────┬────┬────┬────┬────┐   ┌──────────┐  │
+│  │敌主公│   │        敌方后军         │   │ 统率值    │  │
+│  ├──────┤   ├────┬────┬────┬────┬────┤   │ 回合/牌库 │  │
+│  │我主公│   │        敌方前军         │   │ 结束回合  │  │
+│  └──────┘   │═══ 中线 ═══            │   └──────────┘  │
+│             │        我方前军         │                 │
+│             │        我方后军         │                 │
+│             └────┴────┴────┴────┴────┘                 │
+├────────────────────────────────────────────────────────┤
+│                    手牌区（56 × 78）                    │
+└────────────────────────────────────────────────────────┘</code></pre>
+<p><strong>为什么主公在侧边而不是上下</strong>：4 行卡（78×4=312）+ 手牌行（78）已经占满 414pt 高度，放不下主公条。<br>主公改为侧边卡后，纵向全部留给战场与手牌，且主公以卡牌形式呈现更符合"卡牌游戏"的直觉。</p>
+<div class="table-wrap"><table><thead><tr><th>区域</th><th>尺寸</th></tr></thead><tbody><tr><td>战场宽</td><td>5 × 56 + 4 × 6 = <strong>304 pt</strong></td></tr><tr><td>两侧余量</td><td>各约 115 pt（背景场景 + 侧栏）</td></tr><tr><td>手牌区</td><td>80 pt</td></tr></tbody></table></div>
+<hr>
+<h2>4. 阵营色板</h2>
+<div class="table-wrap"><table><thead><tr><th>阵营</th><th>主色</th><th>暗色</th><th>强调色</th><th>纹章字</th></tr></thead><tbody><tr><td>蜀</td><td><code>#2e6b4d</code></td><td><code>#0d2418</code></td><td><code>#7fe0a8</code></td><td>蜀</td></tr><tr><td>魏</td><td><code>#2f5480</code></td><td><code>#0c1a2a</code></td><td><code>#8fc4ff</code></td><td>魏</td></tr><tr><td>吴</td><td><code>#8a382e</code></td><td><code>#280f0c</code></td><td><code>#ffa07a</code></td><td>吴</td></tr><tr><td>群雄</td><td><code>#6b5738</code></td><td><code>#20180e</code></td><td><code>#e2c58a</code></td><td>群</td></tr><tr><td>中立</td><td><code>#4a4740</code></td><td><code>#17150f</code></td><td><code>#c0b8a6</code></td><td>中</td></tr></tbody></table></div>
+<p>通用色：金 <code>#d4af6a</code>｜亮金 <code>#f3dfae</code>｜暗金 <code>#7d6434</code>｜文字 <code>#f2e8d5</code>｜次要 <code>#a99e8c</code></p>
+<hr>
+<h2>5. 立绘规范</h2>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>规范</th></tr></thead><tbody><tr><td>路径</td><td><code>art/&lt;card_id&gt;.png</code>（例：<code>art/shu_guanyu.png</code>）</td></tr><tr><td>建议尺寸</td><td>512 × 512</td></tr><tr><td>构图</td><td>人物居中，<strong>头部位于上 1/3</strong></td></tr><tr><td>背景</td><td>透明或纯色（卡面已有阵营渐变底）</td></tr><tr><td>接入</td><td>卡牌数据加 <code>art: "art/shu_guanyu.png"</code>，<strong>无需改代码</strong></td></tr><tr><td>裁切</td><td><code>object-fit: cover</code> + <code>object-position: 50% 22%</code>（优先露脸）</td></tr></tbody></table></div>
+<h3>5.1 占位方案（美术未到位时）</h3>
+<ul><li>大字：卡名首字，衬线字体，白色 17% + 阵营色外发光；</li><li>底色：阵营径向渐变；</li><li>纹理：斜向细线（角度按 id 哈希）；</li><li><strong>色相偏移 ±22°</strong>：同阵营的卡也互不相同。</li></ul>
+<blockquote><strong>交付前必做</strong>：把立绘缩到 56 × 78px 看一眼——认不出是谁，这张图在战场上就是失败的。</blockquote>
+<hr>
+<h2>6. 战场背景规范</h2>
+<h3>6.1 设计目标</h3>
+<blockquote><strong>背景要讲一个故事，不是一块布。</strong></blockquote>
+<p>参照炉石：每个对战板都是一个场景。本作是三国，所以背景必须是<strong>中国古代战场</strong>。</p>
+<h3>6.2 必须包含的元素（分层）</h3>
+<div class="table-wrap"><table><thead><tr><th>层</th><th>内容</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td>天空</td><td>黄昏/黎明渐变（暗紫 → 赭红 → 墨）</td></tr><tr><td>2</td><td>日 / 月</td><td>低垂的光源 + 光晕</td></tr><tr><td>3</td><td>云</td><td>横贯的暖色云带</td></tr><tr><td>4</td><td>远山</td><td>淡色剪影，2 层，制造纵深</td></tr><tr><td>5</td><td>城墙 / 烽火台</td><td>中景剪影</td></tr><tr><td>6</td><td>旗帜</td><td>朱红战旗，风吹姿态</td></tr><tr><td>7</td><td>地面雾</td><td>底部雾气，让卡牌区浮起来</td></tr><tr><td>8</td><td>暗角</td><td>四角压暗，聚焦中央</td></tr></tbody></table></div>
+<h3>6.3 留白要求（给美术）</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>要求</th></tr></thead><tbody><tr><td>画布</td><td>736 × 414（横屏）</td></tr><tr><td><strong>中央禁区</strong></td><td>约 560 × 330 的"桌面区"<strong>不要放重要元素</strong>（会盖住卡牌）</td></tr><tr><td>亮度</td><td>中央区域整体压暗，保证卡牌对比度</td></tr><tr><td>配色</td><td>与暗金卡框互补：暖橙 / 赭红 / 墨青</td></tr><tr><td>风格</td><td>写实或半写实，避免卡通</td></tr></tbody></table></div>
+<h3>6.4 接入方式</h3>
+<pre><code>#bg-scene.has-image {
+  background-image: var(--bg-image);   /* 换成美术图 */
+  background-size: cover;
+}</code></pre>
+<p>原型里已用纯 CSS 画了一个占位场景（天空 / 落日 / 远山 / 城墙 / 烽火台 / 战旗 / 雾 / 暗角，共 16 层），<br><strong>仅用于验证氛围与遮挡关系</strong>，正式版必须替换为绘制插画。</p>
+<hr>
+<h2>7. 动画清单</h2>
+<div class="table-wrap"><table><thead><tr><th>动画</th><th>时长</th><th>缓动</th><th>说明</th></tr></thead><tbody><tr><td><strong>出牌飞行</strong></td><td>380ms</td><td><code>cubic-bezier(.22,.85,.3,1)</code></td><td>手牌卡飞向目标格（<strong>同尺寸，无缩放</strong>）</td></tr><tr><td>落地闪光</td><td>420ms</td><td><code>ease-out</code></td><td>径向白光扩散并淡出</td></tr><tr><td>落地回弹</td><td>300ms</td><td><code>ease-out</code></td><td>1.18 → 0.96 → 1</td></tr><tr><td><strong>攻击冲刺</strong></td><td>340ms</td><td><code>ease-in-out</code></td><td>攻击者向目标移动 60% 距离，放大 1.08</td></tr><tr><td>受击抖动</td><td>300ms</td><td><code>ease-out</code></td><td>位移 ±3px，衰减</td></tr><tr><td>伤害数字</td><td>700ms</td><td><code>ease-out</code></td><td>上浮 34px + 淡出</td></tr><tr><td><strong>死亡</strong></td><td>380ms</td><td><code>ease-in</code></td><td>缩小 0.72 + 旋转 −7° + 淡出</td></tr><tr><td>抽牌</td><td>320ms</td><td><code>ease-out</code></td><td>从下方滑入并放大</td></tr><tr><td>关键词触发</td><td>500ms</td><td><code>ease-out</code></td><td>图标光环扩散 9px</td></tr></tbody></table></div>
+<blockquote>由于战场卡与手牌卡同尺寸，出牌动画<strong>不再需要缩放</strong>——视觉上就是"同一张卡从手牌移动到战场"，这是统一尺寸带来的直接好处。</blockquote>
+<hr>
+<h2>8. 交互反馈</h2>
+<div class="table-wrap"><table><thead><tr><th>状态</th><th>视觉</th></tr></thead><tbody><tr><td>可部署格</td><td>绿色呼吸边框 + "部署"字样</td></tr><tr><td>合法攻击目标</td><td>绿色描边 + 外发光</td></tr><tr><td>已选中</td><td>金色描边 + 外发光</td></tr><tr><td>悬停（手牌）</td><td>上浮 10px + 放大 1.06</td></tr><tr><td>后军架盾失效</td><td>图标置灰 + 删除线</td></tr><tr><td>主公可被攻击</td><td>主公卡绿色描边（破阵后）</td></tr></tbody></table></div>
+<hr>
+<h2>8.3 破阵的可视化（关键规则的可读性）</h2>
+<p>规则"攻击者所在列两排皆空 → 可攻击敌方主将"必须在界面上<strong>一眼看懂</strong>，靠三点：</p>
+<div class="table-wrap"><table><thead><tr><th>手段</th><th>实现</th></tr></thead><tbody><tr><td><strong>主公位于阵型正前方/正后方</strong></td><td>主公条横贯整个阵型宽度（330pt），任何一列都"指向"它</td></tr><tr><td><strong>空列通道光束</strong></td><td>敌方某列两排皆空 → 该列浮现金色光束 + 向下箭头，脉动提示</td></tr><tr><td><strong>主公条高亮</strong></td><td>选中该列单位时，若可直击主将，主公条亮绿框</td></tr></tbody></table></div>
+<blockquote>架盾存在时，光束仍在但主将条不高亮——因为"必须先破盾"优先级更高。<br>视觉与规则完全一致。</blockquote>
+<h2>8.4 战场布局红线（踩过的坑）</h2>
+<div class="table-wrap"><table><thead><tr><th>规则</th><th>原因</th></tr></thead><tbody><tr><td><strong>战场容器禁止用 <code>perspective</code> / <code>rotateX</code></strong></td><td>透视会让每一行的缩放不同（实测四行宽度 402/404/407/409px），<strong>网格无法对齐</strong>。纵深靠光影（远端行压暗）而不是变形。</td></tr><tr><td>空格子不画虚线框</td><td>虚线框让战场像线框稿。改为桌面上的<strong>凹槽</strong>（内阴影 + 微弱高光）。</td></tr><tr><td>主公不做成卡牌</td><td>卡牌样式的主公与场上人物混淆；改拱形人物头像框后辨识度明显提升。</td></tr></tbody></table></div>
+<p><strong>对齐自检</strong>：四行的格子 x 坐标必须完全一致。</p>
+<pre><code>// 期望四行输出相同的 left/width 序列
+document.querySelectorAll('.row').forEach(r =&gt;
+  console.log([...r.querySelectorAll('.slot')].map(s =&gt; s.getBoundingClientRect().left)));</code></pre>
+<h2>8.5 视觉迭代方法（重要）</h2>
+<p><strong>不要盲改 CSS。</strong> 本项目的视觉迭代流程：</p>
+<pre><code># 1. 改 CSS / 结构
+# 2. 截图（1:1 与常见视口各一张）
+./prototype/shot.sh battlefield 736 414
+./prototype/shot.sh battlefield 1200 700
+# 3. 用 read_image 看图，再决定下一步
+# 4. 必要时量化对比：卡牌亮度 vs 背景亮度
+python3 tools/see.py .screenshots/battlefield-736x414-clean.png</code></pre>
+<p><strong>量化红线</strong>（来自实测经验）：</p>
+<div class="table-wrap"><table><thead><tr><th>指标</th><th>目标</th><th>说明</th></tr></thead><tbody><tr><td>卡牌平均亮度</td><td>≥ 0.30</td><td>低于 0.2 会糊进背景</td></tr><tr><td>背景平均亮度</td><td>≤ 0.20</td><td>背景要比卡牌暗</td></tr><tr><td>卡牌 − 背景</td><td><strong>≥ +0.12</strong></td><td>小于 +0.05 时视觉上"卡牌没有存在感"</td></tr></tbody></table></div>
+<h2>9. 验收状态</h2>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>目标</th><th>状态</th></tr></thead><tbody><tr><td><strong>原型阶段</strong></td><td>验证布局、卡面层次、交互与动画可行性</td><td>✅ <strong>已通过</strong></td></tr><tr><td><strong>正式版</strong></td><td>美术精致化、动效打磨、性能与包体达标</td><td>⬜ 待开发</td></tr></tbody></table></div>
+<hr>
+<h2>10. 正式版美术升级清单</h2>
+<h3>P0 · 必须做</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>项</th><th>说明</th></tr></thead><tbody><tr><td>1</td><td><strong>武将立绘</strong></td><td>512×512，统一画风，头部在上 1/3</td></tr><tr><td>2</td><td><strong>战场背景插画</strong></td><td>736×414，中央 560×330 留空</td></tr><tr><td>3</td><td><strong>关键词图标</strong></td><td>12 个（16/24/32 三档），小尺寸需描边</td></tr><tr><td>4</td><td><strong>阵营纹章</strong></td><td>5 个</td></tr><tr><td>5</td><td><strong>状态图标</strong></td><td>buff/debuff + 层数角标</td></tr></tbody></table></div>
+<h3>P1 · 应该做</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>项</th><th>说明</th></tr></thead><tbody><tr><td>6</td><td>稀有度分级</td><td>四档边框材质与光效</td></tr><tr><td>7</td><td>数字 / 卡名字体</td><td><strong>中文必须子集化</strong>（包体第一杀手）</td></tr><tr><td>8</td><td>动态立绘</td><td>呼吸动画</td></tr><tr><td>9</td><td>关键词触发光效</td><td>光环 + 粒子</td></tr></tbody></table></div>
+<h3>P2 · 锦上添花</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>项</th></tr></thead><tbody><tr><td>10</td><td>卡牌入场拖尾</td></tr><tr><td>11</td><td>主公技特写</td></tr><tr><td>12</td><td>胜负演出</td></tr></tbody></table></div>
+<h3>性能与包体红线</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>约束</th></tr></thead><tbody><tr><td>立绘格式</td><td>图集 + ASTC，禁止直接放 512×512 原图</td></tr><tr><td>首包</td><td>立绘走 CDN + 分包，首包只放占位</td></tr><tr><td>背景</td><td>按分辨率出 2 档（720p / 1080p），横屏裁切</td></tr><tr><td>内存</td><td>同屏最多 20 张卡，真机上限约 256MB</td></tr></tbody></table></div>
+</section>
+  </main>
+</div>
+</body>
+</html>

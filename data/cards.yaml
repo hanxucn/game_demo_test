@@ -1,0 +1,118 @@
+# 卡牌数据
+# 详见 docs/gdd/05-cards.md（字段说明）与 docs/gdd/13-balance-data-model.md（数值模型）
+#
+# ⚠️ 本文件当前只包含「已确认」的卡牌：
+#    - 基础兵种 3 张（数值与关键词由策划确认，属性点待实机校准）
+#    - 传国玉玺（后手补偿）
+#
+# 人物卡、事件卡、战法卡、特殊兵种卡、酒令 = 待策划提供后追加。
+# 新增卡牌不需要改代码；若必须改代码，说明效果 DSL 需要扩展。
+
+# ============================================================
+# 基础兵种卡
+# ============================================================
+
+- id: neutral_infantry
+  name: 步兵
+  faction: neutral
+  type: troop
+  troopKind: infantry
+  cost: 1
+  attack: 2
+  health: 1
+  keywords: [jie_zhen]
+  skills: []
+  bonds: []
+  value:
+    stats: 3            # 2 + 1
+    keywords: -0.5      # 结阵
+    total: 2.5
+    budget: 3           # 2 × 1 + 1
+  memo: "相邻有友方步兵时，本次攻击 +1（2→3）"
+  flavor: "结阵而战，进退有度。"
+
+- id: neutral_shieldman
+  name: 盾兵
+  faction: neutral
+  type: troop
+  troopKind: shield
+  cost: 1
+  attack: 1
+  health: 2
+  keywords: [jia_dun]
+  skills: []
+  bonds: []
+  value:
+    stats: 3
+    keywords: -1        # 架盾
+    total: 4.0
+    budget: 3
+  memo: "仅前军生效：敌方必须先打掉它才能攻击其他人"
+  flavor: "盾如铁壁，寸步不让。"
+  # ⚠️ 待调：超模 1 点。选项：① 改 1 费 1/1 ② 改 2 费 1/3（推荐）
+  tuning:
+    issue: over_budget
+    options:
+      - { cost: 1, attack: 1, health: 1 }
+      - { cost: 2, attack: 1, health: 3 }
+
+- id: neutral_archer
+  name: 弓箭手
+  faction: neutral
+  type: troop
+  troopKind: archer
+  cost: 1
+  attack: 1
+  health: 1
+  keywords: [shen_she]
+  skills: []
+  bonds: []
+  value:
+    stats: 2
+    keywords: -0.5      # 神射
+    total: 2.5
+    budget: 3
+  memo: "可攻击任意列的人物卡，无视距离"
+  flavor: "百步穿杨，取敌于阵后。"
+  # ⚠️ 待调：偏弱 0.5 点。选项：① 1 费 1/2（推荐） ② 2 费 2/2
+  tuning:
+    issue: under_budget
+    options:
+      - { cost: 1, attack: 1, health: 2 }
+      - { cost: 2, attack: 2, health: 2 }
+
+# ============================================================
+# 特殊卡
+# ============================================================
+
+- id: neutral_chuanguo_yuxi
+  name: 传国玉玺
+  faction: neutral
+  type: special
+  cost: 0
+  keywords: []
+  skills: []
+  bonds: []
+  effects:
+    - action: gain_command
+      value: 1
+      duration: this_turn
+  memo: "0 费，本回合统率 +1（仅后手获得）"
+  flavor: "受命于天，既寿永昌。"
+
+# ============================================================
+# 以下为模板注释，策划填写时取消注释并补全
+# ============================================================
+
+# - id: shu_xxx
+#   name: 卡名          # ≤4 字
+#   faction: shu        # shu | wei | wu | qun | neutral
+#   type: general       # troop | general | strategist | event | tactic | elite | special
+#   cost: 0             # 0-10
+#   attack: 0
+#   health: 0
+#   keywords: []
+#   skills: []
+#   bonds: []
+#   memo: ""            # 必填：一句话记忆点
+#   flavor: ""

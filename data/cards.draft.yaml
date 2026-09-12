@@ -1,0 +1,226 @@
+# 第一批卡牌草稿（12 张）—— 供策划填写
+#
+# ⚠️ 本文件是填写模板，**不参与游戏加载**（游戏只读 cards.yaml）。
+# 填完后把内容合并进 data/cards.yaml。
+#
+# 目的：每一张都触发不同的 schema 分支，用来验证「加一张卡只改数据、不改代码」。
+# 模板与字段说明：docs/gdd/05-cards.md §5.1
+# 数值自检公式：docs/gdd/13-balance-data-model.md（属性点 ≈ 2×统率+1）
+#
+# 填写提示：
+#   1. 卡名 ≤ 4 字
+#   2. memo 必须填（一句话记忆点）
+#   3. ≥6 费的卡，明确走「低属性+强技能」或「高属性+无技能」
+#   4. 关键词只能从 data/keywords.yaml 里选
+#   5. 不确定的数值先填个大概，后面用模拟器调
+
+draft:
+  # ---------- 武将 ×4（每阵营 1，各带一个不同关键词）----------
+
+  - id: shu_xxx_1
+    name: ""                    # ≤4 字
+    faction: shu
+    type: general
+    cost: 0
+    attack: 0
+    health: 0
+    keywords: [ji_xing]         # 疾行：入场当回合即可攻击
+    skills: []
+    bonds: []
+    memo: ""                    # 一句话记忆点
+    tests: "验证「疾行」关键词 + 高攻武将的数值预算"
+
+  - id: wei_xxx_1
+    name: ""
+    faction: wei
+    type: general
+    cost: 0
+    attack: 0
+    health: 0
+    keywords: [wu_shuang]       # 无双：攻击时不受反击
+    skills: []
+    bonds: []
+    memo: ""
+    tests: "验证「无双」（价值 −2）——8 费时属性会被压到 7/8 左右"
+
+  - id: wu_xxx_1
+    name: ""
+    faction: wu
+    type: general
+    cost: 0
+    attack: 0
+    health: 0
+    keywords: [lian_ji]         # 连击：每回合攻击两次
+    skills: []
+    bonds: []
+    memo: ""
+    tests: "验证「连击」（价值 −1.5）——属性必须显著下调"
+
+  - id: qun_xxx_1
+    name: ""
+    faction: qun
+    type: general
+    cost: 0
+    attack: 0
+    health: 0
+    keywords: [zhong_yi]        # 忠义：阵亡时触发亡语
+    skills: []                  # 需要一条 on_death 技能
+    bonds: []
+    memo: ""
+    tests: "验证「忠义」亡语 + on_death 触发技的数据表达"
+
+  # ---------- 谋臣 ×2（主动技的两个分支）----------
+
+  - id: shu_mouchen_1
+    name: ""
+    faction: shu
+    type: strategist
+    cost: 0
+    attack: 0                   # 谋臣固定为 0
+    health: 0
+    keywords: []
+    skills:
+      - id: ""
+        name: ""
+        kind: active
+        cost: 0                 # 消耗统率
+        frequency: once_per_turn
+        target:
+          side: enemy
+          filter: { type: character }
+          count: 1
+          mode: choose
+        effects:
+          - action: damage
+            value: 0
+    memo: ""
+    tests: "验证主动技 + 单体伤害 + 选择器"
+
+  - id: wei_mouchen_1
+    name: ""
+    faction: wei
+    type: strategist
+    cost: 0
+    attack: 0
+    health: 0
+    keywords: []
+    skills:
+      - id: ""
+        name: ""
+        kind: active
+        cost: 0
+        frequency: once_per_turn
+        target:
+          side: enemy
+          filter: { type: character }
+          count: 1
+          mode: choose
+        effects:
+          - action: apply_status
+            status: zhen_she      # 震慑（也可换成 hun_luan 混乱）
+            duration: 1
+    memo: ""
+    tests: "验证主动技 + 施加状态 + 持续时间"
+
+  # ---------- 事件卡 ×2（天道无情：对双方同时生效）----------
+
+  - id: event_xxx_1
+    name: ""
+    faction: neutral
+    type: event
+    cost: 0
+    target:
+      side: both                # 双方同时生效
+      filter: { type: character }
+    effects:
+      - action: damage
+        value: 0
+    memo: ""
+    tests: "验证事件卡「对称伤害」+ side: both"
+
+  - id: event_xxx_2
+    name: ""
+    faction: neutral
+    type: event
+    cost: 0
+    target:
+      side: both
+      filter: { type: character }
+      require_empty: true
+    effects:
+      - action: summon
+        unit: neutral_infantry
+        count: 0
+        position: random
+    memo: ""
+    tests: "验证事件卡「对称召唤」+ 随机位置"
+
+  # ---------- 战法卡 ×3 ----------
+
+  - id: tactic_xxx_1
+    name: ""
+    faction: neutral
+    type: tactic
+    cost: 0
+    target:
+      side: enemy
+      filter: { type: character }
+      count: 1
+      mode: choose
+    effects:
+      - action: damage
+        value: 0
+    memo: ""
+    tests: "验证战法卡单体伤害 + 指定目标"
+
+  - id: tactic_xxx_2
+    name: ""
+    faction: neutral
+    type: tactic
+    cost: 0
+    target:
+      side: ally
+      filter: { type: character }
+      count: 1
+      mode: choose
+    effects:
+      - action: move
+        destination: { side: ally, row: any, col: any, require_empty: true }
+    memo: ""
+    tests: "验证「位移」——5 列网格的专属价值"
+
+  - id: tactic_xxx_3
+    name: ""
+    faction: neutral
+    type: tactic
+    cost: 0
+    target:
+      side: ally
+      filter: { type: character }
+      count: 1
+      mode: choose
+    effects:
+      - action: apply_status
+        status: zhen_fen        # 振奋（也可换成 jia_dun 架盾）
+        stacks: 0
+        duration: this_turn
+    memo: ""
+    tests: "验证战法卡增益 + 本回合持续"
+
+  # ---------- 进化卡 ×1 ----------
+
+  - id: elite_xxx_1
+    name: ""
+    faction: wei
+    type: elite
+    cost: 0
+    upgradeTarget:
+      from: { type: troop, troopKind: infantry, side: ally }
+      to:
+        id: wei_xxx_elite
+        name: ""
+        attack: 0
+        health: 0
+        keywords: [xian_gong]   # 先攻
+    memo: ""
+    tests: "验证进化卡 + 关键词替换（结阵 → 先攻）"

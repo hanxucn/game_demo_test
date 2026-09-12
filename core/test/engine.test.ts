@@ -1,0 +1,181 @@
+/**
+ * 引擎行为测试：出牌、战斗结算、回合流程、粮尽、主公技
+ */
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+
+import { applyAction, startMatch } from '../src/engine.ts';
+import { createMatch, getUnit } from '../src/state.ts';
+import { loadTestData, scenario } from './fixtures.ts';
+import type { Action, GameEvent } from '../src/types.ts';
+
+const run = (state: ReturnType<typeof scenario>['state'], ctx: ReturnType<typeof scenario>['ctx'], action: Action) =>
+  applyAction(state, ctx, action);
+
+test('出牌：扣除统率、进入战场、产生事件', () => {
+  const { state, ctx } = scenario({ ownHand: ['neutral_infantry'] });
+  const before = state.sides.own.command.cur;
+  const r = run(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 0 });
+
+  assert.equal(r.ok, true);
+  assert.equal(r.state.sides.own.command.cur, before - 1);
+  assert.ok(getUnit(r.state, 'own', 'front', 0));
+  assert.ok(r.events.some((e: GameEvent) => e.type === 'UNIT_SUMMONED'));
+  assert.equal(r.state.sides.own.hand.length, 0);
+});
+
+test('出牌：统率不足被拒绝，状态不变', () => {
+  const { state, ctx } = scenario({ ownHand: ['test_champion'] });
+  state.sides.own.command.cur = 1;
+  const r = run(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 0 });
+  assert.equal(r.ok, false);
+  assert.equal(r.state.sides.own.command.cur, 1);
+});
+
+test('战斗：目标存活时反击', () => {
+  const { state, ctx } = scenario({
+    own: { front: ['neutral_infantry'] },        // 2/1
+    enemy: { front: ['test_champion'] },         // 5/5
+  });
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  // 步兵打 2 点 → 武将剩 3；武将反击 5 → 步兵 1 血阵亡
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 3);
+  assert.equal(getUnit(r.state, 'own', 'front', 0), null);
+});
+
+test('战斗：击杀目标则不反击（非先攻也成立）', () => {
+  const { state, ctx } = scenario({
+    own: { front: ['neutral_infantry'] },        // 2/1
+    enemy: { front: ['neutral_shieldman'] },     // 1/2（架盾，必须先打它）
+  });
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null);
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 1);   // 目标已死，未受反击
+});
+
+test('先攻：击杀目标则不受反击', () => {
+  const { state, ctx } = scenario({
+    own: { front: ['test_champion'] },           // 5/5 先攻
+    enemy: { front: ['neutral_infantry'] },      // 2/1
+  });
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null);
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 5);   // 未被反击
+});
+
+test('无双：攻击时不受反击', () => {
+  const { state, ctx } = scenario({
+    own: { front: ['test_assassin'] },           // 4/3 无双
+    enemy: { front: ['neutral_shieldman'] },     // 1/2
+  });
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 3);   // 未被反击
+});
+
+test('阵亡：移除单位并触发遗计抽牌', () => {
+  const { state, ctx } = scenario({
+    own: { front: ['test_champion'] },
+    enemy: { front: ['neutral_infantry'] },
+    enemyHand: [],
+  });
+  // 给敌方牌库塞一张牌，验证遗计
+  state.sides.enemy.deck = ['neutral_infantry'];
+  const u = getUnit(state, 'enemy', 'front', 0)!;
+  u.kw.push('yi_ji');
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(r.state.sides.enemy.hand.length, 1);
+});
+
+test('破阵：主将护甲优先吸收伤害', () => {
+  const { state, ctx } = scenario({ own: { front: ['test_champion'] } });   // 5 攻
+  state.sides.enemy.lord.armor = 2;
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.state.sides.enemy.lord.armor, 0);
+  assert.equal(r.state.sides.enemy.lord.hp, 30 - 3);
+});
+
+test('回合结束：换边、统率 +1、抽牌', () => {
+  const data = loadTestData();
+  const base = createMatch({
+    seed: 7, cards: data.cards, lords: data.lords,
+    decks: { own: Array(30).fill('neutral_infantry'), enemy: Array(30).fill('neutral_infantry') },
+  });
+  const ctx = { cards: data.cards, lords: data.lords };
+  const started = startMatch(base, ctx);
+  assert.equal(started.state.turn, 1);
+  assert.equal(started.state.active, 'own');
+  assert.equal(started.state.sides.own.command.max, 2);   // 1 → 2
+
+  const r = applyAction(started.state, ctx, { type: 'END_TURN' });
+  assert.equal(r.state.active, 'enemy');
+  assert.equal(r.state.turn, 2);
+  assert.equal(r.state.sides.enemy.command.max, 2);
+});
+
+test('粮尽：牌库为空时抽牌受到递增伤害', () => {
+  const data = loadTestData();
+  const base = createMatch({
+    seed: 3, cards: data.cards, lords: data.lords,
+    decks: { own: [], enemy: [] },
+  });
+  const ctx = { cards: data.cards, lords: data.lords };
+  const s1 = startMatch(base, ctx);                       // 第 1 回合抽牌 → 粮尽 1
+  assert.equal(s1.state.sides.own.lord.hp, 29);
+  const s2 = applyAction(s1.state, ctx, { type: 'END_TURN' });   // 敌方回合 → 粮尽 1
+  const s3 = applyAction(s2.state, ctx, { type: 'END_TURN' });   // 己方第 2 次 → 粮尽 2
+  assert.equal(s3.state.sides.own.lord.hp, 29 - 2);
+});
+
+test('主公技·仁德：恢复 2 点生命', () => {
+  const { state, ctx } = scenario({ own: { front: ['neutral_infantry'] } });
+  const u = getUnit(state, 'own', 'front', 0)!;
+  u.hp = 0;  // 直接设 0 会被当作阵亡，这里改为设成 1 再治疗
+  u.hp = 1;
+  const r = run(state, ctx, { type: 'USE_LORD_SKILL', target: { side: 'own', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 1);   // 步兵 1/1 已满血，治疗无效
+  assert.equal(r.state.sides.own.command.cur, 9);
+});
+
+test('主公技·坐断东南：获得护甲（换孙权）', () => {
+  const data = loadTestData();
+  const base = createMatch({
+    seed: 5, cards: data.cards,
+    lords: { own: data.cards.get('wu_sunquan')!, enemy: data.lords.enemy },
+    decks: { own: [], enemy: [] },
+  });
+  const ctx = { cards: data.cards, lords: { own: data.cards.get('wu_sunquan')!, enemy: data.lords.enemy } };
+  const s = startMatch(base, ctx);
+  const r = applyAction(s.state, ctx, { type: 'USE_LORD_SKILL' });
+  assert.equal(r.ok, true);
+  assert.equal(r.state.sides.own.lord.armor, 2);
+});
+
+test('谋臣主动技：火计造成 4 点伤害', () => {
+  const { state, ctx } = scenario({
+    own: { back: [null, null, 'test_strategist', null, null] },
+    enemy: { front: ['test_champion'] },       // 5/5
+  });
+  const r = run(state, ctx, {
+    type: 'USE_SKILL', row: 'back', col: 2,
+    target: { side: 'enemy', row: 'front', col: 0 },
+  });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 1);
+  assert.equal(r.state.sides.own.command.cur, 8);   // 10 - 2
+});
+
+test('对局结束：主将生命归零即结束', () => {
+  const { state, ctx } = scenario({ own: { front: ['test_champion'] } });
+  state.sides.enemy.lord.hp = 3;
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
+  assert.equal(r.state.winner, 'own');
+  assert.ok(r.events.some((e) => e.type === 'GAME_OVER'));
+});

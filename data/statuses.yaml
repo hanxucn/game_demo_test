@@ -1,0 +1,124 @@
+# 状态定义
+# 详见 docs/gdd/10-skills-statuses.md §3
+#
+# 字段说明：
+#   id          唯一标识
+#   name        显示名（≤4 字）
+#   kind        buff | debuff
+#   numeric     是否数值型（true = 按层数累加；false = 标志型，不叠加）
+#   scope       character | lord | both
+#   timing      结算时机（对应 docs/gdd/10-skills-statuses.md §4 的时机编号）
+#   duration    permanent | turns | until_consumed | conditional
+#   memo        一句话说明
+
+# ---------- 增益 ----------
+
+- id: zhen_fen
+  name: 振奋
+  kind: buff
+  numeric: true
+  scope: character
+  timing: 13            # 伤害结算：攻击力修正
+  duration: permanent
+  memo: "攻击 +N"
+
+- id: ji_jiu
+  name: 急救
+  kind: buff
+  numeric: true
+  scope: character
+  timing: 3             # 回合开始
+  duration: permanent
+  memo: "回合开始恢复 N 点生命"
+
+- id: jia_dun_status
+  name: 架盾
+  kind: buff
+  numeric: false
+  scope: character
+  timing: 9             # 攻击声明：目标选择
+  duration: conditional # 仅当前军时生效
+  memo: "敌方必须先攻击它"
+
+- id: xian_gong_status
+  name: 先攻
+  kind: buff
+  numeric: false
+  scope: character
+  timing: 12            # 伤害结算：先攻判定
+  duration: permanent
+  memo: "先结算伤害"
+
+- id: qi_xi_status
+  name: 奇袭
+  kind: buff
+  numeric: false
+  scope: character
+  timing: 9             # 攻击声明：目标选择
+  duration: until_consumed   # 攻击后失去
+  memo: "不能被指定为目标"
+
+- id: wu_sheng_status
+  name: 武圣
+  kind: buff
+  numeric: false
+  scope: character
+  timing: 10            # 伤害结算前：免疫判定
+  duration: until_consumed
+  memo: "免疫一次伤害"
+
+- id: hu_jia
+  name: 护甲
+  kind: buff
+  numeric: true
+  scope: lord
+  timing: 11            # 伤害结算前：护甲吸收
+  duration: permanent
+  memo: "吸收伤害，永久保留"
+
+# ---------- 减益 ----------
+
+- id: zhen_she
+  name: 震慑
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 8             # 攻击声明：合法性检查
+  duration: turns
+  memo: "不能普通攻击，也不能使用主动技"
+
+- id: hun_luan
+  name: 混乱
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 9             # 攻击声明：目标选择
+  duration: turns
+  memo: "普攻与主动技的目标在合法目标中随机"
+
+- id: zhong_du
+  name: 中毒
+  kind: debuff
+  numeric: true
+  scope: character
+  timing: 20            # 回合结束
+  duration: permanent
+  memo: "回合结束时失去 N 点生命"
+
+- id: xu_ruo
+  name: 虚弱
+  kind: debuff
+  numeric: true
+  scope: character
+  timing: 13            # 伤害结算：攻击力修正
+  duration: turns
+  memo: "攻击 −N"
+
+- id: duan_liang
+  name: 断粮
+  kind: debuff
+  numeric: true
+  scope: lord
+  timing: 1             # 回合开始：统率上限
+  duration: turns
+  memo: "统率值上限 −N"

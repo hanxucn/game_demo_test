@@ -1,0 +1,406 @@
+# ============================================================
+# 设计者决策层 · 照片卡牌
+# ============================================================
+#
+# 作用：`tools/merge-photos.py` 生成 `cards_photo.draft.yaml` 时**应用本文件的覆盖**。
+#
+# 为什么不直接改 cards_photo.draft.yaml：
+#   那个文件是**生成的**，下次跑合并就会被覆盖。原始转录（transcribe/batch_*.yaml）
+#   永久冻结作为证据，本文件记录「设计者后来决定了什么」，两者互不污染。
+#
+# 记录规范：
+#   · 每条覆盖必须写 original（原值）、value（新值）、adr（依据）、reason
+#   · 不要删条目；改主意就改 value 并补 note，保留决策轨迹
+#   · 标注类（未定稿/草稿/备选技能）写在 annotations，不改动原文
+
+meta:
+  updated: "2026-09-11"
+  source: 设计者口头决策（第二轮）
+
+# ------------------------------------------------------------
+# ① 全局规则（影响多张卡）
+# ------------------------------------------------------------
+
+rules:
+  cost_max:
+    value: 10
+    adr: ADR-016
+    memo: "费用上限 10。超出者已按强度下调。"
+
+  strategist_attack:
+    adr: ADR-015
+    status: 已定
+    memo: >
+      谋臣**不强制 0 攻**，但**默认上限 1 攻**。
+      定型规则（ADR-018）：攻击 > 1 → 武将；攻击 ≤ 1 且史实身份为谋臣/非武将 → 谋臣。
+      需同步修改：docs/gdd/05-cards.md §2 与 core/tools/validate.ts 规则⑤。
+    value: "默认上限 1 攻"
+
+  terminology:
+    adr: ADR-019
+    memo: >
+      以项目术语为标准，原稿用词保留在 skill_text 里、整理时归一：
+      「统帅」→「统率」（代表费用）、「己放」→「己方」、「计能」→「技能」。
+      「概率」与「几率」都可用，不构成误解。
+
+  blank_stat_mark:
+    adr: ADR-020
+    memo: >
+      数字与「攻」「血」之间夹的连笔字是**当时的修改笔误**，不是数值内容。
+      下方「攻」即攻击力、「血」即生命值，直接取数字即可。
+
+  box_line_not_digit:
+    adr: ADR-021
+    memo: >
+      有的卡把统率值画在方框里，**框的左边线是单独一竖笔，不是数字「1」**。
+      例：#149 出其不意 = 4 费（不是 14）。据此 #153/#158 = 4、#157 = 3。
+
+# ------------------------------------------------------------
+# ② 逐张覆盖（按照片编号）
+# ------------------------------------------------------------
+
+overrides:
+  # ---- 费用 ----
+  - photo: 145
+    field: cost
+    value: 5
+    original: 12
+    adr: ADR-016
+    reason: "设计者定值：空城计已改设计为计谋卡，5 费。"
+  - photo: 147
+    field: cost
+    value: 5
+    original: 15
+    adr: ADR-016
+    reason: "设计者定值：休养生息 5 费（AI 先前拟的 8 费作废）。"
+  - photo: 149
+    field: cost
+    value: 4
+    original: 4
+    adr: ADR-021
+    reason: "设计者以 #149 为例确认「框线不是数字」——原文读 4 正确，此前存疑作废。"
+  - photo: 153
+    field: cost
+    value: 4
+    original: 4
+    adr: ADR-021
+    reason: "同 #149：框线不读作 1，费用为 4。"
+  - photo: 158
+    field: cost
+    value: 4
+    original: 4
+    adr: ADR-021
+    reason: "同 #149：框线不读作 1，费用为 4。"
+  - photo: 157
+    field: cost
+    value: 3
+    original: 3
+    adr: ADR-021
+    reason: "同 #149：框线不读作 1，费用为 3。"
+
+  # ---- 攻击 / 生命补充 ----
+  - photo: 86
+    field: attack
+    value: 2
+    original: null
+    adr: ADR-018
+    reason: "设计者补值：刘封 2 攻。"
+  - photo: 95
+    field: attack
+    value: 5
+    original: null
+    adr: ADR-018
+    reason: "设计者补值：赵云 5 攻。"
+  - photo: 104
+    field: attack
+    value: 1
+    original: null
+    adr: ADR-018
+    reason: "设计者补值：庞统为谋臣，1 攻。"
+  - photo: 77
+    field: health
+    value: 2
+    original: null
+    adr: ADR-018
+    reason: "设计者补值：蔡文姬 2 血。"
+  - photo: 94
+    field: health
+    value: 4
+    original: null
+    adr: ADR-018
+    reason: "设计者补值：魏延 4 血。"
+  - photo: 101
+    field: attack
+    value: 1
+    original: 1
+    adr: ADR-018
+    reason: "设计者确认：糜芳为谋臣，1 攻。"
+  - photo: 101
+    field: health
+    value: 4
+    original: null
+    adr: ADR-018
+    reason: "设计者补值：糜芳 4 血。"
+  - photo: 108
+    field: attack
+    value: 2
+    original: 2
+    adr: ADR-018
+    reason: "设计者确认：机械哨兵（黄月英技能生成的临时卡）2 攻 1 血。"
+  - photo: 108
+    field: health
+    value: 1
+    original: null
+    adr: ADR-018
+    reason: "同上，临时卡 2 攻 1 血。"
+  - photo: 139
+    field: health
+    value: 3
+    original: null
+    adr: ADR-018
+    reason: "设计者补值：诸葛恪（谋臣）1 攻 3 血。"
+  - photo: 160
+    field: attack
+    value: 2
+    original: 1
+    adr: ADR-018
+    reason: "设计者补值：步兵 2 攻 1 血（备选 1 攻 1 血，见 note）。"
+  - photo: 160
+    field: health
+    value: 1
+    original: null
+    adr: ADR-018
+    reason: "同上。"
+
+  # ---- 名称修正 ----
+  - photo: 101
+    field: name
+    value: 糜芳
+    original: 糜竺
+    adr: ADR-018
+    reason: "设计者更正：本卡是糜芳，不是糜竺。原转录按字形判读有误。"
+
+  # ---- 技能修正 ----
+  - photo: 70
+    field: skill_text
+    value: "每回合可召唤一个 1攻 1血的士族兵"
+    original: "每回合可召唤一个 1攻 1血的勇士兵"
+    adr: ADR-022
+    reason: "设计者定名：袁绍召唤物为「士族兵」。原读「勇士兵」系字形误判。"
+  - photo: 93
+    field: skill_name
+    value: 咆哮
+    original: 狂怒咆哮
+    adr: ADR-023
+    reason: "设计者定名：张飞技能为「咆哮」。"
+  - photo: 93
+    field: skill_text
+    value: "每回合对所有敌方人物卡造成 1 点伤害"
+    original: "每回合出牌时,对随机所有敌方卡牌造成1点伤害.如果敌人被击杀,则..."
+    adr: ADR-023
+    reason: "设计者给出定稿描述；原稿末句未写完，以设计者口径为准。"
+  - photo: 147
+    field: skill_text
+    value: "下一回合不进行任何活动, 恢复全体人员(包括主帅)3-4点血量, 抽三张牌。"
+    original: "下一回合不进行任何活动, 恢复全体人员(包括主帅)4点血量, 抽三张牌。"
+    adr: ADR-024
+    reason: "设计者：恢复量先记 3-4，**未定稿**。"
+
+  - photo: 110
+    field: health
+    value: 30
+    original: null
+    adr: ADR-026
+    reason: "设计者：曹操为主公卡，主公默认 30 血。"
+
+# ------------------------------------------------------------
+# ②a 非人卡的类型（不参与 ADR-018 的武将/谋臣定型）
+# ------------------------------------------------------------
+
+type_overrides:
+  - photos: [142, 143]
+    type: 兵种
+    why: "基础兵种「弓射手」，非人物卡；0 攻 1 血，每回合对任意敌方人物造成 1 点伤害"
+  - photos: [108, 109]
+    type: 临时卡
+    why: "黄月英技能生成的 token，不进卡组"
+  - photos: [46, 160]
+    type: 兵种
+    why: "基础兵种「步兵」的蜀国卡（1 统 2 攻 1 血，可攻击主帅的条件见技能文本）"
+  - photos: [52]
+    type: 属性卡
+    why: "「架盾」是状态/属性卡，只有效果文本，本就没有费用与攻血"
+
+# ------------------------------------------------------------
+# ②b 「本来就不需要这些字段」的卡 —— 不算数据缺口（ADR-025/026）
+# ------------------------------------------------------------
+# 这些卡没有费用/攻血是**预期**，整理时不要再当成缺失来报。
+
+not_applicable:
+  - photo: 52
+    fields: [cost, attack, health]
+    why: "属性卡：只有状态效果（架盾），本就没有费用与攻血"
+  - photo: 108
+    fields: [cost]
+    why: "临时卡（黄月英技能生成），不进卡组、无费用"
+  - photo: 109
+    fields: [cost]
+    why: "临时卡（黄月英技能生成），不进卡组、无费用"
+  - photo: 119
+    fields: [cost, attack, health]
+    why: "设计者确认整张是草稿，不作数"
+  - photo: 92
+    fields: [attack, cost]
+    why: "主公卡：设计者明确「暂时主公不设攻击」"
+  - photo: 110
+    fields: [attack, cost]
+    why: "主公卡：设计者明确「主公没有攻击」"
+
+# 这批卡把技能名写在了卡名正下方，被转录进了 card_type。
+# 设计者确认：它们都是对应武将的**技能名**，只是缺效果描述。
+
+title_to_skill:
+  - photo: 75
+    name: 黄祖
+    skill_name: 善射
+    skill_text_confirmed: "上场第一回合时对指定一敌人造成 2 点伤害"
+    note: "设计者已给出效果，与转录文本一致"
+  - photo: 82
+    name: 马岱
+    skill_name: 西凉子弟
+    skill_text_confirmed: ""
+    note: "⚠️ 效果待设计者补充（转录只有「获得先攻.」）"
+  - photo: 83
+    name: 董厥
+    skill_name: 守势
+    skill_text_confirmed: "技能就是架盾（类似盾兵特性）"
+    note: "设计者已给出效果"
+  - photo: 85
+    name: 黄权
+    skill_name: 劝谏
+    note: "效果即转录正文"
+  - photo: 86
+    name: 刘封
+    skill_name: 犹豫不决
+    note: "效果即转录正文"
+  - photo: 87
+    name: 关兴
+    skill_name: 将门虎子
+    note: "效果即转录正文"
+  - photo: 88
+    name: 张苞
+    skill_name: 将风?
+    note: "技能名本身未定（原稿带问号）"
+  - photo: 119
+    name: 【张?】【飞?】
+    skill_name: ""
+    note: "⚠️ 设计者说 #119 是草稿（不算正式技能）"
+
+# ------------------------------------------------------------
+# ④ 未定稿标记（ADR-024）—— 只加标注，不改原文
+# ------------------------------------------------------------
+# 规则：原稿里带问号「?」或设计者自称「暂定」的，一律标 `未定稿`。
+
+draft_marks:
+  - photo: 96
+    field: skill_name
+    value: 百步穿杨
+    reason: "技能名后带问号"
+  - photo: 98
+    field: skill_name
+    value: 水淹七军 / 武圣（备选）
+    reason: "两个候选技能名都保留，一个作备选，设计者未定用哪个"
+  - photo: 104
+    field: cost
+    value: 6
+    reason: "统率值后带问号，设计者自标存疑"
+  - photo: 104
+    field: skill_name
+    value: 凤雏展智
+    reason: "技能名后带问号"
+  - photo: 88
+    field: skill_name
+    value: 将风?
+    reason: "技能名后带问号"
+  - photo: 81
+    field: health
+    value: 2
+    reason: "纸面自带问号，数值待定"
+  - photo: 86
+    field: health
+    value: 4
+    reason: "「血」上方有弯曲记号（疑问号）"
+  - photo: 140
+    field: cost
+    value: 3
+    reason: "「统」旁带问号"
+  - photo: 141
+    field: cost
+    value: 4
+    reason: "「统」旁带问号"
+  - photo: 146
+    field: cost
+    reason: "「统」旁带问号，数值读不出"
+  - photo: 147
+    field: skill_text
+    value: "恢复量 3-4"
+    reason: "设计者确认未定稿"
+  - photo: 119
+    field: card_type
+    value: 领袖
+    reason: "设计者确认整张是**草稿**"
+
+# ------------------------------------------------------------
+# ⑤ 重复稿（只标注，不删除；确认后改 confirmed: true 才去重）
+# ------------------------------------------------------------
+
+duplicates:
+  - keep: 46
+    drop: 160
+    confirmed: false
+    reason: "蜀·步兵重抄件，相似度 94%。注：设计者已给 #160 补 2 攻 1 血，两张数值现已一致。"
+  - keep: 142
+    drop: 143
+    confirmed: false
+    reason: "蜀·弓射手，正文完全相同（0 攻 1 血，每回合对任意敌方人物造成 1 点伤害）。"
+
+# ------------------------------------------------------------
+# ⑥ 同一人物的多套设计 —— 合并，两套技能都保留（ADR-017）
+# ------------------------------------------------------------
+
+character_merges:
+  - name: 张郃
+    faction: 魏
+    variants: [60, 65]
+    memo: "两套方向不同：#60 是「斩杀溢出打主将」的进攻向，#65 是「削攻/削血」的控制向"
+  - name: 诸葛亮
+    faction: 蜀
+    variants: [105, 123]
+    memo: >
+      两套都是 7 费 1/6。#105「运筹帷幄」保留；
+      #123 原技能「空城计」——设计者已把空城计改为独立的计谋卡（#145），
+      **诸葛亮此位需要换一个新技能，设计者待定**。
+  - name: 袁绍
+    faction: 群
+    variants: [70, 122]
+    memo: "两套都是 0 攻 12 血：#70 有「威望」（召唤士族兵），#122 无技能"
+  - name: 张梁
+    faction: 群
+    variants: [72, 74]
+    memo: "两套都是 2/2：#72 有「黄天当立」，#74 无技能"
+
+# ------------------------------------------------------------
+# ⑦ 待设计者补充（工具会把这些列成问题）
+# ------------------------------------------------------------
+
+open_items:
+  - id: O-1
+    question: "诸葛亮（#123）原来占位的「空城计」已独立成计谋卡，这个位置换什么技能？"
+  - id: O-2
+    question: "马岱（#82）技能「西凉子弟」的效果是什么？转录只有「获得先攻.」"
+  - id: O-3
+    question: "基础兵种是否要按新数值改 data/cards.yaml？设计者给出：步兵 2攻1血、弓箭手 0攻1血（有技能：每回合行动时无视距离造成1点伤害）、盾兵 1攻1血（有架盾）。"
+  - id: O-4
+    question: "袁绍（#70/#122）算「主公」还是「武将」？他是 0 攻 12 血的主公身材。"
+  - id: O-5
+    question: "曹昂（#113，1 攻）算武将还是谋臣？曹操长子，演义里戏份少。"

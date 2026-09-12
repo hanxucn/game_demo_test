@@ -1,0 +1,122 @@
+[
+  {
+    "id": "zhen_fen",
+    "name": "振奋",
+    "kind": "buff",
+    "numeric": true,
+    "scope": "character",
+    "timing": 13,
+    "duration": "permanent",
+    "memo": "攻击 +N"
+  },
+  {
+    "id": "ji_jiu",
+    "name": "急救",
+    "kind": "buff",
+    "numeric": true,
+    "scope": "character",
+    "timing": 3,
+    "duration": "permanent",
+    "memo": "回合开始恢复 N 点生命"
+  },
+  {
+    "id": "jia_dun_status",
+    "name": "架盾",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 9,
+    "duration": "conditional",
+    "memo": "敌方必须先攻击它"
+  },
+  {
+    "id": "xian_gong_status",
+    "name": "先攻",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 12,
+    "duration": "permanent",
+    "memo": "先结算伤害"
+  },
+  {
+    "id": "qi_xi_status",
+    "name": "奇袭",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 9,
+    "duration": "until_consumed",
+    "memo": "不能被指定为目标"
+  },
+  {
+    "id": "wu_sheng_status",
+    "name": "武圣",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 10,
+    "duration": "until_consumed",
+    "memo": "免疫一次伤害"
+  },
+  {
+    "id": "hu_jia",
+    "name": "护甲",
+    "kind": "buff",
+    "numeric": true,
+    "scope": "lord",
+    "timing": 11,
+    "duration": "permanent",
+    "memo": "吸收伤害，永久保留"
+  },
+  {
+    "id": "zhen_she",
+    "name": "震慑",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 8,
+    "duration": "turns",
+    "memo": "不能普通攻击，也不能使用主动技"
+  },
+  {
+    "id": "hun_luan",
+    "name": "混乱",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 9,
+    "duration": "turns",
+    "memo": "普攻与主动技的目标在合法目标中随机"
+  },
+  {
+    "id": "zhong_du",
+    "name": "中毒",
+    "kind": "debuff",
+    "numeric": true,
+    "scope": "character",
+    "timing": 20,
+    "duration": "permanent",
+    "memo": "回合结束时失去 N 点生命"
+  },
+  {
+    "id": "xu_ruo",
+    "name": "虚弱",
+    "kind": "debuff",
+    "numeric": true,
+    "scope": "character",
+    "timing": 13,
+    "duration": "turns",
+    "memo": "攻击 −N"
+  },
+  {
+    "id": "duan_liang",
+    "name": "断粮",
+    "kind": "debuff",
+    "numeric": true,
+    "scope": "lord",
+    "timing": 1,
+    "duration": "turns",
+    "memo": "统率值上限 −N"
+  }
+]

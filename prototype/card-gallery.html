@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>酒话三国 · 卡面画廊</title>
+<link rel="stylesheet" href="card-render.css">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, #1e1813 0%, #0a0807 70%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+    color: #e9e2d5;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 26px 32px 80px;
+  }
+  h1 { font-size: 21px; color: #d4af6a; letter-spacing: .1em; margin: 0 0 4px; }
+  h2 { font-size: 14px; color: #d9c9a6; margin: 32px 0 12px; letter-spacing: .08em;
+       border-left: 3px solid #d4af6a; padding-left: 9px; }
+  .sub { color: #a99e8c; font-size: 12.5px; margin-bottom: 8px; line-height: 1.7; }
+  .note {
+    background: rgba(212,175,106,.08); border: 1px solid #4a4034;
+    border-radius: 6px; padding: 10px 14px; font-size: 12.5px;
+    color: #cdc2ae; line-height: 1.75; max-width: 940px;
+  }
+  .note b { color: #f3dfae; }
+  .note code { background: #2c261f; border: 1px solid #3a3229; border-radius: 3px;
+    padding: 0 4px; color: #e6c98d; font-size: 12px; }
+
+  .grid { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .item .cap { font-size: 11px; color: #8a8070; margin-top: 7px; line-height: 1.5; }
+  .item .cap b { color: #e9e2d5; }
+
+  /* 1:1 真实尺寸 */
+  .box-1x { width: 56px; height: 78px; }
+  /* 2 倍放大 */
+  .box-2x { width: 112px; height: 156px; }
+  .box-2x .cr-name { height: 28px; font-size: 22px; }
+  .box-2x .cr-glyph { font-size: 60px; }
+  .box-2x .cr-stat { width: 34px; height: 34px; font-size: 22px; }
+  .box-2x .cr-kw { top: 30px; }
+  .box-2x .cr-kw i { font-size: 16px; padding: 0 4px; }
+  .box-2x .cr-cost { width: 38px; height: 38px; font-size: 24px; }
+  .box-2x .cr-crest { width: 28px; height: 28px; font-size: 18px; }
+  .box-2x .cr-desc { font-size: 16px; top: 32px; }
+  .box-2x .cr-lord-hp { font-size: 34px; }
+  .box-2x .cr-lord-armor { font-size: 20px; bottom: 40px; }
+  .box-2x .cr-lord-skill { font-size: 18px; padding: 2px 8px; }
+
+  .box-lord { width: 56px; height: 78px; }
+
+  .palette { display: flex; gap: 10px; flex-wrap: wrap; }
+  .sw {
+    width: 118px; height: 58px; border-radius: 6px; position: relative;
+    box-shadow: 0 0 0 1px #000, 0 0 0 2px #7d6434;
+    display: flex; align-items: flex-end; padding: 6px 8px;
+    font-size: 12px; font-weight: 700; color: #f2e8d5;
+    background: linear-gradient(160deg, var(--f1) 0%, var(--f2) 70%, #070605 100%);
+  }
+</style>
+</head>
+<body>
+  <h1>酒话三国 · 卡面画廊</h1>
+  <div class="sub">定稿风格：<b>立绘铺满 + 暗金古典 + 无装饰</b> · 统一尺寸 <b>56 × 78 pt</b></div>
+
+  <div class="note">
+    <b>统一尺寸</b>：战场卡、手牌卡、主公卡全部 56 × 78 pt —— 战场上看到的就是手上那张卡，只是没有费用/描述。<br>
+    <b>立绘占位</b>：当前用「大字 + 阵营渐变 + 纹理」，按 id 哈希做 ±22° 色相偏移。美术图到位后在数据里加
+    <code>art: "art/xxx.png"</code> 即自动替换，无需改代码。<br>
+    <b>1:1 与 2× 两档</b>：1:1 用来判断真机上是否看得清，2× 用来看细节。
+  </div>
+
+  <h2>① 1:1 真实尺寸 · 56 × 78 pt</h2>
+  <div class="sub">这是战场上的实际大小，用来判断可读性</div>
+  <div class="grid" id="g1x"></div>
+
+  <h2>② 2× 放大 · 细节检查</h2>
+  <div class="sub">用来看立绘、名称条、关键词、数值宝石的层次</div>
+  <div class="grid" id="g2x"></div>
+
+  <h2>③ 主公卡 · 56 × 78 pt</h2>
+  <div class="sub">生命 / 护甲 / 主公技</div>
+  <div class="grid" id="glord"></div>
+
+  <h2>④ 阵营色板</h2>
+  <div class="palette" id="palette"></div>
+
+  <h2>⑤ 动画清单</h2>
+  <div class="note">
+    <b>出牌</b>：手牌卡飞向目标格，落地闪光 + 回弹（两者同尺寸，视觉上是"同一张卡移动"）。<br>
+    <b>攻击</b>：攻击者向目标冲刺 60% 距离并放大 → 目标抖动 → 伤害数字上浮消失。<br>
+    <b>死亡</b>：缩小 + 旋转 −7° + 淡出。<br>
+    <b>抽牌</b>：从下方滑入并放大。<br>
+    <b>关键词触发</b>：图标脉冲光环。<br>
+    实现见 <code>prototype/card-render.js</code> 的 <code>flyTo / attack / die</code>。
+  </div>
+
+<script src="rules.js"></script>
+<script src="card-render.js"></script>
+<script>
+var R = window.Rules, CR = window.CardRender;
+
+/* 演示用人物卡（占位数值，仅看样式） */
+var DEMO = [
+  { id:'d1', name:'关羽', type:'general', faction:'shu', cost:5, atk:5, hp:4, kw:['xian_gong','wu_shuang'], memo:'入场即可攻击；攻击不受反击' },
+  { id:'d2', name:'诸葛亮', type:'strategist', faction:'shu', cost:6, atk:0, hp:4, kw:[], memo:'主动技：对一名敌方人物造成 4 点伤害' },
+  { id:'d3', name:'张辽', type:'general', faction:'wei', cost:4, atk:4, hp:3, kw:['ji_xing'], memo:'入场当回合即可攻击' },
+  { id:'d4', name:'周瑜', type:'general', faction:'wu', cost:5, atk:4, hp:4, kw:['yin_xue'], memo:'造成伤害时为主将回复等量生命' },
+  { id:'d5', name:'吕布', type:'general', faction:'qun', cost:8, atk:8, hp:8, kw:['wu_shuang'], memo:'攻击时不受到反击伤害' },
+  R.CARDS.infantry, R.CARDS.shield, R.CARDS.archer, R.CARDS.yuxi, R.CARDS.tactic_ph,
+];
+
+function addCard(container, card, boxClass, showCap) {
+  var box = document.createElement('div');
+  box.className = 'item';
+  var inner = document.createElement('div');
+  inner.className = boxClass;
+  inner.appendChild(CR.big(card));
+  box.appendChild(inner);
+  if (showCap) {
+    var cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.innerHTML = '<b>' + card.name + '</b> · ' + card.cost + ' 费 · ' + CR.typeLabel(card);
+    box.appendChild(cap);
+  }
+  container.appendChild(box);
+}
+
+var g1 = document.getElementById('g1x');
+var g2 = document.getElementById('g2x');
+DEMO.forEach(function (c) {
+  addCard(g1, c, 'box-1x', false);
+  addCard(g2, c, 'box-2x', true);
+});
+
+/* 主公卡 */
+var glord = document.getElementById('glord');
+[
+  { name:'刘备', faction:'shu', hp:30, armor:2, skill:'仁德' },
+  { name:'曹操', faction:'wei', hp:26, armor:0, skill:'号令' },
+  { name:'孙权', faction:'wu', hp:30, armor:4, skill:'坐断东南' },
+  { name:'董卓', faction:'qun', hp:24, armor:0, skill:'暴虐' },
+].forEach(function (l) {
+  var box = document.createElement('div');
+  box.className = 'item';
+  var inner = document.createElement('div');
+  inner.className = 'box-lord';
+  inner.appendChild(CR.lord(l));
+  box.appendChild(inner);
+  var cap = document.createElement('div');
+  cap.className = 'cap';
+  cap.innerHTML = '<b>' + l.name + '</b>';
+  box.appendChild(cap);
+  glord.appendChild(box);
+});
+
+/* 阵营色板 */
+var pal = document.getElementById('palette');
+[['shu','蜀'],['wei','魏'],['wu','吴'],['qun','群雄'],['neutral','中立']].forEach(function (p) {
+  var el = document.createElement('div');
+  el.className = 'sw f-' + p[0];
+  el.textContent = p[1];
+  pal.appendChild(el);
+});
+</script>
+</body>
+</html>

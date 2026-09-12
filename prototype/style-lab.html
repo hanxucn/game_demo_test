@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>酒话三国 · 风格实验室</title>
+<link rel="stylesheet" href="card-render.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: #070605;
+    color: #e9e2d5;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ================= 左侧控制台 ================= */
+  #lab {
+    flex: 0 0 244px;
+    background: #100d0a;
+    border-right: 1px solid #3a3229;
+    padding: 18px 16px;
+    height: 100vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+  }
+  #lab h1 { font-size: 15px; color: #d4af6a; margin: 0 0 4px; letter-spacing: .08em; }
+  #lab .sub { font-size: 11px; color: #8a8070; margin-bottom: 16px; line-height: 1.6; }
+  #lab .group { margin-bottom: 16px; }
+  #lab .group > .t { font-size: 11px; color: #8a8070; letter-spacing: .16em; margin-bottom: 6px; }
+  #lab button {
+    display: block; width: 100%; text-align: left;
+    background: #1b1712; color: #cdc2ae;
+    border: 1px solid #3a3229; border-radius: 5px;
+    padding: 6px 9px; margin-bottom: 5px;
+    font-size: 12px; cursor: pointer;
+    font-family: inherit;
+  }
+  #lab button:hover { border-color: #7d6434; color: #f2e8d5; }
+  #lab button.on { border-color: #d4af6a; color: #f3dfae; background: #241d15; }
+  #lab .preset { display: flex; gap: 5px; }
+  #lab .preset button { text-align: center; margin-bottom: 0; }
+
+  /* ================= 右侧预览 ================= */
+  #preview {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 26px 30px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ---------- 背景变体 ---------- */
+  #preview.bg-plain { background: radial-gradient(ellipse 60% 50% at 50% 30%, #1e1813 0%, #0a0807 78%); }
+  #preview.bg-ink {
+    background: linear-gradient(180deg, #f2ead9 0%, #e2d7bf 60%, #d6c9ae 100%);
+    color: #241f19;
+  }
+  #preview.bg-ink::before {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 46%;
+    background: rgba(60,52,40,.16);
+    clip-path: polygon(0% 100%, 0% 62%, 9% 40%, 17% 58%, 26% 30%, 36% 54%, 45% 24%, 55% 50%, 64% 32%, 74% 56%, 83% 36%, 92% 58%, 100% 44%, 100% 100%);
+    pointer-events: none;
+  }
+  #preview.bg-mat {
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.22) 0 2px, transparent 2px 9px),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 8px),
+      linear-gradient(180deg, #241c14, #14100c);
+  }
+
+  h2.sec {
+    font-size: 13px; color: #d9c9a6; letter-spacing: .1em;
+    margin: 0 0 14px; padding-left: 9px; border-left: 3px solid #d4af6a;
+    position: relative; z-index: 2;
+  }
+  #preview.bg-ink h2.sec { color: #4a3f30; border-left-color: #a33b2a; }
+
+  .row-cards { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; position: relative; z-index: 2; }
+  .cap { font-size: 11px; color: #8a8070; margin-top: 8px; }
+  #preview.bg-ink .cap { color: #6b5f4c; }
+
+  .big-box { width: 118px; height: 165px; }
+  .mini-box { width: 46px; height: 64px; position: relative; }
+
+  /* 战场片段 */
+  .arena-demo {
+    position: relative; z-index: 2;
+    width: 254px; margin: 0 auto 34px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .arena-demo .r { display: flex; gap: 6px; height: 64px; justify-content: center; }
+  .arena-demo .slot { width: 46px; height: 64px; position: relative; border-radius: 5px;
+    border: 1px dashed rgba(120,108,88,.45); }
+  .arena-demo .mid { height: 6px; background: linear-gradient(90deg, transparent, rgba(212,175,106,.5), transparent); }
+
+  /* ============================================================
+     卡面变体（仅在实验室里生效，选中后再搬进 card-render.css）
+     ============================================================ */
+
+  /* ---------- 布局 A：铺满（当前战场用法） ---------- */
+  .layout-full .cr-portrait { inset: 0; }
+  .layout-full .cr-name { top: 0; height: 15px; }
+  .layout-full .cr-mini .cr-name { height: 13px; }
+
+  /* ---------- 布局 B：炉石式（立绘内嵌 + 底部信息区） ---------- */
+  .layout-hs .cr-portrait { inset: 5px 5px 17px 5px; border-radius: 3px; }
+  .layout-hs .cr-name {
+    top: auto; bottom: 0; height: 17px;
+    background: linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.7));
+    border-top: 1px solid rgba(212,175,106,.4);
+    font-size: 10px;
+  }
+  .layout-hs .cr-mini .cr-portrait { inset: 3px 3px 13px 3px; }
+  .layout-hs .cr-mini .cr-name { height: 13px; font-size: 8px; }
+  .layout-hs .cr-kw { top: auto; bottom: 18px; right: 5px; flex-direction: row; }
+  .layout-hs .cr-mini .cr-kw { bottom: 14px; right: 3px; }
+
+  /* ---------- 布局 C：底部信息条（名称+数值一行） ---------- */
+  .layout-bar .cr-portrait { inset: 0; }
+  .layout-bar .cr-name {
+    top: auto; bottom: 0; left: 0; right: 0; height: 16px;
+    justify-content: flex-start; padding-left: 20px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,.78));
+    font-size: 10px;
+  }
+  .layout-bar .cr-mini .cr-name { height: 13px; padding-left: 17px; font-size: 8px; }
+  .layout-bar .cr-stat.atk { left: 1px; bottom: 0; }
+  .layout-bar .cr-stat.hp { right: 1px; bottom: 0; }
+  .layout-bar .cr-kw { top: 2px; right: 2px; flex-direction: column; }
+
+  /* ============================================================
+     材质主题
+     ============================================================ */
+
+  /* ---------- 主题 1：暗金古典（当前） ---------- */
+  .theme-gold .cr-card {
+    background: linear-gradient(160deg, var(--f1) 0%, var(--f2) 62%, #070605 100%);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.85), 0 0 0 2px #7d6434, 0 2px 5px rgba(0,0,0,.65),
+                inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .theme-gold .cr-name { color: #f3dfae; }
+
+  /* ---------- 主题 2：水墨宣纸 ---------- */
+  .theme-ink .cr-card {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(0,0,0,.05), transparent 62%),
+      linear-gradient(165deg, #f4ecdc 0%, #e6dbc4 70%, #d8cbb1 100%);
+    box-shadow: 0 0 0 1px #b9ab90, 0 0 0 2px #4a4032, 0 3px 8px rgba(0,0,0,.28);
+    color: #241f19;
+  }
+  .theme-ink .cr-portrait-bg {
+    background: radial-gradient(circle at 50% 30%, rgba(120,104,80,.28) 0%, rgba(60,52,40,.12) 60%, transparent 100%);
+  }
+  .theme-ink .cr-portrait-tex { opacity: .5; mix-blend-mode: multiply; }
+  .theme-ink .cr-glyph {
+    color: rgba(36,31,25,.42);
+    text-shadow: 0 1px 0 rgba(255,255,255,.5);
+    font-family: "Songti SC", "STSong", serif;
+  }
+  .theme-ink .cr-portrait::after {
+    background:
+      linear-gradient(to bottom, rgba(244,236,220,.9) 0%, transparent 22%),
+      linear-gradient(to top, rgba(244,236,220,.92) 0%, transparent 26%);
+  }
+  .theme-ink .cr-name {
+    color: #241f19;
+    text-shadow: none;
+    background: linear-gradient(180deg, rgba(244,236,220,.85), transparent);
+  }
+  .theme-ink .cr-kw i {
+    background: rgba(163,59,42,.1);
+    border-color: rgba(163,59,42,.55);
+    color: #a33b2a;
+  }
+  .theme-ink .cr-stat { box-shadow: 0 0 0 1.5px #4a4032, 0 1px 2px rgba(0,0,0,.35); }
+  .theme-ink .cr-stat.atk { background: radial-gradient(circle at 35% 28%, #ffe6bd, #d99a3a 60%, #8a5a12 100%); }
+  .theme-ink .cr-stat.hp  { background: radial-gradient(circle at 35% 28%, #ffcfc0, #c1503c 60%, #7a1f14 100%); }
+  .theme-ink .cr-cost {
+    background: radial-gradient(circle at 35% 28%, #ffd9a0, #a33b2a 60%, #6b1f14 100%);
+    color: #fff5e8;
+  }
+  .theme-ink .cr-crest {
+    background: radial-gradient(circle at 40% 30%, #f4ecdc, #d8cbb1);
+    color: #a33b2a;
+    box-shadow: 0 0 0 1px #4a4032;
+  }
+  .theme-ink .cr-desc { color: #4a3f30; text-shadow: none; }
+
+  /* ---------- 主题 3：琉璃通透 ---------- */
+  .theme-glass .cr-card {
+    background: linear-gradient(160deg, rgba(70,110,180,.5) 0%, rgba(20,28,52,.85) 60%, #06070c 100%);
+    box-shadow: 0 0 0 1px rgba(140,200,255,.35), 0 0 14px rgba(80,160,255,.18),
+                inset 0 1px 0 rgba(255,255,255,.18), 0 3px 10px rgba(0,0,0,.7);
+    backdrop-filter: blur(2px);
+  }
+  .theme-glass .cr-portrait-bg {
+    background: radial-gradient(circle at 50% 26%, rgba(120,190,255,.5) 0%, rgba(30,50,90,.7) 58%, rgba(4,6,12,.95) 100%);
+  }
+  .theme-glass .cr-name { color: #d6ecff; text-shadow: 0 0 10px rgba(120,190,255,.7); }
+  .theme-glass .cr-kw i {
+    background: rgba(120,190,255,.16);
+    border-color: rgba(140,200,255,.6);
+    color: #cfe8ff;
+  }
+  .theme-glass .cr-stat.atk { background: radial-gradient(circle at 35% 28%, #fff0c8, #59c7ff 55%, #1a5a8a 100%); }
+  .theme-glass .cr-stat.hp  { background: radial-gradient(circle at 35% 28%, #ffd8f0, #b46bff 55%, #4a1a8a 100%); }
+  .theme-glass .cr-cost {
+    background: radial-gradient(circle at 35% 28%, #eaf8ff, #59c7ff 55%, #1a5a8a 100%);
+    color: #06263a;
+  }
+  .theme-glass .cr-crest {
+    background: radial-gradient(circle at 40% 30%, #6fb4ff, #16304a);
+    color: #eaf8ff;
+  }
+
+  /* ============================================================
+     卡框装饰
+     ============================================================ */
+  .deco-none .cr-card::after { display: none; }
+
+  .deco-double .cr-card::after {
+    content: "";
+    position: absolute; inset: 2px;
+    border: 1px solid rgba(212,175,106,.45);
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 4;
+  }
+  .theme-ink.deco-double .cr-card::after { border-color: rgba(74,64,50,.45); }
+  .theme-glass.deco-double .cr-card::after { border-color: rgba(140,200,255,.45); }
+
+  .deco-gem .cr-card::after {
+    content: "";
+    position: absolute; inset: 2px;
+    border: 1px solid rgba(212,175,106,.5);
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 4;
+    background-image:
+      radial-gradient(circle, #f3dfae 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #f3dfae 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #f3dfae 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #f3dfae 0 1.2px, transparent 1.4px);
+    background-repeat: no-repeat;
+    background-size: 3px 3px;
+    background-position: 1px 1px, calc(100% - 1px) 1px, 1px calc(100% - 1px), calc(100% - 1px) calc(100% - 1px);
+  }
+  .theme-ink.deco-gem .cr-card::after {
+    border-color: rgba(74,64,50,.5);
+    background-image:
+      radial-gradient(circle, #a33b2a 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #a33b2a 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #a33b2a 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #a33b2a 0 1.2px, transparent 1.4px);
+  }
+  .theme-glass.deco-gem .cr-card::after {
+    border-color: rgba(140,200,255,.5);
+    background-image:
+      radial-gradient(circle, #cfe8ff 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #cfe8ff 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #cfe8ff 0 1.2px, transparent 1.4px),
+      radial-gradient(circle, #cfe8ff 0 1.2px, transparent 1.4px);
+  }
+</style>
+</head>
+<body>
+
+<div id="lab">
+  <h1>风格实验室</h1>
+  <div class="sub">点下面的按钮切换，找到你想要的组合，告诉我编号即可。</div>
+
+  <div class="group">
+    <div class="t">预设组合</div>
+    <div class="preset">
+      <button data-preset="gold">暗金古典</button>
+      <button data-preset="ink">水墨宣纸</button>
+    </div>
+    <div class="preset" style="margin-top:5px">
+      <button data-preset="glass">琉璃</button>
+      <button data-preset="inkbar">水墨·信息条</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="t">① 卡面布局</div>
+    <button data-axis="layout" data-val="full">A · 立绘铺满（当前）</button>
+    <button data-axis="layout" data-val="hs">B · 炉石式（立绘内嵌）</button>
+    <button data-axis="layout" data-val="bar">C · 底部信息条</button>
+  </div>
+
+  <div class="group">
+    <div class="t">② 材质主题</div>
+    <button data-axis="theme" data-val="gold">1 · 暗金古典</button>
+    <button data-axis="theme" data-val="ink">2 · 水墨宣纸</button>
+    <button data-axis="theme" data-val="glass">3 · 琉璃通透</button>
+  </div>
+
+  <div class="group">
+    <div class="t">③ 卡框装饰</div>
+    <button data-axis="deco" data-val="none">无装饰</button>
+    <button data-axis="deco" data-val="double">内嵌双线</button>
+    <button data-axis="deco" data-val="gem">双线 + 四角铆钉</button>
+  </div>
+
+  <div class="group">
+    <div class="t">④ 战场背景</div>
+    <button data-axis="bg" data-val="plain">纯深色</button>
+    <button data-axis="bg" data-val="mat">竹席纹理</button>
+    <button data-axis="bg" data-val="ink">水墨远山</button>
+  </div>
+
+  <div class="group">
+    <div class="t">当前组合</div>
+    <div class="sub" id="combo" style="color:#d4af6a"></div>
+  </div>
+</div>
+
+<div id="preview" class="layout-full theme-gold deco-double bg-plain">
+
+  <h2 class="sec">战场片段（小卡 46 × 64）</h2>
+  <div class="arena-demo">
+    <div class="r" id="arena-enemy"></div>
+    <div class="mid"></div>
+    <div class="r" id="arena-own"></div>
+  </div>
+
+  <h2 class="sec">大卡（手牌 / 详情 56 × 78）</h2>
+  <div class="row-cards" id="bigs"></div>
+
+  <h2 class="sec">小卡 · 前军 / 后军（46 × 64）</h2>
+  <div class="row-cards" id="minis"></div>
+
+</div>
+
+<script src="rules.js"></script>
+<script src="card-render.js"></script>
+<script>
+var R = window.Rules, CR = window.CardRender;
+
+/* ---------- 演示用卡（含占位人物，仅看样式） ---------- */
+var DEMO = [
+  { id:'d1', name:'关羽', type:'general', faction:'shu', cost:5, atk:5, hp:4, kw:['xian_gong','wu_shuang'], memo:'入场即可攻击，攻击不受反击' },
+  { id:'d2', name:'诸葛亮', type:'strategist', faction:'shu', cost:6, atk:0, hp:4, kw:[], memo:'主动技：对一名敌方人物造成 4 点伤害' },
+  { id:'d3', name:'张辽', type:'general', faction:'wei', cost:4, atk:4, hp:3, kw:['ji_xing'], memo:'入场当回合即可攻击' },
+  { id:'d4', name:'周瑜', type:'general', faction:'wu', cost:5, atk:4, hp:4, kw:['yin_xue'], memo:'造成伤害时为主将回复等量生命' },
+  { id:'d5', name:'吕布', type:'general', faction:'qun', cost:8, atk:8, hp:8, kw:['wu_shuang'], memo:'攻击时不受到反击伤害' },
+  R.CARDS.infantry, R.CARDS.shield, R.CARDS.archer,
+];
+
+/* ---------- 渲染 ---------- */
+function render() {
+  // 战场片段
+  var enemyRow = document.getElementById('arena-enemy');
+  var ownRow = document.getElementById('arena-own');
+  enemyRow.innerHTML = ''; ownRow.innerHTML = '';
+  [DEMO[2], DEMO[3], null, R.CARDS.shield, null].forEach(function (c) {
+    var s = document.createElement('div'); s.className = 'slot';
+    if (c) { var w = document.createElement('div'); w.className = 'unit-wrap';
+      w.style.position = 'absolute'; w.style.inset = '0';
+      w.appendChild(CR.mini(c, { row: 'front' })); s.appendChild(w); }
+    enemyRow.appendChild(s);
+  });
+  [DEMO[0], R.CARDS.infantry, null, DEMO[1], null].forEach(function (c) {
+    var s = document.createElement('div'); s.className = 'slot';
+    if (c) { var w = document.createElement('div'); w.className = 'unit-wrap';
+      w.style.position = 'absolute'; w.style.inset = '0';
+      w.appendChild(CR.mini(c, { row: 'front' })); s.appendChild(w); }
+    ownRow.appendChild(s);
+  });
+
+  // 大卡
+  var bigs = document.getElementById('bigs');
+  bigs.innerHTML = '';
+  [DEMO[0], DEMO[1], DEMO[4], R.CARDS.archer].forEach(function (c) {
+    var box = document.createElement('div');
+    var inner = document.createElement('div');
+    inner.className = 'big-box';
+    inner.appendChild(CR.big(c));
+    box.appendChild(inner);
+    var cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.innerHTML = '<b>' + c.name + '</b>';
+    box.appendChild(cap);
+    bigs.appendChild(box);
+  });
+
+  // 小卡（前后军对比）
+  var minis = document.getElementById('minis');
+  minis.innerHTML = '';
+  [R.CARDS.shield, R.CARDS.infantry, R.CARDS.archer].forEach(function (c) {
+    ['front', 'back'].forEach(function (row) {
+      var box = document.createElement('div');
+      var inner = document.createElement('div');
+      inner.className = 'mini-box';
+      inner.appendChild(CR.mini(c, { row: row }));
+      box.appendChild(inner);
+      var cap = document.createElement('div');
+      cap.className = 'cap';
+      cap.textContent = c.name + '·' + (row === 'front' ? '前军' : '后军');
+      box.appendChild(cap);
+      minis.appendChild(box);
+    });
+  });
+}
+
+/* ---------- 切换逻辑 ---------- */
+var state = { layout: 'full', theme: 'gold', deco: 'double', bg: 'plain' };
+var preview = document.getElementById('preview');
+
+function apply() {
+  preview.className = 'layout-' + state.layout + ' theme-' + state.theme +
+    ' deco-' + state.deco + ' bg-' + state.bg;
+  document.querySelectorAll('#lab [data-axis]').forEach(function (b) {
+    b.classList.toggle('on', state[b.dataset.axis] === b.dataset.val);
+  });
+  document.getElementById('combo').textContent =
+    '布局 ' + state.layout + ' · 主题 ' + state.theme + ' · 装饰 ' + state.deco + ' · 背景 ' + state.bg;
+}
+
+document.querySelectorAll('#lab [data-axis]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    state[btn.dataset.axis] = btn.dataset.val;
+    apply();
+  });
+});
+
+var PRESETS = {
+  gold:   { layout: 'full', theme: 'gold',  deco: 'double', bg: 'plain' },
+  ink:    { layout: 'hs',   theme: 'ink',   deco: 'gem',    bg: 'ink' },
+  glass:  { layout: 'bar',  theme: 'glass', deco: 'double', bg: 'plain' },
+  inkbar: { layout: 'bar',  theme: 'ink',   deco: 'gem',    bg: 'mat' },
+};
+document.querySelectorAll('#lab [data-preset]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    Object.assign(state, PRESETS[btn.dataset.preset]);
+    apply();
+  });
+});
+
+render();
+apply();
+</script>
+</body>
+</html>
