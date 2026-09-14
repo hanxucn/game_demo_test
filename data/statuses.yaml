@@ -122,3 +122,36 @@
   timing: 1             # 回合开始：统率上限
   duration: turns
   memo: "统率值上限 −N"
+
+# ---------- ADR-034 新增：能力驱动的状态 ----------
+# caps 字段声明该状态**具体阻断什么**，引擎只查能力、不认状态 id。
+
+- id: jin_yong
+  name: 禁用
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 8             # 攻击声明 / 技能使用：合法性检查
+  duration: turns
+  caps: [block_skill]
+  memo: "持续时间内不能使用主动技与触发技（silence）"
+
+- id: mian_yi
+  name: 免疫
+  kind: buff
+  numeric: false
+  scope: character
+  timing: 10            # 伤害结算前：免疫判定
+  duration: turns
+  caps: [immune_debuff, untargetable]
+  memo: "持续时间内免疫负面状态，且不能被指定为目标"
+
+- id: fan_mian
+  name: 翻面
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 9             # 攻击声明：目标选择
+  duration: conditional # 需特定条件翻回正面
+  caps: [block_action, untargetable]
+  memo: "翻面期间无法行动也不能被选中；翻回正面后下回合才能行动"

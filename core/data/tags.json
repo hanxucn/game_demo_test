@@ -1,0 +1,46 @@
+{
+  "tags": [
+    {
+      "id": "xi_liang",
+      "name": "西凉",
+      "value": 0,
+      "memo": "西凉出身：马腾、马超、马岱",
+      "used_by": [
+        "qun_mateng",
+        "shu_machao",
+        "shu_madai"
+      ]
+    },
+    {
+      "id": "man_zu",
+      "name": "蛮族",
+      "value": 0,
+      "memo": "南方异族（南蛮/五溪番等）：沙摩柯",
+      "used_by": [
+        "shu_shamoke"
+      ]
+    },
+    {
+      "id": "huang_jin",
+      "name": "黄巾",
+      "value": 0,
+      "memo": "黄巾军出身或其旧部：张宝、张梁、周仓、张燕",
+      "used_by": [
+        "qun_zhangbao",
+        "qun_zhangliang",
+        "shu_zhoucang",
+        "wei_zhangyan"
+      ]
+    },
+    {
+      "id": "shi_zu",
+      "name": "士族",
+      "value": 0,
+      "memo": "士族门阀：袁绍及其召唤的士族兵",
+      "used_by": [
+        "qun_yuanshao",
+        "qun_yuanshao_lord"
+      ]
+    }
+  ]
+}

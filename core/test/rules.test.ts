@@ -122,10 +122,10 @@ test('震慑状态：不能攻击', () => {
     own: { front: ['neutral_infantry'] },
     enemy: { front: ['neutral_infantry'] },
   });
-  state.sides.own.rows.front[0]!.statuses.zhen_she = 1;
+  state.sides.own.rows.front[0]!.statuses.zhen_she = { stacks: 1, turns: 1 };
   const check = canAttack(state, 'own', 'front', 0);
   assert.equal(check.ok, false);
-  assert.match(check.reason ?? '', /震慑/);
+  assert.match(check.reason ?? '', /无法普通攻击/);
 });
 
 test('入场当回合不能攻击（疾行除外）', () => {

@@ -118,5 +118,46 @@
     "timing": 1,
     "duration": "turns",
     "memo": "统率值上限 −N"
+  },
+  {
+    "id": "jin_yong",
+    "name": "禁用",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 8,
+    "duration": "turns",
+    "caps": [
+      "block_skill"
+    ],
+    "memo": "持续时间内不能使用主动技与触发技（silence）"
+  },
+  {
+    "id": "mian_yi",
+    "name": "免疫",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 10,
+    "duration": "turns",
+    "caps": [
+      "immune_debuff",
+      "untargetable"
+    ],
+    "memo": "持续时间内免疫负面状态，且不能被指定为目标"
+  },
+  {
+    "id": "fan_mian",
+    "name": "翻面",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 9,
+    "duration": "conditional",
+    "caps": [
+      "block_action",
+      "untargetable"
+    ],
+    "memo": "翻面期间无法行动也不能被选中；翻回正面后下回合才能行动"
   }
 ]

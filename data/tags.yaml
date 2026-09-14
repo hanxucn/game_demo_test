@@ -1,0 +1,41 @@
+# 归属标签定义
+# 详见 docs/gdd/13-balance-data-model.md §7.5、ADR-029
+#
+# 说明：
+#   · 人物除「阵营」（shu/wei/wu/qun）外，还可带**归属标签**——黄巾军、蛮族、西凉这类身份
+#   · 标签用于 ① 技能条件的判定 ② 目标选择器 filter.tag
+#   · 标签**本身不占预算价值**（value: 0）；它的价值来自与之联动的卡（如马岱只增益西凉人物）
+#   · 标签 id 用拼音 snake_case，与关键词/状态同一规范
+
+tags:
+  - id: xi_liang
+    name: 西凉
+    value: 0
+    memo: "西凉出身：马腾、马超、马岱"
+    used_by: [qun_mateng, shu_machao, shu_madai]
+
+  - id: man_zu
+    name: 蛮族
+    value: 0
+    memo: "南方异族（南蛮/五溪番等）：沙摩柯"
+    used_by: [shu_shamoke]
+
+  - id: huang_jin
+    name: 黄巾
+    value: 0
+    memo: "黄巾军出身或其旧部：张宝、张梁、周仓、张燕"
+    used_by: [qun_zhangbao, qun_zhangliang, shu_zhoucang, wei_zhangyan]
+
+  - id: shi_zu
+    name: 士族
+    value: 0
+    memo: "士族门阀：袁绍及其召唤的士族兵"
+    used_by: [qun_yuanshao, qun_yuanshao_lord]
+
+# ------------------------------------------------------------
+# 待确认
+# ------------------------------------------------------------
+# 1. 周仓、张燕算不算「黄巾」？（周仓原为张宝部下；张燕是黑山军，源出黄巾）
+# 2. 董卓（data/heroes.yaml 的主公）是否也该带「西凉」？
+# 3. 「士族」是否确有必要？目前只有袁绍一家用到
+# 4. 张角被 #71/#72 的技能文本引用，但**卡池里没有张角这张卡** —— 需要补卡

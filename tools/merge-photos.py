@@ -28,6 +28,7 @@ OUT = ROOT / "data" / "cards_photo.draft.yaml"
 DECISIONS = ROOT / "data" / "cards_decisions.draft.yaml"
 QOUT = ROOT / "data" / "cards_photo.QUESTIONS.md"
 RESEARCH = ROOT / "docs" / "research" / "sanguo-role-classification.yaml"
+TODO = ROOT / "data" / "cards_todo.draft.yaml"
 
 FIRST, LAST = 45, 160
 EXPECTED = [str(n) for n in range(FIRST, LAST + 1)]
@@ -201,6 +202,15 @@ def apply_decisions(rows: list[dict], dec: dict) -> list[dict]:
             row["skill_text_confirmed"] = t["skill_text_confirmed"]
         if t.get("note"):
             row.setdefault("notes", []).append(t["note"])
+
+    # 移出卡池（设计者决定，如主公卡不进可用卡池）
+    for ex in dec.get("excluded") or []:
+        row = by.get(str(ex["photo"]))
+        if row is None:
+            continue
+        row["excluded"] = True
+        row["exclude_reason"] = f"{ex.get('reason', '')}（{ex.get('adr', '')}）"
+        applied.append(f"#{ex['photo']} 移出卡池：{ex.get('reason', '')[:40]}")
 
     # 未定稿标记：只加标注，不改原文
     for dm in dec.get("draft_marks") or []:
@@ -386,6 +396,91 @@ def classify_types(rows: list[dict], dec: dict) -> dict:
     return {"flagged": flagged, "blocked": blocked}
 
 
+def write_todo(rows: list[dict], dec: dict) -> None:
+    """生成「填空清单」——设计者只需在 answer 字段填内容。
+
+    覆盖三类缺口：文案里的【?】、缺失数值、以及被标为未定稿的项。
+    """
+    import re
+    na = {str(x["photo"]): set(x["fields"]) for x in dec.get("not_applicable") or []}
+    resolved: dict[str, set] = {}
+    for ov in dec.get("overrides") or []:
+        resolved.setdefault(str(ov["photo"]), set()).add(ov["field"])
+    PAT = re.compile(r"【[^】]*】|█")
+
+    out = []
+    for r in sorted(rows, key=lambda r: int(r["photo"])):
+        ph = str(r["photo"])
+        if r.get("type_proposed") == "非卡牌（设计者确认忽略）" or r.get("excluded"):
+            continue
+        qs = []
+
+        # ① 文案里的占位符——带上下文，便于定位（skill_text 已被覆盖则跳过）
+        text = r.get("skill_text") or ""
+        for m in ([] if "skill_text" in resolved.get(ph, set()) else PAT.finditer(text)):
+            a, b = max(0, m.start() - 14), min(len(text), m.end() + 14)
+            ctx = ("…" if a else "") + text[a:b] + ("…" if b < len(text) else "")
+            frag = m.group()
+            if frag == "█":
+                qs.append(f"技能描述「{ctx}」中 █ 处的数字/字是什么？")
+            elif "涂改" in frag:
+                qs.append(f"技能描述「{ctx}」中被涂改的部分，原文应该是什么？")
+            elif "插字" in frag:
+                qs.append(f"技能描述「{ctx}」中的插字，是否确认为正文？")
+            else:
+                qs.append(f"技能描述「{ctx}」中 {frag} 处读不出的字是什么（或整句本意）？")
+
+        # ② 缺失数值（跳过 not_applicable；ADR-025：非人物卡不问攻血）
+        NONPERSON = ("事件卡", "计谋卡", "战法卡", "兵种", "属性卡", "临时卡")
+        is_person = (r.get("type_proposed") or "") in ("武将", "谋臣", "主公")
+        fields = [("cost", "统率值(费用)")]
+        if is_person:
+            fields += [("attack", "攻击力"), ("health", "生命值")]
+        cur = {k: r.get(k) for k in ("cost", "attack", "health")}
+        for f, label in fields:
+            if r.get(f) in (None, "") and f not in na.get(ph, set()):
+                qs.append(f"{label}是多少？（现有 cost/attack/health = {cur}）")
+
+        # ③ 未定稿标记
+        for dm in r.get("draft_marks") or []:
+            fld = dm.split("=")[0].strip()
+            if fld in resolved.get(ph, set()):
+                continue
+            qs.append(f"未定稿项定下来了吗？{dm}")
+
+        if qs:
+            out.append({
+                "photo": r["photo"],
+                "name": r.get("name") or r.get("card_type") or "（无名）",
+                "faction": r.get("faction") or "",
+                "type": r.get("type_proposed") or "",
+                "skill_name": r.get("skill_name") or "",
+                "skill_text": text,
+                "questions": [{"q": q, "answer": ""} for q in qs],
+            })
+
+    header = "\n".join([
+        "# ============================================================",
+        "# 待补清单 —— 你只需在每条的 answer 字段填内容",
+        "# ============================================================",
+        "# 生成：python3 tools/merge-photos.py --todo",
+        "# 填完告诉我，我会解析本文件、写进决策层（cards_decisions.draft.yaml），",
+        "#       然后重新生成合并稿。**不要直接改 cards_photo.draft.yaml**。",
+        "#",
+        "# 填写示例：",
+        "#     - q: 统率值(费用)是多少？（现有 ...）",
+        "#       answer: \"4\"",
+        "#     - q: 技能描述「…进入禁用状态【?】一回合…」中 【?】 处读不出的字？",
+        "#       answer: \"就是逗号，原文是「进入禁用状态，一回合」\"",
+        "#",
+        "# 拿不准的可以留空或写「未定」，我会跳过。",
+        "",
+    ]) + "\n"
+    TODO.write_text(header + yaml.dump({"todo": out}, allow_unicode=True, sort_keys=False,
+                                       default_flow_style=False, width=1000), encoding="utf-8")
+    nq = sum(len(x["questions"]) for x in out)
+    print(f"✓ 已写入 {TODO.relative_to(ROOT)}（{len(out)} 张卡 / {nq} 个待答问题）")
+
 def main() -> int:
     check_only = "--check" in sys.argv
     rows, problems = load_batches()
@@ -467,7 +562,10 @@ def main() -> int:
     if "--questions" in sys.argv:
         write_questions(rows, dec)
 
-    if not check_only and "--questions" not in sys.argv:
+    if "--todo" in sys.argv:
+        write_todo(rows, dec)
+
+    if not check_only and not ({"--questions", "--todo"} & set(sys.argv)):
         ordered = sorted(rows, key=lambda r: int(r["photo"]) if str(r["photo"]).isdigit() else 9999)
         for r in ordered:
             r.pop("_batch", None)

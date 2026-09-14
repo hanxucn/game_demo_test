@@ -87,7 +87,7 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
 
   // ⑥ 出牌（能出的最贵的卡）
   const playable = state.sides[side].hand
-    .map((c: CardDef, i: number) => ({ c, i }))
+    .map((hc, i: number) => ({ c: hc.card, i }))
     .filter(({ c }) => canPlayCard(state, side, c, { row: 'front', col: 0 }).ok || !isCharacter(c))
     .sort((a, b) => b.c.cost - a.c.cost);
 

@@ -8,8 +8,9 @@
 
 import { createRng } from './rng.ts';
 import { BOARD, COMMAND, DECK, LORD_HP } from './constants.ts';
+import { STATUSES, type StatusCap } from './constants.ts';
 import type {
-  CardDef, Faction, LordDef, MatchState, Row, Side, SideState, Unit,
+  CardDef, Faction, LordDef, MatchState, Row, Side, SideState, StatusInstance, Unit,
 } from './types.ts';
 
 export interface CreateMatchOptions {
@@ -51,7 +52,7 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
         front: new Array<Unit | null>(BOARD.COLS).fill(null),
         back: new Array<Unit | null>(BOARD.COLS).fill(null),
       },
-      hand,
+      hand: hand.map((c) => ({ card: c, mods: [] })),   // ADR-038：包成手牌实例
       deck,
       discard: [],
       command: { cur: COMMAND.START, max: COMMAND.START },
@@ -110,7 +111,46 @@ export const unitCount = (s: MatchState, side: Side): number => allUnits(s, side
 
 export const hasKeyword = (u: Unit | null, kw: string): boolean => !!u && u.kw.includes(kw);
 
-export const statusStacks = (u: Unit | null, id: string): number => (u?.statuses[id] ?? 0);
+export const statusStacks = (u: Unit | null, id: string): number => u?.statuses[id]?.stacks ?? 0;
+
+/** 主公身上的某状态层数（ADR-040） */
+export const lordStatusStacks = (l: { statuses?: Record<string, StatusInstance> } | null, id: string): number =>
+  l?.statuses?.[id]?.stacks ?? 0;
+
+/** 状态剩余回合数；undefined = 永久或不存在 */
+export const statusTurns = (u: Unit | null, id: string): number | undefined => u?.statuses[id]?.turns;
+
+/** 该单位是否具备某项状态能力（ADR-034）——引擎只查能力，不认状态 id */
+export function hasCap(u: Unit | null, cap: StatusCap): boolean {
+  if (!u) return false;
+  return hasCapOn(u.statuses, cap);
+}
+
+/** 状态集合层面判定能力（ADR-040：主公也可承载状态） */
+export function hasCapOn(
+  statuses: Record<string, StatusInstance> | undefined, cap: StatusCap,
+): boolean {
+  for (const [id, inst] of Object.entries(statuses ?? {})) {
+    if (inst.stacks <= 0) continue;
+    if (STATUSES[id]?.caps?.includes(cap)) return true;
+  }
+  return false;
+}
+
+/** 某项能力在状态集合中的累计层数（如「参谋」加成主公技次数） */
+export function capStacks(
+  statuses: Record<string, StatusInstance> | undefined, cap: StatusCap,
+): number {
+  let n = 0;
+  for (const [id, inst] of Object.entries(statuses ?? {})) {
+    if (inst.stacks > 0 && STATUSES[id]?.caps?.includes(cap)) n += inst.stacks;
+  }
+  return n;
+}
+
+/** 该单位身上所有生效状态的 id */
+export const activeStatuses = (u: Unit | null): string[] =>
+  Object.entries(u?.statuses ?? {}).filter(([, v]) => v.stacks > 0).map(([k]) => k);
 
 /** 「架盾」生效单位（仅前军） */
 export const shieldUnits = (s: MatchState, side: Side): UnitRef[] =>
@@ -139,16 +179,36 @@ export function makeUnit(card: CardDef, turn: number, seq: number): Unit {
     type: card.type,
     faction: card.faction,
     cost: card.cost,
+    baseAtk: card.attack ?? 0,
+    baseMaxHp: card.health ?? 1,
+    mods: [],
     atk: card.attack ?? 0,
     hp: card.health ?? 1,
     maxHp: card.health ?? 1,
     troopKind: card.troopKind,
     kw: [...(card.keywords ?? [])],
+    tags: [...(card.tags ?? [])],
     statuses: {},
     skills: card.skills ? structuredClone(card.skills) : undefined,
     attackedThisTurn: 0,
     enteredTurn: turn,
   };
+}
+
+/**
+ * 重算派生属性（ADR-037）
+ *
+ * 最终属性 = 基础值 + Σ mods。生命上限变化时当前生命**等量增减**，
+ * 并夹在 [1, 上限]——光环失效不会导致单位死亡。
+ */
+export function applyMods(u: Unit): void {
+  const dAtk = u.mods.reduce((s, m) => s + (m.attack ?? 0), 0);
+  const dHp = u.mods.reduce((s, m) => s + (m.health ?? 0), 0);
+  const newMax = Math.max(1, u.baseMaxHp + dHp);
+  const delta = newMax - u.maxHp;
+  u.atk = Math.max(0, u.baseAtk + dAtk);
+  u.maxHp = newMax;
+  if (u.hp > 0) u.hp = Math.max(1, Math.min(newMax, u.hp + delta));
 }
 
 /** 取下一个单位序号（由状态驱动，保证可复现） */

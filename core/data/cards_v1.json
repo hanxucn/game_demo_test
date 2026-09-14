@@ -1,0 +1,5300 @@
+[
+ {
+  "id": "event_shichangshi",
+  "name": "十常侍之乱",
+  "faction": "neutral",
+  "type": "event",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "指定一方一方下回合主帅的最大统帅-2",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 47
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "apply_status",
+    "status": "duan_liang",
+    "stacks": 2,
+    "target": {
+     "side": "enemy",
+     "lord": true
+    }
+   }
+  ]
+ },
+ {
+  "id": "event_huangjin",
+  "name": "黄巾起义",
+  "faction": "neutral",
+  "type": "event",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "打出此牌的人立即场上获得两个1攻一血的黄巾军（步兵）",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 48
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "summon",
+    "unit": "token_huangjin_bing",
+    "count": 2,
+    "position": "random"
+   }
+  ]
+ },
+ {
+  "id": "event_fengnian",
+  "name": "丰年（五谷丰登）",
+  "faction": "neutral",
+  "type": "event",
+  "cost": 1,
+  "skills": [
+   {
+    "name": "",
+    "text": "全体可从各自卡池中抽取 2 张卡牌。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 49
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "draw",
+    "value": 2
+   },
+   {
+    "action": "draw",
+    "value": 2,
+    "target": {
+     "side": "enemy"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_bishi_ruiqi",
+  "name": "避其锐气",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 2,
+  "skills": [
+   {
+    "name": "",
+    "text": "将战场上己方一张人物卡收回手中。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 50
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "return_to_hand",
+    "target": {
+     "side": "ally",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_cuoqi_ruiqi",
+  "name": "挫其锐气",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 2,
+  "skills": [
+   {
+    "name": "",
+    "text": "指定敌方人物攻击-2一回合，最多降为 0 攻击。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 51
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "modify",
+    "attack": -2,
+    "duration": 1,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   }
+  ]
+ },
+ {
+  "id": "status_jia_dun",
+  "name": "架盾",
+  "faction": "neutral",
+  "type": "status",
+  "cost": null,
+  "skills": [
+   {
+    "name": "",
+    "text": "只能攻击装备此状态的敌人。",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 52
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "event_zainian",
+  "name": "灾年",
+  "faction": "neutral",
+  "type": "event",
+  "cost": 1,
+  "skills": [
+   {
+    "name": "",
+    "text": "全体可停止一回合抽取卡牌。包括所有计策卡和人物技能引发的抽卡也会失效。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 53
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "apply_status",
+    "status": "duan_chou",
+    "duration": 1,
+    "target": {
+     "side": "both",
+     "lord": true
+    }
+   }
+  ]
+ },
+ {
+  "id": "qun_gaoshun",
+  "name": "高顺",
+  "faction": "qun",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 2,
+  "skills": [
+   {
+    "name": "陷阵破敌",
+    "text": "召唤两个1攻2血的盾兵。",
+    "dsl": [
+     {
+      "id": "xian_zhen_po_di",
+      "name": "陷阵破敌",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "summon",
+        "unit": "neutral_shieldman",
+        "count": 2,
+        "position": "random"
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 54
+  },
+  "flags": [
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_mateng",
+  "name": "马腾",
+  "faction": "qun",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 2,
+  "skills": [
+   {
+    "name": "西凉铁骑",
+    "text": "",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "xi_liang"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 55
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "qun_gongsunzan",
+  "name": "公孙瓒",
+  "faction": "qun",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 2,
+  "skills": [
+   {
+    "name": "白马义从",
+    "text": "",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 56
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "shu_chendao",
+  "name": "陈到",
+  "faction": "shu",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 2,
+  "skills": [
+   {
+    "name": "白毦兵",
+    "text": "",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 58
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wei_xiahouyuan",
+  "name": "夏侯渊",
+  "faction": "wei",
+  "type": "general",
+  "cost": 5,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "迅疾突袭",
+    "text": "第一回合获得先攻，然后第一回合能行动结束后获得一回合隐身效果（无法被选中攻击），下回合失效。",
+    "dsl": [
+     {
+      "id": "xun_ji_tu_xi",
+      "name": "迅疾突袭",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "qi_xi_status",
+        "duration": 1,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 59
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_zhangliao",
+  "name": "张辽",
+  "faction": "wei",
+  "type": "general",
+  "cost": 5,
+  "attack": 5,
+  "health": 4,
+  "skills": [
+   {
+    "name": "冲锋陷阵",
+    "text": "获得先攻。上场可立即开始行动，如若斩杀敌人人物卡牌，溢出伤害由对方主将承受。",
+    "dsl": [
+     {
+      "id": "chong_feng_xian_zhen",
+      "name": "冲锋陷阵",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 2,
+        "condition": {
+         "event": "killed"
+        },
+        "target": {
+         "side": "enemy",
+         "count": 1,
+         "mode": "first"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 60
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_chengyu",
+  "name": "程昱",
+  "faction": "wei",
+  "type": "strategist",
+  "cost": 5,
+  "attack": 1,
+  "health": 5,
+  "skills": [
+   {
+    "name": "审时度势",
+    "text": "每回合行动时可选择牺牲一名己方卡牌，将其血量最大值恢复给指定人物，并对指定敌人造成牺牲卡牌当时血量伤害。",
+    "dsl": [
+     {
+      "id": "shen_shi_duo_shi",
+      "name": "审时度势",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "discard",
+        "count": 1,
+        "target": {
+         "side": "self",
+         "zone": "hand"
+        }
+       },
+       {
+        "action": "heal",
+        "value_from_discarded": "health",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       },
+       {
+        "action": "damage",
+        "value_from_discarded": "health",
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 61
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_xunyou",
+  "name": "荀攸",
+  "faction": "wei",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 1,
+  "health": 4,
+  "skills": [
+   {
+    "name": "分而击之",
+    "text": "上场时指定敌方 2 个人物卡牌进入技能禁用状态，持续一回合。",
+    "dsl": [
+     {
+      "id": "fen_er_ji_zhi",
+      "name": "分而击之",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "jin_yong",
+        "duration": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 2,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 62
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_xuhuang",
+  "name": "徐晃",
+  "faction": "wei",
+  "type": "general",
+  "cost": 5,
+  "attack": 4,
+  "health": 5,
+  "skills": [
+   {
+    "name": "亚夫之风",
+    "text": "对低于自己统帅的敌军时攻击+1；对不低于自己统帅的敌军时血量+1。",
+    "dsl": [
+     {
+      "id": "ya_fu_zhi_feng",
+      "name": "亚夫之风",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": 1,
+        "target": {
+         "source": true
+        },
+        "condition": {
+         "exists": {
+          "side": "enemy",
+          "filter": {
+           "type": "character",
+           "cost_below_source": true
+          }
+         }
+        }
+       },
+       {
+        "action": "modify",
+        "health": 1,
+        "target": {
+         "source": true
+        },
+        "condition": {
+         "count": {
+          "selector": {
+           "side": "enemy",
+           "filter": {
+            "type": "character",
+            "cost_below_source": true
+           }
+          },
+          "op": "==",
+          "value": 0
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 63
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_xiahoudun",
+  "name": "夏侯惇",
+  "faction": "wei",
+  "type": "general",
+  "cost": 5,
+  "attack": 4,
+  "health": 6,
+  "skills": [
+   {
+    "name": "拔箭啖睛",
+    "text": "夏侯惇受到伤害(非满血)时，攻击力+1；满血被击杀时，有一半的机率以 1 血存活。",
+    "dsl": [
+     {
+      "id": "ba_jian_dan_jing",
+      "name": "拔箭啖睛",
+      "kind": "trigger",
+      "trigger": "on_damaged",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": 1,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     },
+     {
+      "id": "man_xue_bu_si",
+      "name": "血战",
+      "kind": "trigger",
+      "trigger": "on_lethal",
+      "chance": 0.5,
+      "frequency": "once",
+      "effects": [
+       {
+        "action": "survive",
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 64
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_zhanghe",
+  "name": "张郃",
+  "faction": "wei",
+  "type": "general",
+  "cost": 5,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "料战如计",
+    "text": "上场时使指定一人物，选择攻击-2 或血量-2。最少血量为 1，攻击为 0。",
+    "dsl": [
+     {
+      "id": "liao_zhan_ru_ji",
+      "name": "料战如计",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": -2,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 65
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_jiaxu",
+  "name": "贾诩",
+  "faction": "wei",
+  "type": "strategist",
+  "cost": 6,
+  "attack": 1,
+  "health": 5,
+  "skills": [
+   {
+    "name": "离间毒计",
+    "text": "指定一个不大于 3 统率的敌方将来临时变为己方将领 1 回合；大于 3 统率的敌方将领每次行动有一半的机率随机选择任意一名人物单位进行攻击（敌我不限）。",
+    "dsl": [
+     {
+      "id": "li_jian_du_ji",
+      "name": "离间毒计",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "take_control",
+        "count": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character",
+          "cost_max": 3
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "hun_luan",
+        "duration": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        },
+        "condition": {
+         "exists": {
+          "side": "enemy",
+          "filter": {
+           "type": "character",
+           "cost_max": 3
+          }
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 66
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_guojia",
+  "name": "郭嘉",
+  "faction": "wei",
+  "type": "strategist",
+  "cost": 6,
+  "attack": 1,
+  "health": 4,
+  "skills": [
+   {
+    "name": "天机演算",
+    "text": "郭嘉上场时,我方策略牌需要统帅-1,如果每打出一张策略牌,既可抽一张卡牌.",
+    "dsl": [
+     {
+      "id": "tian_ji_yan_suan",
+      "name": "天机演算",
+      "kind": "aura",
+      "effects": [
+       {
+        "action": "cost_modifier",
+        "value": -1,
+        "target": {
+         "side": "self",
+         "zone": "hand",
+         "filter": {
+          "type": "tactic"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     },
+     {
+      "id": "yan_suan_chou_pai",
+      "name": "演算抽牌",
+      "kind": "trigger",
+      "trigger": "on_card_played",
+      "effects": [
+       {
+        "action": "draw",
+        "value": 1
+       }
+      ],
+      "target": {
+       "filter": {
+        "type": "tactic"
+       }
+      }
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 67
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_xuchu",
+  "name": "许褚",
+  "faction": "wei",
+  "type": "general",
+  "cost": 6,
+  "attack": 5,
+  "health": 6,
+  "skills": [
+   {
+    "name": "虎痴",
+    "text": "指定敌方一名武将(非主公)与自己对决;分出胜负前,其他人无法对两人进行攻击.(只能使用一次)",
+    "dsl": [
+     {
+      "id": "hu_chi",
+      "name": "虎痴",
+      "kind": "active",
+      "cost": 0,
+      "frequency": "once",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "jue_dou",
+        "duration": 2,
+        "target": {
+         "source": true
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "jue_dou",
+        "duration": 2,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "general"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 68
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_simayi",
+  "name": "司马懿",
+  "faction": "wei",
+  "type": "strategist",
+  "cost": 6,
+  "attack": 1,
+  "health": 6,
+  "skills": [
+   {
+    "name": "谋定后动",
+    "text": "①如果当前回合司马懿没有任何行动,回合结束时对所有敌方人物卡牌造成一点伤害.②如果行动且对敌方造成伤害,则使敌方卡池随机丢弃一张卡牌.③当场上只剩司马懿时,效果同时包含②.",
+    "dsl": [
+     {
+      "id": "mou_ding_hou_dong",
+      "name": "谋定后动",
+      "kind": "trigger",
+      "trigger": "turn_end",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 69
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_yuanshao",
+  "name": "袁绍",
+  "faction": "qun",
+  "type": "general",
+  "cost": 5,
+  "attack": 3,
+  "health": 5,
+  "skills": [
+   {
+    "name": "威望",
+    "text": "每回合可召唤一个 1攻 1血的士族兵",
+    "dsl": [
+     {
+      "id": "wei_wang",
+      "name": "威望",
+      "kind": "trigger",
+      "trigger": "turn_start",
+      "effects": [
+       {
+        "action": "summon",
+        "unit": "token_shizu_bing",
+        "count": 1,
+        "position": "random"
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "shi_zu"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 70
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_zhangbao",
+  "name": "张宝",
+  "faction": "qun",
+  "type": "general",
+  "cost": 3,
+  "attack": 1,
+  "health": 2,
+  "skills": [
+   {
+    "name": "黄天当立",
+    "text": "当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。",
+    "dsl": [
+     {
+      "id": "huang_tian_dang_li",
+      "name": "黄天当立",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "summon",
+        "unit": "token_huangjin_bing",
+        "count": 2,
+        "position": "random",
+        "condition": {
+         "exists": {
+          "side": "ally",
+          "filter": {
+           "type": "character",
+           "tag": "huang_jin"
+          }
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "huang_jin"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 71
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_zhangliang",
+  "name": "张梁",
+  "faction": "qun",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 2,
+  "skills": [
+   {
+    "name": "黄天当立",
+    "text": "当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。",
+    "dsl": [
+     {
+      "id": "huang_tian_dang_li",
+      "name": "黄天当立",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "summon",
+        "unit": "token_huangjin_bing",
+        "count": 2,
+        "position": "random",
+        "condition": {
+         "exists": {
+          "side": "ally",
+          "filter": {
+           "type": "character",
+           "tag": "huang_jin"
+          }
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "huang_jin"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 72
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_caimao",
+  "name": "蔡瑁",
+  "faction": "qun",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 2,
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 73
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "qun_songxian",
+  "name": "宋宪",
+  "faction": "qun",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 3,
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 74
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "qun_huangzu",
+  "name": "黄祖",
+  "faction": "qun",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 3,
+  "skills": [
+   {
+    "name": "善射",
+    "text": "上场时第一回合时对指定敌人造成2点伤害",
+    "dsl": [
+     {
+      "id": "shan_she",
+      "name": "善射",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 2,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 75
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_diaochan",
+  "name": "貂蝉",
+  "faction": "qun",
+  "type": "strategist",
+  "cost": 3,
+  "attack": 1,
+  "health": 3,
+  "skills": [
+   {
+    "name": "祸国倾城",
+    "text": "和对方比点大小、大对方为胜：每回合指定敌方一名男性角色.一回合无法行动.",
+    "dsl": [
+     {
+      "id": "huo_guo_qing_cheng",
+      "name": "祸国倾城",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "clash",
+        "unit": "roll",
+        "target": {
+         "side": "enemy"
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "condition": {
+         "event": "clash_won"
+        },
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 76
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_caiwenji",
+  "name": "蔡文姬",
+  "faction": "qun",
+  "type": "strategist",
+  "cost": 2,
+  "attack": 0,
+  "health": 2,
+  "skills": [
+   {
+    "name": "曲名才艺",
+    "text": "使当前一回合使 自己一名武将和一张非令牌中武将牌 统帅消耗一.",
+    "dsl": [
+     {
+      "id": "qu_ming_cai_yi",
+      "name": "曲名才艺",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "cost_modifier",
+        "value": -1,
+        "duration": 1,
+        "target": {
+         "side": "self",
+         "zone": "hand",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 77
+  },
+  "flags": [
+   "转录存疑 5 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_tianfeng",
+  "name": "田丰",
+  "faction": "qun",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 1,
+  "health": 3,
+  "skills": [
+   {
+    "name": "刚而直谏",
+    "text": "禁用己方主将一回合主公技，可抽取一张卡牌到手种，如果为策略卡，则无需消耗统帅.",
+    "dsl": [
+     {
+      "id": "gang_er_zhi_jian",
+      "name": "刚而直谏",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "jin_yan",
+        "duration": 1,
+        "target": {
+         "side": "ally",
+         "lord": true
+        }
+       },
+       {
+        "action": "draw",
+        "value": 1
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 78
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_huatuo",
+  "name": "华佗",
+  "faction": "qun",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 0,
+  "health": 5,
+  "skills": [
+   {
+    "name": "青囊【?】",
+    "text": "可弃掉自己手中一张手牌.恢复指定场上对一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.一回合只能最多使用2次.",
+    "dsl": [
+     {
+      "id": "qing_nang",
+      "name": "青囊",
+      "kind": "active",
+      "cost": 0,
+      "frequency": "once_per_turn",
+      "effects": [
+       {
+        "action": "discard",
+        "count": 1,
+        "target": {
+         "side": "self",
+         "zone": "hand"
+        }
+       },
+       {
+        "action": "heal",
+        "value_from_discarded": "cost",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       },
+       {
+        "action": "remove_status",
+        "status": "zhen_she",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 79
+  },
+  "flags": [
+   "转录存疑 5 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_chengong",
+  "name": "陈宫",
+  "faction": "qun",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 1,
+  "health": 4,
+  "skills": [
+   {
+    "name": "忠烈之志",
+    "text": "上场时指定为一名友方单位分担伤害;当指定的友方单位血减少为一血时其他溢出伤害由陈宫承担有效到陈宫为0血.",
+    "dsl": [
+     {
+      "id": "zhong_lie_zhi_zhi",
+      "name": "忠烈之志",
+      "kind": "aura",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "shou_hu",
+        "status_source": "self",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 80
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_zuoci",
+  "name": "左慈",
+  "faction": "qun",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 1,
+  "health": 2,
+  "skills": [
+   {
+    "name": "兼通星纬",
+    "text": "可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。",
+    "dsl": [
+     {
+      "id": "jian_tong_xing_wei",
+      "name": "兼通星纬",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "scry",
+        "unit": "top",
+        "count": 1,
+        "to": "deck_bottom",
+        "target": {
+         "side": "enemy"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 81
+  },
+  "flags": [
+   "未定稿：health = 2｜未定稿：纸面自带问号，数值待定",
+   "转录存疑 5 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_madai",
+  "name": "马岱",
+  "faction": "shu",
+  "type": "general",
+  "cost": 3,
+  "attack": 3,
+  "health": 3,
+  "skills": [
+   {
+    "name": "西凉子弟",
+    "text": "获得先攻；有西凉人物时，所有西凉人物攻击 +1、血量 +1。",
+    "dsl": [
+     {
+      "id": "xi_liang_zi_di",
+      "name": "西凉子弟",
+      "kind": "aura",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": 1,
+        "health": 1,
+        "target": {
+         "side": "both",
+         "filter": {
+          "type": "character",
+          "tag": "xi_liang"
+         },
+         "count": "all"
+        },
+        "condition": {
+         "exists": {
+          "side": "both",
+          "filter": {
+           "type": "character",
+           "tag": "xi_liang"
+          }
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "xi_liang"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 82
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_dongjue",
+  "name": "董厥",
+  "faction": "shu",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 2,
+  "skills": [
+   {
+    "name": "守势",
+    "text": "",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 83
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "shu_xiangchong",
+  "name": "向宠",
+  "faction": "shu",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 3,
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 84
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "shu_huangquan",
+  "name": "黄权",
+  "faction": "shu",
+  "type": "general",
+  "cost": 3,
+  "attack": null,
+  "health": 3,
+  "skills": [
+   {
+    "name": "劝谏",
+    "text": "在场时 我方主帅有50%概率 每回合使用二次主公技.",
+    "dsl": [
+     {
+      "id": "quan_jian",
+      "name": "劝谏",
+      "kind": "aura",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "can_mou",
+        "stacks": 1,
+        "target": {
+         "side": "ally",
+         "lord": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 85
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_liufeng",
+  "name": "刘封",
+  "faction": "shu",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 4,
+  "skills": [
+   {
+    "name": "犹豫不决",
+    "text": "每回合有一半概率无法行动.",
+    "dsl": [
+     {
+      "id": "you_yu_bu_jue",
+      "name": "犹豫不决",
+      "kind": "trigger",
+      "trigger": "turn_start",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "chance": 0.5,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 86
+  },
+  "flags": [
+   "未定稿：health = 4｜未定稿：「血」上方有弯曲记号（疑问号）",
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_guanxing",
+  "name": "关兴",
+  "faction": "shu",
+  "type": "general",
+  "cost": 4,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "将门虎子",
+    "text": "当场上有低于3统帅的人则可上场时先攻，击败低于3统帅的人物时有50%获得一次额外行动.(只有触发一次)",
+    "dsl": [
+     {
+      "id": "jiang_men_hu_zi",
+      "name": "将门虎子",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "xian_gong_status",
+        "duration": 1,
+        "target": {
+         "source": true
+        },
+        "condition": {
+         "exists": {
+          "side": "enemy",
+          "filter": {
+           "type": "character",
+           "cost_max": 3
+          }
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "e_wai_xing_dong",
+      "name": "额外行动",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "extra_attack",
+        "chance": 0.5,
+        "condition": {
+         "event": "killed"
+        },
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 87
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_zhangbao",
+  "name": "张苞",
+  "faction": "shu",
+  "type": "general",
+  "cost": 4,
+  "attack": 4,
+  "health": 3,
+  "skills": [
+   {
+    "name": "父子将风",
+    "text": "攻击时对相邻的敌人造成一点伤害。",
+    "dsl": [
+     {
+      "id": "fu_zi_jiang_feng",
+      "name": "父子将风",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character",
+          "adjacent_to": "self"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 88
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_jiangwei",
+  "name": "姜维",
+  "faction": "shu",
+  "type": "general",
+  "cost": 6,
+  "attack": 4,
+  "health": 5,
+  "skills": [
+   {
+    "name": "文武双全",
+    "text": "当普通攻击时，攻击力+1；当使用策略牌时.可额外抽一张牌，致致到抽出为非策略牌时停止.",
+    "dsl": [
+     {
+      "id": "wen_wu_shuang_quan",
+      "name": "文武双全",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": 1,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 89
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_machao",
+  "name": "马超",
+  "faction": "shu",
+  "type": "general",
+  "cost": 5,
+  "attack": 5,
+  "health": 4,
+  "skills": [
+   {
+    "name": "铁骑突袭",
+    "text": "马超获得先攻状态,如果第一回合斩杀一名敌方武将,则对方主帅下一回合内无法行动.",
+    "dsl": [
+     {
+      "id": "tie_qi_tu_xi",
+      "name": "铁骑突袭",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "condition": {
+         "event": "killed"
+        },
+        "target": {
+         "side": "enemy",
+         "count": 1,
+         "mode": "first"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "xi_liang"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 90
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_guanping",
+  "name": "关平",
+  "faction": "shu",
+  "type": "general",
+  "cost": 3,
+  "attack": 3,
+  "health": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "当关羽在场时,获得中攻击+1,血量+1",
+    "dsl": [
+     {
+      "id": "jiang_men_hu_zi",
+      "name": "将门虎子",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": 1,
+        "health": 1,
+        "target": {
+         "source": true
+        },
+        "condition": {
+         "exists": {
+          "side": "ally",
+          "filter": {
+           "type": "character",
+           "cost_max": 6
+          }
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 91
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_zhangfei",
+  "name": "张飞",
+  "faction": "shu",
+  "type": "general",
+  "cost": 5,
+  "attack": 5,
+  "health": 4,
+  "skills": [
+   {
+    "name": "咆哮",
+    "text": "每回合对所有敌方人物卡造成 1 点伤害",
+    "dsl": [
+     {
+      "id": "pao_xiao",
+      "name": "咆哮",
+      "kind": "trigger",
+      "trigger": "turn_start",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 93
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_weiyan",
+  "name": "魏延",
+  "faction": "shu",
+  "type": "general",
+  "cost": 4,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "桀骜不驯",
+    "text": "攻击时有一半概率伤害+1,受到伤害时有一半概率伤害+1.",
+    "dsl": [
+     {
+      "id": "jie_ao_bu_xun",
+      "name": "桀骜不驯",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": 1,
+        "chance": 0.5,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 94
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_zhaoyun",
+  "name": "赵云",
+  "faction": "shu",
+  "type": "general",
+  "cost": 5,
+  "attack": 5,
+  "health": 5,
+  "skills": [
+   {
+    "name": "一身是胆",
+    "text": "在自己行动结束的第一回合前,自己免疫一切伤害.",
+    "dsl": [
+     {
+      "id": "yi_shen_shi_dan",
+      "name": "一身是胆",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "mian_yi",
+        "duration": 1,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 95
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_huangzhong",
+  "name": "黄忠",
+  "faction": "shu",
+  "type": "general",
+  "cost": 5,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "百步穿杨",
+    "text": "每回合开始时，对指定敌方人物造成 2 点伤害。",
+    "dsl": [
+     {
+      "id": "bai_bu_chuan_yang",
+      "name": "百步穿杨",
+      "kind": "trigger",
+      "trigger": "turn_start",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 2,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 96
+  },
+  "flags": [
+   "未定稿：skill_name = 百步穿杨｜未定稿：技能名后带问号",
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_shamoke",
+  "name": "沙摩柯",
+  "faction": "shu",
+  "type": "general",
+  "cost": 4,
+  "attack": 3,
+  "health": 4,
+  "skills": [
+   {
+    "name": "胡王",
+    "text": "场上每有 1 名蛮族人物，自身获得 +1 攻 +1 血量。",
+    "dsl": [
+     {
+      "id": "hu_wang",
+      "name": "胡王",
+      "kind": "aura",
+      "effects": [
+       {
+        "action": "modify",
+        "attack_from": {
+         "side": "both",
+         "filter": {
+          "tag": "man_zu"
+         }
+        },
+        "health_from": {
+         "side": "both",
+         "filter": {
+          "tag": "man_zu"
+         }
+        },
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "man_zu"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 97
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_guanyu",
+  "name": "关羽",
+  "faction": "shu",
+  "type": "general",
+  "cost": 6,
+  "attack": 6,
+  "health": 5,
+  "skills": [
+   {
+    "name": "水淹七军",
+    "text": "使对方所有场上人物技能禁用一回合,并对其造成一点水攻伤害.",
+    "dsl": [
+     {
+      "id": "shui_yan_qi_jun",
+      "name": "水淹七军",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "jin_yong",
+        "duration": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       },
+       {
+        "action": "damage",
+        "value": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 98
+  },
+  "flags": [
+   "未定稿：skill_name = 水淹七军 / 武圣（备选）｜未定稿：两个候选技能名都保留，一个作备选，设计者未定用哪个",
+   "转录存疑 5 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_huanghao",
+  "name": "黄皓",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 2,
+  "attack": 1,
+  "health": 2,
+  "skills": [
+   {
+    "name": "谮言",
+    "text": "有黄皓在场时，降低己方主公一点统率，敌方随机封锁手中一张卡。",
+    "dsl": [
+     {
+      "id": "zen_yan",
+      "name": "谮言",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "discard",
+        "count": 1,
+        "target": {
+         "side": "enemy"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 99
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_fazheng",
+  "name": "法正",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 1,
+  "health": 4,
+  "skills": [
+   {
+    "name": "恩怨分明",
+    "text": "标记一个敌方人物为仇敌(放在对应敌方卡牌位).我仇敌受到伤害时,为指定友方恢复等量的血;当自己受到恢复血量,则抽一张卡牌.",
+    "dsl": [
+     {
+      "id": "en_yuan_fen_ming",
+      "name": "恩怨分明",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "chou_di",
+        "status_source": "self",
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     },
+     {
+      "id": "chou_di_hui_xue",
+      "name": "仇敌回血",
+      "kind": "trigger",
+      "trigger": "on_mark_damaged",
+      "effects": [
+       {
+        "action": "heal",
+        "value_from_flag": "mark_amount",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 100
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_mifang",
+  "name": "糜芳",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 1,
+  "health": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "上场时恢复指定友方人物3点滴血量,或者抽取两张卡牌.",
+    "dsl": [
+     {
+      "id": "shu_cai_zhang_yi",
+      "name": "疏财仗义",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "heal",
+        "value": 3,
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 101
+  },
+  "flags": [
+   "转录存疑 5 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_masu",
+  "name": "马谡",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 3,
+  "attack": 1,
+  "health": 3,
+  "skills": [
+   {
+    "name": "搞意",
+    "text": "上场时,随机抽取两张牌为自己所用到手牌中,然后再随机抽取两张牌丢弃.",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 102
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "draw",
+    "value": 2
+   },
+   {
+    "action": "discard",
+    "count": 2,
+    "target": {
+     "side": "self"
+    }
+   }
+  ]
+ },
+ {
+  "id": "shu_jianyang",
+  "name": "简雍",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 3,
+  "attack": 1,
+  "health": 2,
+  "skills": [
+   {
+    "name": "劝降",
+    "text": "上场时,可对指定等于自己统帅的卡牌进行劝降.有50%概率收回自己手中",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 103
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "return_to_hand",
+    "chance": 0.5,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character",
+      "cost_max": 3
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   }
+  ]
+ },
+ {
+  "id": "shu_pangtong",
+  "name": "庞统",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 6,
+  "attack": 1,
+  "health": 4,
+  "skills": [
+   {
+    "name": "凤雏之智",
+    "text": "在场时己方所有非人物卡牌统率-2；庞统阵亡时己方抽 2 张卡。",
+    "dsl": [
+     {
+      "id": "feng_chu_zhi_zhi_aura",
+      "name": "凤雏之智",
+      "kind": "aura",
+      "effects": [
+       {
+        "action": "cost_modifier",
+        "value": -2,
+        "target": {
+         "side": "self",
+         "zone": "hand",
+         "count": "all"
+        }
+       }
+      ]
+     },
+     {
+      "id": "feng_chu_zhi_zhi",
+      "name": "凤雏之智（阵亡）",
+      "kind": "trigger",
+      "trigger": "on_death",
+      "effects": [
+       {
+        "action": "draw",
+        "value": 2
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 104
+  },
+  "flags": [
+   "未定稿：cost = 6｜未定稿：统率值后带问号，设计者自标存疑；skill_name = 凤雏展智｜未定稿：技能名后带问号",
+   "转录存疑 7 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_zhugeliang",
+  "name": "诸葛亮",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 7,
+  "attack": 1,
+  "health": 6,
+  "skills": [
+   {
+    "name": "运筹帷幄",
+    "text": "上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。",
+    "dsl": [
+     {
+      "id": "yun_chou_wei_wo",
+      "name": "运筹帷幄",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "ban_play",
+        "duration": 1,
+        "target": {
+         "side": "enemy",
+         "zone": "hand",
+         "count": 1,
+         "mode": "choose"
+        }
+       },
+       {
+        "action": "scry",
+        "unit": "top",
+        "count": 1,
+        "to": "hand",
+        "target": {
+         "side": "self"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 105
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "shu_zhoucang",
+  "name": "周仓",
+  "faction": "shu",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 4,
+  "skills": [
+   {
+    "name": "架盾",
+    "text": "",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "huang_jin"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 106
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "shu_huangyueying",
+  "name": "黄月英",
+  "faction": "shu",
+  "type": "strategist",
+  "cost": 5,
+  "attack": 1,
+  "health": 2,
+  "skills": [
+   {
+    "name": "机巧出阵",
+    "text": "上场时制造一个机械哨兵 1 攻 1 血，不能攻击敌方主将；制造一个 1 攻 1 血机械哨兵并带架盾效果。",
+    "dsl": [
+     {
+      "id": "ji_qiao_chu_zhen",
+      "name": "机巧出阵",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "summon",
+        "unit": "token_jixie_shaobing",
+        "count": 1,
+        "position": "random"
+       },
+       {
+        "action": "summon",
+        "unit": "token_jixie_shouwei",
+        "count": 1,
+        "position": "random"
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 107
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "token_jixie_shaobing",
+  "name": "机械哨兵",
+  "faction": "neutral",
+  "type": "token",
+  "cost": null,
+  "skills": [
+   {
+    "name": "",
+    "text": "不能攻击敌方主帅.",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 108
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "token_jixie_shouwei",
+  "name": "机械守卫",
+  "faction": "neutral",
+  "type": "token",
+  "cost": null,
+  "skills": [
+   {
+    "name": "",
+    "text": "打开架盾效果. 不能攻击敌方主帅.",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 109
+  },
+  "flags": [
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wei_caocao_lord",
+  "name": "曹操",
+  "faction": "wei",
+  "type": "lord",
+  "cost": null,
+  "skills": [
+   {
+    "name": "奸雄",
+    "text": "每回合开始时，可选择护驾：受到伤害时由指定己方人物承受；或选择指定敌方一人物指定己方一血，抽一张卡牌，伤害-1.",
+    "dsl": [
+     {
+      "id": "hu_jia",
+      "name": "护驾",
+      "kind": "active",
+      "cost": 0,
+      "frequency": "once_per_turn",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "shou_hu",
+        "status_source": "self",
+        "duration": 1,
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 110
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_zhangyan",
+  "name": "张燕",
+  "faction": "wei",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 3,
+  "skills": [
+   {
+    "name": "急行",
+    "text": "上场时获得先攻",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "huang_jin"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 111
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wei_caoxiu",
+  "name": "曹休",
+  "faction": "wei",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 3,
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 112
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wei_caogang",
+  "name": "曹昂",
+  "faction": "wei",
+  "type": "general",
+  "cost": 2,
+  "attack": 1,
+  "health": 3,
+  "skills": [
+   {
+    "name": "舍身",
+    "text": "架盾",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 113
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wei_guohuai",
+  "name": "郭淮",
+  "faction": "wei",
+  "type": "general",
+  "cost": 4,
+  "attack": 2,
+  "health": 3,
+  "skills": [
+   {
+    "name": "据守",
+    "text": "上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。",
+    "dsl": [
+     {
+      "id": "ju_shou",
+      "name": "据守",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "modify",
+        "health": 2,
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character",
+          "adjacent_to": "self"
+         },
+         "count": "all"
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "jia_dun_status",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character",
+          "adjacent_to": "self"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 115
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_caozhang",
+  "name": "曹彰",
+  "faction": "wei",
+  "type": "general",
+  "cost": 3,
+  "attack": 3,
+  "health": 3,
+  "skills": [
+   {
+    "name": "猛袭",
+    "text": "",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 116
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wei_caoren",
+  "name": "曹仁",
+  "faction": "wei",
+  "type": "general",
+  "cost": 4,
+  "attack": 3,
+  "health": 5,
+  "skills": [
+   {
+    "name": "铁壁铜墙",
+    "text": "上场第二回合架盾并在上场第一回合获得一次伤害免疫.",
+    "dsl": [
+     {
+      "id": "tie_bi_tong_qiang",
+      "name": "铁壁铜墙",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "jia_dun_status",
+        "target": {
+         "source": true
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "wu_sheng",
+        "stacks": 1,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 117
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_dianwei",
+  "name": "典韦",
+  "faction": "wei",
+  "type": "general",
+  "cost": 6,
+  "attack": 5,
+  "health": 6,
+  "skills": [
+   {
+    "name": "一夫当关",
+    "text": "如果场上只有典韦一名己方人物时，其攻击 +1、血量 +2，并获得架盾。",
+    "dsl": [
+     {
+      "id": "yi_fu_dang_guan",
+      "name": "一夫当关",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": 1,
+        "health": 2,
+        "target": {
+         "source": true
+        },
+        "condition": {
+         "count": {
+          "selector": {
+           "side": "ally",
+           "filter": {
+            "type": "character"
+           }
+          },
+          "op": "==",
+          "value": 1
+         }
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "jia_dun_status",
+        "target": {
+         "source": true
+        },
+        "condition": {
+         "count": {
+          "selector": {
+           "side": "ally",
+           "filter": {
+            "type": "character"
+           }
+          },
+          "op": "==",
+          "value": 1
+         }
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 118
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wei_xunyu",
+  "name": "荀彧",
+  "faction": "wei",
+  "type": "strategist",
+  "cost": 5,
+  "attack": 1,
+  "health": 5,
+  "skills": [
+   {
+    "name": "王佐之策",
+    "text": "永久增加主帅两点统帅，且当前回合所有手牌里的人物卡牌减少一个统帅消耗。",
+    "dsl": [
+     {
+      "id": "wang_zuo_zhi_ce",
+      "name": "王佐之策",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "gain_command",
+        "value": 2
+       },
+       {
+        "action": "cost_modifier",
+        "value": -1,
+        "target": {
+         "side": "self"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 120
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_huaxiong",
+  "name": "华雄",
+  "faction": "qun",
+  "type": "general",
+  "cost": 4,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "威震四方",
+    "text": "指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%.",
+    "dsl": [
+     {
+      "id": "wei_zhen_si_fang",
+      "name": "威震四方",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "chance": 0.5,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character",
+          "cost_below_source": true
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "chance": 1.0,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character",
+          "cost_max": 3
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 121
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "qun_yuanshao_lord",
+  "name": "袁绍",
+  "faction": "qun",
+  "type": "lord",
+  "cost": null,
+  "skills": [
+   {
+    "name": "",
+    "text": "主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵",
+    "dsl": [
+     {
+      "id": "wei_wang_lord",
+      "name": "威望",
+      "kind": "active",
+      "cost": 2,
+      "frequency": "once_per_turn",
+      "effects": [
+       {
+        "action": "summon",
+        "unit": "token_shizu_bing",
+        "count": 1,
+        "position": "random"
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "shi_zu"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 122
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_zhouyu",
+  "name": "周瑜",
+  "faction": "wu",
+  "type": "strategist",
+  "cost": 7,
+  "attack": 1,
+  "health": 5,
+  "skills": [
+   {
+    "name": "风火连谋",
+    "text": "上场时对指定一名敌方人物进行离间，双方拼点数大小：如果大于对方则使其丢弃一张卡牌；如果小于对方则此敌方卡回到对方手牌中。",
+    "dsl": [
+     {
+      "id": "li_jian",
+      "name": "离间",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "clash",
+        "unit": "roll",
+        "target": {
+         "side": "enemy"
+        }
+       },
+       {
+        "action": "discard",
+        "count": 1,
+        "target": {
+         "side": "enemy"
+        },
+        "condition": {
+         "event": "clash_won"
+        }
+       },
+       {
+        "action": "return_to_hand",
+        "condition": {
+         "event": "clash_lost"
+        },
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "lowest_health"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 124
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_luxun",
+  "name": "陆逊",
+  "faction": "wu",
+  "type": "strategist",
+  "cost": 7,
+  "attack": 1,
+  "health": 5,
+  "skills": [
+   {
+    "name": "策火流云",
+    "text": "陆逊每回合对敌方全体造成 1 点火攻伤害，并使其持续灼烧状态 1 回合；在灼烧状态下的敌人受到火攻伤害 +1。",
+    "dsl": [
+     {
+      "id": "ce_huo_liu_yun",
+      "name": "策火流云",
+      "kind": "trigger",
+      "trigger": "turn_end",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "zhong_du",
+        "stacks": 1,
+        "duration": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 125
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_taishici",
+  "name": "太史慈",
+  "faction": "wu",
+  "type": "general",
+  "cost": 6,
+  "attack": 5,
+  "health": 6,
+  "skills": [
+   {
+    "name": "骁勇善射",
+    "text": "可选择-2攻击力，但一回合可攻击2次.",
+    "dsl": [
+     {
+      "id": "shen_she_hao",
+      "name": "神射豪",
+      "kind": "active",
+      "cost": 0,
+      "frequency": "once_per_turn",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": -2,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 126
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_sunce",
+  "name": "孙策",
+  "faction": "wu",
+  "type": "general",
+  "cost": 5,
+  "attack": 5,
+  "health": 5,
+  "skills": [
+   {
+    "name": "江东霸王之勇",
+    "text": "上场时，根据场上友军人物卡数对敌方指定敌人造成人物数伤害。",
+    "dsl": [
+     {
+      "id": "jiang_dong_ba_wang",
+      "name": "江东霸王",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "damage",
+        "value_from": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         }
+        },
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 127
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_chengpu",
+  "name": "程普",
+  "faction": "wu",
+  "type": "general",
+  "cost": 5,
+  "attack": 4,
+  "health": 5,
+  "skills": [
+   {
+    "name": "豪勇持重",
+    "text": "上场时选择一名敌方人物震慑一回合（无法行动）；攻击时，恢复随机友军 1 点血量。",
+    "dsl": [
+     {
+      "id": "hao_yong",
+      "name": "豪勇",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     },
+     {
+      "id": "chi_zhong",
+      "name": "持重",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "heal",
+        "value": 1,
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "random"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 128
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_lvmeng",
+  "name": "吕蒙",
+  "faction": "wu",
+  "type": "general",
+  "cost": 5,
+  "attack": 3,
+  "health": 5,
+  "skills": [
+   {
+    "name": "白衣渡江",
+    "text": "上场时可选择一名友方卡牌进行\"白衣渡江\"：本回合内将自己和选择的卡牌翻面，可在之后的回合开始行动。翻面卡牌无法被攻击以及被计策选中。",
+    "dsl": [
+     {
+      "id": "bai_yi_du_jiang",
+      "name": "白衣渡江",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "flip",
+        "target": {
+         "source": true
+        }
+       },
+       {
+        "action": "flip",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 129
+  },
+  "flags": [
+   "原稿标「谋臣」，规则判「武将」",
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_lingtong",
+  "name": "凌统",
+  "faction": "wu",
+  "type": "general",
+  "cost": 5,
+  "attack": 4,
+  "health": 5,
+  "skills": [
+   {
+    "name": "国士之风",
+    "text": "获得先攻，并且对攻击的敌人有 50% 概率造成震慑。",
+    "dsl": [
+     {
+      "id": "guo_shi_zhi_feng",
+      "name": "国士之风",
+      "kind": "trigger",
+      "trigger": "on_attack",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "chance": 0.5,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "random"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 130
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_ganning",
+  "name": "甘宁",
+  "faction": "wu",
+  "type": "general",
+  "cost": 5,
+  "attack": 5,
+  "health": 5,
+  "skills": [
+   {
+    "name": "百骑劫营",
+    "text": "第一回合上场时获得先攻，且所有场上敌方人物 -1 攻一回合。",
+    "dsl": [
+     {
+      "id": "bai_qi_jie_ying",
+      "name": "百骑劫营",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "modify",
+        "attack": -1,
+        "duration": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": "all"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 131
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_sunjian",
+  "name": "孙坚",
+  "faction": "wu",
+  "type": "general",
+  "cost": 4,
+  "attack": 4,
+  "health": 3,
+  "skills": [
+   {
+    "name": "江东猛虎",
+    "text": "阵亡时与敌方拼点。如果拼点获胜，则随机让己方手牌中一名人物不消耗统率上场（但不能触发这张牌的上场效果）。",
+    "dsl": [
+     {
+      "id": "jiang_dong_meng_hu",
+      "name": "江东猛虎",
+      "kind": "trigger",
+      "trigger": "on_death",
+      "effects": [
+       {
+        "action": "clash",
+        "unit": "roll",
+        "target": {
+         "side": "enemy"
+        }
+       },
+       {
+        "action": "draw",
+        "value": 1,
+        "condition": {
+         "event": "clash_won"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 132
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_huanggai",
+  "name": "黄盖",
+  "faction": "wu",
+  "type": "general",
+  "cost": 4,
+  "attack": 3,
+  "health": 4,
+  "skills": [
+   {
+    "name": "苦肉计",
+    "text": "每回合可一次机会自己掉一血指定一名敌人混乱（50%概率），如果混乱成功，则抽一张卡牌.",
+    "dsl": [
+     {
+      "id": "ku_rou_ji",
+      "name": "苦肉计",
+      "kind": "active",
+      "cost": 0,
+      "frequency": "once_per_turn",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 1,
+        "target": {
+         "source": true
+        }
+       },
+       {
+        "action": "apply_status",
+        "status": "hun_luan",
+        "duration": 1,
+        "chance": 0.5,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       },
+       {
+        "action": "draw",
+        "value": 1,
+        "condition": {
+         "event": "none"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 133
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_handang",
+  "name": "韩当",
+  "faction": "wu",
+  "type": "general",
+  "cost": 4,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "箭无虚发",
+    "text": "上场第一回合时，对指定敌人造成2点伤害。",
+    "dsl": [
+     {
+      "id": "jian_wu_xu_fa",
+      "name": "箭无虚发",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 2,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 134
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_lukang",
+  "name": "陆抗",
+  "faction": "wu",
+  "type": "general",
+  "cost": 4,
+  "attack": 2,
+  "health": 4,
+  "skills": [
+   {
+    "name": "谦冲如常",
+    "text": "自上场时，可选择手里或场上友方将领的技能一次。",
+    "dsl": [
+     {
+      "id": "qian_chong_ru_chang",
+      "name": "谦冲如常",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "copy_skill",
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 135
+  },
+  "flags": [
+   "原稿标「谋臣」，规则判「武将」",
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_zhoutai",
+  "name": "周泰",
+  "faction": "wu",
+  "type": "general",
+  "cost": 4,
+  "attack": 3,
+  "health": 6,
+  "skills": [
+   {
+    "name": "铁血守护",
+    "text": "每回合，若有己方将领被击破时，可选择是否援护一次，该将领受到的伤害由周泰承受。周泰被击败时，有一次机会50%概率存活。",
+    "dsl": [
+     {
+      "id": "tie_xue_shou_hu",
+      "name": "铁血守护",
+      "kind": "trigger",
+      "trigger": "turn_start",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "shou_hu",
+        "status_source": "self",
+        "duration": 1,
+        "target": {
+         "side": "ally",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     },
+     {
+      "id": "bu_qu",
+      "name": "不屈",
+      "kind": "trigger",
+      "trigger": "on_lethal",
+      "chance": 0.5,
+      "frequency": "once",
+      "effects": [
+       {
+        "action": "survive",
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 136
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_zhuhuan",
+  "name": "朱桓",
+  "faction": "wu",
+  "type": "general",
+  "cost": 4,
+  "attack": 3,
+  "health": 5,
+  "skills": [
+   {
+    "name": "以逸待劳",
+    "text": "自己在场时，如果受伤，每回合恢复自己一点血量。",
+    "dsl": [
+     {
+      "id": "yi_yi_dai_lao",
+      "name": "以逸待劳",
+      "kind": "trigger",
+      "trigger": "turn_start",
+      "effects": [
+       {
+        "action": "heal",
+        "value": 1,
+        "target": {
+         "source": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 137
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "wu_dingfeng",
+  "name": "丁奉",
+  "faction": "wu",
+  "type": "general",
+  "cost": 4,
+  "attack": 4,
+  "health": 4,
+  "skills": [
+   {
+    "name": "奋勇",
+    "text": "如果己方场上有受伤而且为1血人物，就降低一点统帅消耗。",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 138
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "cost_rule": {
+   "condition": {
+    "exists": {
+     "side": "ally",
+     "filter": {
+      "type": "character",
+      "health_max": 1
+     }
+    }
+   },
+   "value": -1
+  },
+  "dsl_status": "条件费用规则（cost_rule），无独立技能"
+ },
+ {
+  "id": "wu_zhugeke",
+  "name": "诸葛恪",
+  "faction": "wu",
+  "type": "strategist",
+  "cost": 3,
+  "attack": 1,
+  "health": 3,
+  "skills": [
+   {
+    "name": "恃才",
+    "text": "上场时，可查看对手卡池顶部一张牌。如果牺牲一名人物, 可同时查看对手手中一张卡牌。",
+    "dsl": [
+     {
+      "id": "shi_cai",
+      "name": "恃才",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "scry",
+        "unit": "top",
+        "count": 1,
+        "to": "hand",
+        "target": {
+         "side": "enemy"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 139
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "tactic_gongxinji",
+  "name": "攻心计",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "选定一个敌方将领，有一半概率下回合行动失效，持续一回合。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 140
+  },
+  "flags": [
+   "未定稿：cost = 3｜未定稿：「统」旁带问号",
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "apply_status",
+    "status": "zhen_she",
+    "duration": 1,
+    "chance": 0.5,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_zhuchengjiliang",
+  "name": "筑城积粮",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "上场两个1攻1血的盾兵，且同时抽两张牌。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 141
+  },
+  "flags": [
+   "未定稿：cost = 4｜未定稿：「统」旁带问号",
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "summon",
+    "unit": "neutral_shieldman",
+    "count": 2,
+    "position": "random"
+   },
+   {
+    "action": "draw",
+    "value": 2
+   }
+  ]
+ },
+ {
+  "id": "neutral_archer",
+  "name": "弓射手",
+  "faction": "shu",
+  "type": "troop",
+  "cost": 1,
+  "attack": 0,
+  "health": 1,
+  "skills": [
+   {
+    "name": "",
+    "text": "每回合对指定任意敌方人物造成一点伤害。",
+    "dsl": [
+     {
+      "id": "shen_she_ji",
+      "name": "神射",
+      "kind": "trigger",
+      "trigger": "turn_start",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 1,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "choose"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 142
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ]
+ },
+ {
+  "id": "tactic_anduchencang",
+  "name": "暗渡陈仓",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "出可打出一张人物牌直接翻面，两回合最多（两回合?）翻背面，后面回合翻到正面时视为开始时上场。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 144
+  },
+  "flags": [
+   "转录存疑 5 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "flip",
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   },
+   {
+    "action": "flip",
+    "target": {
+     "side": "ally",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_kongchengji",
+  "name": "空城计",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 5,
+  "skills": [
+   {
+    "name": "",
+    "text": "当己方场上没有人物在場时，对方一回合无法攻击主帅。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 145
+  },
+  "flags": [
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "damage",
+    "value": 0,
+    "target": {
+     "side": "enemy",
+     "lord": true
+    },
+    "condition": {
+     "count": {
+      "selector": {
+       "side": "ally",
+       "filter": {
+        "type": "character"
+       }
+      },
+      "op": "==",
+      "value": 0
+     }
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_shizhanqunru",
+  "name": "舌战群儒",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "禁用敌方场上所有谋臣计能一回合。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 146
+  },
+  "flags": [
+   "未定稿：cost = （原文）｜未定稿：「统」旁带问号，数值读不出",
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "apply_status",
+    "status": "jin_yong",
+    "duration": 1,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "strategist"
+     },
+     "count": "all"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_xiushengyangxi",
+  "name": "休养生息",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 5,
+  "skills": [
+   {
+    "name": "",
+    "text": "下一回合不进行任何活动, 恢复全体人员(包括主帅)3-4点血量, 抽三张牌。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 147
+  },
+  "flags": [
+   "未定稿：skill_text = 恢复量 3-4｜未定稿：设计者确认未定稿",
+   "转录存疑 4 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "heal",
+    "value": 3,
+    "target": {
+     "side": "ally",
+     "filter": {
+      "type": "character"
+     },
+     "count": "all"
+    }
+   },
+   {
+    "action": "draw",
+    "value": 3
+   }
+  ]
+ },
+ {
+  "id": "tactic_yuqin_guzong",
+  "name": "欲擒故纵",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "当击败一个敌方人物，使用此计可与对方拼点数大小，如果胜过对方则可将此人物收归己方手牌。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 148
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "clash",
+    "unit": "roll",
+    "target": {
+     "side": "enemy"
+    }
+   },
+   {
+    "action": "return_to_hand",
+    "condition": {
+     "event": "clash_won"
+    },
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "lowest_health"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_chuqibuyi",
+  "name": "出其不意",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "从己方卡池顶部抽一张牌，如果为计非人物牌可需立既使用：如果是人物牌需立既上场。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 149
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "scry",
+    "unit": "top",
+    "count": 1,
+    "to": "hand",
+    "target": {
+     "side": "self"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_chenhuodajie",
+  "name": "趁火打劫",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 5,
+  "skills": [
+   {
+    "name": "",
+    "text": "当敌方场上有人物处于混乱状态，使其随机攻击己方单位；并使你抽取其卡池顶部一张卡。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 150
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "scry",
+    "unit": "top",
+    "count": 1,
+    "to": "hand",
+    "target": {
+     "side": "enemy"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_tuntian",
+  "name": "屯田",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "抽两张牌。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 151
+  },
+  "flags": [
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "draw",
+    "value": 2
+   }
+  ]
+ },
+ {
+  "id": "tactic_huogong",
+  "name": "火攻",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "造成一点伤害对指定人物并有50%概率造成额外2点火伤。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 152
+  },
+  "flags": [
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "damage",
+    "value": 1,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   },
+   {
+    "action": "damage",
+    "value": 2,
+    "chance": 0.5,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "choose"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_fudichouxin",
+  "name": "釜底抽薪",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "直接对敌方主帅造成4点伤害。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 153
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "damage",
+    "value": 4,
+    "target": {
+     "side": "enemy",
+     "lord": true
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_caochuanjiejian",
+  "name": "草船借箭",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 6,
+  "skills": [
+   {
+    "name": "",
+    "text": "使敌方场上指定两名敌人攻击我方场上血量最高单位；敌方每阵亡一个武将，己方抽取两张卡。",
+    "dsl": [],
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 154
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "force_attack",
+    "count": 2,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 2,
+     "mode": "choose"
+    }
+   },
+   {
+    "action": "apply_status",
+    "status": "zhen_wang",
+    "status_source": "self",
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": "all"
+    }
+   }
+  ]
+ },
+ {
+  "id": "event_huoshaoluoyang",
+  "name": "火烧洛阳",
+  "faction": "neutral",
+  "type": "event",
+  "cost": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "对敌方造成全体 1点火伤持续 2 回合。但要丢弃一张手牌，由打出此事件人选择。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 155
+  },
+  "flags": [
+   "转录存疑 5 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "damage",
+    "value": 1,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": "all"
+    }
+   },
+   {
+    "action": "discard",
+    "count": 1,
+    "target": {
+     "side": "self"
+    }
+   }
+  ]
+ },
+ {
+  "id": "event_nanmanruqin",
+  "name": "南蛮入侵",
+  "faction": "neutral",
+  "type": "event",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "双方全体人物（包括刘备）受到一点伤害。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 156
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "damage",
+    "value": 1,
+    "target": {
+     "side": "both",
+     "filter": {
+      "type": "character"
+     },
+     "count": "all"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_mantianguohai",
+  "name": "瞒天过海",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "将己方手牌中两张卡选择放入卡池最底层，并从当前卡池顶部抽取两张.",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 157
+  },
+  "flags": [
+   "转录存疑 2 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "scry",
+    "unit": "bottom",
+    "count": 2,
+    "to": "hand",
+    "target": {
+     "side": "self"
+    }
+   },
+   {
+    "action": "draw",
+    "value": 2
+   }
+  ]
+ },
+ {
+  "id": "tactic_jijiang",
+  "name": "激将",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "随机抽取敌方手中一张卡牌，如果为人物卡则强制上场。",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 158
+  },
+  "flags": [
+   "转录存疑 1 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "steal_card",
+    "count": 1,
+    "to": "board",
+    "target": {
+     "side": "enemy"
+    }
+   }
+  ]
+ },
+ {
+  "id": "tactic_bishijixu",
+  "name": "避实击虚",
+  "faction": "neutral",
+  "type": "tactic",
+  "cost": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "对敌方场上受伤人物中血量最低的造成2点伤害，如没有受伤的则对，血量最低的目标为",
+    "dsl": null,
+    "note": "DSL 已翻译（卡级 effects）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 159
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "effects": [
+   {
+    "action": "damage",
+    "value": 2,
+    "target": {
+     "side": "enemy",
+     "filter": {
+      "type": "character"
+     },
+     "count": 1,
+     "mode": "lowest_health"
+    }
+   }
+  ]
+ },
+ {
+  "id": "neutral_infantry",
+  "name": "步兵",
+  "faction": "shu",
+  "type": "troop",
+  "cost": 1,
+  "attack": 1,
+  "health": 1,
+  "skills": [
+   {
+    "name": "",
+    "text": "当场上设有其他敌方人物时，才可攻击主帅.",
+    "dsl": null,
+    "note": "效果 DSL 待翻译（尚未开始）"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "photo": 160
+  },
+  "flags": [
+   "转录存疑 3 处（详见 cards_photo.draft.yaml）",
+   "缺 memo"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wu_songqian",
+  "name": "宋谦",
+  "faction": "wu",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 3,
+  "skills": [],
+  "keywords": [],
+  "memo": "2 费 2/3 扎实身材，无技能纯站场",
+  "flavor": "",
+  "source": {
+   "oral": true
+  },
+  "flags": [
+   "口述录入，数值未经校验"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wu_zhuran",
+  "name": "朱然",
+  "faction": "wu",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 2,
+  "skills": [],
+  "keywords": [
+   "jia_dun"
+  ],
+  "memo": "2 费前排嘲讽，敌方必须先打掉它",
+  "flavor": "",
+  "source": {
+   "oral": true
+  },
+  "flags": [
+   "口述录入，数值未经校验"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wu_quancong",
+  "name": "全琮",
+  "faction": "wu",
+  "type": "general",
+  "cost": 3,
+  "attack": 3,
+  "health": 2,
+  "skills": [],
+  "keywords": [],
+  "memo": "3 费 3/2，吴国中坚白板曲线",
+  "flavor": "",
+  "source": {
+   "oral": true
+  },
+  "flags": [
+   "口述录入，数值未经校验"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wu_mazhong",
+  "name": "马忠",
+  "faction": "wu",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 3,
+  "skills": [
+   {
+    "name": "",
+    "text": "",
+    "dsl": [
+     {
+      "id": "she_fu",
+      "name": "设伏",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "zhen_she",
+        "duration": 1,
+        "chance": 0.5,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "random"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "入场给敌方一个人物下套，50% 让它动不了",
+  "flavor": "",
+  "source": {
+   "oral": true
+  },
+  "flags": [
+   "口述录入，数值未经校验"
+  ]
+ },
+ {
+  "id": "wu_liyi",
+  "name": "李异",
+  "faction": "wu",
+  "type": "general",
+  "cost": 2,
+  "attack": 2,
+  "health": 2,
+  "skills": [],
+  "keywords": [],
+  "memo": "2 费 2/2 普通卡，低费填充",
+  "flavor": "",
+  "source": {
+   "oral": true
+  },
+  "flags": [
+   "口述录入，数值未经校验"
+  ],
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "wu_lusu",
+  "name": "鲁肃",
+  "faction": "wu",
+  "type": "strategist",
+  "cost": 4,
+  "attack": 1,
+  "health": 4,
+  "skills": [
+   {
+    "name": "",
+    "text": "",
+    "dsl": [
+     {
+      "id": "zhang_yi_shu_cai",
+      "name": "仗义疏财",
+      "kind": "active",
+      "cost": 0,
+      "frequency": "once_per_turn",
+      "effects": [
+       {
+        "action": "discard",
+        "count": 1,
+        "target": {
+         "side": "self"
+        }
+       },
+       {
+        "action": "draw",
+        "value": 2
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "每回合送对手 1 张手牌，自己抽 2 张",
+  "flavor": "",
+  "source": {
+   "oral": true
+  },
+  "flags": [
+   "口述录入，数值未经校验"
+  ]
+ },
+ {
+  "id": "neutral_shieldman",
+  "name": "盾兵",
+  "faction": "neutral",
+  "type": "troop",
+  "cost": 2,
+  "attack": 1,
+  "health": 2,
+  "skills": [],
+  "keywords": [
+   "jia_dun"
+  ],
+  "memo": "仅前军生效：敌方必须先打掉它才能攻击其他人",
+  "flavor": "盾如铁壁，寸步不让。",
+  "source": {
+   "oral": true,
+   "note": "设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）"
+  },
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "neutral_chuanguo_yuxi",
+  "name": "传国玉玺",
+  "faction": "neutral",
+  "type": "special",
+  "cost": 0,
+  "skills": [
+   {
+    "name": "",
+    "text": "本回合统率 +1（仅后手获得）",
+    "dsl": null,
+    "note": "沿用 cards.yaml"
+   }
+  ],
+  "keywords": [],
+  "memo": "0 费，本回合统率 +1（仅后手获得）",
+  "flavor": "受命于天，既寿永昌。",
+  "source": {
+   "from": "cards.yaml"
+  },
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "qun_zhangjiao",
+  "name": "张角",
+  "faction": "qun",
+  "type": "strategist",
+  "cost": 5,
+  "attack": 1,
+  "health": 5,
+  "skills": [
+   {
+    "name": "五雷轰顶",
+    "text": "每回合结束时释放 5 次随机 1 伤害的雷击，对敌方随机人物。如果雷击击杀敌人则上场一个 1 攻 1 血的黄巾士兵。",
+    "dsl": [
+     {
+      "id": "wu_lei_hong_ding",
+      "name": "五雷轰顶",
+      "kind": "trigger",
+      "trigger": "turn_end",
+      "effects": [
+       {
+        "action": "damage",
+        "value": 1,
+        "count": 5,
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character"
+         },
+         "count": 1,
+         "mode": "random"
+        }
+       },
+       {
+        "action": "summon",
+        "unit": "token_huangjin_bing",
+        "count": 1,
+        "position": "random",
+        "condition": {
+         "event": "killed"
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "tags": [
+   "huang_jin"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "new": "设计者口述（2026-09-12）"
+  },
+  "flags": [
+   "「如果雷击击杀敌人则上场黄巾士兵」是**条件触发**，当前 DSL 无 condition 字段，暂未翻译"
+  ]
+ },
+ {
+  "id": "token_huangjin_bing",
+  "name": "黄巾兵",
+  "faction": "neutral",
+  "type": "token",
+  "cost": 0,
+  "attack": 1,
+  "health": 1,
+  "keywords": [],
+  "tags": [
+   "huang_jin"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "new": "张角/张宝/张梁/黄巾起义 召唤的 1/1 衍生物"
+  },
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "token_shizu_bing",
+  "name": "士族兵",
+  "faction": "neutral",
+  "type": "token",
+  "cost": 0,
+  "attack": 1,
+  "health": 1,
+  "keywords": [],
+  "tags": [
+   "shi_zu"
+  ],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "new": "袁绍「威望」召唤的 1/1 衍生物"
+  },
+  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ }
+]

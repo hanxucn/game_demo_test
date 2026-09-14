@@ -30,6 +30,7 @@
 | `health` | 人物卡必填 | number | 生命值 |
 | `keywords` | 可选 | string[] | 关键词列表，见 `06-keywords.md` |
 | `skills` | 可选 | object[] | 技能定义，见 `10-skills-statuses.md` |
+| `tags` | 可选 | string[] | **归属标签**（西凉/蛮族/黄巾/士族），见 `13-balance-data-model.md` §7.5 |
 | `bonds` | 可选 | string[] | 参与的羁绊 id，见 `09-bonds.md` |
 | `upgradeTarget` | 进化卡必填 | object | 目标兵种与进化结果 |
 | `flavor` | 可选 | string | 风味文本（**不显示在卡面**，用于收藏页） |
@@ -141,6 +142,7 @@
 | 卡名 | ≤4 字；优先使用人物本名或广为人知的称号 |
 | 同名冲突 | 若同一人物有多种形态，用副标题区分（如「关羽·武圣」） |
 | 技能名 | ≤4 字，优先使用史书/演义中的原词 |
+| 归属标签 | 拼音 snake_case，须登记进 `data/tags.yaml`（如 `xi_liang` 西凉）|
 | 风味文本 | 引用或化用演义原文，不超过 30 字 |
 | 用词统一 | 统一使用"主公/人物卡/统率值/架盾"等术语表词汇 |
 

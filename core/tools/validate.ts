@@ -11,7 +11,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES } from '../src/constants.ts';
+import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES, TAGS } from '../src/constants.ts';
 import type { CardDef, CardEffect, SkillDef } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -26,8 +26,15 @@ const KEYWORD_VALUE: Record<string, number> = {
   zhong_yi: 0,   // 视具体亡语效果而定
 };
 
-/** 效果等效价值 */
-function effectValue(eff: CardEffect): number {
+/**
+ * 效果等效价值
+ *
+ * ADR-033：带 chance 的效果按概率线性打折（50% 的 4 点伤害 = 2 点价值）；
+ *          带 condition 的效果按 CONDITION_RATE 打折（条件越苛刻价值越低）。
+ */
+const CONDITION_RATE = 0.7;
+
+function baseEffectValue(eff: CardEffect): number {
   switch (eff.action) {
     case 'damage': return (eff.value ?? 0) * 0.5;
     case 'heal': return (eff.value ?? 0) * 0.4;
@@ -38,8 +45,17 @@ function effectValue(eff: CardEffect): number {
       return eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2;
     case 'modify': return Math.abs(eff.value ?? 0) * 1.5;
     case 'destroy': return 8;
+    case 'discard': return (eff.count ?? 1) * 1.5;
+    case 'return_to_hand': return 3;
     default: return 0;
   }
+}
+
+function effectValue(eff: CardEffect): number {
+  let v = baseEffectValue(eff);
+  if (typeof eff.chance === 'number') v *= eff.chance;        // 概率打折
+  if (eff.condition) v *= CONDITION_RATE;                     // 条件打折
+  return v;
 }
 
 /** 触发概率折扣 */
@@ -93,12 +109,19 @@ export function validateCards(cards: CardDef[]): Issue[] {
       if (!KEYWORDS[k]) add('error', c.id, `未注册的关键词：${k}`);
       else if (!KEYWORDS[k]!.implemented) add('warn', c.id, `关键词「${k}」引擎尚未实现`);
     }
+    // ⑪ 未注册的归属标签（ADR-029）
+    for (const t of c.tags ?? []) {
+      if (!TAGS[t]) add('error', c.id, `未注册的归属标签：${t}`);
+    }
     const scanEffects = (effs: CardEffect[] | undefined, where: string) => {
       for (const e of effs ?? []) {
         if (!(ACTIONS as readonly string[]).includes(e.action)) add('error', c.id, `${where} 未注册的动作：${e.action}`);
         if (e.status && !STATUSES[e.status]) add('error', c.id, `${where} 未注册的状态：${e.status}`);
         if (e.target?.filter?.keyword && !KEYWORDS[e.target.filter.keyword]) {
           add('error', c.id, `${where} 选择器引用了未注册的关键词：${e.target.filter.keyword}`);
+        }
+        if (e.target?.filter?.tag && !TAGS[e.target.filter.tag]) {
+          add('error', c.id, `${where} 选择器引用了未注册的归属标签：${e.target.filter.tag}`);
         }
         if (e.unit && !ids.has(e.unit)) add('error', c.id, `${where} 召唤了不存在的卡：${e.unit}`);
       }

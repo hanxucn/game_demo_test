@@ -6,27 +6,66 @@
  *  - 所有变更都产生事件（客户端只消费事件）
  */
 
-import { DECK, STATUSES } from './constants.ts';
-import { allUnits, getUnit, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
-import type { CardDef, GameEvent, MatchState, Row, Side, Unit } from './types.ts';
+import { BOARD, DECK, STATUSES } from './constants.ts';
+import { createRng } from './rng.ts';
+import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
+import type { CardDef, GameEvent, HandCard, MatchState, Row, Side, Unit } from './types.ts';
 
 export type TargetRef =
   | { kind: 'unit'; side: Side; row: Row; col: number }
-  | { kind: 'lord'; side: Side };
+  | { kind: 'lord'; side: Side }
+  | { kind: 'hand'; side: Side; index: number };   // 手牌（ADR-038）
 
 export const unitRef = (side: Side, row: Row, col: number): TargetRef => ({ kind: 'unit', side, row, col });
 export const lordRef = (side: Side): TargetRef => ({ kind: 'lord', side });
+export const handRef = (side: Side, index: number): TargetRef => ({ kind: 'hand', side, index });
+
+/** 手牌实际费用 = 卡面费用 + Σ 费用修正（ADR-038），下限 0 */
+export function effectiveCost(hc: HandCard, ruleDelta = 0): number {
+  const delta = hc.mods.filter((m) => m.kind === 'cost').reduce((s, m) => s + (m.value ?? 0), 0);
+  return Math.max(0, hc.card.cost + ruleDelta + delta);
+}
+
+/** 该手牌是否被禁止上场 */
+export const isBanned = (hc: HandCard): boolean => hc.mods.some((m) => m.kind === 'ban');
+
+/**
+ * 查找该单位的守护者（ADR-039）
+ *
+ * 遍历其身上的守护状态，取出 srcUid 对应的存活单位。
+ * 排除「自我守护」与已阵亡的守护者。
+ */
+export function findGuard(
+  state: MatchState, u: Unit,
+): { side: Side; row: Row; col: number; unit: Unit } | null {
+  for (const [id, inst] of Object.entries(u.statuses)) {
+    if (inst.stacks <= 0 || !inst.srcUid) continue;
+    if (!STATUSES[id]?.caps?.includes('redirect_damage')) continue;
+    for (const side of ['own', 'enemy'] as Side[]) {
+      for (const row of ['front', 'back'] as Row[]) {
+        for (let col = 0; col < BOARD.COLS; col++) {
+          const g = state.sides[side].rows[row][col];
+          if (g && g.uid === inst.srcUid && g.uid !== u.uid && g.hp > 0) {
+            return { side, row, col, unit: g };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
 
 /** 目标当前生命 */
 export function refHp(state: MatchState, ref: TargetRef): number {
-  return ref.kind === 'lord'
-    ? state.sides[ref.side].lord.hp
-    : (getUnit(state, ref.side, ref.row, ref.col)?.hp ?? 0);
+  if (ref.kind === 'lord') return state.sides[ref.side].lord.hp;
+  if (ref.kind === 'hand') return 0;                 // 手牌无生命（ADR-038）
+  return getUnit(state, ref.side, ref.row, ref.col)?.hp ?? 0;
 }
 
 /** 目标是否仍存在 */
 export function refAlive(state: MatchState, ref: TargetRef): boolean {
   if (ref.kind === 'lord') return state.sides[ref.side].lord.hp > 0;
+  if (ref.kind === 'hand') return false;             // 手牌不是"存活对象"（ADR-038）
   const u = getUnit(state, ref.side, ref.row, ref.col);
   return !!u && u.hp > 0;
 }
@@ -49,10 +88,15 @@ export function drawCard(
     dealDamage(state, cards, lordRef(side), s.fatigue, events, 'fatigue');
     return;
   }
+  // 断抽（ADR-041）：该方主帅带 block_draw 状态时抽牌无效
+  if (hasCapOn(state.sides[side].lord.statuses, 'block_draw')) {
+    events.push({ type: 'DRAW_BLOCKED', side });
+    return;
+  }
   const id = s.deck.pop() as string;
   const card = cards.get(id);
   if (!card) return;
-  s.hand.push(card);
+  s.hand.push({ card, mods: [] });            // ADR-038：包成手牌实例
   events.push({ type: 'CARD_DRAWN', side, card, deckLeft: s.deck.length });
   // 手牌上限：超出部分在回合结束时弃置（见 engine.endTurn）
 }
@@ -72,6 +116,7 @@ export function dealDamage(
   amount: number,
   events: GameEvent[],
   source: string,
+  depth = 0,
 ): number {
   if (amount <= 0 || !refAlive(state, ref)) return 0;
 
@@ -92,21 +137,76 @@ export function dealDamage(
     return amount;
   }
 
+  if (ref.kind !== 'unit') return 0;                // 手牌不受伤害（ADR-038）
   const u = getUnit(state, ref.side, ref.row, ref.col);
   if (!u) return 0;
 
-  // 武圣：免疫一次伤害
-  if (statusStacks(u, 'wu_sheng') > 0) {
-    delete u.statuses.wu_sheng;
-    u.kw = u.kw.filter((k) => k !== 'wu_sheng');
-    events.push({ type: 'STATUS_EXPIRED', side: ref.side, row: ref.row, col: ref.col, status: 'wu_sheng' });
+  // 伤害重定向（ADR-039）：守护状态把伤害整体转给守护者
+  const guard = findGuard(state, u);
+  if (guard && depth < 3) {
+    events.push({ type: 'DAMAGE_REDIRECTED', side: ref.side, row: ref.row, col: ref.col,
+                  to: guard.side, guardName: guard.unit.name });
+    return dealDamage(state, cards, unitRef(guard.side, guard.row, guard.col),
+                      amount, events, source, depth + 1);
+  }
+
+  // 免疫伤害（武圣等，能力驱动 ADR-034）：消耗后失效
+  if (hasCap(u, 'immune_damage')) {
+    const id = Object.keys(u.statuses).find((k) => STATUSES[k]?.caps?.includes('immune_damage'))!;
+    delete u.statuses[id];
+    u.kw = u.kw.filter((k) => k !== id);
+    events.push({ type: 'STATUS_EXPIRED', side: ref.side, row: ref.row, col: ref.col, status: id });
     return 0;
   }
 
   u.hp -= amount;
   events.push({ type: 'DAMAGE', target: ref, amount, source });
+
+  // 免死判定（ADR-039）：致命伤害时按 on_lethal 技能掷骰，成功则以 1 血存活
+  if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return amount;
+
   if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events);
   return amount;
+}
+
+/**
+ * 免死判定（ADR-039）
+ *
+ * 在**扣血后、移出战场前**判定——免疫是"扣血前取消"，免死是"归零后抬回 1 血"。
+ * 使用由 state.rngState 派生的确定性 RNG，保证回放可复现。
+ */
+function tryLethalSave(
+  state: MatchState, u: Unit, ref: Extract<TargetRef, { kind: 'unit' }>, events: GameEvent[],
+): boolean {
+  const saves = (u.skills ?? []).filter((sk) => sk.trigger === 'on_lethal');
+  if (!saves.length) return false;
+  const usedOnce = (u as Unit & { lethalUsed?: boolean }).lethalUsed;
+  const rng = createRng(state.rngState);
+  for (const sk of saves) {
+    if (sk.frequency === 'once' && usedOnce) continue;
+    const chance = sk.chance ?? 1;
+    const roll = rng.next();
+    if (roll < chance) {
+      state.rngState = rng.getState();
+      u.hp = 1;
+      (u as Unit & { lethalUsed?: boolean }).lethalUsed = true;
+      events.push({ type: 'UNIT_SURVIVED', side: ref.side, row: ref.row, col: ref.col, unit: u });
+      return true;
+    }
+  }
+  state.rngState = rng.getState();
+  return false;
+}
+
+/**
+ * 受到伤害触发技（时机表第 16 步，ADR-031/036）
+ * 由 engine 在伤害结算后统一调用，避免 mutate 反向依赖 effects。
+ */
+export function collectDamaged(
+  state: MatchState, side: Side, uid: string,
+): { row: Row; col: number; unit: Unit } | null {
+  for (const ref of allUnits(state, side)) if (ref.unit.uid === uid) return ref;
+  return null;
 }
 
 export function healTarget(
@@ -122,6 +222,7 @@ export function healTarget(
     events.push({ type: 'HEAL', target: ref, amount, hp: lord.hp });
     return;
   }
+  if (ref.kind !== 'unit') return;                   // 手牌不可被治疗（ADR-038）
   const u = getUnit(state, ref.side, ref.row, ref.col);
   if (!u) return;
   u.hp = Math.min(u.maxHp, u.hp + amount);
@@ -144,14 +245,51 @@ export function applyStatus(
   status: string,
   stacks: number,
   events: GameEvent[],
+  turns?: number,
+  srcUid?: string,
+  auraId?: string,
 ): void {
-  if (ref.kind !== 'unit') return;                    // v1 状态只作用于人物卡
+  if (ref.kind === 'hand') return;                    // 手牌用 HandMod（ADR-038）
+  const def = STATUSES[status];
+
+  // 主公状态（ADR-040）
+  if (ref.kind === 'lord') {
+    const lord = state.sides[ref.side].lord;
+    lord.statuses = lord.statuses ?? {};
+    if (def?.kind === 'debuff' && hasCapOn(lord.statuses, 'immune_debuff')) return;
+    const prevL = lord.statuses[status];
+    const numericL = def?.numeric ?? true;
+    const turnsL = turns !== undefined ? turns
+      : def?.duration === 'permanent' || def?.duration === 'until_consumed' ? undefined
+      : def?.duration === 'turns' || def?.duration === 'this_turn' ? 1 : undefined;
+    lord.statuses[status] = {
+      stacks: numericL ? (prevL?.stacks ?? 0) + stacks : Math.max(1, stacks),
+      turns: turnsL, srcUid, auraId,
+    };
+    events.push({ type: 'STATUS_APPLIED', side: ref.side, status, stacks, turns: turnsL });
+    return;
+  }
+
   const u = getUnit(state, ref.side, ref.row, ref.col);
   if (!u) return;
-  const def = STATUSES[status];
+
+  // 免疫负面：带 immune_debuff 能力的单位，负面状态施加无效（ADR-034）
+  if (def?.kind === 'debuff' && hasCap(u, 'immune_debuff')) {
+    events.push({ type: 'STATUS_BLOCKED', side: ref.side, row: ref.row, col: ref.col, status, reason: '免疫' });
+    return;
+  }
+
   const numeric = def?.numeric ?? true;
-  u.statuses[status] = numeric ? (u.statuses[status] ?? 0) + stacks : Math.max(1, stacks);
-  events.push({ type: 'STATUS_APPLIED', side: ref.side, row: ref.row, col: ref.col, status, stacks });
+  const prev = u.statuses[status];
+  const nextStacks = numeric ? (prev?.stacks ?? 0) + stacks : Math.max(1, stacks);
+  // 持续时间：调用方指定优先；否则按状态定义（permanent → 永久）
+  const nextTurns = turns !== undefined ? turns
+    : prev?.turns !== undefined ? Math.max(prev.turns, 1)
+    : def?.duration === 'permanent' || def?.duration === 'until_consumed' ? undefined
+    : def?.duration === 'turns' || def?.duration === 'this_turn' ? 1
+    : undefined;
+  u.statuses[status] = { stacks: nextStacks, turns: nextTurns, srcUid, auraId };
+  events.push({ type: 'STATUS_APPLIED', side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
 }
 
 /* ============================================================
@@ -252,10 +390,74 @@ export function resolveTurnEndStatuses(
       dealDamage(state, cards, unitRef(ref.side, ref.row, ref.col), poison, events, '中毒');
     }
   }
-  // 清除"回合数"型减益
+}
+
+/**
+ * 临时属性修正到期（时机表第 21 步，ADR-037）
+ * 与状态递减同一步：有 turns 的 mod 减 1，减到 0 移除并重算派生属性。
+ */
+export function expireMods(state: MatchState, side: Side): void {
   for (const ref of allUnits(state, side)) {
-    for (const [id, def] of Object.entries(STATUSES)) {
-      if (def.duration === 'turns' && ref.unit.statuses[id]) {
+    const u = ref.unit;
+    const before = u.mods.length;
+    u.mods = u.mods.filter((m) => {
+      if (m.kind !== 'temp' || m.turns === undefined) return true;
+      m.turns -= 1;
+      return m.turns > 0;
+    });
+    if (u.mods.length !== before) applyMods(u);
+  }
+}
+
+/**
+ * 手牌修正到期（时机表第 21 步，ADR-038）
+ * 与属性修正同构：有 turns 的减 1，减到 0 移除。
+ */
+/** 最近被弃的牌（ADR-040）：供 value_from_discarded 读取 */
+export interface LastDiscarded { card: CardDef; side: Side }
+export function setLastDiscarded(state: MatchState, card: CardDef, side: Side): void {
+  (state as MatchState & { lastDiscarded?: LastDiscarded }).lastDiscarded = { card, side };
+}
+
+export function expireHandMods(state: MatchState, side: Side): void {
+  for (const hc of state.sides[side].hand) {
+    if (!hc.mods.length) continue;
+    hc.mods = hc.mods.filter((m) => {
+      if (m.turns === undefined) return true;
+      m.turns -= 1;
+      return m.turns > 0;
+    });
+  }
+}
+
+/**
+ * 清除临时效果（时机表第 21 步，ADR-034）
+ *
+ * ⚠️ 必须在 `turn_end` 触发技**之后**调用——否则「持续 1 回合」的混乱
+ * 会在自己的回合结束技生效前就被清掉。中毒结算与触发技都在第 20 步。
+ */
+export function expireStatuses(
+  state: MatchState,
+  side: Side,
+  events: GameEvent[],
+): void {
+  // 主公状态递减（ADR-040）
+  const lord = state.sides[side].lord;
+  if (lord.statuses) {
+    for (const [id, inst] of Object.entries(lord.statuses)) {
+      if (inst.turns === undefined) continue;
+      inst.turns -= 1;
+      if (inst.turns <= 0) {
+        delete lord.statuses[id];
+        events.push({ type: 'LORD_STATUS_EXPIRED', side, status: id });
+      }
+    }
+  }
+  for (const ref of allUnits(state, side)) {
+    for (const [id, inst] of Object.entries(ref.unit.statuses)) {
+      if (inst.turns === undefined) continue;               // 永久 / 直到消耗
+      inst.turns -= 1;
+      if (inst.turns <= 0) {
         delete ref.unit.statuses[id];
         events.push({ type: 'STATUS_EXPIRED', side: ref.side, row: ref.row, col: ref.col, status: id });
       }
@@ -269,7 +471,7 @@ export function discardOverflow(state: MatchState, side: Side): CardDef[] {
   const dropped: CardDef[] = [];
   while (s.hand.length > DECK.HAND_LIMIT) {
     const c = s.hand.pop();
-    if (c) { s.discard.push(c); dropped.push(c); }
+    if (c) { s.discard.push(c.card); dropped.push(c.card); }
   }
   return dropped;
 }

@@ -106,3 +106,44 @@ test('未注册的效果动作 → 报错', () => {
   const errs = errorsOf(strategist({ effects: [{ action: 'bu_cun_zai_de_action' }] }));
   assert.ok(errs.some((m) => m.includes('未注册的动作')), `应报未注册动作，实际：${errs.join('；')}`);
 });
+
+/* ---------- 规则⑪：归属标签（ADR-029） ---------- */
+
+test('已注册的归属标签 → 合法', () => {
+  const errs = errorsOf(strategist({ tags: ['xi_liang', 'huang_jin'] }));
+  assert.deepEqual(errs, []);
+});
+
+test('未注册的归属标签 → 报错', () => {
+  const errs = errorsOf(strategist({ tags: ['bu_cun_zai_de_tag'] }));
+  assert.ok(errs.some((m) => m.includes('未注册的归属标签')), `应报未注册标签，实际：${errs.join('；')}`);
+});
+
+test('选择器引用未注册的归属标签 → 报错', () => {
+  const errs = errorsOf(strategist({
+    effects: [{
+      action: 'modify', value: 1,
+      target: { side: 'both', filter: { tag: 'mei_you_zhe_ge' } },
+    }],
+  }));
+  assert.ok(errs.some((m) => m.includes('未注册的归属标签')), `应报未注册标签，实际：${errs.join('；')}`);
+});
+
+test('选择器引用已注册的归属标签 → 合法', () => {
+  const errs = errorsOf(strategist({
+    effects: [{
+      action: 'modify', value: 1,
+      target: { side: 'both', filter: { tag: 'xi_liang' } },
+    }],
+  }));
+  assert.ok(!errs.some((m) => m.includes('归属标签')), `不该报标签错，实际：${errs.join('；')}`);
+});
+
+/* ---------- ADR-030：modify 可分离攻击/生命 ---------- */
+
+test('modify 的 attack/health 字段被类型接受', () => {
+  const errs = errorsOf(strategist({
+    effects: [{ action: 'modify', attack: 1, health: 2, target: { side: 'ally', count: 1 } }],
+  }));
+  assert.deepEqual(errs, [], 'attack/health 应是合法字段');
+});

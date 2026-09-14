@@ -10,7 +10,7 @@
 
 import { BOARD, DECK } from './constants.ts';
 import {
-  allUnits, getUnit, hasKeyword, other, shieldUnits, statusStacks, unitCount,
+  allUnits, getUnit, hasCap, hasKeyword, other, shieldUnits, statusStacks, unitCount,
 } from './state.ts';
 import type { CardDef, MatchState, Row, Side, Unit } from './types.ts';
 
@@ -40,7 +40,9 @@ export function canAttack(state: MatchState, side: Side, row: Row, col: number):
   const u = getUnit(state, side, row, col);
   if (!u) return { ok: false, reason: '该格没有人物卡' };
   if (u.type === 'strategist') return { ok: false, reason: '谋臣不能普通攻击' };
-  if (statusStacks(u, 'zhen_she') > 0) return { ok: false, reason: '被震慑，无法行动' };
+  if (hasCap(u, 'block_action') || hasCap(u, 'block_attack')) {
+    return { ok: false, reason: '当前状态无法普通攻击' };
+  }
   const maxAttacks = hasKeyword(u, 'lian_ji') ? 2 : 1;
   if (u.attackedThisTurn >= maxAttacks) {
     return { ok: false, reason: `本回合已攻击 ${u.attackedThisTurn} 次` };
@@ -148,10 +150,12 @@ export function canPlayCard(
   side: Side,
   card: CardDef,
   slot?: { row: Row; col: number },
+  costOverride?: number,          // 手牌费用修正后的实际费用（ADR-038）
 ): Check {
   const s = state.sides[side];
-  if (card.cost > s.command.cur) {
-    return { ok: false, reason: `统率值不足（需要 ${card.cost}，当前 ${s.command.cur}）` };
+  const cost = costOverride ?? card.cost;
+  if (cost > s.command.cur) {
+    return { ok: false, reason: `统率值不足（需要 ${cost}，当前 ${s.command.cur}）` };
   }
   if (card.type === 'troop' || card.type === 'general' || card.type === 'strategist') {
     if (!slot) return { ok: false, reason: '人物卡需要指定部署位置' };

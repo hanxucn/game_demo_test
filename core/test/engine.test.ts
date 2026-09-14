@@ -6,9 +6,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { applyAction, startMatch } from '../src/engine.ts';
-import { createMatch, getUnit } from '../src/state.ts';
+import { createMatch, getUnit, makeUnit, setUnit } from '../src/state.ts';
 import { loadTestData, scenario } from './fixtures.ts';
-import type { Action, GameEvent } from '../src/types.ts';
+import type { Action, CardDef, GameEvent } from '../src/types.ts';
 
 const run = (state: ReturnType<typeof scenario>['state'], ctx: ReturnType<typeof scenario>['ctx'], action: Action) =>
   applyAction(state, ctx, action);
@@ -178,4 +178,51 @@ test('对局结束：主将生命归零即结束', () => {
   const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
   assert.equal(r.state.winner, 'own');
   assert.ok(r.events.some((e) => e.type === 'GAME_OVER'));
+});
+
+/* ---------- ADR-031：回合时机触发技（turn_start / turn_end） ---------- */
+
+test('turn_end 触发技：张角五雷轰顶（5 次随机 1 伤）', () => {
+  const zhangjiao: CardDef = {
+    id: 'test_zhangjiao', name: '测试张角', faction: 'qun', type: 'strategist',
+    cost: 5, attack: 1, health: 5, keywords: [], memo: '五雷轰顶',
+    skills: [{
+      id: 'lei', name: '五雷轰顶', kind: 'trigger', trigger: 'turn_end',
+      effects: [{
+        action: 'damage', value: 1, count: 5,
+        target: { side: 'enemy', filter: { type: 'character' }, count: 1, mode: 'random' },
+      }],
+    }],
+  };
+  const { state, ctx } = scenario({ ownHand: [] });
+  const u = makeUnit(zhangjiao, 1, 99);
+  setUnit(state, 'own', 'back', 2, u);
+  // 敌方一个 10 血靶子：5 次雷击后应剩 5 血（打满 5 点）
+  const target = makeUnit(
+    { id: 'dummy', name: '靶子', faction: 'wei', type: 'general', cost: 2, attack: 1, health: 10, keywords: [], memo: '' },
+    1, 98,
+  );
+  setUnit(state, 'enemy', 'front', 0, target);
+
+  const r = applyAction(state, ctx, { type: 'END_TURN' });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.hp, 5, '5 次 1 伤应打满 5 点（10 → 5）');
+});
+
+test('turn_start 触发技在回合开始时生效', () => {
+  const buffer: CardDef = {
+    id: 'test_buffer', name: '测试光环', faction: 'shu', type: 'general',
+    cost: 2, attack: 1, health: 1, keywords: [], memo: '回合开始回血',
+    skills: [{
+      id: 'bless', name: '赐福', kind: 'trigger', trigger: 'turn_start',
+      effects: [{ action: 'modify', health: 1, target: { side: 'self' } }],
+    }],
+  };
+  const { state, ctx } = scenario({ ownHand: [] });
+  setUnit(state, 'own', 'front', 0, makeUnit(buffer, 1, 97));
+  const before = getUnit(state, 'own', 'front', 0)!.maxHp;
+  const r = applyAction(state, ctx, { type: 'END_TURN' });   // 结束己方回合 → 敌方回合 → 回到己方
+  applyAction(r.state, ctx, { type: 'END_TURN' });
+  const after = getUnit(r.state, 'own', 'front', 0)?.maxHp ?? 0;
+  assert.ok(after >= before, `回合开始触发技应提升上限（${before} → ${after}）`);
 });

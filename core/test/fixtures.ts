@@ -109,8 +109,9 @@ export function scenario(opts: Scenario): { state: MatchState; ctx: EngineContex
   place('own', opts.own);
   place('enemy', opts.enemy);
 
-  if (opts.ownHand) state.sides.own.hand = opts.ownHand.map((id) => data.cards.get(id) as CardDef);
-  if (opts.enemyHand) state.sides.enemy.hand = opts.enemyHand.map((id) => data.cards.get(id) as CardDef);
+  const hc = (id: string) => ({ card: data.cards.get(id) as CardDef, mods: [] });
+  if (opts.ownHand) state.sides.own.hand = opts.ownHand.map(hc);
+  if (opts.enemyHand) state.sides.enemy.hand = opts.enemyHand.map(hc);
 
   return { state, ctx: { cards: data.cards, lords: data.lords } };
 }

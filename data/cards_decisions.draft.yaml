@@ -1,406 +1,2995 @@
-# ============================================================
-# 设计者决策层 · 照片卡牌
-# ============================================================
-#
-# 作用：`tools/merge-photos.py` 生成 `cards_photo.draft.yaml` 时**应用本文件的覆盖**。
-#
-# 为什么不直接改 cards_photo.draft.yaml：
-#   那个文件是**生成的**，下次跑合并就会被覆盖。原始转录（transcribe/batch_*.yaml）
-#   永久冻结作为证据，本文件记录「设计者后来决定了什么」，两者互不污染。
-#
-# 记录规范：
-#   · 每条覆盖必须写 original（原值）、value（新值）、adr（依据）、reason
-#   · 不要删条目；改主意就改 value 并补 note，保留决策轨迹
-#   · 标注类（未定稿/草稿/备选技能）写在 annotations，不改动原文
-
 meta:
-  updated: "2026-09-11"
+  updated: '2026-09-11'
   source: 设计者口头决策（第二轮）
-
-# ------------------------------------------------------------
-# ① 全局规则（影响多张卡）
-# ------------------------------------------------------------
-
 rules:
   cost_max:
     value: 10
     adr: ADR-016
-    memo: "费用上限 10。超出者已按强度下调。"
-
+    memo: 费用上限 10。超出者已按强度下调。
   strategist_attack:
     adr: ADR-015
     status: 已定
-    memo: >
-      谋臣**不强制 0 攻**，但**默认上限 1 攻**。
-      定型规则（ADR-018）：攻击 > 1 → 武将；攻击 ≤ 1 且史实身份为谋臣/非武将 → 谋臣。
-      需同步修改：docs/gdd/05-cards.md §2 与 core/tools/validate.ts 规则⑤。
-    value: "默认上限 1 攻"
+    memo: '谋臣**不强制 0 攻**，但**默认上限 1 攻**。 定型规则（ADR-018）：攻击 > 1 → 武将；攻击 ≤ 1 且史实身份为谋臣/非武将 → 谋臣。 需同步修改：docs/gdd/05-cards.md §2 与 core/tools/validate.ts 规则⑤。
 
+      '
+    value: 默认上限 1 攻
   terminology:
     adr: ADR-019
-    memo: >
-      以项目术语为标准，原稿用词保留在 skill_text 里、整理时归一：
-      「统帅」→「统率」（代表费用）、「己放」→「己方」、「计能」→「技能」。
-      「概率」与「几率」都可用，不构成误解。
+    memo: '以项目术语为标准，原稿用词保留在 skill_text 里、整理时归一： 「统帅」→「统率」（代表费用）、「己放」→「己方」、「计能」→「技能」。 「概率」与「几率」都可用，不构成误解。
 
+      '
   blank_stat_mark:
     adr: ADR-020
-    memo: >
-      数字与「攻」「血」之间夹的连笔字是**当时的修改笔误**，不是数值内容。
-      下方「攻」即攻击力、「血」即生命值，直接取数字即可。
+    memo: '数字与「攻」「血」之间夹的连笔字是**当时的修改笔误**，不是数值内容。 下方「攻」即攻击力、「血」即生命值，直接取数字即可。
 
+      '
   box_line_not_digit:
     adr: ADR-021
-    memo: >
-      有的卡把统率值画在方框里，**框的左边线是单独一竖笔，不是数字「1」**。
-      例：#149 出其不意 = 4 费（不是 14）。据此 #153/#158 = 4、#157 = 3。
+    memo: '有的卡把统率值画在方框里，**框的左边线是单独一竖笔，不是数字「1」**。 例：#149 出其不意 = 4 费（不是 14）。据此 #153/#158 = 4、#157 = 3。
 
-# ------------------------------------------------------------
-# ② 逐张覆盖（按照片编号）
-# ------------------------------------------------------------
-
+      '
 overrides:
-  # ---- 费用 ----
-  - photo: 145
-    field: cost
-    value: 5
-    original: 12
-    adr: ADR-016
-    reason: "设计者定值：空城计已改设计为计谋卡，5 费。"
-  - photo: 147
-    field: cost
-    value: 5
-    original: 15
-    adr: ADR-016
-    reason: "设计者定值：休养生息 5 费（AI 先前拟的 8 费作废）。"
-  - photo: 149
-    field: cost
-    value: 4
-    original: 4
-    adr: ADR-021
-    reason: "设计者以 #149 为例确认「框线不是数字」——原文读 4 正确，此前存疑作废。"
-  - photo: 153
-    field: cost
-    value: 4
-    original: 4
-    adr: ADR-021
-    reason: "同 #149：框线不读作 1，费用为 4。"
-  - photo: 158
-    field: cost
-    value: 4
-    original: 4
-    adr: ADR-021
-    reason: "同 #149：框线不读作 1，费用为 4。"
-  - photo: 157
-    field: cost
-    value: 3
-    original: 3
-    adr: ADR-021
-    reason: "同 #149：框线不读作 1，费用为 3。"
-
-  # ---- 攻击 / 生命补充 ----
-  - photo: 86
-    field: attack
-    value: 2
-    original: null
-    adr: ADR-018
-    reason: "设计者补值：刘封 2 攻。"
-  - photo: 95
-    field: attack
-    value: 5
-    original: null
-    adr: ADR-018
-    reason: "设计者补值：赵云 5 攻。"
-  - photo: 104
-    field: attack
-    value: 1
-    original: null
-    adr: ADR-018
-    reason: "设计者补值：庞统为谋臣，1 攻。"
-  - photo: 77
-    field: health
-    value: 2
-    original: null
-    adr: ADR-018
-    reason: "设计者补值：蔡文姬 2 血。"
-  - photo: 94
-    field: health
-    value: 4
-    original: null
-    adr: ADR-018
-    reason: "设计者补值：魏延 4 血。"
-  - photo: 101
-    field: attack
-    value: 1
-    original: 1
-    adr: ADR-018
-    reason: "设计者确认：糜芳为谋臣，1 攻。"
-  - photo: 101
-    field: health
-    value: 4
-    original: null
-    adr: ADR-018
-    reason: "设计者补值：糜芳 4 血。"
-  - photo: 108
-    field: attack
-    value: 2
-    original: 2
-    adr: ADR-018
-    reason: "设计者确认：机械哨兵（黄月英技能生成的临时卡）2 攻 1 血。"
-  - photo: 108
-    field: health
-    value: 1
-    original: null
-    adr: ADR-018
-    reason: "同上，临时卡 2 攻 1 血。"
-  - photo: 139
-    field: health
-    value: 3
-    original: null
-    adr: ADR-018
-    reason: "设计者补值：诸葛恪（谋臣）1 攻 3 血。"
-  - photo: 160
-    field: attack
-    value: 2
-    original: 1
-    adr: ADR-018
-    reason: "设计者补值：步兵 2 攻 1 血（备选 1 攻 1 血，见 note）。"
-  - photo: 160
-    field: health
-    value: 1
-    original: null
-    adr: ADR-018
-    reason: "同上。"
-
-  # ---- 名称修正 ----
-  - photo: 101
-    field: name
-    value: 糜芳
-    original: 糜竺
-    adr: ADR-018
-    reason: "设计者更正：本卡是糜芳，不是糜竺。原转录按字形判读有误。"
-
-  # ---- 技能修正 ----
-  - photo: 70
-    field: skill_text
-    value: "每回合可召唤一个 1攻 1血的士族兵"
-    original: "每回合可召唤一个 1攻 1血的勇士兵"
-    adr: ADR-022
-    reason: "设计者定名：袁绍召唤物为「士族兵」。原读「勇士兵」系字形误判。"
-  - photo: 93
-    field: skill_name
-    value: 咆哮
-    original: 狂怒咆哮
-    adr: ADR-023
-    reason: "设计者定名：张飞技能为「咆哮」。"
-  - photo: 93
-    field: skill_text
-    value: "每回合对所有敌方人物卡造成 1 点伤害"
-    original: "每回合出牌时,对随机所有敌方卡牌造成1点伤害.如果敌人被击杀,则..."
-    adr: ADR-023
-    reason: "设计者给出定稿描述；原稿末句未写完，以设计者口径为准。"
-  - photo: 147
-    field: skill_text
-    value: "下一回合不进行任何活动, 恢复全体人员(包括主帅)3-4点血量, 抽三张牌。"
-    original: "下一回合不进行任何活动, 恢复全体人员(包括主帅)4点血量, 抽三张牌。"
-    adr: ADR-024
-    reason: "设计者：恢复量先记 3-4，**未定稿**。"
-
-  - photo: 110
-    field: health
-    value: 30
-    original: null
-    adr: ADR-026
-    reason: "设计者：曹操为主公卡，主公默认 30 血。"
-
-# ------------------------------------------------------------
-# ②a 非人卡的类型（不参与 ADR-018 的武将/谋臣定型）
-# ------------------------------------------------------------
-
+- photo: 145
+  field: cost
+  value: 5
+  original: 12
+  adr: ADR-016
+  reason: 设计者定值：空城计已改设计为计谋卡，5 费。
+- photo: 147
+  field: cost
+  value: 5
+  original: 15
+  adr: ADR-016
+  reason: 设计者定值：休养生息 5 费（AI 先前拟的 8 费作废）。
+- photo: 149
+  field: cost
+  value: 4
+  original: 4
+  adr: ADR-021
+  reason: '设计者以 #149 为例确认「框线不是数字」——原文读 4 正确，此前存疑作废。'
+- photo: 153
+  field: cost
+  value: 4
+  original: 4
+  adr: ADR-021
+  reason: '同 #149：框线不读作 1，费用为 4。'
+- photo: 158
+  field: cost
+  value: 4
+  original: 4
+  adr: ADR-021
+  reason: '同 #149：框线不读作 1，费用为 4。'
+- photo: 157
+  field: cost
+  value: 3
+  original: 3
+  adr: ADR-021
+  reason: '同 #149：框线不读作 1，费用为 3。'
+- photo: 86
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-018
+  reason: 设计者补值：刘封 2 攻。
+- photo: 95
+  field: attack
+  value: 5
+  original: null
+  adr: ADR-018
+  reason: 设计者补值：赵云 5 攻。
+- photo: 104
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-018
+  reason: 设计者补值：庞统为谋臣，1 攻。
+- photo: 77
+  field: health
+  value: 2
+  original: null
+  adr: ADR-018
+  reason: 设计者补值：蔡文姬 2 血。
+- photo: 94
+  field: health
+  value: 4
+  original: null
+  adr: ADR-018
+  reason: 设计者补值：魏延 4 血。
+- photo: 101
+  field: attack
+  value: 1
+  original: 1
+  adr: ADR-018
+  reason: 设计者确认：糜芳为谋臣，1 攻。
+- photo: 101
+  field: health
+  value: 4
+  original: null
+  adr: ADR-018
+  reason: 设计者补值：糜芳 4 血。
+- photo: 108
+  field: attack
+  value: 2
+  original: 2
+  adr: ADR-018
+  reason: 设计者确认：机械哨兵（黄月英技能生成的临时卡）2 攻 1 血。
+- photo: 108
+  field: health
+  value: 1
+  original: null
+  adr: ADR-018
+  reason: 同上，临时卡 2 攻 1 血。
+- photo: 139
+  field: health
+  value: 3
+  original: null
+  adr: ADR-018
+  reason: 设计者补值：诸葛恪（谋臣）1 攻 3 血。
+- photo: 160
+  field: attack
+  value: 2
+  original: 1
+  adr: ADR-018
+  reason: 设计者补值：步兵 2 攻 1 血（备选 1 攻 1 血，见 note）。
+- photo: 160
+  field: health
+  value: 1
+  original: null
+  adr: ADR-018
+  reason: 同上。
+- photo: 101
+  field: name
+  value: 糜芳
+  original: 糜竺
+  adr: ADR-018
+  reason: 设计者更正：本卡是糜芳，不是糜竺。原转录按字形判读有误。
+- photo: 70
+  field: skill_text
+  value: 每回合可召唤一个 1攻 1血的士族兵
+  original: 每回合可召唤一个 1攻 1血的勇士兵
+  adr: ADR-022
+  reason: 设计者定名：袁绍召唤物为「士族兵」。原读「勇士兵」系字形误判。
+- photo: 93
+  field: skill_name
+  value: 咆哮
+  original: 狂怒咆哮
+  adr: ADR-023
+  reason: 设计者定名：张飞技能为「咆哮」。
+- photo: 93
+  field: skill_text
+  value: 每回合对所有敌方人物卡造成 1 点伤害
+  original: 每回合出牌时,对随机所有敌方卡牌造成1点伤害.如果敌人被击杀,则...
+  adr: ADR-023
+  reason: 设计者给出定稿描述；原稿末句未写完，以设计者口径为准。
+- photo: 147
+  field: skill_text
+  value: 下一回合不进行任何活动, 恢复全体人员(包括主帅)3-4点血量, 抽三张牌。
+  original: 下一回合不进行任何活动, 恢复全体人员(包括主帅)4点血量, 抽三张牌。
+  adr: ADR-024
+  reason: 设计者：恢复量先记 3-4，**未定稿**。
+- photo: 110
+  field: health
+  value: 30
+  original: null
+  adr: ADR-026
+  reason: 设计者：曹操为主公卡，主公默认 30 血。
+- photo: 47
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 48
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 49
+  field: cost
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 1
+- photo: 49
+  field: name
+  value: 丰年（五谷丰登）
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：卡名 = 丰年（五谷丰登）
+- photo: 50
+  field: skill_text
+  value: 将战场上己方一张人物卡收回手中。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 将战场上己方一张人物卡收回手中。
+- photo: 51
+  field: cost
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 2
+- photo: 51
+  field: name
+  value: 挫其锐气
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：卡名 = 挫其锐气
+- photo: 51
+  field: skill_text
+  value: 指定敌方人物攻击-2一回合，最多降为 0 攻击。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 指定敌方人物攻击-2一回合，最多降为 0 攻击。
+- photo: 53
+  field: cost
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 1
+- photo: 53
+  field: name
+  value: 灾年
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：卡名 = 灾年
+- photo: 53
+  field: skill_text
+  value: 全体可停止一回合抽取卡牌。包括所有计策卡和人物技能引发的抽卡也会失效。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 全体可停止一回合抽取卡牌。包括所有计策卡和人物技能引发的抽卡也会失效。
+- photo: 54
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 54
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 54
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 55
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 55
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 55
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 56
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 56
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 56
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 58
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 58
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 58
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 59
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 59
+  field: attack
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 4
+- photo: 59
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 59
+  field: skill_text
+  value: 第一回合获得先攻，然后第一回合能行动结束后获得一回合隐身效果（无法被选中攻击），下回合失效。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 第一回合获得先攻，然后第一回合能行动结束后获得一回合隐身效果（无法被选中攻击），下回合失效。
+- photo: 60
+  field: name
+  value: 张辽
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：卡名 = 张辽
+- photo: 60
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 60
+  field: attack
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 5
+- photo: 60
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 60
+  field: skill_text
+  value: 获得先攻。上场可立即开始行动，如若斩杀敌人人物卡牌，溢出伤害由对方主将承受。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 获得先攻。上场可立即开始行动，如若斩杀敌人人物卡牌，溢出伤害由对方主将承受。
+- photo: 61
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 61
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 61
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 61
+  field: skill_text
+  value: 每回合行动时可选择牺牲一名己方卡牌，将其血量最大值恢复给指定人物，并对指定敌人造成牺牲卡牌当时血量伤害。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 每回合行动时可选择牺牲一名己方卡牌，将其血量最大值恢复给指定人物，并对指定敌人造成牺牲卡牌当时血量伤害。
+- photo: 62
+  field: skill_text
+  value: 上场时指定敌方 2 个人物卡牌进入技能禁用状态，持续一回合。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时指定敌方 2 个人物卡牌进入技能禁用状态，持续一回合。
+- photo: 63
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 63
+  field: attack
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 4
+- photo: 63
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 63
+  field: skill_text
+  value: 对低于自己统帅的敌军时攻击+1；对不低于自己统帅的敌军时血量+1。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 对低于自己统帅的敌军时攻击+1；对不低于自己统帅的敌军时血量+1。
+- photo: 64
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 64
+  field: attack
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 4
+- photo: 64
+  field: health
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 6
+- photo: 64
+  field: skill_text
+  value: 夏侯惇受到伤害(非满血)时，攻击力+1；满血被击杀时，有一半的机率以 1 血存活。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 夏侯惇受到伤害(非满血)时，攻击力+1；满血被击杀时，有一半的机率以 1 血存活。
+- photo: 65
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 65
+  field: attack
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 4
+- photo: 65
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 65
+  field: skill_text
+  value: 上场时使指定一人物，选择攻击-2 或血量-2。最少血量为 1，攻击为 0。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时使指定一人物，选择攻击-2 或血量-2。最少血量为 1，攻击为 0。
+- photo: 66
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 66
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 66
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 66
+  field: skill_text
+  value: 指定一个不大于 3 统率的敌方将来临时变为己方将领 1 回合；大于 3 统率的敌方将领每次行动有一半的机率随机选择任意一名人物单位进行攻击（敌我不限）。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 指定一个不大于 3 统率的敌方将来临时变为己方将领 1 回合；大于 3 统率的敌方将领每次行动有一半的机率随机选择任意一名人物单位进行攻击（敌我不限）。
+- photo: 67
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 67
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 67
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 68
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 68
+  field: attack
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 5
+- photo: 68
+  field: health
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 6
+- photo: 69
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 69
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 69
+  field: health
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 6
+- photo: 70
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 70
+  field: attack
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 3
+- photo: 70
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 71
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 71
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 71
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 71
+  field: skill_text
+  value: 当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。
+- photo: 72
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 72
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 72
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 72
+  field: skill_text
+  value: 当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。
+- photo: 73
+  field: cost
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 2
+- photo: 73
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 73
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 74
+  field: name
+  value: 宋宪
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：卡名 = 宋宪
+- photo: 74
+  field: cost
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 2
+- photo: 74
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 74
+  field: health
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 3
+- photo: 75
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 75
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 75
+  field: health
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 3
+- photo: 76
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 76
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 76
+  field: health
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 3
+- photo: 77
+  field: cost
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 2
+- photo: 77
+  field: attack
+  value: 0
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 0
+- photo: 77
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 81
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 81
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 81
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 81
+  field: skill_text
+  value: 可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。
+- photo: 82
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 82
+  field: attack
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 3
+- photo: 82
+  field: health
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 3
+- photo: 86
+  field: cost
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 2
+- photo: 86
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 86
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 88
+  field: skill_text
+  value: 攻击时对相邻的敌人造成一点伤害。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 攻击时对相邻的敌人造成一点伤害。
+- photo: 95
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 95
+  field: attack
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 5
+- photo: 95
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 96
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 96
+  field: attack
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 4
+- photo: 96
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 96
+  field: skill_text
+  value: 每回合开始时，对指定敌方人物造成 2 点伤害。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 每回合开始时，对指定敌方人物造成 2 点伤害。
+- photo: 97
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 97
+  field: attack
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 3
+- photo: 97
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 97
+  field: skill_name
+  value: 胡王
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能名 = 胡王
+- photo: 97
+  field: skill_text
+  value: 场上每有 1 名蛮族人物，自身获得 +1 攻 +1 血量。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 场上每有 1 名蛮族人物，自身获得 +1 攻 +1 血量。
+- photo: 98
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 98
+  field: attack
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 6
+- photo: 98
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 98
+  field: skill_name
+  value: 水淹七军
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能名 = 水淹七军
+- photo: 99
+  field: skill_text
+  value: 有黄皓在场时，降低己方主公一点统率，敌方随机封锁手中一张卡。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 有黄皓在场时，降低己方主公一点统率，敌方随机封锁手中一张卡。
+- photo: 104
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 104
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 104
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 104
+  field: skill_name
+  value: 凤雏之智
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能名 = 凤雏之智
+- photo: 104
+  field: skill_text
+  value: 在场时己方所有非人物卡牌统率-2；庞统阵亡时己方抽 2 张卡。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 在场时己方所有非人物卡牌统率-2；庞统阵亡时己方抽 2 张卡。
+- photo: 105
+  field: cost
+  value: 7
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 7
+- photo: 105
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 105
+  field: health
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 6
+- photo: 105
+  field: skill_text
+  value: 上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。
+- photo: 107
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 107
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 107
+  field: health
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 2
+- photo: 107
+  field: skill_text
+  value: 上场时制造一个机械哨兵 1 攻 1 血，不能攻击敌方主将；制造一个 1 攻 1 血机械哨兵并带架盾效果。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时制造一个机械哨兵 1 攻 1 血，不能攻击敌方主将；制造一个 1 攻 1 血机械哨兵并带架盾效果。
+- photo: 115
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 115
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 115
+  field: health
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 3
+- photo: 115
+  field: skill_text
+  value: 上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。
+- photo: 118
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 118
+  field: attack
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 5
+- photo: 118
+  field: health
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 6
+- photo: 118
+  field: skill_text
+  value: 如果场上只有典韦一名己方人物时，其攻击 +1、血量 +2，并获得架盾。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 如果场上只有典韦一名己方人物时，其攻击 +1、血量 +2，并获得架盾。
+- photo: 120
+  field: skill_text
+  value: 永久增加主帅两点统帅，且当前回合所有手牌里的人物卡牌减少一个统帅消耗。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 永久增加主帅两点统帅，且当前回合所有手牌里的人物卡牌减少一个统帅消耗。
+- photo: 124
+  field: skill_text
+  value: 上场时对指定一名敌方人物进行离间，双方拼点数大小：如果大于对方则使其丢弃一张卡牌；如果小于对方则此敌方卡回到对方手牌中。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时对指定一名敌方人物进行离间，双方拼点数大小：如果大于对方则使其丢弃一张卡牌；如果小于对方则此敌方卡回到对方手牌中。
+- photo: 125
+  field: cost
+  value: 7
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 7
+- photo: 125
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 125
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 125
+  field: skill_text
+  value: 陆逊每回合对敌方全体造成 1 点火攻伤害，并使其持续灼烧状态 1 回合；在灼烧状态下的敌人受到火攻伤害 +1。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 陆逊每回合对敌方全体造成 1 点火攻伤害，并使其持续灼烧状态 1 回合；在灼烧状态下的敌人受到火攻伤害 +1。
+- photo: 127
+  field: skill_text
+  value: 上场时，根据场上友军人物卡数对敌方指定敌人造成人物数伤害。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时，根据场上友军人物卡数对敌方指定敌人造成人物数伤害。
+- photo: 128
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 128
+  field: attack
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 4
+- photo: 128
+  field: health
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 5
+- photo: 128
+  field: skill_text
+  value: 上场时选择一名敌方人物震慑一回合（无法行动）；攻击时，恢复随机友军 1 点血量。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时选择一名敌方人物震慑一回合（无法行动）；攻击时，恢复随机友军 1 点血量。
+- photo: 129
+  field: skill_text
+  value: 上场时可选择一名友方卡牌进行"白衣渡江"：本回合内将自己和选择的卡牌翻面，可在之后的回合开始行动。翻面卡牌无法被攻击以及被计策选中。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 上场时可选择一名友方卡牌进行"白衣渡江"：本回合内将自己和选择的卡牌翻面，可在之后的回合开始行动。翻面卡牌无法被攻击以及被计策选中。
+- photo: 130
+  field: skill_text
+  value: 获得先攻，并且对攻击的敌人有 50% 概率造成震慑。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 获得先攻，并且对攻击的敌人有 50% 概率造成震慑。
+- photo: 131
+  field: skill_text
+  value: 第一回合上场时获得先攻，且所有场上敌方人物 -1 攻一回合。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 第一回合上场时获得先攻，且所有场上敌方人物 -1 攻一回合。
+- photo: 132
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 132
+  field: attack
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 4
+- photo: 132
+  field: health
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 3
+- photo: 132
+  field: skill_text
+  value: 阵亡时与敌方拼点。如果拼点获胜，则随机让己方手牌中一名人物不消耗统率上场（但不能触发这张牌的上场效果）。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 阵亡时与敌方拼点。如果拼点获胜，则随机让己方手牌中一名人物不消耗统率上场（但不能触发这张牌的上场效果）。
+- photo: 135
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 135
+  field: attack
+  value: 2
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 2
+- photo: 135
+  field: health
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 4
+- photo: 140
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 141
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 142
+  field: cost
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 1
+- photo: 142
+  field: attack
+  value: 0
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 0
+- photo: 142
+  field: health
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 1
+- photo: 142
+  field: skill_text
+  value: 每回合对指定任意敌方人物造成一点伤害。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 每回合对指定任意敌方人物造成一点伤害。
+- photo: 143
+  field: cost
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 1
+- photo: 143
+  field: attack
+  value: 0
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 0
+- photo: 143
+  field: health
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 1
+- photo: 143
+  field: skill_text
+  value: 每回合对指定任意敌方人物造成一点伤害。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 每回合对指定任意敌方人物造成一点伤害。
+- photo: 144
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 146
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 147
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 148
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 150
+  field: cost
+  value: 5
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 5
+- photo: 154
+  field: cost
+  value: 6
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 6
+- photo: 155
+  field: cost
+  value: 4
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 4
+- photo: 155
+  field: skill_text
+  value: 对敌方造成全体 1点火伤持续 2 回合。但要丢弃一张手牌，由打出此事件人选择。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：技能描述 = 对敌方造成全体 1点火伤持续 2 回合。但要丢弃一张手牌，由打出此事件人选择。
+- photo: 156
+  field: cost
+  value: 3
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 3
+- photo: 160
+  field: cost
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：统率值 = 1
+- photo: 160
+  field: attack
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：攻击力 = 1
+- photo: 160
+  field: health
+  value: 1
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：生命值 = 1
+- photo: 49
+  field: skill_text
+  value: 全体可从各自卡池中抽取 2 张卡牌。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：skill_text = 全体可从各自卡池中抽取 2 张卡牌。
+- photo: 148
+  field: skill_text
+  value: 当击败一个敌方人物，使用此计可与对方拼点数大小，如果胜过对方则可将此人物收归己方手牌。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：skill_text = 当击败一个敌方人物，使用此计可与对方拼点数大小，如果胜过对方则可将此人物收归己方手牌。
+- photo: 96
+  field: skill_name
+  value: 百步穿杨
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑（cards_todo）：skill_name = 百步穿杨
+- photo: 88
+  field: skill_name
+  value: 父子将风
+  original: 将风?
+  adr: ADR-027
+  reason: 设计者答疑：技能名定稿为「父子将风」
+- photo: 154
+  field: skill_text
+  value: 使敌方场上指定两名敌人攻击我方场上血量最高单位；敌方每阵亡一个武将，己方抽取两张卡。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑：改用这条新技能描述
+- photo: 122
+  field: skill_text
+  value: 主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑：袁绍（群雄）主公技
+- photo: 82
+  field: skill_text
+  value: 获得先攻；有西凉人物时，所有西凉人物攻击 +1、血量 +1。
+  original: null
+  adr: ADR-027
+  reason: 设计者答疑：「西凉子弟」完整效果
 type_overrides:
-  - photos: [142, 143]
-    type: 兵种
-    why: "基础兵种「弓射手」，非人物卡；0 攻 1 血，每回合对任意敌方人物造成 1 点伤害"
-  - photos: [108, 109]
-    type: 临时卡
-    why: "黄月英技能生成的 token，不进卡组"
-  - photos: [46, 160]
-    type: 兵种
-    why: "基础兵种「步兵」的蜀国卡（1 统 2 攻 1 血，可攻击主帅的条件见技能文本）"
-  - photos: [52]
-    type: 属性卡
-    why: "「架盾」是状态/属性卡，只有效果文本，本就没有费用与攻血"
-
-# ------------------------------------------------------------
-# ②b 「本来就不需要这些字段」的卡 —— 不算数据缺口（ADR-025/026）
-# ------------------------------------------------------------
-# 这些卡没有费用/攻血是**预期**，整理时不要再当成缺失来报。
-
+- photos:
+  - 142
+  - 143
+  type: 兵种
+  why: 基础兵种「弓射手」，非人物卡；0 攻 1 血，每回合对任意敌方人物造成 1 点伤害
+- photos:
+  - 108
+  - 109
+  type: 临时卡
+  why: 黄月英技能生成的 token，不进卡组
+- photos:
+  - 46
+  - 160
+  type: 兵种
+  why: 基础兵种「步兵」的蜀国卡（1 统 2 攻 1 血，可攻击主帅的条件见技能文本）
+- photos:
+  - 52
+  type: 属性卡
+  why: 「架盾」是状态/属性卡，只有效果文本，本就没有费用与攻血
+- photos:
+  - 113
+  type: 武将
+  why: 设计者答疑：曹昂 1 攻 3 血，定为武将（覆盖 ADR-018 规则的自动判定）
 not_applicable:
-  - photo: 52
-    fields: [cost, attack, health]
-    why: "属性卡：只有状态效果（架盾），本就没有费用与攻血"
-  - photo: 108
-    fields: [cost]
-    why: "临时卡（黄月英技能生成），不进卡组、无费用"
-  - photo: 109
-    fields: [cost]
-    why: "临时卡（黄月英技能生成），不进卡组、无费用"
-  - photo: 119
-    fields: [cost, attack, health]
-    why: "设计者确认整张是草稿，不作数"
-  - photo: 92
-    fields: [attack, cost]
-    why: "主公卡：设计者明确「暂时主公不设攻击」"
-  - photo: 110
-    fields: [attack, cost]
-    why: "主公卡：设计者明确「主公没有攻击」"
-
-# 这批卡把技能名写在了卡名正下方，被转录进了 card_type。
-# 设计者确认：它们都是对应武将的**技能名**，只是缺效果描述。
-
+- photo: 52
+  fields:
+  - cost
+  - attack
+  - health
+  why: 属性卡：只有状态效果（架盾），本就没有费用与攻血
+- photo: 108
+  fields:
+  - cost
+  why: 临时卡（黄月英技能生成），不进卡组、无费用
+- photo: 109
+  fields:
+  - cost
+  why: 临时卡（黄月英技能生成），不进卡组、无费用
+- photo: 119
+  fields:
+  - cost
+  - attack
+  - health
+  why: 设计者确认整张是草稿，不作数
+- photo: 92
+  fields:
+  - attack
+  - cost
+  why: 主公卡：设计者明确「暂时主公不设攻击」
+- photo: 110
+  fields:
+  - attack
+  - cost
+  why: 主公卡：设计者明确「主公没有攻击」
+- photo: 122
+  fields:
+  - cost
+  - attack
+  why: 设计者：袁绍（群雄）为主公卡，走主公技「消耗 2 费召唤 1 攻 1 血的袁士家兵」，不进卡组
 title_to_skill:
-  - photo: 75
-    name: 黄祖
-    skill_name: 善射
-    skill_text_confirmed: "上场第一回合时对指定一敌人造成 2 点伤害"
-    note: "设计者已给出效果，与转录文本一致"
-  - photo: 82
-    name: 马岱
-    skill_name: 西凉子弟
-    skill_text_confirmed: ""
-    note: "⚠️ 效果待设计者补充（转录只有「获得先攻.」）"
-  - photo: 83
-    name: 董厥
-    skill_name: 守势
-    skill_text_confirmed: "技能就是架盾（类似盾兵特性）"
-    note: "设计者已给出效果"
-  - photo: 85
-    name: 黄权
-    skill_name: 劝谏
-    note: "效果即转录正文"
-  - photo: 86
-    name: 刘封
-    skill_name: 犹豫不决
-    note: "效果即转录正文"
-  - photo: 87
-    name: 关兴
-    skill_name: 将门虎子
-    note: "效果即转录正文"
-  - photo: 88
-    name: 张苞
-    skill_name: 将风?
-    note: "技能名本身未定（原稿带问号）"
-  - photo: 119
-    name: 【张?】【飞?】
-    skill_name: ""
-    note: "⚠️ 设计者说 #119 是草稿（不算正式技能）"
-
-# ------------------------------------------------------------
-# ④ 未定稿标记（ADR-024）—— 只加标注，不改原文
-# ------------------------------------------------------------
-# 规则：原稿里带问号「?」或设计者自称「暂定」的，一律标 `未定稿`。
-
+- photo: 75
+  name: 黄祖
+  skill_name: 善射
+  skill_text_confirmed: 上场第一回合时对指定一敌人造成 2 点伤害
+  note: 设计者已给出效果，与转录文本一致
+- photo: 82
+  name: 马岱
+  skill_name: 西凉子弟
+  skill_text_confirmed: ''
+  note: ⚠️ 效果待设计者补充（转录只有「获得先攻.」）
+- photo: 83
+  name: 董厥
+  skill_name: 守势
+  skill_text_confirmed: 技能就是架盾（类似盾兵特性）
+  note: 设计者已给出效果
+- photo: 85
+  name: 黄权
+  skill_name: 劝谏
+  note: 效果即转录正文
+- photo: 86
+  name: 刘封
+  skill_name: 犹豫不决
+  note: 效果即转录正文
+- photo: 87
+  name: 关兴
+  skill_name: 将门虎子
+  note: 效果即转录正文
+- photo: 88
+  name: 张苞
+  skill_name: 父子将风
+  note: 设计者答疑：技能名定稿为「父子将风」
+- photo: 119
+  name: 【张?】【飞?】
+  skill_name: ''
+  note: '⚠️ 设计者说 #119 是草稿（不算正式技能）'
 draft_marks:
-  - photo: 96
-    field: skill_name
-    value: 百步穿杨
-    reason: "技能名后带问号"
-  - photo: 98
-    field: skill_name
-    value: 水淹七军 / 武圣（备选）
-    reason: "两个候选技能名都保留，一个作备选，设计者未定用哪个"
-  - photo: 104
-    field: cost
-    value: 6
-    reason: "统率值后带问号，设计者自标存疑"
-  - photo: 104
-    field: skill_name
-    value: 凤雏展智
-    reason: "技能名后带问号"
-  - photo: 88
-    field: skill_name
-    value: 将风?
-    reason: "技能名后带问号"
-  - photo: 81
-    field: health
-    value: 2
-    reason: "纸面自带问号，数值待定"
-  - photo: 86
-    field: health
-    value: 4
-    reason: "「血」上方有弯曲记号（疑问号）"
-  - photo: 140
-    field: cost
-    value: 3
-    reason: "「统」旁带问号"
-  - photo: 141
-    field: cost
-    value: 4
-    reason: "「统」旁带问号"
-  - photo: 146
-    field: cost
-    reason: "「统」旁带问号，数值读不出"
-  - photo: 147
-    field: skill_text
-    value: "恢复量 3-4"
-    reason: "设计者确认未定稿"
-  - photo: 119
-    field: card_type
-    value: 领袖
-    reason: "设计者确认整张是**草稿**"
-
-# ------------------------------------------------------------
-# ⑤ 重复稿（只标注，不删除；确认后改 confirmed: true 才去重）
-# ------------------------------------------------------------
-
+- photo: 96
+  field: skill_name
+  value: 百步穿杨
+  reason: 技能名后带问号
+- photo: 98
+  field: skill_name
+  value: 水淹七军 / 武圣（备选）
+  reason: 两个候选技能名都保留，一个作备选，设计者未定用哪个
+- photo: 104
+  field: cost
+  value: 6
+  reason: 统率值后带问号，设计者自标存疑
+- photo: 104
+  field: skill_name
+  value: 凤雏展智
+  reason: 技能名后带问号
+- photo: 81
+  field: health
+  value: 2
+  reason: 纸面自带问号，数值待定
+- photo: 86
+  field: health
+  value: 4
+  reason: 「血」上方有弯曲记号（疑问号）
+- photo: 140
+  field: cost
+  value: 3
+  reason: 「统」旁带问号
+- photo: 141
+  field: cost
+  value: 4
+  reason: 「统」旁带问号
+- photo: 146
+  field: cost
+  reason: 「统」旁带问号，数值读不出
+- photo: 147
+  field: skill_text
+  value: 恢复量 3-4
+  reason: 设计者确认未定稿
+- photo: 119
+  field: card_type
+  value: 领袖
+  reason: 设计者确认整张是**草稿**
 duplicates:
-  - keep: 46
-    drop: 160
-    confirmed: false
-    reason: "蜀·步兵重抄件，相似度 94%。注：设计者已给 #160 补 2 攻 1 血，两张数值现已一致。"
-  - keep: 142
-    drop: 143
-    confirmed: false
-    reason: "蜀·弓射手，正文完全相同（0 攻 1 血，每回合对任意敌方人物造成 1 点伤害）。"
-
-# ------------------------------------------------------------
-# ⑥ 同一人物的多套设计 —— 合并，两套技能都保留（ADR-017）
-# ------------------------------------------------------------
-
-character_merges:
-  - name: 张郃
-    faction: 魏
-    variants: [60, 65]
-    memo: "两套方向不同：#60 是「斩杀溢出打主将」的进攻向，#65 是「削攻/削血」的控制向"
-  - name: 诸葛亮
-    faction: 蜀
-    variants: [105, 123]
-    memo: >
-      两套都是 7 费 1/6。#105「运筹帷幄」保留；
-      #123 原技能「空城计」——设计者已把空城计改为独立的计谋卡（#145），
-      **诸葛亮此位需要换一个新技能，设计者待定**。
-  - name: 袁绍
-    faction: 群
-    variants: [70, 122]
-    memo: "两套都是 0 攻 12 血：#70 有「威望」（召唤士族兵），#122 无技能"
-  - name: 张梁
-    faction: 群
-    variants: [72, 74]
-    memo: "两套都是 2/2：#72 有「黄天当立」，#74 无技能"
-
-# ------------------------------------------------------------
-# ⑦ 待设计者补充（工具会把这些列成问题）
-# ------------------------------------------------------------
-
+- keep: 46
+  drop: 160
+  confirmed: false
+  reason: '蜀·步兵重抄件，相似度 94%。注：设计者已给 #160 补 2 攻 1 血，两张数值现已一致。'
+- keep: 142
+  drop: 143
+  confirmed: false
+  reason: 蜀·弓射手，正文完全相同（0 攻 1 血，每回合对任意敌方人物造成 1 点伤害）。
+character_merges: []
 open_items:
-  - id: O-1
-    question: "诸葛亮（#123）原来占位的「空城计」已独立成计谋卡，这个位置换什么技能？"
-  - id: O-2
-    question: "马岱（#82）技能「西凉子弟」的效果是什么？转录只有「获得先攻.」"
-  - id: O-3
-    question: "基础兵种是否要按新数值改 data/cards.yaml？设计者给出：步兵 2攻1血、弓箭手 0攻1血（有技能：每回合行动时无视距离造成1点伤害）、盾兵 1攻1血（有架盾）。"
-  - id: O-4
-    question: "袁绍（#70/#122）算「主公」还是「武将」？他是 0 攻 12 血的主公身材。"
-  - id: O-5
-    question: "曹昂（#113，1 攻）算武将还是谋臣？曹操长子，演义里戏份少。"
+- id: O-1
+  question: 基础兵种最终定稿：你给了步兵 2攻1血(另说1攻1血)、弓箭手 1费0攻1血(带技能)、盾兵 2费1攻2血(带架盾)。这三张要不要覆盖 data/cards.yaml 里现有的中立基础兵种(现为 步兵1费2/1、盾兵1费1/2、弓箭手1费1/1)？
+  status: 待定
+- id: O-6
+  status: 待定
+  question: 基础兵种：「每个阵营各有 5 个各种基础兵种」——是指①卡组里每种基础兵种各放 5 张，还是②每个阵营有 5 种基础兵种？现有只有步兵/盾兵/弓箭手 3 种
+- id: O-7
+  status: 待定
+  question: DSL 未实现的动作：clash 拼点（周瑜/孙坚/欲擒故纵 3 张）、scry 卡池操作（左慈/诸葛亮/暗渡陈仓/出其不意等 8 张）、silence 技能禁用（关羽/荀攸 7 张）、flip 翻面（吕蒙/荀攸）、adjacent_to 相邻（郭淮/张苞）。这些要不要现在实现？
+excluded:
+- photo: 92
+  reason: 设计者：刘备为主公，暂时不作为卡牌
+  adr: ADR-014
+  note: 从卡池移出，保留转录记录
+- photo: 123
+  reason: 设计者：空城计已独立为计谋牌，#123 不作为人物
+  adr: ADR-014
+  note: 从卡池移出，保留转录记录
+- photo: 57
+  reason: 设计者：废弃，不放入 v1
+  adr: ADR-028
+  note: 转录记录保留，不进卡池
+- photo: 114
+  reason: 设计者：废弃，不放入 v1
+  adr: ADR-028
+  note: 转录记录保留，不进卡池
+- photo: 119
+  reason: 设计者：草稿，不进 v1
+  adr: ADR-028
+  note: 转录记录保留，不进卡池
+character_merges_note: 原 4 组「同名多版本」合并已全部撤销——设计者答疑揭示转录有误：#60 实为张辽（非张郃）、#74 实为宋宪（非张梁）、#123 诸葛亮位作废。#70/#122 袁绍属 ADR-014 的「主公卡 + 普通卡」双形态，不是重复设计。
+resolved_notes:
+- O-旧1 诸葛亮#123：空城计已独立为计谋牌，#123 移出卡池（设计者答疑）
+- O-旧4 袁绍：#70 为 5 费 3/5 武将，#122 为主公卡（群雄，主公技：2 费召唤 1/1 袁士家兵）——两者分工明确
+- O-旧6 与 O-旧2 重复，已合并
+- O-旧5 西凉/蛮族/黄巾标签：设计者确认需要标签系统，已实现（ADR-029 + data/tags.yaml）
+card_tags:
+  xi_liang:
+  - 55
+  - 90
+  - 82
+  man_zu:
+  - 97
+  huang_jin:
+  - 71
+  - 72
+  - 106
+  - 111
+  shi_zu:
+  - 70
+  - 122
+card_tags_note: ADR-029 归属标签。待确认：周仓/张燕是否算黄巾、董卓是否算西凉、士族是否必要
+new_cards:
+- id: qun_zhangjiao
+  name: 张角
+  faction: qun
+  type: strategist
+  cost: 5
+  attack: 1
+  health: 5
+  tags:
+  - huang_jin
+  skill_name: 五雷轰顶
+  skill_text: 每回合结束时释放 5 次随机 1 伤害的雷击，对敌方随机人物。如果雷击击杀敌人则上场一个 1 攻 1 血的黄巾士兵。
+  source: 设计者口述（2026-09-12）
+  open:
+  - 「如果雷击击杀敌人则上场黄巾士兵」是**条件触发**，当前 DSL 无 condition 字段，暂未翻译
+- id: token_huangjin_bing
+  name: 黄巾兵
+  faction: neutral
+  type: token
+  cost: 0
+  attack: 1
+  health: 1
+  tags:
+  - huang_jin
+  skill_name: ''
+  skill_text: ''
+  source: 张角/张宝/张梁/黄巾起义 召唤的 1/1 衍生物
+  open: []
+- id: token_shizu_bing
+  name: 士族兵
+  faction: neutral
+  type: token
+  cost: 0
+  attack: 1
+  health: 1
+  tags:
+  - shi_zu
+  skill_name: ''
+  skill_text: ''
+  source: 袁绍「威望」召唤的 1/1 衍生物
+  open: []
+dsl:
+  wei_xunyou:
+  - id: fen_er_ji_zhi
+    name: 分而击之
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: jin_yong
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 2
+        mode: choose
+  shu_guanyu:
+  - id: shui_yan_qi_jun
+    name: 水淹七军
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: jin_yong
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+  wu_mazhong:
+  - id: she_fu
+    name: 设伏
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 0.5
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: random
+  qun_zhangjiao:
+  - id: wu_lei_hong_ding
+    name: 五雷轰顶
+    kind: trigger
+    trigger: turn_end
+    effects:
+    - action: damage
+      value: 1
+      count: 5
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: random
+    - action: summon
+      unit: token_huangjin_bing
+      count: 1
+      position: random
+      condition:
+        event: killed
+  shu_shamoke:
+  - id: hu_wang
+    name: 胡王
+    kind: aura
+    effects:
+    - action: modify
+      attack_from:
+        side: both
+        filter:
+          tag: man_zu
+      health_from:
+        side: both
+        filter:
+          tag: man_zu
+      target:
+        source: true
+  wu_zhouyu:
+  - id: li_jian
+    name: 离间
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: clash
+      unit: roll
+      target:
+        side: enemy
+    - action: discard
+      count: 1
+      target:
+        side: enemy
+      condition:
+        event: clash_won
+    - action: return_to_hand
+      condition:
+        event: clash_lost
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: lowest_health
+  shu_huangyueying:
+  - id: ji_qiao_chu_zhen
+    name: 机巧出阵
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: token_jixie_shaobing
+      count: 1
+      position: random
+    - action: summon
+      unit: token_jixie_shouwei
+      count: 1
+      position: random
+  wu_luxun:
+  - id: ce_huo_liu_yun
+    name: 策火流云
+    kind: trigger
+    trigger: turn_end
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+    - action: apply_status
+      status: zhong_du
+      stacks: 1
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+  _none:
+  - neutral_chuanguo_yuxi
+  - neutral_infantry
+  - neutral_shieldman
+  - qun_caimao
+  - qun_gongsunzan
+  - qun_mateng
+  - qun_songxian
+  - shu_chendao
+  - shu_dongjue
+  - shu_xiangchong
+  - shu_zhoucang
+  - status_jia_dun
+  - token_huangjin_bing
+  - token_jixie_shaobing
+  - token_jixie_shouwei
+  - token_shizu_bing
+  - wei_caogang
+  - wei_caoxiu
+  - wei_caozhang
+  - wei_zhangyan
+  - wu_liyi
+  - wu_quancong
+  - wu_songqian
+  - wu_zhuran
+  wu_taishici:
+  - id: shen_she_hao
+    name: 神射豪
+    kind: active
+    cost: 0
+    frequency: once_per_turn
+    effects:
+    - action: modify
+      attack: -2
+      target:
+        source: true
+  wu_sunce:
+  - id: jiang_dong_ba_wang
+    name: 江东霸王
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: damage
+      value_from:
+        side: ally
+        filter:
+          type: character
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wu_chengpu:
+  - id: hao_yong
+    name: 豪勇
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  - id: chi_zhong
+    name: 持重
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: heal
+      value: 1
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: random
+  wu_lvmeng:
+  - id: bai_yi_du_jiang
+    name: 白衣渡江
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: flip
+      target:
+        source: true
+    - action: flip
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wu_ganning:
+  - id: bai_qi_jie_ying
+    name: 百骑劫营
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      attack: -1
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+  wu_handang:
+  - id: jian_wu_xu_fa
+    name: 箭无虚发
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: damage
+      value: 2
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wu_zhugeke:
+  - id: shi_cai
+    name: 恃才
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: scry
+      unit: top
+      count: 1
+      to: hand
+      target:
+        side: enemy
+  wu_huanggai:
+  - id: ku_rou_ji
+    name: 苦肉计
+    kind: active
+    cost: 0
+    frequency: once_per_turn
+    effects:
+    - action: damage
+      value: 1
+      target:
+        source: true
+    - action: apply_status
+      status: hun_luan
+      duration: 1
+      chance: 0.5
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+    - action: draw
+      value: 1
+      condition:
+        event: none
+  wu_lusu:
+  - id: zhang_yi_shu_cai
+    name: 仗义疏财
+    kind: active
+    cost: 0
+    frequency: once_per_turn
+    effects:
+    - action: discard
+      count: 1
+      target:
+        side: self
+    - action: draw
+      value: 2
+  wei_xiahouyuan:
+  - id: xun_ji_tu_xi
+    name: 迅疾突袭
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: qi_xi_status
+      duration: 1
+      target:
+        source: true
+  wei_zhangliao:
+  - id: chong_feng_xian_zhen
+    name: 冲锋陷阵
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: damage
+      value: 2
+      condition:
+        event: killed
+      target:
+        side: enemy
+        count: 1
+        mode: first
+  wei_xuhuang:
+  - id: ya_fu_zhi_feng
+    name: 亚夫之风
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      attack: 1
+      target:
+        source: true
+      condition:
+        exists:
+          side: enemy
+          filter:
+            type: character
+            cost_below_source: true
+    - action: modify
+      health: 1
+      target:
+        source: true
+      condition:
+        count:
+          selector:
+            side: enemy
+            filter:
+              type: character
+              cost_below_source: true
+          op: ==
+          value: 0
+  wei_zhanghe:
+  - id: liao_zhan_ru_ji
+    name: 料战如计
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      attack: -2
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wei_xiahoudun:
+  - id: ba_jian_dan_jing
+    name: 拔箭啖睛
+    kind: trigger
+    trigger: on_damaged
+    effects:
+    - action: modify
+      attack: 1
+      target:
+        source: true
+  - id: man_xue_bu_si
+    name: 血战
+    kind: trigger
+    trigger: on_lethal
+    chance: 0.5
+    frequency: once
+    effects:
+    - action: survive
+      target:
+        source: true
+  wei_guohuai:
+  - id: ju_shou
+    name: 据守
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      health: 2
+      target:
+        side: ally
+        filter:
+          type: character
+          adjacent_to: self
+        count: all
+    - action: apply_status
+      status: jia_dun_status
+      target:
+        side: ally
+        filter:
+          type: character
+          adjacent_to: self
+        count: all
+  wei_dianwei:
+  - id: yi_fu_dang_guan
+    name: 一夫当关
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      attack: 1
+      health: 2
+      target:
+        source: true
+      condition:
+        count:
+          selector:
+            side: ally
+            filter:
+              type: character
+          op: ==
+          value: 1
+    - action: apply_status
+      status: jia_dun_status
+      target:
+        source: true
+      condition:
+        count:
+          selector:
+            side: ally
+            filter:
+              type: character
+          op: ==
+          value: 1
+  wei_caoren:
+  - id: tie_bi_tong_qiang
+    name: 铁壁铜墙
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: jia_dun_status
+      target:
+        source: true
+    - action: apply_status
+      status: wu_sheng
+      stacks: 1
+      target:
+        source: true
+  wei_xunyu:
+  - id: wang_zuo_zhi_ce
+    name: 王佐之策
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: gain_command
+      value: 2
+    - action: cost_modifier
+      value: -1
+      target:
+        side: self
+  wei_simayi:
+  - id: mou_ding_hou_dong
+    name: 谋定后动
+    kind: trigger
+    trigger: turn_end
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+  qun_gaoshun:
+  - id: xian_zhen_po_di
+    name: 陷阵破敌
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: neutral_shieldman
+      count: 2
+      position: random
+  qun_yuanshao:
+  - id: wei_wang
+    name: 威望
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: summon
+      unit: token_shizu_bing
+      count: 1
+      position: random
+  qun_yuanshao_lord:
+  - id: wei_wang_lord
+    name: 威望
+    kind: active
+    cost: 2
+    frequency: once_per_turn
+    effects:
+    - action: summon
+      unit: token_shizu_bing
+      count: 1
+      position: random
+  qun_zhangbao:
+  - id: huang_tian_dang_li
+    name: 黄天当立
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: token_huangjin_bing
+      count: 2
+      position: random
+      condition:
+        exists:
+          side: ally
+          filter:
+            type: character
+            tag: huang_jin
+  qun_zhangliang:
+  - id: huang_tian_dang_li
+    name: 黄天当立
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: token_huangjin_bing
+      count: 2
+      position: random
+      condition:
+        exists:
+          side: ally
+          filter:
+            type: character
+            tag: huang_jin
+  qun_huangzu:
+  - id: shan_she
+    name: 善射
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: damage
+      value: 2
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  qun_diaochan:
+  - id: huo_guo_qing_cheng
+    name: 祸国倾城
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: clash
+      unit: roll
+      target:
+        side: enemy
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      condition:
+        event: clash_won
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  qun_zuoci:
+  - id: jian_tong_xing_wei
+    name: 兼通星纬
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: scry
+      unit: top
+      count: 1
+      to: deck_bottom
+      target:
+        side: enemy
+  qun_huaxiong:
+  - id: wei_zhen_si_fang
+    name: 威震四方
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 0.5
+      target:
+        side: enemy
+        filter:
+          type: character
+          cost_below_source: true
+        count: 1
+        mode: choose
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 1.0
+      target:
+        side: enemy
+        filter:
+          type: character
+          cost_max: 3
+        count: 1
+        mode: choose
+  shu_madai:
+  - id: xi_liang_zi_di
+    name: 西凉子弟
+    kind: aura
+    effects:
+    - action: modify
+      attack: 1
+      health: 1
+      target:
+        side: both
+        filter:
+          type: character
+          tag: xi_liang
+        count: all
+      condition:
+        exists:
+          side: both
+          filter:
+            type: character
+            tag: xi_liang
+  shu_zhangfei:
+  - id: pao_xiao
+    name: 咆哮
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+  shu_huangzhong:
+  - id: bai_bu_chuan_yang
+    name: 百步穿杨
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: damage
+      value: 2
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  shu_zhaoyun:
+  - id: yi_shen_shi_dan
+    name: 一身是胆
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: mian_yi
+      duration: 1
+      target:
+        source: true
+  shu_weiyan:
+  - id: jie_ao_bu_xun
+    name: 桀骜不驯
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: modify
+      attack: 1
+      chance: 0.5
+      target:
+        source: true
+  shu_zhangbao:
+  - id: fu_zi_jiang_feng
+    name: 父子将风
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+          adjacent_to: self
+        count: all
+  shu_mifang:
+  - id: shu_cai_zhang_yi
+    name: 疏财仗义
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: heal
+      value: 3
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  shu_pangtong:
+  - id: feng_chu_zhi_zhi_aura
+    name: 凤雏之智
+    kind: aura
+    effects:
+    - action: cost_modifier
+      value: -2
+      target:
+        side: self
+        zone: hand
+        count: all
+  - id: feng_chu_zhi_zhi
+    name: 凤雏之智（阵亡）
+    kind: trigger
+    trigger: on_death
+    effects:
+    - action: draw
+      value: 2
+  shu_huanghao:
+  - id: zen_yan
+    name: 谮言
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: discard
+      count: 1
+      target:
+        side: enemy
+  shu_guanping:
+  - id: jiang_men_hu_zi
+    name: 将门虎子
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      attack: 1
+      health: 1
+      target:
+        source: true
+      condition:
+        exists:
+          side: ally
+          filter:
+            type: character
+            cost_max: 6
+  shu_machao:
+  - id: tie_qi_tu_xi
+    name: 铁骑突袭
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      condition:
+        event: killed
+      target:
+        side: enemy
+        count: 1
+        mode: first
+  shu_jiangwei:
+  - id: wen_wu_shuang_quan
+    name: 文武双全
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: modify
+      attack: 1
+      target:
+        source: true
+  neutral_archer:
+  - id: shen_she_ji
+    name: 神射
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  tactic_caochuanjiejian: []
+  shu_liufeng:
+  - id: you_yu_bu_jue
+    name: 犹豫不决
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 0.5
+      target:
+        source: true
+  wu_sunjian:
+  - id: jiang_dong_meng_hu
+    name: 江东猛虎
+    kind: trigger
+    trigger: on_death
+    effects:
+    - action: clash
+      unit: roll
+      target:
+        side: enemy
+    - action: draw
+      value: 1
+      condition:
+        event: clash_won
+  wu_zhuhuan:
+  - id: yi_yi_dai_lao
+    name: 以逸待劳
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: heal
+      value: 1
+      target:
+        source: true
+  wu_lingtong:
+  - id: guo_shi_zhi_feng
+    name: 国士之风
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 0.5
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: random
+  qun_caiwenji:
+  - id: qu_ming_cai_yi
+    name: 曲名才艺
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: cost_modifier
+      value: -1
+      duration: 1
+      target:
+        side: self
+        zone: hand
+        filter:
+          type: character
+        count: all
+  shu_zhugeliang:
+  - id: yun_chou_wei_wo
+    name: 运筹帷幄
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: ban_play
+      duration: 1
+      target:
+        side: enemy
+        zone: hand
+        count: 1
+        mode: choose
+    - action: scry
+      unit: top
+      count: 1
+      to: hand
+      target:
+        side: self
+  qun_chengong:
+  - id: zhong_lie_zhi_zhi
+    name: 忠烈之志
+    kind: aura
+    effects:
+    - action: apply_status
+      status: shou_hu
+      status_source: self
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wu_zhoutai:
+  - id: tie_xue_shou_hu
+    name: 铁血守护
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: apply_status
+      status: shou_hu
+      status_source: self
+      duration: 1
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  - id: bu_qu
+    name: 不屈
+    kind: trigger
+    trigger: on_lethal
+    chance: 0.5
+    frequency: once
+    effects:
+    - action: survive
+      target:
+        source: true
+  wei_caocao_lord:
+  - id: hu_jia
+    name: 护驾
+    kind: active
+    cost: 0
+    frequency: once_per_turn
+    effects:
+    - action: apply_status
+      status: shou_hu
+      status_source: self
+      duration: 1
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  shu_huangquan:
+  - id: quan_jian
+    name: 劝谏
+    kind: aura
+    effects:
+    - action: apply_status
+      status: can_mou
+      stacks: 1
+      target:
+        side: ally
+        lord: true
+  shu_guanxing:
+  - id: jiang_men_hu_zi
+    name: 将门虎子
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: xian_gong_status
+      duration: 1
+      target:
+        source: true
+      condition:
+        exists:
+          side: enemy
+          filter:
+            type: character
+            cost_max: 3
+  - id: e_wai_xing_dong
+    name: 额外行动
+    kind: trigger
+    trigger: on_attack
+    effects:
+    - action: extra_attack
+      chance: 0.5
+      condition:
+        event: killed
+      target:
+        source: true
+  shu_fazheng:
+  - id: en_yuan_fen_ming
+    name: 恩怨分明
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: chou_di
+      status_source: self
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  - id: chou_di_hui_xue
+    name: 仇敌回血
+    kind: trigger
+    trigger: on_mark_damaged
+    effects:
+    - action: heal
+      value_from_flag: mark_amount
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wei_chengyu:
+  - id: shen_shi_duo_shi
+    name: 审时度势
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: discard
+      count: 1
+      target:
+        side: self
+        zone: hand
+    - action: heal
+      value_from_discarded: health
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+    - action: damage
+      value_from_discarded: health
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wei_jiaxu:
+  - id: li_jian_du_ji
+    name: 离间毒计
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: take_control
+      count: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+          cost_max: 3
+        count: 1
+        mode: choose
+    - action: apply_status
+      status: hun_luan
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+      condition:
+        exists:
+          side: enemy
+          filter:
+            type: character
+            cost_max: 3
+  wei_guojia:
+  - id: tian_ji_yan_suan
+    name: 天机演算
+    kind: aura
+    effects:
+    - action: cost_modifier
+      value: -1
+      target:
+        side: self
+        zone: hand
+        filter:
+          type: tactic
+        count: all
+  - id: yan_suan_chou_pai
+    name: 演算抽牌
+    kind: trigger
+    trigger: on_card_played
+    effects:
+    - action: draw
+      value: 1
+    target:
+      filter:
+        type: tactic
+  wei_xuchu:
+  - id: hu_chi
+    name: 虎痴
+    kind: active
+    cost: 0
+    frequency: once
+    effects:
+    - action: apply_status
+      status: jue_dou
+      duration: 2
+      target:
+        source: true
+    - action: apply_status
+      status: jue_dou
+      duration: 2
+      target:
+        side: enemy
+        filter:
+          type: general
+        count: 1
+        mode: choose
+  wu_lukang:
+  - id: qian_chong_ru_chang
+    name: 谦冲如常
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: copy_skill
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  qun_tianfeng:
+  - id: gang_er_zhi_jian
+    name: 刚而直谏
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: jin_yan
+      duration: 1
+      target:
+        side: ally
+        lord: true
+    - action: draw
+      value: 1
+  qun_huatuo:
+  - id: qing_nang
+    name: 青囊
+    kind: active
+    cost: 0
+    frequency: once_per_turn
+    effects:
+    - action: discard
+      count: 1
+      target:
+        side: self
+        zone: hand
+    - action: heal
+      value_from_discarded: cost
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+    - action: remove_status
+      status: zhen_she
+      target:
+        side: ally
+        filter:
+          type: character
+        count: 1
+        mode: choose
+dsl_effects:
+  tactic_bishi_ruiqi:
+  - action: return_to_hand
+    target:
+      side: ally
+      filter:
+        type: character
+      count: 1
+      mode: choose
+  event_huangjin:
+  - action: summon
+    unit: token_huangjin_bing
+    count: 2
+    position: random
+  event_fengnian:
+  - action: draw
+    value: 2
+  - action: draw
+    value: 2
+    target:
+      side: enemy
+  event_nanmanruqin:
+  - action: damage
+    value: 1
+    target:
+      side: both
+      filter:
+        type: character
+      count: all
+  event_huoshaoluoyang:
+  - action: damage
+    value: 1
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: all
+  - action: discard
+    count: 1
+    target:
+      side: self
+  tactic_cuoqi_ruiqi:
+  - action: modify
+    attack: -2
+    duration: 1
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 1
+      mode: choose
+  tactic_gongxinji:
+  - action: apply_status
+    status: zhen_she
+    duration: 1
+    chance: 0.5
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 1
+      mode: choose
+  tactic_zhuchengjiliang:
+  - action: summon
+    unit: neutral_shieldman
+    count: 2
+    position: random
+  - action: draw
+    value: 2
+  tactic_anduchencang:
+  - action: flip
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 1
+      mode: choose
+  - action: flip
+    target:
+      side: ally
+      filter:
+        type: character
+      count: 1
+      mode: choose
+  tactic_kongchengji:
+  - action: damage
+    value: 0
+    target:
+      side: enemy
+      lord: true
+    condition:
+      count:
+        selector:
+          side: ally
+          filter:
+            type: character
+        op: ==
+        value: 0
+  tactic_shizhanqunru:
+  - action: apply_status
+    status: jin_yong
+    duration: 1
+    target:
+      side: enemy
+      filter:
+        type: strategist
+      count: all
+  tactic_xiushengyangxi:
+  - action: heal
+    value: 3
+    target:
+      side: ally
+      filter:
+        type: character
+      count: all
+  - action: draw
+    value: 3
+  tactic_yuqin_guzong:
+  - action: clash
+    unit: roll
+    target:
+      side: enemy
+  - action: return_to_hand
+    condition:
+      event: clash_won
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 1
+      mode: lowest_health
+  tactic_tuntian:
+  - action: draw
+    value: 2
+  tactic_huogong:
+  - action: damage
+    value: 1
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 1
+      mode: choose
+  - action: damage
+    value: 2
+    chance: 0.5
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 1
+      mode: choose
+  tactic_bishijixu:
+  - action: damage
+    value: 2
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 1
+      mode: lowest_health
+  tactic_mantianguohai:
+  - action: scry
+    unit: bottom
+    count: 2
+    to: hand
+    target:
+      side: self
+  - action: draw
+    value: 2
+  tactic_chuqibuyi:
+  - action: scry
+    unit: top
+    count: 1
+    to: hand
+    target:
+      side: self
+  tactic_chenhuodajie:
+  - action: scry
+    unit: top
+    count: 1
+    to: hand
+    target:
+      side: enemy
+  tactic_fudichouxin:
+  - action: damage
+    value: 4
+    target:
+      side: enemy
+      lord: true
+  shu_masu:
+  - action: draw
+    value: 2
+  - action: discard
+    count: 2
+    target:
+      side: self
+  shu_jianyang:
+  - action: return_to_hand
+    chance: 0.5
+    target:
+      side: enemy
+      filter:
+        type: character
+        cost_max: 3
+      count: 1
+      mode: choose
+  tactic_jijiang:
+  - action: steal_card
+    count: 1
+    to: board
+    target:
+      side: enemy
+  shu_pangtong_aura: []
+  event_shichangshi:
+  - action: apply_status
+    status: duan_liang
+    stacks: 2
+    target:
+      side: enemy
+      lord: true
+  event_zainian:
+  - action: apply_status
+    status: duan_chou
+    duration: 1
+    target:
+      side: both
+      lord: true
+  tactic_caochuanjiejian:
+  - action: force_attack
+    count: 2
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: 2
+      mode: choose
+  - action: apply_status
+    status: zhen_wang
+    status_source: self
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: all
+dsl_note: DSL 翻译完成：119/119。其中 95 张有技能/效果、1 张（丁奉）用条件费用规则、23 张为白板或纯关键词卡。全部通过 core 的 verify:dsl 端到端验证。
+dsl_blocked: {}
+card_cost_rules:
+  wu_dingfeng:
+    condition:
+      exists:
+        side: ally
+        filter:
+          type: character
+          health_max: 1
+    value: -1
