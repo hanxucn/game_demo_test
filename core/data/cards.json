@@ -3486,6 +3486,88 @@
     }
   },
   {
+    "id": "qun_yuanshao",
+    "name": "袁绍",
+    "faction": "qun",
+    "type": "general",
+    "cost": 6,
+    "attack": 3,
+    "health": 6,
+    "tags": [
+      "shi_zu"
+    ],
+    "keywords": [],
+    "skills": [
+      {
+        "id": "yuan_shao_summon",
+        "name": "四世三公",
+        "kind": "trigger",
+        "trigger": "turn_start",
+        "effects": [
+          {
+            "action": "summon",
+            "unit": "neutral_archer",
+            "count": 1,
+            "position": "random"
+          }
+        ],
+        "text": "每回合可召唤一个 1攻 1血的士族兵"
+      },
+      {
+        "id": "yuan_shao_wangjian",
+        "name": "万箭齐发",
+        "kind": "trigger",
+        "trigger": "on_play",
+        "effects": [
+          {
+            "action": "add_to_deck",
+            "unit": "tactic_wanjianqifa",
+            "count": 1,
+            "target": {
+              "side": "self"
+            }
+          },
+          {
+            "action": "add_to_deck",
+            "unit": "tactic_wanjianqifa",
+            "count": 2,
+            "target": {
+              "side": "self"
+            }
+          }
+        ],
+        "text": "每回合可召唤一个 1攻 1血的士族兵"
+      },
+      {
+        "id": "yuan_shao_yiji",
+        "name": "遗毒",
+        "kind": "trigger",
+        "trigger": "on_death",
+        "effects": [
+          {
+            "action": "send_to_deck",
+            "unit": "tactic_wanjianqifa",
+            "target": {
+              "side": "enemy"
+            }
+          }
+        ],
+        "text": "每回合可召唤一个 1攻 1血的士族兵"
+      }
+    ],
+    "memo": "",
+    "flavor": "",
+    "value": {
+      "stats": 9,
+      "keywords": 0,
+      "skills": 6.6,
+      "total": 15.6,
+      "budget": 13,
+      "diff": 2.6,
+      "level": "watch"
+    }
+  },
+  {
     "id": "qun_caiwenji",
     "name": "蔡文姬",
     "faction": "qun",
@@ -4053,6 +4135,47 @@
       "total": 2,
       "budget": 1,
       "diff": 1,
+      "level": "ok"
+    }
+  },
+  {
+    "id": "tactic_wanjianqifa",
+    "name": "万箭齐发",
+    "faction": "neutral",
+    "type": "tactic",
+    "cost": 0,
+    "keywords": [],
+    "skills": [
+      {
+        "id": "wan_jian_qi_fa",
+        "name": "万箭齐发",
+        "kind": "trigger",
+        "trigger": "on_draw",
+        "effects": [
+          {
+            "action": "damage",
+            "value": 1,
+            "target": {
+              "side": "enemy",
+              "filter": {
+                "type": "character"
+              },
+              "count": "all"
+            }
+          }
+        ],
+        "text": "抽到时释放：对所有敌方人物造成 1 点伤害。"
+      }
+    ],
+    "memo": "",
+    "flavor": "",
+    "value": {
+      "stats": 0,
+      "keywords": 0,
+      "skills": 1.2,
+      "total": 1.2,
+      "budget": 1,
+      "diff": 0.2,
       "level": "ok"
     }
   },

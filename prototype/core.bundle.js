@@ -97,6 +97,8 @@ var Core = (() => {
     other: () => other,
     refAlive: () => refAlive,
     refHp: () => refHp,
+    registerOnDeathResolver: () => registerOnDeathResolver,
+    registerOnDrawResolver: () => registerOnDrawResolver,
     resolveTargets: () => resolveTargets,
     resolveTurnEndStatuses: () => resolveTurnEndStatuses,
     resolveTurnStartStatuses: () => resolveTurnStartStatuses,
@@ -351,7 +353,13 @@ var Core = (() => {
     "extra_attack",
     "take_control",
     "copy_skill",
-    "force_attack"
+    "force_attack",
+    "add_to_deck",
+    // 往牌库随机位置塞 N 张指定卡（ADR-050）
+    "send_to_deck",
+    // 把牌库里剩下的指定牌全塞给对方（ADR-050）
+    "cycle_to_deck"
+    // 手牌放回牌库随机位置再抽 1 张（ADR-050）
   ];
   var CARD_TYPES = [
     "troop",
@@ -696,7 +704,15 @@ var Core = (() => {
     const u = getUnit(state, ref.side, ref.row, ref.col);
     return !!u && u.hp > 0;
   }
-  function drawCard(state, cards, side, events) {
+  var onDrawResolver = null;
+  function registerOnDrawResolver(fn) {
+    onDrawResolver = fn;
+  }
+  var onDeathResolver = null;
+  function registerOnDeathResolver(fn) {
+    onDeathResolver = fn;
+  }
+  function drawCard(state, cards, side, events, rng) {
     const s = state.sides[side];
     if (s.deck.length === 0) {
       s.fatigue += 1;
@@ -711,8 +727,16 @@ var Core = (() => {
     const id = s.deck.pop();
     const card = cards.get(id);
     if (!card) return;
-    s.hand.push({ card, mods: [] });
     events.push({ type: "CARD_DRAWN", side, card, deckLeft: s.deck.length });
+    if (onDrawResolver) {
+      const r = rng ?? createRng(state.rngState);
+      if (onDrawResolver(state, cards, side, card, events, r)) {
+        s.discard.push(card);
+        events.push({ type: "CARD_AUTO_CAST", side, card });
+        return;
+      }
+    }
+    s.hand.push({ card, mods: [] });
   }
   function dealDamage(state, cards, ref, amount, events, source, depth = 0) {
     if (amount <= 0 || !refAlive(state, ref)) return 0;
@@ -860,17 +884,8 @@ var Core = (() => {
     if (hasKeyword(unit, "yi_ji")) drawCard(state, cards, side, events);
     const card = cards.get(unit.cardId);
     const deathSkills = (card?.skills ?? []).filter((sk) => sk.trigger === "on_death");
-    for (const sk of deathSkills) {
-      for (const eff of sk.effects ?? []) {
-        if (eff.action === "damage") {
-          const foe = other(side);
-          for (const t of allUnits(state, foe)) {
-            dealDamage(state, cards, unitRef(t.side, t.row, t.col), eff.value ?? 0, events, unit.name);
-          }
-        } else if (eff.action === "draw") {
-          for (let i = 0; i < (eff.value ?? 1); i++) drawCard(state, cards, side, events);
-        }
-      }
+    if (deathSkills.length && onDeathResolver) {
+      onDeathResolver(state, cards, side, unit, deathSkills, events, createRng(state.rngState));
     }
   }
   function checkWinner(state, events) {
@@ -957,6 +972,17 @@ var Core = (() => {
   }
 
   // src/effects.ts
+  registerOnDrawResolver((state, cards, side, card, events, rng) => {
+    const sk = (card.skills ?? []).find((k) => k.trigger === "on_draw");
+    if (!sk) return false;
+    runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
+    return true;
+  });
+  registerOnDeathResolver((state, cards, side, unit, skills, events, rng) => {
+    for (const sk of skills) {
+      runEffects(state, cards, sk.effects ?? [], { side, source: unit }, rng, events);
+    }
+  });
   var hpOf = (s, t) => t.kind === "lord" ? s.sides[t.side].lord.hp : t.kind === "hand" ? 0 : getUnit(s, t.side, t.row, t.col)?.hp ?? 0;
   var sameTarget = (a, b) => a.kind === b.kind && a.side === b.side && (a.kind === "lord" || a.kind === "hand" && b.kind === "hand" && a.index === b.index || a.kind === "unit" && b.kind === "unit" && a.row === b.row && a.col === b.col);
   var matchesHandFilter = (hc, f) => {
@@ -1266,6 +1292,51 @@ var Core = (() => {
               events.push({ type: "CARD_DISCARDED", side, card: hc.card });
             }
           }
+          break;
+        }
+        case "add_to_deck": {
+          const who = eff.target?.side === "enemy" ? other(ctx.side) : ctx.side;
+          const def = cards.get(String(eff.unit ?? ""));
+          if (!def) {
+            events.push({ type: "REJECTED", reason: `add_to_deck \u7684\u5361\u4E0D\u5B58\u5728\uFF1A${eff.unit}` });
+            break;
+          }
+          const n = eff.count ?? 1;
+          for (let i = 0; i < n; i++) {
+            const deck = state.sides[who].deck;
+            deck.splice(rng.int(deck.length + 1), 0, def.id);
+          }
+          events.push({ type: "DECK_ADDED", side: who, card: def, count: n });
+          break;
+        }
+        case "send_to_deck": {
+          const to = eff.target?.side === "enemy" ? other(ctx.side) : ctx.side;
+          const cid = String(eff.unit ?? "");
+          const from = state.sides[ctx.side].deck;
+          const moved = [];
+          for (let i = from.length - 1; i >= 0; i--) {
+            if (from[i] === cid) {
+              from.splice(i, 1);
+              moved.push(cid);
+            }
+          }
+          for (const id of moved) {
+            const deck = state.sides[to].deck;
+            deck.splice(rng.int(deck.length + 1), 0, id);
+          }
+          events.push({ type: "DECK_SENT", side: to, cardId: cid, count: moved.length });
+          break;
+        }
+        case "cycle_to_deck": {
+          const h = state.sides[ctx.side].hand;
+          const idx = typeof ctx.handIndex === "number" && ctx.handIndex >= 0 && ctx.handIndex < h.length ? ctx.handIndex : h.length ? rng.int(h.length) : -1;
+          if (idx < 0) break;
+          const [hc] = h.splice(idx, 1);
+          if (!hc) break;
+          const deck = state.sides[ctx.side].deck;
+          deck.splice(rng.int(deck.length + 1), 0, hc.card.id);
+          events.push({ type: "CARD_RETURNED_TO_DECK", side: ctx.side, card: hc.card });
+          drawCard(state, cards, ctx.side, events, rng);
           break;
         }
         case "return_to_hand": {

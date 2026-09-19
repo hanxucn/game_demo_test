@@ -11,9 +11,29 @@ import { effectiveCost, handRef, isBanned } from './mutate.ts';
 import type { Rng } from './rng.ts';
 import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchState, Row, Side, TargetSelector, Unit } from './types.ts';
 import {
-  applyStatus, dealDamage, drawCard, gainArmor, healTarget, lordRef, summonUnit, unitRef,
+  applyStatus, dealDamage, drawCard, gainArmor, healTarget, lordRef, registerOnDeathResolver,
+  registerOnDrawResolver,
+  summonUnit, unitRef,
   type TargetRef,
 } from './mutate.ts';
+
+/**
+ * 「抽到时释放」（ADR-050）：带 `trigger: 'on_draw'` 技能的卡被抽到时不进手牌，
+ * 直接结算其效果并进弃牌堆。由 mutate.drawCard 通过挂载点回调。
+ */
+registerOnDrawResolver((state, cards, side, card, events, rng) => {
+  const sk = (card.skills ?? []).find((k) => k.trigger === 'on_draw');
+  if (!sk) return false;
+  runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
+  return true;
+});
+
+/** 亡语解析器：把 on_death 技能交给 DSL 解释器（ADR-050） */
+registerOnDeathResolver((state, cards, side, unit, skills, events, rng) => {
+  for (const sk of skills) {
+    runEffects(state, cards, sk.effects ?? [], { side, source: unit }, rng, events);
+  }
+});
 
 export interface EffectContext {
   side: Side;            // 效果来源方
@@ -502,6 +522,50 @@ export function runEffects(
             events.push({ type: 'CARD_DISCARDED', side, card: hc.card });
           }
         }
+        break;
+      }
+      case 'add_to_deck': {
+        // 往指定方的牌库**随机位置**插入 N 张指定卡（ADR-050，「万箭齐发」）
+        const who: Side = eff.target?.side === 'enemy' ? other(ctx.side) : ctx.side;
+        const def = cards.get(String(eff.unit ?? ''));
+        if (!def) { events.push({ type: 'REJECTED', reason: `add_to_deck 的卡不存在：${eff.unit}` } as never); break; }
+        const n = eff.count ?? 1;
+        for (let i = 0; i < n; i++) {
+          const deck = state.sides[who].deck;
+          deck.splice(rng.int(deck.length + 1), 0, def.id);
+        }
+        events.push({ type: 'DECK_ADDED', side: who, card: def, count: n });
+        break;
+      }
+      case 'send_to_deck': {
+        // 把「自己牌库里剩下的指定牌」全部塞进对方牌库（ADR-050，袁绍亡语）
+        const to: Side = eff.target?.side === 'enemy' ? other(ctx.side) : ctx.side;
+        const cid = String(eff.unit ?? '');
+        const from = state.sides[ctx.side].deck;
+        const moved: string[] = [];
+        for (let i = from.length - 1; i >= 0; i--) {
+          if (from[i] === cid) { from.splice(i, 1); moved.push(cid); }
+        }
+        for (const id of moved) {
+          const deck = state.sides[to].deck;
+          deck.splice(rng.int(deck.length + 1), 0, id);
+        }
+        events.push({ type: 'DECK_SENT', side: to, cardId: cid, count: moved.length });
+        break;
+      }
+      case 'cycle_to_deck': {
+        // 把手牌放回牌库**随机位置**，然后抽 1 张（ADR-050，孙权「坐断东南」置换模式）
+        // 与 discard 的区别：牌回牌库可再抽到，不是永久损失
+        const h = state.sides[ctx.side].hand;
+        const idx = typeof ctx.handIndex === 'number' && ctx.handIndex >= 0 && ctx.handIndex < h.length
+          ? ctx.handIndex : (h.length ? rng.int(h.length) : -1);
+        if (idx < 0) break;
+        const [hc] = h.splice(idx, 1);
+        if (!hc) break;
+        const deck = state.sides[ctx.side].deck;
+        deck.splice(rng.int(deck.length + 1), 0, hc.card.id);
+        events.push({ type: 'CARD_RETURNED_TO_DECK', side: ctx.side, card: hc.card });
+        drawCard(state, cards, ctx.side, events, rng);
         break;
       }
       case 'return_to_hand': {

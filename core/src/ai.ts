@@ -84,7 +84,8 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
     const hand = state.sides[side].hand;
 
     if (healEff) {
-      // 治疗型：只在真有伤兵时用，并优先救最危险的
+      // 治疗型：只在真有伤兵时用，并优先救最危险的。
+      // 注意仁德 target.side='both'（可指定敌我），AI 只治自己人——给敌人回血是纯亏
       const wounded = allUnits(state, side)
         .filter((r) => r.unit.hp < r.unit.maxHp)
         .sort((a, b) => a.unit.hp - b.unit.hp)[0];

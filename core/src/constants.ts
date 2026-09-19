@@ -147,6 +147,9 @@ export const ACTIONS = [
   'move', 'destroy', 'modify', 'gain_armor', 'gain_command', 'cost_modifier', 'transform', 'random_pick',
   'discard', 'return_to_hand', 'clash', 'flip', 'scry', 'ban_play', 'steal_card', 'survive',
   'extra_attack', 'take_control', 'copy_skill', 'force_attack',
+  'add_to_deck',   // 往牌库随机位置塞 N 张指定卡（ADR-050）
+  'send_to_deck',  // 把牌库里剩下的指定牌全塞给对方（ADR-050）
+  'cycle_to_deck', // 手牌放回牌库随机位置再抽 1 张（ADR-050）
 ] as const;
 
 export const CARD_TYPES = ['troop', 'general', 'strategist', 'event', 'tactic', 'elite', 'special',

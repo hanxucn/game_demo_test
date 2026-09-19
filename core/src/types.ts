@@ -240,6 +240,10 @@ export type GameEvent =
   | { type: 'TURN_START'; side: Side; turn: number; command: { cur: number; max: number } }
   | { type: 'TURN_END'; side: Side; turn: number }
   | { type: 'CARD_DRAWN'; side: Side; card: CardDef; deckLeft: number }
+  | { type: 'CARD_AUTO_CAST'; side: Side; card: CardDef }
+  | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number }
+  | { type: 'DECK_SENT'; side: Side; cardId: string; count: number }
+  | { type: 'CARD_RETURNED_TO_DECK'; side: Side; card: CardDef }
   | { type: 'FATIGUE'; side: Side; amount: number; hp: number }
   | { type: 'CARD_PLAYED'; side: Side; card: CardDef; row?: Row; col?: number; handIndex?: number }
   | { type: 'UNIT_SUMMONED'; side: Side; row: Row; col: number; unit: Unit }

@@ -602,10 +602,8 @@ cards:
   cost_original: null
   attack_original: null
   health_original: 12
-  excluded: true
-  exclude_reason: 设计者：袁绍为主公卡，群雄暂不设主公，移出卡池（ADR-049）
   type_proposed: 武将
-  type_reason: 攻击 3 > 1（ADR-018 规则）
+  type_reason: 非人物卡（见决策层 type_overrides）
 - photo: 71
   faction: 群
   name: 张宝

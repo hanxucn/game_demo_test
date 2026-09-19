@@ -127,6 +127,10 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
     case 'take_control': return 7;                            // 控制权转移
     case 'copy_skill': return 5;                              // 复制技能
     case 'force_attack': return (eff.count ?? 1) * 2;         // 强制攻击
+    // ADR-050 新增动作的估值：塞牌进牌库 ≈ 半张抽牌（延迟且需再抽到）；送牌给对方 ≈ 负收益按 0 计
+    case 'add_to_deck': return (eff.count ?? 1) * 1.5;
+    case 'send_to_deck': return 0;
+    case 'cycle_to_deck': return 1.0;                 // 弃 1 抽 1 的加强版（牌回牌库）
     case 'transform': {
       // 进化：价值 = (进化后总价值 − 进化前总价值) × 受影响单位数
       // 固定给 4 分会把「+1 攻」和「+1/2 攻且带每回合 2 伤技能」算成一样，方向都可能反（ADR-046）

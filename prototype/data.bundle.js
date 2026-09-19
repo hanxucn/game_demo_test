@@ -3488,6 +3488,88 @@ window.GameData = {
       }
     },
     {
+      "id": "qun_yuanshao",
+      "name": "袁绍",
+      "faction": "qun",
+      "type": "general",
+      "cost": 6,
+      "attack": 3,
+      "health": 6,
+      "tags": [
+        "shi_zu"
+      ],
+      "keywords": [],
+      "skills": [
+        {
+          "id": "yuan_shao_summon",
+          "name": "四世三公",
+          "kind": "trigger",
+          "trigger": "turn_start",
+          "effects": [
+            {
+              "action": "summon",
+              "unit": "neutral_archer",
+              "count": 1,
+              "position": "random"
+            }
+          ],
+          "text": "每回合可召唤一个 1攻 1血的士族兵"
+        },
+        {
+          "id": "yuan_shao_wangjian",
+          "name": "万箭齐发",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "add_to_deck",
+              "unit": "tactic_wanjianqifa",
+              "count": 1,
+              "target": {
+                "side": "self"
+              }
+            },
+            {
+              "action": "add_to_deck",
+              "unit": "tactic_wanjianqifa",
+              "count": 2,
+              "target": {
+                "side": "self"
+              }
+            }
+          ],
+          "text": "每回合可召唤一个 1攻 1血的士族兵"
+        },
+        {
+          "id": "yuan_shao_yiji",
+          "name": "遗毒",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "effects": [
+            {
+              "action": "send_to_deck",
+              "unit": "tactic_wanjianqifa",
+              "target": {
+                "side": "enemy"
+              }
+            }
+          ],
+          "text": "每回合可召唤一个 1攻 1血的士族兵"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 6.6,
+        "total": 15.6,
+        "budget": 13,
+        "diff": 2.6,
+        "level": "watch"
+      }
+    },
+    {
       "id": "qun_caiwenji",
       "name": "蔡文姬",
       "faction": "qun",
@@ -4055,6 +4137,47 @@ window.GameData = {
         "total": 2,
         "budget": 1,
         "diff": 1,
+        "level": "ok"
+      }
+    },
+    {
+      "id": "tactic_wanjianqifa",
+      "name": "万箭齐发",
+      "faction": "neutral",
+      "type": "tactic",
+      "cost": 0,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "wan_jian_qi_fa",
+          "name": "万箭齐发",
+          "kind": "trigger",
+          "trigger": "on_draw",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": "all"
+              }
+            }
+          ],
+          "text": "抽到时释放：对所有敌方人物造成 1 点伤害。"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 1.2,
+        "total": 1.2,
+        "budget": 1,
+        "diff": 0.2,
         "level": "ok"
       }
     },
@@ -5124,7 +5247,7 @@ window.GameData = {
               "action": "heal",
               "value": 2,
               "target": {
-                "side": "ally",
+                "side": "both",
                 "filter": {
                   "type": "character"
                 },
@@ -5133,11 +5256,11 @@ window.GameData = {
               }
             }
           ],
-          "text": "指定一名己方人物恢复 2 点生命（不超过其最大生命）。",
-          "note": "待定 Q-08-5：手写稿是「对自己或任意将领」——可否给自己（主将）回血待确认"
+          "text": "指定任意一名场上人物恢复 2 点生命（不超过其最大生命；**敌我皆可**）。",
+          "note": "设计者裁定（2026-09）：可指定**任何**人物，不局限于自己/己方——与手写稿 「每回合能对自己或任意将领恢复█点血量」的「任意」一致。仁者无敌，连敌人也救。"
         }
       ],
-      "memo": "主公技：为一名友方人物恢复 2 点生命",
+      "memo": "主公技：为任意一名场上人物恢复 2 点生命（敌我皆可）",
       "flavor": "惟贤惟德，能服于人。"
     },
     {
@@ -5191,24 +5314,14 @@ window.GameData = {
           "frequency": "once_per_turn",
           "effects": [
             {
-              "action": "discard",
-              "count": 1,
-              "mode": "choose",
-              "target": {
-                "side": "self",
-                "zone": "hand"
-              }
-            },
-            {
-              "action": "draw",
-              "value": 1
+              "action": "cycle_to_deck"
             }
           ],
-          "text": "弃 1 张手牌，然后抽 1 张牌。",
-          "note": "Q-08-6 待定：设计者原案是「手牌↔卡组置换 **或** 弃 1 抽 1」二选一。 置换需要「搜索卡组并挑一张」的待选机制（比选手牌更重），当前只实现了「弃 1 抽 1」。"
+          "text": "选择 1 张手牌放回牌组（**随机位置**），然后从牌组**随机抽** 1 张。",
+          "note": "设计者裁定（2026-09）：置换 = 随机抽一张、手牌回卡组也是随机位置—— 所以它**不是导师牌**（不能定向找关键牌），只是把废牌洗回牌组换一张未知牌。 另一模式「弃 1 张再抽 1 张」与它的差别是：弃掉的牌进弃牌堆（永久失去）， 置换则回到牌组（还能再抽到）。**二选一的选择机制尚未实现**（需模式选择通道，见 Q-08-6）。"
         }
       ],
-      "memo": "主公技：弃 1 张手牌再抽 1 张",
+      "memo": "主公技：1 张手牌洗回牌组随机位置，再随机抽 1 张",
       "flavor": "生子当如孙仲谋。"
     }
   ]

@@ -15,7 +15,7 @@ IDS = {
  148:'tactic_yuqin_guzong',149:'tactic_chuqibuyi',150:'tactic_chenhuodajie',151:'tactic_tuntian',
  152:'tactic_huogong',153:'tactic_fudichouxin',154:'tactic_caochuanjiejian',157:'tactic_mantianguohai',
  158:'tactic_jijiang',159:'tactic_bishijixu',
- 54:'qun_gaoshun',55:'qun_mateng',56:'qun_gongsunzan',57:'qun_quyi',70:'qun_yuanshao_EXCLUDED',122:'qun_yuanshao_EXCLUDED',
+ 54:'qun_gaoshun',55:'qun_mateng',56:'qun_gongsunzan',57:'qun_quyi',70:'qun_yuanshao',122:'qun_yuanshao_DUP',
  71:'qun_zhangbao',72:'qun_zhangliang',73:'qun_caimao',74:'qun_songxian',75:'qun_huangzu',
  76:'qun_diaochan',77:'qun_caiwenji',78:'qun_tianfeng',79:'qun_huatuo',80:'qun_chengong',
  81:'qun_zuoci',121:'qun_huaxiong',119:'qun_draft_zhangfei',

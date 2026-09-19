@@ -64,7 +64,7 @@ export const TEST_HEROES: LordDef[] = [
     id: 'shu_liubei', name: '刘备', faction: 'shu', type: 'lord', cost: 0,
     skills: [{
       id: 'ren_de', name: '仁德', kind: 'active', cost: 2, frequency: 'once_per_turn',
-      effects: [{ action: 'heal', value: 2, target: { side: 'ally', filter: { type: 'character' }, count: 1, mode: 'choose' } }],
+      effects: [{ action: 'heal', value: 2, target: { side: 'both', filter: { type: 'character' }, count: 1, mode: 'choose' } }],
     }],
     memo: '主公技：为一名友方人物恢复 2 点生命',
   },
@@ -80,10 +80,7 @@ export const TEST_HEROES: LordDef[] = [
     id: 'wu_sunquan', name: '孙权', faction: 'wu', type: 'lord', cost: 0,
     skills: [{
       id: 'zuo_duan_dong_nan', name: '坐断东南', kind: 'active', cost: 2, frequency: 'once_per_turn',
-      effects: [
-        { action: 'discard', count: 1, target: { side: 'self', zone: 'hand' } },
-        { action: 'draw', value: 1 },
-      ],
+      effects: [{ action: 'cycle_to_deck' }],
     }],
     memo: '主公技：弃 1 张手牌再抽 1 张',
   },

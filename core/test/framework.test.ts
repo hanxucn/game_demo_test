@@ -323,7 +323,7 @@ test('卡池：cards.yaml 里不再有 type=lord 的卡（主公数据统一在 
   assert.ok(data.cards.get('wu_sunquan'), '运行时应能取到主公');
 });
 
-test('主公技·坐断东南：mode:choose 时按 handIndex 弃指定的那张', async () => {
+test('主公技·坐断东南：指定手牌洗回牌组随机位置，再随机抽 1 张', async () => {
   const { applyAction } = await import('../src/engine.ts');
   const { createMatch } = await import('../src/state.ts');
   // 必须走 loadData 拿主公（skillDef 是 loadData 从 skills[0] 接上的）
@@ -339,17 +339,123 @@ test('主公技·坐断东南：mode:choose 时按 handIndex 弃指定的那张'
   const ctx = { cards: wu.cards, lords: { own: sunquan, enemy: wu.lords.enemy } };
   let s = startMatch(base, ctx).state;
   s.sides.own.command.cur = 10;
-  // 保证手牌可预期：3 张，指定弃第 0 张
   while (s.sides.own.hand.length < 3 && s.sides.own.deck.length) {
     const id = s.sides.own.deck.pop()!;
     s.sides.own.hand.push({ card: wu.cards.get(id)!, mods: [] });
   }
-  const target = s.sides.own.hand[0]!.card.id;
+  const picked = s.sides.own.hand[0]!.card.id;
   const handBefore = s.sides.own.hand.length;
+  const deckBefore = s.sides.own.deck.length;
 
   const r = applyAction(s, ctx, { type: 'USE_LORD_SKILL', handIndex: 0 });
   assert.equal(r.ok, true);
-  assert.ok(r.state.sides.own.discard.some((c) => c.id === target), `应弃掉指定的 ${target}`);
-  assert.equal(r.state.sides.own.hand.length, handBefore, '弃 1 抽 1 → 手牌数不变');
-  assert.equal(r.state.sides.own.command.cur, 8, '消耗 2 统率');
+  const st = r.state.sides.own;
+  // 置换 ≠ 弃牌：指定的牌应回到牌组（可再抽到），而不是进弃牌堆
+  assert.ok(st.deck.includes(picked), `指定的 ${picked} 应回到牌组`);
+  assert.ok(!st.discard.some((c) => c.id === picked), '不应进弃牌堆');
+  assert.equal(st.hand.length, handBefore, '回 1 张抽 1 张 → 手牌数不变');
+  assert.equal(st.deck.length, deckBefore, '牌组张数也不变');
+  assert.equal(st.command.cur, 8, '消耗 2 统率');
+  assert.ok(r.events.some((e) => e.type === 'CARD_RETURNED_TO_DECK'), '应产生回牌组事件');
+});
+
+/* ============================================================
+   ⑧ 袁绍与「万箭齐发」（ADR-050：塞牌进牌库 / 抽到时释放）
+   ============================================================ */
+
+function qun() {
+  return loadData({ cards: CARDS, heroes: HEROES }, { own: 'shu_liubei', enemy: 'wei_caocao' });
+}
+
+test('袁绍：6 费 3/6 普通人物卡，三个技能（每回合召唤/战吼/亡语）', () => {
+  const ys = CARDS.find((c) => c.id === 'qun_yuanshao');
+  assert.ok(ys, '袁绍应在卡池里');
+  assert.equal(ys!.type, 'general', '应为普通人物卡，不是主公');
+  assert.equal(ys!.cost, 6);
+  assert.equal(ys!.attack, 3);
+  assert.equal(ys!.health, 6);
+  const triggers = (ys!.skills ?? []).map((s) => s.trigger);
+  assert.deepEqual(triggers, ['turn_start', 'on_play', 'on_death']);
+});
+
+test('袁绍战吼：获得 1 张 + 加入牌组 2 张「万箭齐发」', async () => {
+  const { applyAction } = await import('../src/engine.ts');
+  const { createMatch } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  let s = startMatch(base, ctx).state;
+  s.sides.own.command.cur = 10;
+  s.sides.own.hand.push({ card: d.cards.get('qun_yuanshao')!, mods: [] });
+  const idx = s.sides.own.hand.length - 1;
+  const r = applyAction(s, ctx, { type: 'PLAY_CARD', cardIndex: idx, row: 'front', col: 0 });
+  assert.equal(r.ok, true);
+  const n = r.state.sides.own.deck.filter((x) => x === 'tactic_wanjianqifa').length;
+  assert.equal(n, 3, `牌组里应有 3 张万箭齐发（1+2），实际 ${n}`);
+});
+
+test('万箭齐发：抽到时自动释放（不进手牌），对全体敌方人物各 1 点伤害', async () => {
+  const { applyAction } = await import('../src/engine.ts');
+  const { createMatch, setUnit, getUnit, makeUnit } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  let s = startMatch(base, ctx).state;
+  setUnit(s, 'enemy', 'front', 0, makeUnit(d.cards.get('shu_guanyu')!, 1, 900));   // 4/4
+  setUnit(s, 'enemy', 'front', 1, makeUnit(d.cards.get('shu_zhangfei')!, 1, 901)); // 4/4
+  s.sides.own.deck = ['tactic_wanjianqifa'];
+  const handBefore = s.sides.own.hand.length;
+
+  // 交出行动权（敌方回合）再交回（己方回合开始抽牌）——万箭齐发在己方抽牌时释放
+  const r1 = applyAction(s, ctx, { type: 'END_TURN' });
+  assert.equal(r1.ok, true);
+  const r2 = applyAction(r1.state, ctx, { type: 'END_TURN' });
+  assert.equal(r2.ok, true);
+  const r = { state: r2.state, events: [...r1.events, ...r2.events] };
+  const cur = r.state;
+  const cast = r.events.filter((e) => e.type === 'CARD_AUTO_CAST');
+  assert.equal(cast.length, 1, '万箭齐发应自动释放 1 次');
+  assert.equal(cur.sides.own.hand.length, handBefore, '自动释放的牌不进手牌');
+  assert.ok(cur.sides.own.discard.some((c) => c.id === 'tactic_wanjianqifa'), '应进弃牌堆');
+  assert.equal(getUnit(cur, 'enemy', 'front', 0)!.hp, 3, '关羽 4 → 3');
+  assert.equal(getUnit(cur, 'enemy', 'front', 1)!.hp, 3, '张飞 4 → 3');
+});
+
+test('袁绍亡语：把牌组里**未抽到**的万箭齐发全部塞进敌方牌库', async () => {
+  const { createMatch, setUnit, getUnit, makeUnit } = await import('../src/state.ts');
+  const { killUnit } = await import('../src/mutate.ts');
+  const d = qun();
+  const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+  setUnit(s, 'own', 'front', 0, makeUnit(d.cards.get('qun_yuanshao')!, 1, 902));
+  // 牌组里留 2 张未抽到的
+  s.sides.own.deck = ['tactic_wanjianqifa', 'shu_guanyu', 'tactic_wanjianqifa'];
+  const enemyBefore = s.sides.enemy.deck.filter((x) => x === 'tactic_wanjianqifa').length;
+
+  const me = getUnit(s, 'own', 'front', 0)!;
+  killUnit(s, d.cards, { side: 'own', row: 'front', col: 0, unit: me }, []);
+
+  assert.equal(s.sides.own.deck.filter((x) => x === 'tactic_wanjianqifa').length, 0,
+    '己方牌组里未抽到的应被搬走');
+  assert.equal(s.sides.enemy.deck.filter((x) => x === 'tactic_wanjianqifa').length, enemyBefore + 2,
+    '应全部进入敌方牌库');
+  assert.ok(s.sides.own.deck.includes('shu_guanyu'), '不该动其它牌');
+});
+
+test('仁德：可指定**敌方**人物回血（设计者裁定「任何人物」）', async () => {
+  const { applyAction } = await import('../src/engine.ts');
+  const { createMatch, setUnit, getUnit, makeUnit } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  let s = startMatch(base, ctx).state;
+  s.sides.own.command.cur = 10;
+  const foe = makeUnit(d.cards.get('shu_guanyu')!, 1, 903);
+  foe.hp = 1;
+  setUnit(s, 'enemy', 'front', 0, foe);
+
+  const r = applyAction(s, ctx, { type: 'USE_LORD_SKILL', target: { side: 'enemy', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 3, '敌方人物也能被治疗 1 → 3');
 });

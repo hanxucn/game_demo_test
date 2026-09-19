@@ -701,6 +701,15 @@
   "diff": 1,
   "level": "ok"
  },
+ "qun_yuanshao": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 6.6,
+  "total": 15.6,
+  "budget": 13,
+  "diff": 2.6,
+  "level": "watch"
+ },
  "qun_caiwenji": {
   "stats": 2,
   "keywords": 0,
@@ -834,6 +843,15 @@
   "total": 2,
   "budget": 1,
   "diff": 1,
+  "level": "ok"
+ },
+ "tactic_wanjianqifa": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 1.2,
+  "total": 1.2,
+  "budget": 1,
+  "diff": 0.2,
   "level": "ok"
  },
  "tactic_bishi_ruiqi": {

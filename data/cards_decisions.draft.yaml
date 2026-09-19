@@ -1385,6 +1385,10 @@ type_overrides:
   - 113
   type: 武将
   why: 设计者答疑：曹昂 1 攻 3 血，定为武将（覆盖 ADR-018 规则的自动判定）
+- photos:
+  - 70
+  type: 武将
+  why: 设计者裁定：袁绍降为普通人物卡（6 费 3/6，每回合召唤弓兵 + 万箭齐发战吼/亡语）
 not_applicable:
 - photo: 52
   fields:
@@ -1546,10 +1550,6 @@ excluded:
   reason: 设计者：曹操为主公（heroes.yaml），不作为卡牌
   adr: ADR-049
   note: 主公数据统一由 data/heroes.yaml 提供（ADR-049）。原转录的技能名手写为〈奸雄〉，早期翻译误记为「护驾」；「选择指定敌方一人物」整行在原稿上已被划掉
-- photo: 70
-  reason: 设计者：袁绍为主公卡，群雄暂不设主公，移出卡池
-  adr: ADR-049
-  note: 该卡 12 血、无攻值（主公特征）。若要降为普通人物卡，需设计者补攻击力
 - photo: 122
   reason: '设计者：袁绍为主公卡（与 #70 重复的两张照片），群雄暂不设主公，移出卡池'
   adr: ADR-049
@@ -1653,6 +1653,15 @@ new_cards:
   source: 高顺「陷阵营」的进化目标
   open: []
   troopKind: shield
+- id: tactic_wanjianqifa
+  name: 万箭齐发
+  faction: neutral
+  type: tactic
+  cost: 0
+  open: false
+  skill_name: ''
+  skill_text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+  note: ADR-050 袁绍专属：不进手牌、不可主动打出（cost 0 且仅由 on_draw 触发）
 dsl:
   wei_xunyou:
   - id: fen_er_ji_zhi
@@ -2173,15 +2182,42 @@ dsl:
           troopKind: shield
         count: all
   qun_yuanshao:
-  - id: wei_wang
-    name: 威望
+  - id: yuan_shao_summon
+    name: 四世三公
     kind: trigger
     trigger: turn_start
     effects:
     - action: summon
-      unit: token_shizu_bing
+      unit: neutral_archer
       count: 1
       position: random
+    text: 每回合召唤一个弓兵。
+  - id: yuan_shao_wangjian
+    name: 万箭齐发
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: add_to_deck
+      unit: tactic_wanjianqifa
+      count: 1
+      target:
+        side: self
+    - action: add_to_deck
+      unit: tactic_wanjianqifa
+      count: 2
+      target:
+        side: self
+    text: 战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。
+  - id: yuan_shao_yiji
+    name: 遗毒
+    kind: trigger
+    trigger: on_death
+    effects:
+    - action: send_to_deck
+      unit: tactic_wanjianqifa
+      target:
+        side: enemy
+    text: 亡语：将未抽到的「万箭齐发」加入敌方牌库。
   qun_yuanshao_lord:
   - id: wei_wang_lord
     name: 威望
@@ -2885,6 +2921,20 @@ dsl:
         filter:
           troopKind: infantry
         count: all
+  tactic_wanjianqifa:
+  - id: wan_jian_qi_fa
+    name: 万箭齐发
+    kind: trigger
+    trigger: on_draw
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+    text: 抽到时释放：对所有敌方人物造成 1 点伤害。
 dsl_effects:
   tactic_bishi_ruiqi:
   - action: return_to_hand
@@ -3221,4 +3271,9 @@ card_stats:
   status_jia_dun:
     cost: 0
     reason: '状态卡置于状态区、不消耗统率值，显式补 cost: 0'
+  qun_yuanshao:
+    cost: 6
+    attack: 3
+    health: 6
+    reason: '设计者裁定（2026-09）：袁绍 6 费 3/6，降为普通人物卡（原 #70/#122 两张 12 血无攻值的主公卡已移出卡池）'
 card_stats_note: 平衡调优（ADR-047）：按卡 id 覆盖 cost/attack/health。每条的 reason 记录依据，原值留在 <field>_original。触发命令 cd core && npm run validate；依据 docs/balance-backlog.md 与 docs/gdd/13-balance-data-model.md §7.10。

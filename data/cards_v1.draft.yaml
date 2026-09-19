@@ -13,9 +13,6 @@ meta:
   - photo: 57
     name: 【?】义
     why: 设计者：废弃，不放入 v1（ADR-028）
-  - photo: 70
-    name: 袁绍
-    why: 设计者：袁绍为主公卡，群雄暂不设主公，移出卡池（ADR-049）
   - photo: 92
     name: 刘备
     why: 设计者：刘备为主公，暂时不作为卡牌（ADR-014）
@@ -769,6 +766,67 @@ cards:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   cost_original: 6
+- id: qun_yuanshao
+  name: 袁绍
+  faction: qun
+  type: general
+  cost: 6
+  attack: 3
+  health: 6
+  skills:
+  - name: 威望
+    text: 每回合可召唤一个 1攻 1血的士族兵
+    dsl:
+    - id: yuan_shao_summon
+      name: 四世三公
+      kind: trigger
+      trigger: turn_start
+      effects:
+      - action: summon
+        unit: neutral_archer
+        count: 1
+        position: random
+      text: 每回合召唤一个弓兵。
+    - id: yuan_shao_wangjian
+      name: 万箭齐发
+      kind: trigger
+      trigger: on_play
+      effects:
+      - action: add_to_deck
+        unit: tactic_wanjianqifa
+        count: 1
+        target:
+          side: self
+      - action: add_to_deck
+        unit: tactic_wanjianqifa
+        count: 2
+        target:
+          side: self
+      text: 战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。
+    - id: yuan_shao_yiji
+      name: 遗毒
+      kind: trigger
+      trigger: on_death
+      effects:
+      - action: send_to_deck
+        unit: tactic_wanjianqifa
+        target:
+          side: enemy
+      text: 亡语：将未抽到的「万箭齐发」加入敌方牌库。
+    note: DSL 已翻译
+  keywords: []
+  tags:
+  - shi_zu
+  memo: ''
+  flavor: ''
+  source:
+    photo: 70
+  flags:
+  - 转录存疑 3 处（详见 cards_photo.draft.yaml）
+  - 缺 memo
+  cost_original: 5
+  attack_original: 3
+  health_original: 5
 - id: qun_zhangbao
   name: 张宝
   faction: qun
@@ -3715,3 +3773,31 @@ cards:
   flavor: ''
   source:
     new: 高顺「陷阵营」的进化目标
+- id: tactic_wanjianqifa
+  name: 万箭齐发
+  faction: neutral
+  type: tactic
+  cost: 0
+  skills:
+  - name: ''
+    text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+    dsl:
+    - id: wan_jian_qi_fa
+      name: 万箭齐发
+      kind: trigger
+      trigger: on_draw
+      effects:
+      - action: damage
+        value: 1
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: all
+      text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+    note: DSL 已翻译
+  keywords: []
+  memo: ''
+  flavor: ''
+  source:
+    new: 设计者新增
