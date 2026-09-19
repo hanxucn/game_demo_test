@@ -13,20 +13,18 @@ import { dirname, join } from 'node:path';
 
 import { applyAction, startMatch } from '../src/engine.ts';
 import { autoDeck, cardPool, validateDeck, MAX_COPIES } from '../src/deck.ts';
-import { mulligan, offerJiuling, setupMatch } from '../src/setup.ts';
+import { mulligan, setupMatch } from '../src/setup.ts';
 import { rollFirstSide, YUXI_ID } from '../src/state.ts';
-import { checkJiuling } from '../src/jiuling.ts';
 import { loadData } from '../src/loader.ts';
 import { createRng } from '../src/rng.ts';
-import type { Action, CardDef, Faction, JiulingDef, LordDef } from '../src/types.ts';
+import type { Action, CardDef, Faction, LordDef } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const load = (f: string): unknown => JSON.parse(readFileSync(join(ROOT, 'data', f), 'utf8'));
 const CARDS = load('cards.json') as CardDef[];
 const HEROES = load('heroes.json') as LordDef[];
-const JIULING = load('jiuling.json') as JiulingDef[];
 
-const data = loadData({ cards: CARDS, heroes: HEROES, jiuling: JIULING }, {
+const data = loadData({ cards: CARDS, heroes: HEROES }, {
   own: 'shu_liubei', enemy: 'wei_caocao',
 });
 
@@ -164,139 +162,6 @@ test('换牌：下标越界被拒绝', () => {
   assert.match(r.reason ?? '', /越界/);
 });
 
-test('酒令：三选一候选来自全部酒令且可复现', () => {
-  const ids = JIULING.map((j) => j.id);
-  const a = offerJiuling(ids, 42, 'own');
-  const b = offerJiuling(ids, 42, 'own');
-  assert.deepEqual(a, b, '同 seed 候选必须一致');
-  assert.equal(a.length, 3);
-  for (const id of a) assert.ok(ids.includes(id));
-});
-
-test('酒令数据自洽：hook / memo / 代价限制齐全', () => {
-  assert.equal(JIULING.length, 4, 'v1 应提供 4 个酒令（GDD 11 §3.1）');
-  for (const j of JIULING) {
-    assert.deepEqual(checkJiuling(j), [], `${j.id} 数据不合格`);
-  }
-});
-
-/* ============================================================
-   ③ 酒令 hook 生效
-   ============================================================ */
-
-function withJiuling(id: string, seed = 21) {
-  return setupMatch({
-    seed, cards: data.cards, lords: data.lords,
-    decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
-    jiulings: { own: id },
-    jiulingDefs: data.jiulings,
-    firstSide: 'own',                                  // 测试固定先手，避免掷点造成分支
-  });
-}
-
-test('酒令·温酒斩华雄：每回合第一张武将费用 −1', () => {
-  const { state } = withJiuling('jiuling_wenjiu');
-  const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
-  const s = startMatch(state, ctx).state;
-  assert.equal(s.active, 'own', '测试固定 own 先手');
-  const idx = s.sides.own.hand.findIndex((h) => h.card.type === 'general' && h.card.cost >= 1);
-  assert.ok(idx >= 0, `起手应有 ≥1 费武将，实际手牌：${s.sides.own.hand.map((h) => h.card.name).join('、')}`);
-  const card = s.sides.own.hand[idx]!.card;
-  // 先把统率值拉满，确保费用不是瓶颈
-  const rich = structuredClone(s);
-  rich.sides.own.command.cur = 10;
-  const r = applyAction(rich, ctx, { type: 'PLAY_CARD', cardIndex: idx, row: 'front', col: 0 });
-  assert.equal(r.ok, true);
-  assert.equal(r.state.sides.own.command.cur, 10 - Math.max(0, card.cost - 1),
-    '第一张武将应按 −1 费结算');
-  const ev = r.events.find((e) => e.type === 'JIULING_TRIGGERED');
-  assert.ok(ev, '应产生酒令触发事件');
-});
-
-test('酒令·温酒斩华雄：每回合只惠及第一张', () => {
-  const { state } = withJiuling('jiuling_wenjiu');
-  const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
-  const s = structuredClone(startMatch(state, ctx).state);
-  s.sides.own.command.cur = 10;
-  const generals = s.sides.own.hand
-    .map((h, i) => ({ h, i }))
-    .filter((x) => x.h.card.type === 'general' && x.h.card.cost >= 1);
-  if (generals.length < 2) return;                      // 起手武将不足则跳过
-  const c0 = generals[0]!.h.card;
-  const r1 = applyAction(s, ctx, { type: 'PLAY_CARD', cardIndex: generals[0]!.i, row: 'front', col: 0 });
-  assert.equal(r1.ok, true);
-  assert.equal(r1.state.sides.own.command.cur, 10 - Math.max(0, c0.cost - 1));
-  // 第二张武将：折扣额度已用完，应原价
-  const after = r1.state;
-  after.sides.own.command.cur = 10;
-  const idx2 = after.sides.own.hand.findIndex((h) => h.card.type === 'general');
-  if (idx2 < 0) return;
-  const c1 = after.sides.own.hand[idx2]!.card;
-  const r2 = applyAction(after, ctx, { type: 'PLAY_CARD', cardIndex: idx2, row: 'back', col: 0 });
-  assert.equal(r2.ok, true);
-  assert.equal(r2.state.sides.own.command.cur, 10 - c1.cost, '第二张武将应原价');
-});
-
-test('酒令·青梅煮酒：每回合第一次受到的伤害 −1', async () => {
-  const { dealDamage, lordRef } = await import('../src/mutate.ts');
-  const { state } = withJiuling('jiuling_qingmei');
-  const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
-  const s = structuredClone(startMatch(state, ctx).state);
-  // 青梅煮酒挂在 own 身上 → 减免 own 受到的伤害
-  const before = s.sides.own.lord.hp;
-
-  dealDamage(s, data.cards, lordRef('own'), 3, [], 'test', 0, data.jiulings);
-  assert.equal(s.sides.own.lord.hp, before - 2, '第一次伤害应被减免 1');
-
-  dealDamage(s, data.cards, lordRef('own'), 3, [], 'test', 0, data.jiulings);
-  assert.equal(s.sides.own.lord.hp, before - 5, '同一回合第二次伤害不再减免');
-});
-
-test('酒令·煮酒论英雄：开局注入一张本阵营最高费卡到手上，并被 ban 到第 5 回合', () => {
-  const { state } = withJiuling('jiuling_zhujiu');
-  const hand = state.sides.own.hand;
-  const injected = hand.filter((h) => h.mods.some((m) => m.kind === 'ban'));
-  assert.equal(injected.length, 1, '应恰好注入一张被 ban 的卡');
-
-  const hc = injected[0]!;
-  const ban = hc.mods.find((m) => m.kind === 'ban')!;
-  assert.equal(ban.turns, 4, `unlock_turn=5 → ban 4 回合，实际 ${ban.turns}`);
-
-  // 注入的应是本阵营费用最高的可组卡
-  const ownPool = cardPool(data, 'shu').filter((c) => c.faction === 'shu');
-  const maxCost = Math.max(...ownPool.map((c) => c.cost));
-  assert.equal(hc.card.cost, maxCost, `注入卡费用应为本阵营最高 ${maxCost}`);
-  assert.equal(hc.card.faction, 'shu');
-});
-
-test('酒令·煮酒论英雄：被 ban 期间无法打出，解禁后可打出', () => {
-  const { state } = withJiuling('jiuling_zhujiu');
-  const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
-  let s = startMatch(state, ctx).state;
-
-  const findIdx = (st: typeof s): number =>
-    st.sides.own.hand.findIndex((h) => h.mods.some((m) => m.kind === 'ban'));
-
-  // 被 ban：即使统率值充足也应被拒
-  if (s.active === 'own') {
-    const i = findIdx(s);
-    assert.ok(i >= 0, '起手应持有被 ban 的注入卡');
-    s.sides.own.command.cur = 10;
-    const r = applyAction(s, ctx, { type: 'PLAY_CARD', cardIndex: i, row: 'front', col: 0 });
-    assert.equal(r.ok, false, '被 ban 的卡不应能打出');
-  }
-});
-
-test('酒令·对酒当歌：回合开始多抽 1 张再弃 1 张', () => {
-  const { state } = withJiuling('jiuling_duijiu');
-  const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
-  const s = startMatch(state, ctx).state;
-  const ev = s.turn >= 1;
-  assert.ok(ev);
-  const triggered = s.sides[s.active].jiulingUsed['jiuling_duijiu:draw'] ?? 0;
-  assert.equal(triggered, 1, '本回合应触发一次「对酒当歌」');
-});
-
 /* ============================================================
    ④ 完整对局闭环
    ============================================================ */
@@ -306,11 +171,9 @@ test('全流程：setupMatch → startMatch → 打满一局 → 有胜者', asy
   const { state } = setupMatch({
     seed: 2026, cards: data.cards, lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
-    jiulings: { own: 'jiuling_wenjiu', enemy: 'jiuling_qingmei' },
-    jiulingDefs: data.jiulings,
     mulliganIndices: { own: [0], enemy: [] },
   });
-  const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
+  const ctx = { cards: data.cards, lords: data.lords };
   let s = startMatch(state, ctx).state;
 
   let guard = 0;
@@ -402,10 +265,8 @@ test('全流程：0 费主动技在场也不会无限循环（回归 ADR-047）'
     const { state } = setupMatch({
       seed, cards: data.cards, lords: data.lords,
       decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wu') },
-      jiulings: { own: 'jiuling_wenjiu', enemy: 'jiuling_qingmei' },
-      jiulingDefs: data.jiulings,
     });
-    const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
+    const ctx = { cards: data.cards, lords: data.lords };
     let s = startMatch(state, ctx).state;
     let n = 0;
     while (!s.winner && n < 3000) {

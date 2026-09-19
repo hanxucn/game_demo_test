@@ -27,7 +27,6 @@ var Core = (() => {
     COMMAND: () => COMMAND,
     DECK: () => DECK,
     FORBIDDEN_KEYWORD_COMBOS: () => FORBIDDEN_KEYWORD_COMBOS,
-    JIULING_CHOICES: () => JIULING_CHOICES,
     KEYWORDS: () => KEYWORDS,
     LORD_HP: () => LORD_HP,
     MATCH: () => MATCH,
@@ -49,7 +48,6 @@ var Core = (() => {
     canUseUnitSkill: () => canUseUnitSkill,
     capStacks: () => capStacks,
     cardPool: () => cardPool,
-    checkJiuling: () => checkJiuling,
     checkWinner: () => checkWinner,
     chooseAction: () => chooseAction,
     cloneState: () => cloneState,
@@ -81,11 +79,6 @@ var Core = (() => {
     isDeckable: () => isDeckable,
     isMelee: () => isMelee,
     isPlayableBy: () => isPlayableBy,
-    jiulingCostDelta: () => jiulingCostDelta,
-    jiulingDamageReduce: () => jiulingDamageReduce,
-    jiulingDrawExtra: () => jiulingDrawExtra,
-    jiulingOf: () => jiulingOf,
-    jiulingUsed: () => jiulingUsed,
     killUnit: () => killUnit,
     legalPlacements: () => legalPlacements,
     legalTargets: () => legalTargets,
@@ -97,12 +90,10 @@ var Core = (() => {
     mulligan: () => mulligan,
     newMatch: () => newMatch,
     nextUidSeq: () => nextUidSeq,
-    offerJiuling: () => offerJiuling,
     openColumns: () => openColumns,
     other: () => other,
     refAlive: () => refAlive,
     refHp: () => refHp,
-    resolveInjectCard: () => resolveInjectCard,
     resolveTargets: () => resolveTargets,
     resolveTurnEndStatuses: () => resolveTurnEndStatuses,
     resolveTurnStartStatuses: () => resolveTurnStartStatuses,
@@ -375,84 +366,6 @@ var Core = (() => {
   ];
   var NON_DECK_TYPES = ["elite", "lord", "token", "status", "special"];
 
-  // src/jiuling.ts
-  var jiulingKey = (jiulingId, tag) => `${jiulingId}:${tag}`;
-  function jiulingUsed(state, side, key) {
-    return state.sides[side].jiulingUsed[key] ?? 0;
-  }
-  function markJiulingUsed(state, side, key) {
-    const s = state.sides[side];
-    s.jiulingUsed[key] = (s.jiulingUsed[key] ?? 0) + 1;
-  }
-  function resetJiulingTurn(state, side) {
-    state.sides[side].jiulingUsed = {};
-  }
-  function jiulingOf(state, jiulings, side) {
-    const id = state.sides[side].jiuling;
-    return id ? jiulings.get(id) : void 0;
-  }
-  function jiulingCostDelta(state, side, card, jiulings) {
-    const j = jiulingOf(state, jiulings, side);
-    if (!j || j.hook !== "cost_discount") return 0;
-    const f = j.filter;
-    if (f?.type && card.type !== f.type) return 0;
-    if (f?.faction && card.faction !== f.faction) return 0;
-    const limit = j.limit_per_turn ?? 1;
-    if (jiulingUsed(state, side, jiulingKey(j.id, "cost")) >= limit) return 0;
-    return j.cost ?? 0;
-  }
-  function consumeJiulingCost(state, side, jiulings) {
-    const j = jiulingOf(state, jiulings, side);
-    if (j?.hook === "cost_discount") markJiulingUsed(state, side, jiulingKey(j.id, "cost"));
-  }
-  function jiulingDrawExtra(state, side, jiulings) {
-    const j = jiulingOf(state, jiulings, side);
-    if (!j || j.hook !== "draw_extra") return null;
-    const limit = j.limit_per_turn ?? 1;
-    if (jiulingUsed(state, side, jiulingKey(j.id, "draw")) >= limit) return null;
-    return { extra: j.extra ?? 1, discard: j.discard ?? 0 };
-  }
-  function jiulingDamageReduce(state, side, jiulings) {
-    const j = jiulingOf(state, jiulings, side);
-    if (!j || j.hook !== "damage_reduce") return 0;
-    const limit = j.limit_per_turn ?? 1;
-    if (jiulingUsed(state, side, jiulingKey(j.id, "damage")) >= limit) return 0;
-    return j.reduce ?? 0;
-  }
-  function markJiulingDraw(state, side, jiulings) {
-    const j = jiulingOf(state, jiulings, side);
-    if (j?.hook === "draw_extra") markJiulingUsed(state, side, jiulingKey(j.id, "draw"));
-  }
-  function consumeJiulingDamageReduce(state, side, jiulings) {
-    const j = jiulingOf(state, jiulings, side);
-    if (j?.hook === "damage_reduce") markJiulingUsed(state, side, jiulingKey(j.id, "damage"));
-  }
-  function resolveInjectCard(j, faction, pool) {
-    if (j.hook !== "deck_inject") return null;
-    const own = pool.filter((c) => c.faction === faction);
-    const candidates = own.length ? own : pool;
-    if (!candidates.length) return null;
-    const best = [...candidates].sort(
-      (a, b) => b.cost - a.cost || (b.attack ?? 0) + (b.health ?? 0) - ((a.attack ?? 0) + (a.health ?? 0)) || (a.id < b.id ? -1 : 1)
-    )[0];
-    return best;
-  }
-  function checkJiuling(j) {
-    const errs = [];
-    const hooks = ["cost_discount", "draw_extra", "damage_reduce", "deck_inject"];
-    if (!hooks.includes(j.hook)) {
-      errs.push(`\u672A\u77E5 hook\uFF1A${j.hook}\uFF08\u53EF\u9009 ${hooks.join(" / ")}\uFF09`);
-      return errs;
-    }
-    if (j.hook === "cost_discount" && !j.cost) errs.push("cost_discount \u5FC5\u987B\u7ED9 cost");
-    if (j.hook === "draw_extra" && !j.extra) errs.push("draw_extra \u5FC5\u987B\u7ED9 extra");
-    if (j.hook === "damage_reduce" && !j.reduce) errs.push("damage_reduce \u5FC5\u987B\u7ED9 reduce");
-    if (j.hook === "deck_inject" && !j.unlock_turn) errs.push("deck_inject \u5FC5\u987B\u7ED9 unlock_turn");
-    if (!j.memo) errs.push("\u7F3A memo\uFF08\u4E00\u53E5\u8BDD\u8BB0\u5FC6\u70B9\uFF09");
-    if (!j.tradeoff) errs.push("\u7F3A tradeoff\u2014\u2014\u6BCF\u4E2A\u9152\u4EE4\u90FD\u8981\u6709\u4EE3\u4EF7\u6216\u9650\u5236\uFF08GDD 11 \xA73.3\uFF09");
-    return errs;
-  }
-
   // src/state.ts
   var YUXI_ID = "neutral_chuanguo_yuxi";
   function rollFirstSide(rng) {
@@ -469,13 +382,10 @@ var Core = (() => {
       lords,
       decks,
       cards,
-      jiulings,
-      jiulingDefs,
       skipYuxi = false
     } = opts;
     const rng = createRng(seed);
     const firstSide = opts.rollFirst ? rollFirstSide(rng).side : opts.firstSide ?? "own";
-    const pool = [...cards.values()];
     const makeSide = (side) => {
       const lordCard = lords[side];
       const deck = rng.shuffle([...decks[side]]);
@@ -485,18 +395,6 @@ var Core = (() => {
         const id = deck.pop();
         const c = cards.get(id);
         if (c) hand.push({ card: c, mods: [] });
-      }
-      const jid = jiulings?.[side];
-      const jdef = jid ? jiulingDefs?.get(jid) : void 0;
-      if (jdef?.hook === "deck_inject") {
-        const injected = resolveInjectCard(jdef, lordCard.faction, pool);
-        if (injected) {
-          const turns = Math.max(0, (jdef.unlock_turn ?? 1) - 1);
-          hand.push({
-            card: injected,
-            mods: turns > 0 ? [{ id: jdef.id, kind: "ban", turns }] : []
-          });
-        }
       }
       if (!skipYuxi && side !== firstSide) {
         const yuxi = cards.get(YUXI_ID);
@@ -525,8 +423,6 @@ var Core = (() => {
         discard: [],
         command: { cur: COMMAND.START, max: COMMAND.START },
         fatigue: 0,
-        jiuling: jid,
-        jiulingUsed: {},
         mulliganDone: false
       };
     };
@@ -814,23 +710,8 @@ var Core = (() => {
     s.hand.push({ card, mods: [] });
     events.push({ type: "CARD_DRAWN", side, card, deckLeft: s.deck.length });
   }
-  function dealDamage(state, cards, ref, amount, events, source, depth = 0, jiulingDefs) {
+  function dealDamage(state, cards, ref, amount, events, source, depth = 0) {
     if (amount <= 0 || !refAlive(state, ref)) return 0;
-    if (jiulingDefs?.size && depth === 0) {
-      const reduce = jiulingDamageReduce(state, ref.side, jiulingDefs);
-      if (reduce > 0) {
-        const real = Math.max(0, amount - reduce);
-        consumeJiulingDamageReduce(state, ref.side, jiulingDefs);
-        events.push({
-          type: "JIULING_TRIGGERED",
-          side: ref.side,
-          jiuling: state.sides[ref.side].jiuling ?? "",
-          note: `\u4F24\u5BB3 ${amount} \u2192 ${real}`
-        });
-        amount = real;
-        if (amount <= 0) return 0;
-      }
-    }
     if (ref.kind === "lord") {
       const lord = state.sides[ref.side].lord;
       let dmg = amount;
@@ -867,8 +748,7 @@ var Core = (() => {
         amount,
         events,
         source,
-        depth + 1,
-        jiulingDefs
+        depth + 1
       );
     }
     if (hasCap(u, "immune_damage")) {
@@ -1725,28 +1605,8 @@ var Core = (() => {
       ref.unit.attackedThisTurn = 0;
       ref.unit.skillUsesThisTurn = {};
     }
-    resetJiulingTurn(state, side);
     events.push({ type: "TURN_START", side, turn: state.turn, command: { ...s.command } });
     drawCard(state, ctx.cards, side, events);
-    if (ctx.jiulings?.size) {
-      const dx = jiulingDrawExtra(state, side, ctx.jiulings);
-      if (dx) {
-        events.push({
-          type: "JIULING_TRIGGERED",
-          side,
-          jiuling: s.jiuling ?? "",
-          note: `\u591A\u62BD ${dx.extra} \u5F20\uFF0C\u518D\u5F03 ${dx.discard} \u5F20`
-        });
-        for (let i = 0; i < dx.extra; i++) drawCard(state, ctx.cards, side, events);
-        for (let i = 0; i < dx.discard; i++) {
-          const hc = s.hand.pop();
-          if (!hc) break;
-          s.discard.push(hc.card);
-          events.push({ type: "CARD_PLAYED", side, card: hc.card, handIndex: s.hand.length });
-        }
-        markJiulingDraw(state, side, ctx.jiulings);
-      }
-    }
     resolveTurnStartStatuses(state, ctx.cards, side, events);
     recomputeAuras(state, ctx.cards, rng, events);
     runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);
@@ -1779,18 +1639,13 @@ var Core = (() => {
     if (!hc) return false;
     if (isBanned(hc)) return false;
     const card = hc.card;
-    const jDelta = ctx.jiulings?.size ? jiulingCostDelta(state, side, card, ctx.jiulings) : 0;
-    const cost = effectiveCost(hc, costRuleDelta(state, card, side, rng) + jDelta);
+    const cost = effectiveCost(hc, costRuleDelta(state, card, side, rng));
     const isCharacter2 = ["troop", "general", "strategist"].includes(card.type);
     const slot = isCharacter2 ? { row: action.row, col: action.col } : void 0;
     const check = canPlayCard(state, side, card, slot, cost);
     if (!check.ok) return false;
     s.command.cur -= cost;
     s.hand.splice(action.cardIndex, 1);
-    if (jDelta !== 0 && ctx.jiulings?.size) {
-      consumeJiulingCost(state, side, ctx.jiulings);
-      events.push({ type: "JIULING_TRIGGERED", side, jiuling: s.jiuling ?? "", note: `\u8D39\u7528 ${jDelta}` });
-    }
     events.push({ type: "CARD_PLAYED", side, card, row: slot?.row, col: slot?.col, handIndex: action.cardIndex });
     if (isCharacter2 && slot) {
       const u = makeUnit(card, state.turn, nextUidSeq(state));
@@ -1944,8 +1799,7 @@ var Core = (() => {
       deckLeft: s.deck.length,
       handLeft: s.hand.length,
       discard: s.discard.length,
-      damageTaken: s.lord.maxHp - s.lord.hp,
-      jiuling: s.jiuling
+      damageTaken: s.lord.maxHp - s.lord.hp
     };
   }
   function summarizeMatch(state) {
@@ -1969,7 +1823,6 @@ var Core = (() => {
   }
 
   // src/setup.ts
-  var JIULING_CHOICES = 3;
   function mulligan(state, side, indices, cards) {
     const s = state.sides[side];
     if (s.mulliganDone) {
@@ -2008,11 +1861,6 @@ var Core = (() => {
   }
   var startHandSize = (side, firstSide) => side === firstSide ? DECK.HAND_START_FIRST : DECK.HAND_START_SECOND;
   var handLimit = () => DECK.HAND_LIMIT;
-  function offerJiuling(allIds, seed, side) {
-    if (allIds.length <= JIULING_CHOICES) return [...allIds];
-    const rng = createRng(seed + (side === "own" ? 2654435769 : 2246822507) >>> 0);
-    return rng.shuffle([...allIds]).slice(0, JIULING_CHOICES);
-  }
   function setupMatch(opts) {
     const log = [];
     let state = createMatch({
@@ -2020,16 +1868,12 @@ var Core = (() => {
       lords: opts.lords,
       decks: opts.decks,
       cards: opts.cards,
-      jiulings: opts.jiulings,
-      jiulingDefs: opts.jiulingDefs,
       firstSide: opts.firstSide,
       rollFirst: opts.firstSide === void 0
       // 未指定 → 按 GDD 掷点
     });
     log.push(`\u4E3B\u516C\uFF1A\u5DF1\u65B9 ${state.sides.own.lord.name} / \u654C\u65B9 ${state.sides.enemy.lord.name}`);
     log.push(`\u5148\u624B\uFF1A${state.active === "own" ? "\u5DF1\u65B9" : "\u654C\u65B9"}`);
-    if (state.sides.own.jiuling) log.push(`\u5DF1\u65B9\u9152\u4EE4\uFF1A${state.sides.own.jiuling}`);
-    if (state.sides.enemy.jiuling) log.push(`\u654C\u65B9\u9152\u4EE4\uFF1A${state.sides.enemy.jiuling}`);
     for (const side of ["own", "enemy"]) {
       const idx = opts.mulliganIndices?.[side];
       if (idx === void 0) {
@@ -2066,8 +1910,7 @@ var Core = (() => {
     return {
       cards,
       lords: { own: findLord(lordIds.own), enemy: findLord(lordIds.enemy) },
-      byFaction,
-      jiulings: new Map((bundle.jiuling ?? []).map((j) => [j.id, j]))
+      byFaction
     };
   }
 

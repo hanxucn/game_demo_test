@@ -5,21 +5,17 @@
  * （引擎不直接解析 YAML，避免引入依赖；YAML 是策划的编辑格式，JSON 是运行时格式）
  */
 
-import type { CardDef, Faction, JiulingDef, LordDef, Side } from './types.ts';
+import type { CardDef, Faction, LordDef, Side } from './types.ts';
 
 export interface DataBundle {
   cards: CardDef[];
   heroes: LordDef[];
-  /** 酒令（data/jiuling.yaml → core/data/jiuling.json）；可选 */
-  jiuling?: JiulingDef[];
 }
 
 export interface LoadedData {
   cards: Map<string, CardDef>;
   lords: Record<Side, LordDef>;
   byFaction: Map<Faction, CardDef[]>;
-  /** 酒令表（按 id 索引） */
-  jiulings: Map<string, JiulingDef>;
 }
 
 export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: string }): LoadedData {
@@ -44,6 +40,5 @@ export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: stri
     cards,
     lords: { own: findLord(lordIds.own), enemy: findLord(lordIds.enemy) },
     byFaction,
-    jiulings: new Map((bundle.jiuling ?? []).map((j) => [j.id, j])),
   };
 }

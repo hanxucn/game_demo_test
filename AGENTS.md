@@ -42,11 +42,11 @@ open prototype/battlefield.html
 
 # 引擎（core）
 cd core
-npm test          # 129 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
+npm test          # 121 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
 npm run typecheck # tsc --noEmit
 npm run validate  # 卡牌数据校验（结构 + 平衡 + value 块新鲜度）
 npm run verify:dsl  # 逐张跑真实卡牌的 DSL，端到端验证
-npm run smoke     # 两个 AI 互打一局 + 回放一致性（完整开局：掷点/酒令/换牌）
+npm run smoke     # 两个 AI 互打一局 + 回放一致性（完整开局：掷点/换牌）
 ```
 
 **改数据后必须跑**（一条命令重建整条数据链，含派生的 `value` 核算块）：
@@ -67,7 +67,6 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 | 事件卡 | `event_` | `event_zainian` |
 | 战法卡 | `tactic_` | `tactic_huogong` |
 | 进化卡 | `elite_` | `elite_hubaqi` |
-| 酒令 | `jiuling_` | `jiuling_wenjiu` |
 | 羁绊 | `bond_` | `bond_taoyuan` |
 | 关键词 | 拼音 snake_case | `jia_dun`（架盾） |
 | 状态 | 拼音 snake_case | `zhen_she`（震慑） |
@@ -109,7 +108,7 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 ## 提交前检查清单
 
 - [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
-- [ ] `cd core && npm test` 全过（129/129）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
+- [ ] `cd core && npm test` 全过（121/121）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（总价值在预算内）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
 - [ ] 若产生新决策，已写入 `docs/gdd/14-open-questions.md` 的 ADR 表

@@ -9,9 +9,8 @@
 import { createRng } from './rng.ts';
 import { BOARD, COMMAND, DECK, LORD_HP } from './constants.ts';
 import { STATUSES, type StatusCap } from './constants.ts';
-import { resolveInjectCard } from './jiuling.ts';
 import type {
-  CardDef, Faction, HandCard, JiulingDef, LordDef, MatchState, Row, Side, SideState,
+  CardDef, Faction, HandCard, LordDef, MatchState, Row, Side, SideState,
   StatusInstance, Unit,
 } from './types.ts';
 
@@ -24,10 +23,6 @@ export interface CreateMatchOptions {
   firstSide?: Side;
   /** 按 GDD 03 §1 第④步掷点定先手（用本对局的确定性 Rng）；优先于 firstSide */
   rollFirst?: boolean;
-  /** 双方酒令 id（GDD 03 §1 第②步；不传则该局无酒令） */
-  jiulings?: Partial<Record<Side, string>>;
-  /** 酒令表；提供后才能生效 deck_inject 等 hook */
-  jiulingDefs?: Map<string, JiulingDef>;
   /** 内测/复盘用：跳过「后手补传国玉玺」 */
   skipYuxi?: boolean;
 }
@@ -53,15 +48,12 @@ export function rollFirstSide(rng: ReturnType<typeof createRng>): { side: Side; 
  */
 export function createMatch(opts: CreateMatchOptions): MatchState {
   const {
-    seed = 1, lords, decks, cards, jiulings, jiulingDefs, skipYuxi = false,
+    seed = 1, lords, decks, cards, skipYuxi = false,
   } = opts;
   const rng = createRng(seed);
 
   // 掷点（可选）：只在开局显式要求时消耗 Rng，保证 createMatch 在缺省下是纯构造
   const firstSide: Side = opts.rollFirst ? rollFirstSide(rng).side : (opts.firstSide ?? 'own');
-
-  // 阵营卡池（酒令 deck_inject 用）
-  const pool = [...cards.values()];
 
   const makeSide = (side: Side): SideState => {
     const lordCard = lords[side];
@@ -73,22 +65,6 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
       const id = deck.pop() as string;
       const c = cards.get(id);
       if (c) hand.push({ card: c, mods: [] });
-    }
-
-    // 酒令「煮酒论英雄」：开局把一张本阵营高费卡直接放进手牌，加 ban 压到第 unlock_turn 回合。
-    // 放手里（而非牌库）才能保证 ban 一定挂上，且「占一格手牌」正是设计要的代价（GDD 11 §3.2 #4）。
-    const jid = jiulings?.[side];
-    const jdef = jid ? jiulingDefs?.get(jid) : undefined;
-    if (jdef?.hook === 'deck_inject') {
-      const injected = resolveInjectCard(jdef, lordCard.faction as Faction, pool);
-      if (injected) {
-        // ban 从 unlock_turn-1 开始倒数，每方自己回合结束减 1 → 该方第 unlock_turn 回合可用
-        const turns = Math.max(0, (jdef.unlock_turn ?? 1) - 1);
-        hand.push({
-          card: injected,
-          mods: turns > 0 ? [{ id: jdef.id, kind: 'ban', turns }] : [],
-        });
-      }
     }
 
     // 后手补「传国玉玺」×1（GDD 03 §1.2）
@@ -120,8 +96,6 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
       discard: [],
       command: { cur: COMMAND.START, max: COMMAND.START },
       fatigue: 0,
-      jiuling: jid,
-      jiulingUsed: {},
       mulliganDone: false,
     };
   };

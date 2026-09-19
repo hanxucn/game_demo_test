@@ -28,7 +28,6 @@ export interface SideSummary {
   discard: number;
   /** 已损失的主将血量 */
   damageTaken: number;
-  jiuling?: string;
 }
 
 export interface MatchSummary {
@@ -56,7 +55,6 @@ function summarize(state: MatchState, side: Side): SideSummary {
     handLeft: s.hand.length,
     discard: s.discard.length,
     damageTaken: s.lord.maxHp - s.lord.hp,
-    jiuling: s.jiuling,
   };
 }
 

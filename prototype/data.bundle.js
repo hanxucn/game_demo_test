@@ -3848,7 +3848,7 @@ window.GameData = {
               }
             }
           ],
-          "text": "可弃掉自己手中一张手牌.恢复指定场上对一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.一回合只能最多使用2次."
+          "text": "可弃掉自己手中一张手牌.恢复指定场上一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.每回合限一次."
         }
       ],
       "memo": "",
@@ -5270,52 +5270,6 @@ window.GameData = {
       "skill": "暴虐",
       "memo": "主公技：抽 1 张牌，并对自己的主将造成 1 点伤害",
       "flavor": "顺我者昌，逆我者亡。"
-    }
-  ],
-  "jiuling": [
-    {
-      "id": "jiuling_wenjiu",
-      "name": "温酒斩华雄",
-      "hook": "cost_discount",
-      "cost": -1,
-      "limit_per_turn": 1,
-      "filter": {
-        "type": "general"
-      },
-      "memo": "每回合第一张武将 −1 费",
-      "tradeoff": "只惠及武将，且前期才有意义——后期手里未必有武将",
-      "implemented": true
-    },
-    {
-      "id": "jiuling_duijiu",
-      "name": "对酒当歌",
-      "hook": "draw_extra",
-      "extra": 1,
-      "discard": 1,
-      "limit_per_turn": 1,
-      "memo": "每回合首抽多抽 1 张，再弃 1 张",
-      "tradeoff": "多抽一张但必须弃牌——过牌不赚手牌数，只赚选择",
-      "implemented": true
-    },
-    {
-      "id": "jiuling_qingmei",
-      "name": "青梅煮酒",
-      "hook": "damage_reduce",
-      "reduce": 1,
-      "limit_per_turn": 1,
-      "memo": "每回合第一次受到的伤害 −1",
-      "tradeoff": "只挡小伤害，面对高攻收益有限",
-      "implemented": true
-    },
-    {
-      "id": "jiuling_zhujiu",
-      "name": "煮酒论英雄",
-      "hook": "deck_inject",
-      "inject": "elite",
-      "unlock_turn": 5,
-      "memo": "开局获得一张本阵营史诗卡，第 5 回合起可用",
-      "tradeoff": "前期少一张有效牌（手牌被占一格），第 5 回合才回本",
-      "implemented": true
     }
   ]
 };

@@ -20,13 +20,9 @@ export {
   type MatchResult, type MatchSummary, type SideSummary,
 } from './result.ts';
 export {
-  mulligan, setupMatch, offerJiuling, startHandSize, handLimit, JIULING_CHOICES,
+  mulligan, setupMatch, startHandSize, handLimit,
   type MulliganResult, type SetupOptions, type SetupResult,
 } from './setup.ts';
-export {
-  checkJiuling, jiulingCostDelta, jiulingDamageReduce, jiulingDrawExtra, jiulingOf,
-  jiulingUsed, resolveInjectCard,
-} from './jiuling.ts';
 export { loadData, type DataBundle, type LoadedData } from './loader.ts';
 export {
   autoDeck, cardPool, validateDeck, isDeckable, isPlayableBy, MAX_COPIES, SUGGESTED_CURVE,

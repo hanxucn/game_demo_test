@@ -12,8 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES, TAGS } from '../src/constants.ts';
-import { checkJiuling } from '../src/jiuling.ts';
-import type { CardDef, CardEffect, JiulingDef, SkillDef, TargetSelector } from '../src/types.ts';
+import type { CardDef, CardEffect, SkillDef, TargetSelector } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -284,16 +283,6 @@ export function validateCards(cards: CardDef[]): Issue[] {
         add('warn', c.id, `谋臣无普攻，总价值 ${v.total.toFixed(1)} 低于预算 ${budget}，可考虑加强`);
       }
     }
-  }
-
-  // ⑦bis 酒令（data/jiuling.yaml）：hook 合法 + 必填字段 + 代价限制
-  const jiulingPath = join(DATA, 'jiuling.json');
-  if (existsSync(jiulingPath)) {
-    const js = JSON.parse(readFileSync(jiulingPath, 'utf8')) as JiulingDef[];
-    for (const j of js) {
-      for (const msg of checkJiuling(j)) add('error', j.id, `酒令「${j.name}」${msg}`);
-    }
-    if (js.length < 4) add('warn', '-', `酒令只有 ${js.length} 个，GDD 11 §3.1 要求 v1 提供 4 个`);
   }
 
   // ⑦ter 技能文案与效果一致性：写了文案却没有任何效果 = 静默白板（与 `skills[].dsl` 同源的坑）

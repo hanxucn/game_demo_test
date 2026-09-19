@@ -7,24 +7,27 @@
 ```
 ① 双方选择阵营（蜀 / 魏 / 吴 / 群雄）
       ↓ 自动任命主公（刘备 / 曹操 / 孙权 / 董卓）
-② 双方各选一个「酒令」（开局三选一，见 11-events-tactics-jiuling.md）
-      ↓ 酒令在整局内持续生效
-③ 双方换牌（起手可替换任意张数，每张仅一次机会）
+② 双方换牌（起手可替换任意张数，每张仅一次机会）
       ↓
-④ 掷点决定先手（系统随机，不比较卡牌统率）
+③ 掷点决定先手（系统随机，不比较卡牌统率）
       ↓ 后手额外获得「传国玉玺」
-⑤ 先手方开始第 1 回合
+④ 先手方开始第 1 回合
 ```
+
+> **已移除：原第②步「双方各选一个酒令」**。设计者确认酒令非其设计（见 ADR-048），
+> 整套机制已撤除。原「酒令」章节在 `11-events-tactics-jiuling.md` §3 保留存档。
+>
+> ⚠️ **同源待确认**：本节的「掷点决定先手」与「后手补传国玉玺」同样出自本仓库初始提交的草案，
+> 若设计者另有安排请指出；目前按文档保留实现。
 
 **实现对应**（`core/src/setup.ts` / `core/src/state.ts`）：
 
 | 步骤 | 函数 | 说明 |
 |---|---|---|
 | ① 选阵营 / 任命主公 | `autoDeck` + `loadData` | 主公由 `data/heroes.yaml` 按阵营固定 |
-| ② 选酒令 | `offerJiuling` | 三选一；数据在 `data/jiuling.yaml` |
-| ③ 换牌 | `mulligan` | 任意张数、每方一次、换 N 补 N |
-| ④ 掷点定先手 | `rollFirstSide` | D6 平局重掷；后手由 `createMatch` 补玉玺 |
-| ⑤ 开打 | `startMatch` → `applyAction` | 唯一写入口 |
+| ② 换牌 | `mulligan` | 任意张数、每方一次、换 N 补 N |
+| ③ 掷点定先手 | `rollFirstSide` | D6 平局重掷；后手由 `createMatch` 补玉玺 |
+| ④ 开打 | `startMatch` → `applyAction` | 唯一写入口 |
 
 > `createMatch` 是**纯构造器**：缺省先手为 `own`，只有显式传 `rollFirst: true` 才掷点。
 > 完整开局编排用 `setupMatch()`（不传 `firstSide` 即自动掷点）。

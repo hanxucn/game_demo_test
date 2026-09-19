@@ -2,22 +2,21 @@
  * 开局流程（docs/gdd/03-turn-flow.md §1）
  *
  *   ① 选阵营 → 自动任命主公
- *   ② 各选一个酒令（三选一）
- *   ③ 换牌（起手可替换任意张数，每张仅一次机会）
- *   ④ 掷点决定先手（后手补「传国玉玺」）
- *   ⑤ 先手方开始第 1 回合
+ *   ② 换牌（起手可替换任意张数，每张仅一次机会）
+ *   ③ 掷点决定先手（后手补「传国玉玺」）
+ *   ④ 先手方开始第 1 回合
  *
- * ①②④⑤ 在 createMatch 里一次做完；**③ 换牌是玩家的独立动作**，在这里实现，
+ * ①③④ 在 createMatch 里一次做完；**② 换牌是玩家的独立动作**，在这里实现，
  * 因为它需要「先看牌、再决定」，无法在开局时一口气算完。
+ *
+ * 注：GDD 03 §1 与 GDD 11 §3 里的「开局三选一酒令」已确认**非设计者本意**（草案），
+ * 故不实现；详见 ADR-048。
  */
 
 import { DECK } from './constants.ts';
 import { createRng } from './rng.ts';
 import { cloneState, createMatch } from './state.ts';
-import type { CardDef, JiulingDef, LordDef, MatchState, Side } from './types.ts';
-
-/** 酒令「三选一」候选数（GDD 11 §3.1） */
-export const JIULING_CHOICES = 3;
+import type { CardDef, LordDef, MatchState, Side } from './types.ts';
 
 export interface MulliganResult {
   ok: boolean;
@@ -94,17 +93,7 @@ export const startHandSize = (side: Side, firstSide: Side): number =>
 export const handLimit = (): number => DECK.HAND_LIMIT;
 
 /**
- * 酒令三选一：从全部酒令里确定性地抽 3 个候选。
- * 双方用不同派生种子，候选可以不同，但同一 seed 下完全可复现。
- */
-export function offerJiuling(allIds: readonly string[], seed: number, side: Side): string[] {
-  if (allIds.length <= JIULING_CHOICES) return [...allIds];
-  const rng = createRng((seed + (side === 'own' ? 0x9e3779b9 : 0x85ebca6b)) >>> 0);
-  return rng.shuffle([...allIds]).slice(0, JIULING_CHOICES);
-}
-
-/**
- * 完整开局编排：组好卡组 → 选好酒令 → 创建对局 → 双方换牌 → 返回可开打的状态。
+ * 完整开局编排：组好卡组 → 创建对局 → 双方换牌 → 返回可开打的状态。
  *
  * demo / AI 对战用；真人客户端会分步调用 createMatch + mulligan（让玩家自己选）。
  */
@@ -113,8 +102,6 @@ export interface SetupOptions {
   cards: Map<string, CardDef>;
   lords: Record<Side, LordDef>;
   decks: Record<Side, string[]>;
-  jiulings?: Partial<Record<Side, string>>;
-  jiulingDefs?: Map<string, JiulingDef>;
   /** 各方要换掉的手牌下标；缺省 = 不换 */
   mulliganIndices?: Partial<Record<Side, number[]>>;
   firstSide?: Side;
@@ -132,17 +119,12 @@ export function setupMatch(opts: SetupOptions): SetupResult {
     lords: opts.lords,
     decks: opts.decks,
     cards: opts.cards,
-    jiulings: opts.jiulings,
-    jiulingDefs: opts.jiulingDefs,
     firstSide: opts.firstSide,
     rollFirst: opts.firstSide === undefined,      // 未指定 → 按 GDD 掷点
   });
 
   log.push(`主公：己方 ${state.sides.own.lord.name} / 敌方 ${state.sides.enemy.lord.name}`);
   log.push(`先手：${state.active === 'own' ? '己方' : '敌方'}`);
-  if (state.sides.own.jiuling) log.push(`己方酒令：${state.sides.own.jiuling}`);
-  if (state.sides.enemy.jiuling) log.push(`敌方酒令：${state.sides.enemy.jiuling}`);
-
   // 只对显式给出下标的方位换牌；未列出的方位保留换牌机会（真人客户端会自己调 mulligan）
   for (const side of ['own', 'enemy'] as Side[]) {
     const idx = opts.mulliganIndices?.[side];

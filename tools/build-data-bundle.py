@@ -23,8 +23,7 @@ def main() -> int:
 
     cards = load("cards")
     heroes = load("heroes")
-    jiuling = load("jiuling")
-    payload = {"cards": cards, "heroes": heroes, "jiuling": jiuling}
+    payload = {"cards": cards, "heroes": heroes}
     OUT.write_text(
         "// 自动生成，勿手改：python3 tools/build-data-bundle.py\n"
         "window.GameData = "
@@ -32,7 +31,7 @@ def main() -> int:
         + ";\n",
         encoding="utf-8",
     )
-    print(f"✓ {OUT.relative_to(ROOT)}  ({len(cards)} 卡 + {len(heroes)} 主公 + {len(jiuling)} 酒令)")
+    print(f"✓ {OUT.relative_to(ROOT)}  ({len(cards)} 卡 + {len(heroes)} 主公)")
     return 0
 
 

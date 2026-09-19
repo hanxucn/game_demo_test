@@ -66,25 +66,21 @@ function main(): void {
 
   const cards = loadJson<unknown>('cards.json');
   const heroes = loadJson<unknown>('heroes.json');
-  const jiuling = loadJson<unknown>('jiuling.json');
   const unwrap = <T,>(v: unknown): T[] => (Array.isArray(v) ? v as T[] : ((v as { cards: T[] }).cards ?? []));
   const data = loadData(
-    { cards: unwrap(cards), heroes: unwrap(heroes), jiuling: unwrap(jiuling) },
+    { cards: unwrap(cards), heroes: unwrap(heroes) },
     { own: 'shu_liubei', enemy: 'wei_caocao' },
   );
 
-  // 完整开局：掷点先手 → 酒令 → 换牌 → 开打（GDD 03 §1）
-  const ownJiuling = arg('jiuling', 'jiuling_wenjiu');
+  // 完整开局：掷点先手 → 换牌 → 开打（GDD 03 §1）
   const { state: base, log: setupLog } = setupMatch({
     seed,
     cards: data.cards,
     lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
-    jiulings: { own: ownJiuling, enemy: 'jiuling_qingmei' },
-    jiulingDefs: data.jiulings,
     mulliganIndices: { own: [], enemy: [] },
   });
-  const ctx: EngineContext = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
+  const ctx: EngineContext = { cards: data.cards, lords: data.lords };
   let state: MatchState = startMatch(base, ctx).state;
 
   console.log(`\n《酒话三国》引擎冒烟测试  seed=${seed}`);
@@ -130,8 +126,6 @@ function main(): void {
     cards: data.cards,
     lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
-    jiulings: { own: ownJiuling, enemy: 'jiuling_qingmei' },
-    jiulingDefs: data.jiulings,
     mulliganIndices: { own: [], enemy: [] },
   });
   let replay: MatchState = startMatch(replayBase, ctx).state;
