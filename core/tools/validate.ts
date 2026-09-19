@@ -43,10 +43,29 @@ function baseEffectValue(eff: CardEffect): number {
     case 'gain_armor': return (eff.value ?? 1) * 1;
     case 'apply_status':
       return eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2;
-    case 'modify': return Math.abs(eff.value ?? 0) * 1.5;
     case 'destroy': return 8;
     case 'discard': return (eff.count ?? 1) * 1.5;
     case 'return_to_hand': return 3;
+    // ADR-033~042 新增动作的价值估算
+    case 'clash': return 2;                                   // 拼点：中等收益
+    case 'scry': return (eff.count ?? 1) * 1.5;               // 卡池操作
+    case 'flip': return 2.5;                                  // 翻面：既是保护也是封锁
+    case 'ban_play': return (eff.count ?? 1) * 2.5;           // 禁止上场
+    case 'steal_card': return (eff.count ?? 1) * 3.5;         // 夺取手牌
+    case 'cost_modifier': return Math.abs(eff.value ?? 0) * 2 * (eff.count ?? 1);
+    case 'survive': return 6;                                 // 免死
+    case 'extra_attack': return 3.5;                          // 额外一次攻击
+    case 'take_control': return 7;                            // 控制权转移
+    case 'copy_skill': return 5;                              // 复制技能
+    case 'force_attack': return (eff.count ?? 1) * 2;         // 强制攻击
+    case 'transform': return 4;                               // 进化（按单次估算）
+    case 'modify': {
+      const a = Math.abs(eff.attack ?? 0), h = Math.abs(eff.health ?? 0);
+      const cnt = eff.count ?? 1;
+      // 动态取值（*_from）按 2 点预估
+      const dyn = (eff.attack_from || eff.health_from) ? 2 : 0;
+      return ((a + h) * 1.5 + dyn) * cnt;
+    }
     default: return 0;
   }
 }
@@ -75,7 +94,12 @@ export function cardValue(card: CardDef): { stats: number; keywords: number; ski
   const isChar = ['troop', 'general', 'strategist'].includes(card.type);
   const stats = isChar ? (card.attack ?? 0) + (card.health ?? 0) : 0;
   const keywords = (card.keywords ?? []).reduce((s, k) => s + (KEYWORD_VALUE[k] ?? 0), 0);
-  const skills = (card.skills ?? []).reduce((s, sk) => s + skillValue(sk), 0)
+  // ⚠️ 卡里的 DSL 存在 skills[].dsl（翻译结果），必须摊平后才能计入技能价值
+  const flatSkills: SkillDef[] = (card.skills ?? []).flatMap((sk) => {
+    const nested = (sk as SkillDef & { dsl?: SkillDef[] }).dsl;
+    return nested?.length ? nested : [sk];
+  });
+  const skills = flatSkills.reduce((s, sk) => s + skillValue(sk), 0)
     + (card.effects ?? []).reduce((s, e) => s + effectValue(e), 0);
   return { stats, keywords, skills, total: stats + keywords + skills };
 }

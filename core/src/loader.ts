@@ -5,6 +5,7 @@
  * （引擎不直接解析 YAML，避免引入依赖；YAML 是策划的编辑格式，JSON 是运行时格式）
  */
 
+import { NON_DECK_TYPES } from './constants.ts';
 import type { CardDef, Faction, LordDef, Side } from './types.ts';
 
 export interface DataBundle {
@@ -48,9 +49,10 @@ export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: stri
  * 曲线建议见 docs/gdd/13-balance-data-model.md
  */
 export function autoDeck(data: LoadedData, faction: Faction, seed = 1): string[] {
-  const pool = (data.byFaction.get(faction) ?? []).filter((c) => c.type !== 'elite');
+  const inDeck = (c: CardDef) => !(NON_DECK_TYPES as readonly string[]).includes(c.type);
+  const pool = (data.byFaction.get(faction) ?? []).filter(inDeck);
   const neutral = data.byFaction.get('neutral') ?? [];
-  const all = [...pool, ...neutral].filter((c) => c.type !== 'elite' && c.cost <= 8);
+  const all = [...pool, ...neutral].filter((c) => inDeck(c) && c.cost <= 8);
   if (!all.length) throw new Error(`阵营 ${faction} 没有可用卡牌`);
 
   const curve: Record<number, number> = { 1: 6, 2: 8, 3: 6, 4: 5, 5: 3, 6: 2 };

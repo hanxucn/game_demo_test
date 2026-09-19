@@ -41,7 +41,7 @@ cards:
   type_reason: 非人物卡（见决策层 type_overrides）
 - photo: 47
   faction: ''
-  name: 十常侍之乱
+  name: 十常侍
   card_type: 事件
   cost: 3
   skill_name: ''
@@ -56,6 +56,8 @@ cards:
   cost_original: null
   decisions:
   - 'cost: None → 3（ADR-027）；设计者答疑（cards_todo）：统率值 = 3'
+  - 'name: 十常侍之乱 → 十常侍（ADR-044）；手写卡名「十常侍之乱」超 4 字上限，缩为「十常侍」（事件卡）'
+  name_original: 十常侍之乱
   type_proposed: 事件卡
   type_reason: 非人物卡，不参与武将/谋臣定型
 - photo: 48
@@ -79,7 +81,7 @@ cards:
   type_reason: 非人物卡，不参与武将/谋臣定型
 - photo: 49
   faction: ''
-  name: 丰年（五谷丰登）
+  name: 五谷丰登
   card_type: 事件
   cost: 1
   skill_name: ''
@@ -94,7 +96,7 @@ cards:
   cost_original: null
   decisions:
   - 'cost: None → 1（ADR-027）；设计者答疑（cards_todo）：统率值 = 1'
-  - 'name: 年 → 丰年（五谷丰登）（ADR-027）；设计者答疑（cards_todo）：卡名 = 丰年（五谷丰登）'
+  - 'name: 年 → 五谷丰登（ADR-044）；设计者答疑（cards_todo）：卡名原文「丰年（五谷丰登）」，因卡面 4 字上限取「五谷丰登」'
   - 'skill_text: 全体可抽取【?】张卡牌从卡池中。 → 全体可从各自卡池中抽取 2 张卡牌。（ADR-027）；设计者答疑（cards_todo）：skill_text = 全体可从各自卡池中抽取 2 张卡牌。'
   name_original: 年
   skill_text_original: 全体可抽取【?】张卡牌从卡池中。
@@ -189,30 +191,35 @@ cards:
   faction: 群
   name: 高顺
   card_type: ''
-  cost: 3
-  skill_name: 陷阵破敌
-  skill_text: 召唤两个1攻2血的盾兵。
+  cost: 4
+  skill_name: 陷阵营
+  skill_text: 召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。
   attack: 2
   health: 2
   other: 左上角「群」；顶部中间卡名「高顺」，其下第 2 行写技能名「陷阵破敌」；右上角方框内写「5」，框底部横线压着下方的「统」字；正文分两行「召唤两个 1攻2血 的」「盾兵．」；左下「2攻」，右下「2血」（后有一小点）；本页未写卡牌类型
   uncertain: []
   note: ''
-  cost_original: 5
+  cost_original: 3
   decisions:
   - 'cost: 5 → 3（ADR-027）；设计者答疑（cards_todo）：统率值 = 3'
   - 'attack: 2 → 2（ADR-027）；设计者答疑（cards_todo）：攻击力 = 2'
   - 'health: 2 → 2（ADR-027）；设计者答疑（cards_todo）：生命值 = 2'
+  - 'skill_name: 陷阵破敌 → 陷阵营（ADR-042）；设计者新方案：技能名改为「陷阵营」'
+  - 'skill_text: 召唤两个1攻2血的盾兵。 → 召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。（ADR-042）；设计者新方案：召唤+进化'
+  - 'cost: 3 → 4（ADR-042）；设计者：高顺 费用由 3 改为 4'
   attack_original: 2
   health_original: 2
+  skill_name_original: 陷阵破敌
+  skill_text_original: 召唤两个1攻2血的盾兵。
   type_proposed: 武将
   type_reason: 攻击 2 > 1（ADR-018 规则）
 - photo: 55
   faction: 群
   name: 马腾
   card_type: ''
-  cost: 3
+  cost: 4
   skill_name: 西凉铁骑
-  skill_text: ''
+  skill_text: 召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。
   attack: 2
   health: 2
   other: 左上角「群」；顶部中间卡名「马腾」；第 2 行写「西凉铁骑」；右上角画了一个空的方框（框内没有数字，框下也没有写「统」）；正文区、攻血区均为空白；纸面中部的淡字是背面/下一页的透印（镜像），不是本页内容
@@ -220,22 +227,25 @@ cards:
   - cost：右上角只有一个方框，框内空白、框下无「统」字，按未填写处理，故为 null。
   - skill_text：本页没有写技能效果，只写了技能名「西凉铁骑」，故留空。
   note: ''
-  cost_original: null
+  cost_original: 3
   decisions:
   - 'cost: None → 3（ADR-027）；设计者答疑（cards_todo）：统率值 = 3'
   - 'attack: None → 2（ADR-027）；设计者答疑（cards_todo）：攻击力 = 2'
   - 'health: None → 2（ADR-027）；设计者答疑（cards_todo）：生命值 = 2'
+  - 'skill_text:  → 召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。（ADR-042）；设计者新方案：召唤+进化'
+  - 'cost: 3 → 4（ADR-042）；设计者：马腾 费用由 3 改为 4'
   attack_original: null
   health_original: null
+  skill_text_original: ''
   type_proposed: 武将
   type_reason: 攻击 2 > 1（ADR-018 规则）
 - photo: 56
   faction: 群
   name: 公孙瓒
   card_type: ''
-  cost: 3
+  cost: 4
   skill_name: 白马义从
-  skill_text: ''
+  skill_text: 召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。
   attack: 2
   health: 2
   other: 左上角「群」＋点号；顶部中间卡名「公孙瓒」；第 2 行写「白马义从」；右上角画了一个空的方框（框内无数字、无「统」字）；正文区、攻血区空白；本页未写卡牌类型
@@ -243,13 +253,18 @@ cards:
   - name：第一、二字「公孙」清晰；第三字左为「王」旁、右部笔画繁密（像「赞」），判读为「瓒」（配合「白马义从」这一典故），但右半部连笔较重，不能百分之百确定。
   - cost：右上角方框内空白，按未填写处理，故为 null。
   note: ''
-  cost_original: null
+  cost_original: 3
   decisions:
   - 'cost: None → 3（ADR-027）；设计者答疑（cards_todo）：统率值 = 3'
   - 'attack: None → 2（ADR-027）；设计者答疑（cards_todo）：攻击力 = 2'
   - 'health: None → 2（ADR-027）；设计者答疑（cards_todo）：生命值 = 2'
+  - 'skill_name: 白马义从 → 白马义从（ADR-042）；设计者新方案'
+  - 'skill_text:  → 召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。（ADR-042）；设计者新方案：召唤+进化'
+  - 'cost: 3 → 4（ADR-042）；设计者：公孙瓒 费用由 3 改为 4'
   attack_original: null
   health_original: null
+  skill_name_original: 白马义从
+  skill_text_original: ''
   type_proposed: 武将
   type_reason: 攻击 2 > 1（ADR-018 规则）
 - photo: 57

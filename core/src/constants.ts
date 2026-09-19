@@ -31,11 +31,11 @@ export const KEYWORDS: Record<string, { name: string; implemented: boolean; note
   yi_ji:     { name: '遗计', implemented: true, note: '阵亡时抽 1 张牌' },
   ji_xing:   { name: '疾行', implemented: true, note: '入场当回合即可攻击' },
   jia_dun:   { name: '架盾', implemented: true, note: '仅前军生效的全局嘲讽' },
-  wu_sheng:  { name: '武圣', implemented: true, note: '免疫一次伤害' },
+  wu_sheng_status: { name: '武圣', implemented: true, note: '免疫一次伤害' },
   shen_she:  { name: '神射', implemented: true, note: '可攻击任意列的人物卡' },
   lian_ji:   { name: '连击', implemented: true, note: '每回合可攻击 2 次' },
   yin_xue:   { name: '饮血', implemented: true, note: '造成伤害时为己方主将回复等量生命' },
-  qi_xi:     { name: '奇袭', implemented: true, note: '不能被指定为攻击目标；攻击后失去' },
+  qi_xi_status: { name: '奇袭', implemented: true, note: '不能被指定为攻击目标；攻击后失去' },
   xian_gong: { name: '先攻', implemented: true, note: '先结算伤害，目标阵亡则不受反击' },
   jie_zhen:  { name: '结阵', implemented: true, note: '相邻有友方步兵时本次普攻 +1' },
   wu_shuang: { name: '无双', implemented: true, note: '攻击时不受到反击伤害' },
@@ -89,10 +89,10 @@ export interface StatusDef {
 export const STATUSES: Record<string, StatusDef> = {
   zhen_fen:   { name: '振奋', kind: 'buff',   numeric: true,  duration: 'permanent', note: '攻击 +N' },
   ji_jiu:     { name: '急救', kind: 'buff',   numeric: true,  duration: 'permanent', note: '回合开始恢复 N 点生命' },
-  jia_dun:    { name: '架盾', kind: 'buff',   numeric: false, duration: 'conditional', note: '仅前军生效' },
-  xian_gong:  { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent', note: '先结算伤害' },
-  qi_xi:      { name: '奇袭', kind: 'buff',   numeric: false, duration: 'until_consumed', note: '不能被指定为目标' },
-  wu_sheng:   { name: '武圣', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
+  jia_dun_status: { name: '架盾', kind: 'buff',   numeric: false, duration: 'conditional', note: '仅前军生效' },
+  xian_gong_status: { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent', note: '先结算伤害' },
+  qi_xi_status: { name: '奇袭', kind: 'buff',   numeric: false, duration: 'until_consumed', note: '不能被指定为目标' },
+  wu_sheng_status:   { name: '武圣', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
                 note: '免疫一次伤害' },
   hu_jia:     { name: '护甲', kind: 'buff',   numeric: true,  duration: 'permanent', scope: 'lord', note: '吸收伤害' },
   zhen_she:   { name: '震慑', kind: 'debuff', numeric: false, duration: 'turns', caps: ['block_action'],
@@ -146,4 +146,11 @@ export const ACTIONS = [
   'extra_attack', 'take_control', 'copy_skill', 'force_attack',
 ] as const;
 
-export const CARD_TYPES = ['troop', 'general', 'strategist', 'event', 'tactic', 'elite', 'special'] as const;
+export const CARD_TYPES = ['troop', 'general', 'strategist', 'event', 'tactic', 'elite', 'special',
+  'lord',     // 主将卡：开局置于主将位，不进卡组（ADR-044）
+  'token',    // 衍生物：只能由效果召唤，不可组入卡组（ADR-044）
+  'status',   // 状态卡：持续性全局效果，置于状态区（ADR-044）
+] as const;
+
+/** 不可组入卡组的类型（由规则或效果放入场） */
+export const NON_DECK_TYPES = ['elite', 'lord', 'token', 'status', 'special'] as const;

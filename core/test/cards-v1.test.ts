@@ -24,6 +24,16 @@ import type { Action, CardDef, Unit } from '../src/types.ts';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards_v1.json'), 'utf8'));
 
+// 全部卡都要进卡表：summon / transform 会按 id 引用它们（如 elite_* 精英兵）
+for (const c of ALL) {
+  const flat: CardDef = {
+    ...c,
+    keywords: c.keywords ?? [],
+    skills: (c.skills ?? []).flatMap((sk) => (sk.dsl as unknown as CardDef['skills']) ?? []),
+  };
+  if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(flat);
+}
+
 /** 取真实翻译后的卡（把 skills[].dsl 摊平回 skills） */
 function realCard(id: string): CardDef {
   const raw = ALL.find((c) => c.id === id);
@@ -246,4 +256,102 @@ test('草船借箭：迫使敌方人物攻击其友军，并打上阵亡标记',
   assert.ok(r.ok, '应能打出');
   assert.ok(r.events.some((e) => e.type === 'FORCED_ATTACK'), '应产生强制攻击事件');
   assert.ok(r.events.some((e) => e.type === 'STATUS_APPLIED'), '应打上阵亡标记');
+});
+
+/* ================= ADR-042：进化卡（召唤 + 兵种进化） ================= */
+
+const troop = (id: string, kind: 'infantry' | 'shield' | 'archer', atk: number, hp: number) =>
+  makeUnit({ id, name: id, faction: 'neutral', type: 'troop', troopKind: kind,
+             cost: 1, attack: atk, health: hp, keywords: [], memo: '' } as CardDef, 1, 1);
+
+test('公孙瓒 白马义从：召唤 2 弓兵 + 场上弓兵全部进化', () => {
+  realCard('qun_gongsunzan');
+  const { state, ctx } = scenario({ ownHand: ['qun_gongsunzan'] });
+  setUnit(state, 'own', 'front', 0, troop('old_archer', 'archer', 0, 1));   // 场上已有弓兵
+  setUnit(state, 'own', 'front', 1, troop('infantry_ally', 'infantry', 1, 1)); // 不该被进化
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
+
+  const evs = r.events.filter((e) => e.type === 'UNIT_TRANSFORMED');
+  assert.equal(evs.length, 3, `应进化 3 个弓兵（场上 1 + 召唤 2），实际 ${evs.length}`);
+  const old = getUnit(r.state, 'own', 'front', 0)!;
+  assert.equal(old.cardId, 'elite_baima_yicong', '场上原弓兵应变为白马义从');
+  assert.equal(old.atk, 1, '白马义从 1 攻');
+  assert.equal(old.maxHp, 2, '白马义从 2 血');
+  assert.equal(getUnit(r.state, 'own', 'front', 1)?.cardId, 'infantry_ally', '步兵不该被进化');
+});
+
+test('马腾 西凉铁骑：召唤 2 步兵 + 场上步兵进化并获得先攻', () => {
+  realCard('qun_mateng');
+  const { state, ctx } = scenario({ ownHand: ['qun_mateng'] });
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
+  // 注意：召唤位置是随机的，必须两排都数
+  const transformed = [...r.state.sides.own.rows.front, ...r.state.sides.own.rows.back]
+    .filter((u) => u?.cardId === 'elite_xiliang_tieqi');
+  assert.equal(transformed.length, 2, `应进化 2 个步兵，实际 ${transformed.length}`);
+  assert.ok(transformed.every((u) => u!.atk === 2 && u!.maxHp === 1), '西凉铁骑 2 攻 1 血');
+  assert.ok(transformed.every((u) => u!.kw.includes('xian_gong')), '西凉铁骑应获得先攻');
+});
+
+test('高顺 陷阵营：召唤 2 盾兵并全部进化为 2/2', () => {
+  realCard('qun_gaoshun');
+  const { state, ctx } = scenario({ ownHand: ['qun_gaoshun'] });
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
+  const elites = [...r.state.sides.own.rows.front, ...r.state.sides.own.rows.back]
+    .filter((u) => u?.cardId === 'elite_xianzhen_dun');
+  assert.equal(elites.length, 2, `应进化 2 个盾兵，实际 ${elites.length}`);
+  assert.ok(elites.every((u) => u!.atk === 2 && u!.maxHp === 2), '陷阵盾兵 2 攻 2 血');
+  assert.ok(elites.every((u) => u!.kw.includes('jia_dun')), '陷阵盾兵保留架盾');
+});
+
+test('进化规则：保留已受伤害，不白送治疗（GDD 07-troops §4.2）', () => {
+  realCard('qun_mateng');
+  const { state, ctx } = scenario({ ownHand: ['qun_mateng'] });
+  const hurt = troop('hurt_infantry', 'infantry', 1, 1);
+  hurt.hp = 0; hurt.hp = 1;                     // 满血 1
+  setUnit(state, 'own', 'front', 0, hurt);
+  getUnit(state, 'own', 'front', 0)!.hp = 1;
+  // 先把它打到 1 血以下——但 1 血单位无法再受伤，改用 2 血步兵
+  const tough = troop('tough', 'infantry', 1, 2);
+  setUnit(state, 'own', 'front', 1, tough);
+  getUnit(state, 'own', 'front', 1)!.hp = 1;    // 2 血单位受 1 点伤
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
+  const after = getUnit(r.state, 'own', 'front', 1)!;
+  assert.equal(after.cardId, 'elite_xiliang_tieqi', '应已进化');
+  assert.equal(after.maxHp, 1, '西凉铁骑上限 1');
+  assert.equal(after.hp, 1, '已受伤害应被保留（不该回满）');
+});
+
+test('进化规则：状态保留（buff/debuff 不因进化消失）', () => {
+  realCard('qun_gaoshun');
+  const { state, ctx } = scenario({ ownHand: ['qun_gaoshun'] });
+  const shielded = troop('buffed_shield', 'shield', 1, 2);
+  shielded.statuses.zhen_fen = { stacks: 2 };
+  setUnit(state, 'own', 'front', 0, shielded);
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
+  const after = getUnit(r.state, 'own', 'front', 0)!;
+  assert.equal(after.cardId, 'elite_xianzhen_dun', '应已进化');
+  assert.equal(after.statuses.zhen_fen?.stacks, 2, '振奋层数应保留');
+});
+
+test('进化规则：不重置攻击次数（已攻击过则进化后不能再打）', () => {
+  realCard('qun_gaoshun');
+  const { state, ctx } = scenario({ ownHand: ['qun_gaoshun'] });
+  const attacker = troop('attacked_shield', 'shield', 1, 2);
+  attacker.attackedThisTurn = 1;
+  setUnit(state, 'own', 'front', 0, attacker);
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
+  const after = getUnit(r.state, 'own', 'front', 0)!;
+  assert.equal(after.cardId, 'elite_xianzhen_dun', '应已进化');
+  assert.equal(after.attackedThisTurn, 1, '攻击次数不该被重置');
+});
+
+test('进化规则：只影响己方对应兵种，不碰敌方同兵种', () => {
+  realCard('qun_gongsunzan');
+  const { state, ctx } = scenario({ ownHand: ['qun_gongsunzan'] });
+  setUnit(state, 'enemy', 'front', 0, troop('enemy_archer', 'archer', 0, 1));
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.cardId, 'enemy_archer', '敌方弓兵不该被进化');
 });

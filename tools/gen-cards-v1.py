@@ -40,6 +40,13 @@ TYPE = {'武将':'general','谋臣':'strategist','主公':'lord','计谋卡':'ta
 TYPE_FIX = {'qun_yuanshao_lord': 'lord', 'shu_huangquan': 'general'}
 
 dec = yaml.safe_load(open(ROOT/'data/cards_decisions.draft.yaml', encoding='utf-8'))
+
+# 决策层里的各类补充（供下面的卡片构造使用）
+COST_RULES = dec.get('card_cost_rules') or {}
+CARD_KW = dec.get('card_keywords') or {}
+CARD_TROOPKIND = dec.get('card_troopkind') or {}
+NAME_ONLY = dec.get('skill_name_only') or {}
+DSL_NONE = set((dec.get('dsl') or {}).get('_none') or [])
 PHOTO_TAGS: dict[int, list[str]] = {}
 for tag, photos in (dec.get('card_tags') or {}).items():
     for ph in photos:
@@ -73,7 +80,8 @@ for r in sorted(d['cards'], key=lambda r: int(r['photo'])):
     if r.get('skill_name') or r.get('skill_text'):
         card['skills'] = [{'name': r.get('skill_name') or '', 'text': r.get('skill_text') or '',
                            'dsl': None, 'note': '效果 DSL 待翻译（尚未开始）'}]
-    card['keywords'] = []
+    card['keywords'] = list(CARD_KW.get(cid, []))
+    if CARD_TROOPKIND.get(cid): card['troopKind'] = CARD_TROOPKIND[cid]
     if PHOTO_TAGS.get(ph):
         card['tags'] = PHOTO_TAGS[ph]
     card['memo'] = r.get('memo') or ''
@@ -91,7 +99,7 @@ for c in yaml.safe_load(open(ROOT/'data/characters.draft.yaml', encoding='utf-8'
                 'flags': ['口述录入，数值未经校验']})
 
 # 基础卡：盾兵（设计者答疑给出新数值）、传国玉玺（沿用 cards.yaml）
-out.append({'id':'neutral_shieldman','name':'盾兵','faction':'neutral','type':'troop',
+out.append({'id':'neutral_shieldman','name':'盾兵','faction':'neutral','type':'troop','troopKind':'shield',
     'cost':2,'attack':1,'health':2,'skills':[],'keywords':['jia_dun'],
     'memo':'仅前军生效：敌方必须先打掉它才能攻击其他人','flavor':'盾如铁壁，寸步不让。',
     'source':{'oral':True,'note':'设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）'}})
@@ -108,7 +116,8 @@ for nc in dec.get('new_cards') or []:
     if nc.get('health') is not None: card['health'] = nc['health']
     if nc.get('skill_text'): card['skills'] = [{'name': nc.get('skill_name',''), 'text': nc['skill_text'],
                                                 'dsl': None, 'note': '效果 DSL 待翻译'}]
-    card['keywords'] = []
+    card['keywords'] = list(CARD_KW.get(nc['id'], []))
+    if nc.get('troopKind'): card['troopKind'] = nc['troopKind']
     if nc.get('tags'): card['tags'] = nc['tags']
     card['memo'] = ''; card['flavor'] = ''
     card['source'] = {'new': nc.get('source','设计者新增')}
@@ -118,9 +127,10 @@ for nc in dec.get('new_cards') or []:
 # 合并 DSL 翻译（决策层 dsl / dsl_effects）
 DSL = dec.get('dsl') or {}
 DSL_EFF = dec.get('dsl_effects') or {}
-COST_RULES = dec.get('card_cost_rules') or {}
-DSL_NONE = set(DSL.get('_none') or [])
 for card in out:
+    if card['id'] in NAME_ONLY:
+        card['dsl_status'] = '⚠️ 有技能名、效果待设计（手写稿正文区空白）'
+        continue
     if card['id'] in DSL_NONE:
         card['dsl_status'] = '无技能（白板/关键词卡），无需翻译'
         continue

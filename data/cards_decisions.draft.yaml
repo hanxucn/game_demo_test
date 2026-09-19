@@ -193,10 +193,16 @@ overrides:
   reason: 设计者答疑（cards_todo）：统率值 = 1
 - photo: 49
   field: name
-  value: 丰年（五谷丰登）
+  value: 五谷丰登
   original: null
-  adr: ADR-027
-  reason: 设计者答疑（cards_todo）：卡名 = 丰年（五谷丰登）
+  adr: ADR-044
+  reason: 设计者答疑（cards_todo）：卡名原文「丰年（五谷丰登）」，因卡面 4 字上限取「五谷丰登」
+- photo: 47
+  field: name
+  value: 十常侍
+  original: null
+  adr: ADR-044
+  reason: 手写卡名「十常侍之乱」超 4 字上限，缩为「十常侍」（事件卡）
 - photo: 50
   field: skill_text
   value: 将战场上己方一张人物卡收回手中。
@@ -1301,6 +1307,54 @@ overrides:
   original: null
   adr: ADR-027
   reason: 设计者答疑：「西凉子弟」完整效果
+- photo: 56
+  field: skill_name
+  value: 白马义从
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案
+- photo: 56
+  field: skill_text
+  value: 召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案：召唤+进化
+- photo: 55
+  field: skill_text
+  value: 召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案：召唤+进化
+- photo: 54
+  field: skill_name
+  value: 陷阵营
+  original: 陷阵破敌
+  adr: ADR-042
+  reason: 设计者新方案：技能名改为「陷阵营」
+- photo: 54
+  field: skill_text
+  value: 召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案：召唤+进化
+- photo: 56
+  field: cost
+  value: 4
+  original: 3
+  adr: ADR-042
+  reason: 设计者：公孙瓒 费用由 3 改为 4
+- photo: 55
+  field: cost
+  value: 4
+  original: 3
+  adr: ADR-042
+  reason: 设计者：马腾 费用由 3 改为 4
+- photo: 54
+  field: cost
+  value: 4
+  original: 3
+  adr: ADR-042
+  reason: 设计者：高顺 费用由 3 改为 4
 type_overrides:
 - photos:
   - 142
@@ -1545,6 +1599,42 @@ new_cards:
   skill_text: ''
   source: 袁绍「威望」召唤的 1/1 衍生物
   open: []
+- id: elite_baima_yicong
+  name: 白马义从
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 1
+  health: 2
+  skill_name: 白马义从
+  skill_text: 每回合对指定任意敌方人物造成 2 点伤害。
+  source: 公孙瓒「白马义从」的进化目标
+  open: []
+  troopKind: archer
+- id: elite_xiliang_tieqi
+  name: 西凉铁骑
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 1
+  skill_name: ''
+  skill_text: ''
+  source: 马腾「西凉铁骑」的进化目标
+  open: []
+  troopKind: infantry
+- id: elite_xianzhen_dun
+  name: 陷阵盾兵
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 2
+  skill_name: ''
+  skill_text: ''
+  source: 高顺「陷阵营」的进化目标
+  open: []
+  troopKind: shield
 dsl:
   wei_xunyou:
   - id: fen_er_ji_zhi
@@ -1642,7 +1732,7 @@ dsl:
     trigger: on_play
     effects:
     - action: clash
-      unit: roll
+      clashMode: roll
       target:
         side: enemy
     - action: discard
@@ -1697,14 +1787,10 @@ dsl:
           type: character
         count: all
   _none:
-  - neutral_chuanguo_yuxi
   - neutral_infantry
   - neutral_shieldman
   - qun_caimao
-  - qun_gongsunzan
-  - qun_mateng
   - qun_songxian
-  - shu_chendao
   - shu_dongjue
   - shu_xiangchong
   - shu_zhoucang
@@ -1715,7 +1801,6 @@ dsl:
   - token_shizu_bing
   - wei_caogang
   - wei_caoxiu
-  - wei_caozhang
   - wei_zhangyan
   - wu_liyi
   - wu_quancong
@@ -1828,7 +1913,7 @@ dsl:
     trigger: on_play
     effects:
     - action: scry
-      unit: top
+      from: top
       count: 1
       to: hand
       target:
@@ -2023,7 +2108,7 @@ dsl:
       target:
         source: true
     - action: apply_status
-      status: wu_sheng
+      status: wu_sheng_status
       stacks: 1
       target:
         source: true
@@ -2053,8 +2138,8 @@ dsl:
           type: character
         count: all
   qun_gaoshun:
-  - id: xian_zhen_po_di
-    name: 陷阵破敌
+  - id: xian_zhen_ying
+    name: 陷阵营
     kind: trigger
     trigger: on_play
     effects:
@@ -2062,6 +2147,13 @@ dsl:
       unit: neutral_shieldman
       count: 2
       position: random
+    - action: transform
+      to: elite_xianzhen_dun
+      target:
+        side: ally
+        filter:
+          troopKind: shield
+        count: all
   qun_yuanshao:
   - id: wei_wang
     name: 威望
@@ -2136,7 +2228,7 @@ dsl:
     trigger: on_play
     effects:
     - action: clash
-      unit: roll
+      clashMode: roll
       target:
         side: enemy
     - action: apply_status
@@ -2157,7 +2249,7 @@ dsl:
     trigger: on_play
     effects:
     - action: scry
-      unit: top
+      from: top
       count: 1
       to: deck_bottom
       target:
@@ -2391,7 +2483,7 @@ dsl:
     trigger: on_death
     effects:
     - action: clash
-      unit: roll
+      clashMode: roll
       target:
         side: enemy
     - action: draw
@@ -2453,7 +2545,7 @@ dsl:
         count: 1
         mode: choose
     - action: scry
-      unit: top
+      from: top
       count: 1
       to: hand
       target:
@@ -2737,6 +2829,54 @@ dsl:
           type: character
         count: 1
         mode: choose
+  elite_baima_yicong:
+  - id: bai_ma_she
+    name: 白马义从
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: damage
+      value: 2
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  qun_gongsunzan:
+  - id: bai_ma_yi_cong
+    name: 白马义从
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: neutral_archer
+      count: 2
+      position: random
+    - action: transform
+      to: elite_baima_yicong
+      target:
+        side: ally
+        filter:
+          troopKind: archer
+        count: all
+  qun_mateng:
+  - id: xi_liang_tie_qi
+    name: 西凉铁骑
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: neutral_infantry
+      count: 2
+      position: random
+    - action: transform
+      to: elite_xiliang_tieqi
+      target:
+        side: ally
+        filter:
+          troopKind: infantry
+        count: all
 dsl_effects:
   tactic_bishi_ruiqi:
   - action: return_to_hand
@@ -2856,7 +2996,7 @@ dsl_effects:
     value: 3
   tactic_yuqin_guzong:
   - action: clash
-    unit: roll
+    clashMode: roll
     target:
       side: enemy
   - action: return_to_hand
@@ -2900,7 +3040,7 @@ dsl_effects:
       mode: lowest_health
   tactic_mantianguohai:
   - action: scry
-    unit: bottom
+    from: bottom
     count: 2
     to: hand
     target:
@@ -2909,14 +3049,14 @@ dsl_effects:
     value: 2
   tactic_chuqibuyi:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
       side: self
   tactic_chenhuodajie:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
@@ -2982,6 +3122,10 @@ dsl_effects:
       filter:
         type: character
       count: all
+  neutral_chuanguo_yuxi:
+  - action: gain_command
+    value: 1
+    duration: this_turn
 dsl_note: DSL 翻译完成：119/119。其中 95 张有技能/效果、1 张（丁奉）用条件费用规则、23 张为白板或纯关键词卡。全部通过 core 的 verify:dsl 端到端验证。
 dsl_blocked: {}
 card_cost_rules:
@@ -2993,3 +3137,26 @@ card_cost_rules:
           type: character
           health_max: 1
     value: -1
+card_keywords:
+  shu_dongjue:
+  - jia_dun
+  shu_zhoucang:
+  - jia_dun
+  wei_zhangyan:
+  - xian_gong
+  elite_xiliang_tieqi:
+  - xian_gong
+  elite_xianzhen_dun:
+  - jia_dun
+  wei_caogang:
+  - jia_dun
+skill_name_only:
+  shu_chendao:
+    name: 白毦兵
+    note: 手写稿写了技能名，正文区空白，效果待设计
+  wei_caozhang:
+    name: 猛袭
+    note: 手写稿写了技能名，正文区空白，效果待设计
+card_troopkind:
+  neutral_infantry: infantry
+  neutral_archer: archer

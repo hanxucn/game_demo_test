@@ -241,7 +241,7 @@ function attack(
   // 奇袭：攻击后失去
   if (hasKeyword(attacker, 'qi_xi')) {
     attacker.kw = attacker.kw.filter((k) => k !== 'qi_xi');
-    delete attacker.statuses.qi_xi;
+    delete attacker.statuses.qi_xi_status;
     events.push({ type: 'STATUS_EXPIRED', side, row: from.row, col: from.col, status: 'qi_xi' });
   }
 

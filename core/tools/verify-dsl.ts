@@ -36,7 +36,10 @@ const cards: CardDef[] = all
   skills: (c.skills ?? []).flatMap((s) => (s.dsl as unknown as SkillDef[]) ?? []),
 }));
 
+// ① 先注册**已摊平 DSL** 的卡（供打出与技能执行）
 for (const c of cards) if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(c);
+// ② 再把其余卡补进卡表（summon / transform 会按 id 引用它们；已存在的不覆盖）
+for (const c of all) if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(c);
 const base = (id: string) => TEST_CARDS.find((x) => x.id === id)!;
 
 let ok = 0;

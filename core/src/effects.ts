@@ -65,6 +65,7 @@ const matchesFilter = (
   if (typeof f.health_max === 'number' && u.hp > f.health_max) return false;
   if (f.has_status && !((u.statuses[f.has_status]?.stacks ?? 0) > 0)) return false;
   if (typeof f.cost_max === 'number' && u.cost > f.cost_max) return false;
+  if (f.troopKind && u.troopKind !== f.troopKind) return false;   // 兵种过滤（ADR-042）
   if (f.cost_below_source && srcCost !== undefined && u.cost >= srcCost) return false;
   return true;
 };
@@ -515,7 +516,7 @@ export function runEffects(
           ? ctx.side : other(ctx.side);
         const mine = ctx.source?.cost ?? 0;
         const his = topCost(state, foe);
-        const mode = eff.unit ?? 'roll';
+        const mode = eff.clashMode ?? 'roll';
         const a = mode === 'cost' ? mine : rng.int(6) + 1;
         const b = mode === 'cost' ? his : rng.int(6) + 1;
         const win = mode === 'cost' && a !== b ? a > b : a >= b;
@@ -580,6 +581,36 @@ export function runEffects(
           }
           state.sides[ctx.side].hand.push({ card: def, mods: [] });
           events.push({ type: 'CARD_STOLEN', from, to: ctx.side, card: def });
+        }
+        break;
+      }
+      case 'transform': {
+        // 进化（ADR-042）：把目标单位换成另一张卡的定义，保留伤害/状态/攻击次数
+        const toId = String(eff.to ?? '');
+        const toCard = cards.get(toId);
+        if (!toCard) {
+          // 不静默失败：进化目标卡必须存在于卡表（数据错误要能看见）
+          events.push({ type: 'REJECTED', reason: `进化目标卡不存在：${toId}` } as never);
+          break;
+        }
+        for (const t of targets) {
+          if (t.kind !== 'unit') continue;
+          const u = getUnit(state, t.side, t.row, t.col);
+          if (!u) continue;
+          const fromId = u.cardId;
+          const taken = u.maxHp - u.hp;                    // 已受伤害，进化后保留
+          u.cardId = toCard.id;
+          u.name = toCard.name;
+          u.baseAtk = toCard.attack ?? 0;
+          u.baseMaxHp = toCard.health ?? 1;
+          u.kw = [...(toCard.keywords ?? [])];             // 关键词替换
+          u.skills = toCard.skills ? structuredClone(toCard.skills) : undefined;
+          u.troopKind = toCard.troopKind;
+          applyMods(u);
+          u.hp = Math.max(1, u.maxHp - taken);             // 保留伤害（不白送治疗）
+          // 攻击次数不重置：attackedThisTurn 保持原值
+          events.push({ type: 'UNIT_TRANSFORMED', side: t.side, row: t.row, col: t.col,
+                        from: fromId, to: toCard.id, unit: u });
         }
         break;
       }
@@ -671,7 +702,7 @@ export function runEffects(
           ? ctx.side : other(ctx.side);
         const deck = state.sides[who].deck;
         const n = eff.count ?? 1;
-        const fromTop = (eff.unit ?? 'top') === 'top';
+        const fromTop = (eff.from ?? 'top') === 'top';
         for (let i = 0; i < n && deck.length; i++) {
           const id = fromTop ? deck.shift()! : deck.pop()!;
           if (eff.to === 'deck_bottom') deck.push(id);

@@ -1,7 +1,7 @@
 meta:
   version: v1
   status: 初步定稿（待 DSL 翻译与数值校验）
-  generated: '2026-09-14'
+  generated: '2026-09-19'
   note: 本文件由工具生成，数据源为 cards_photo.draft.yaml + characters.draft.yaml。不要手改。
   skipped:
   - photo: 45
@@ -30,7 +30,7 @@ meta:
     why: '重抄件，与 #160/#142 重复'
 cards:
 - id: event_shichangshi
-  name: 十常侍之乱
+  name: 十常侍
   faction: neutral
   type: event
   cost: 3
@@ -78,7 +78,7 @@ cards:
     count: 2
     position: random
 - id: event_fengnian
-  name: 丰年（五谷丰登）
+  name: 五谷丰登
   faction: neutral
   type: event
   cost: 1
@@ -204,15 +204,15 @@ cards:
   name: 高顺
   faction: qun
   type: general
-  cost: 3
+  cost: 4
   attack: 2
   health: 2
   skills:
-  - name: 陷阵破敌
-    text: 召唤两个1攻2血的盾兵。
+  - name: 陷阵营
+    text: 召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。
     dsl:
-    - id: xian_zhen_po_di
-      name: 陷阵破敌
+    - id: xian_zhen_ying
+      name: 陷阵营
       kind: trigger
       trigger: on_play
       effects:
@@ -220,6 +220,13 @@ cards:
         unit: neutral_shieldman
         count: 2
         position: random
+      - action: transform
+        to: elite_xianzhen_dun
+        target:
+          side: ally
+          filter:
+            troopKind: shield
+          count: all
     note: DSL 已翻译
   keywords: []
   memo: ''
@@ -232,14 +239,30 @@ cards:
   name: 马腾
   faction: qun
   type: general
-  cost: 3
+  cost: 4
   attack: 2
   health: 2
   skills:
   - name: 西凉铁骑
-    text: ''
-    dsl: null
-    note: 效果 DSL 待翻译（尚未开始）
+    text: 召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。
+    dsl:
+    - id: xi_liang_tie_qi
+      name: 西凉铁骑
+      kind: trigger
+      trigger: on_play
+      effects:
+      - action: summon
+        unit: neutral_infantry
+        count: 2
+        position: random
+      - action: transform
+        to: elite_xiliang_tieqi
+        target:
+          side: ally
+          filter:
+            troopKind: infantry
+          count: all
+    note: DSL 已翻译
   keywords: []
   tags:
   - xi_liang
@@ -250,19 +273,34 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
 - id: qun_gongsunzan
   name: 公孙瓒
   faction: qun
   type: general
-  cost: 3
+  cost: 4
   attack: 2
   health: 2
   skills:
   - name: 白马义从
-    text: ''
-    dsl: null
-    note: 效果 DSL 待翻译（尚未开始）
+    text: 召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。
+    dsl:
+    - id: bai_ma_yi_cong
+      name: 白马义从
+      kind: trigger
+      trigger: on_play
+      effects:
+      - action: summon
+        unit: neutral_archer
+        count: 2
+        position: random
+      - action: transform
+        to: elite_baima_yicong
+        target:
+          side: ally
+          filter:
+            troopKind: archer
+          count: all
+    note: DSL 已翻译
   keywords: []
   memo: ''
   flavor: ''
@@ -271,7 +309,6 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
 - id: shu_chendao
   name: 陈到
   faction: shu
@@ -292,7 +329,7 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
+  dsl_status: ⚠️ 有技能名、效果待设计（手写稿正文区空白）
 - id: wei_xiahouyuan
   name: 夏侯渊
   faction: wei
@@ -905,7 +942,7 @@ cards:
       trigger: on_play
       effects:
       - action: clash
-        unit: roll
+        clashMode: roll
         target:
           side: enemy
       - action: apply_status
@@ -1092,7 +1129,7 @@ cards:
       trigger: on_play
       effects:
       - action: scry
-        unit: top
+        from: top
         count: 1
         to: deck_bottom
         target:
@@ -1160,7 +1197,8 @@ cards:
     text: ''
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - jia_dun
   memo: ''
   flavor: ''
   source:
@@ -1860,7 +1898,7 @@ cards:
           count: 1
           mode: choose
       - action: scry
-        unit: top
+        from: top
         count: 1
         to: hand
         target:
@@ -1886,7 +1924,8 @@ cards:
     text: ''
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - jia_dun
   tags:
   - huang_jin
   memo: ''
@@ -2013,7 +2052,8 @@ cards:
     text: 上场时获得先攻
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - xian_gong
   tags:
   - huang_jin
   memo: ''
@@ -2052,7 +2092,8 @@ cards:
     text: 架盾
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - jia_dun
   memo: ''
   flavor: ''
   source:
@@ -2122,7 +2163,7 @@ cards:
   flags:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
+  dsl_status: ⚠️ 有技能名、效果待设计（手写稿正文区空白）
 - id: wei_caoren
   name: 曹仁
   faction: wei
@@ -2144,7 +2185,7 @@ cards:
         target:
           source: true
       - action: apply_status
-        status: wu_sheng
+        status: wu_sheng_status
         stacks: 1
         target:
           source: true
@@ -2332,7 +2373,7 @@ cards:
       trigger: on_play
       effects:
       - action: clash
-        unit: roll
+        clashMode: roll
         target:
           side: enemy
       - action: discard
@@ -2634,7 +2675,7 @@ cards:
       trigger: on_death
       effects:
       - action: clash
-        unit: roll
+        clashMode: roll
         target:
           side: enemy
       - action: draw
@@ -2880,7 +2921,7 @@ cards:
       trigger: on_play
       effects:
       - action: scry
-        unit: top
+        from: top
         count: 1
         to: hand
         target:
@@ -2976,6 +3017,7 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
+  troopKind: archer
   memo: ''
   flavor: ''
   source:
@@ -3125,7 +3167,7 @@ cards:
   - 缺 memo
   effects:
   - action: clash
-    unit: roll
+    clashMode: roll
     target:
       side: enemy
   - action: return_to_hand
@@ -3157,7 +3199,7 @@ cards:
   - 缺 memo
   effects:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
@@ -3182,7 +3224,7 @@ cards:
   - 缺 memo
   effects:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
@@ -3377,7 +3419,7 @@ cards:
   - 缺 memo
   effects:
   - action: scry
-    unit: bottom
+    from: bottom
     count: 2
     to: hand
     target:
@@ -3448,6 +3490,7 @@ cards:
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
   keywords: []
+  troopKind: infantry
   memo: ''
   flavor: ''
   source:
@@ -3590,6 +3633,7 @@ cards:
   name: 盾兵
   faction: neutral
   type: troop
+  troopKind: shield
   cost: 2
   attack: 1
   health: 2
@@ -3611,13 +3655,16 @@ cards:
   - name: ''
     text: 本回合统率 +1（仅后手获得）
     dsl: null
-    note: 沿用 cards.yaml
+    note: DSL 已翻译（卡级 effects）
   keywords: []
   memo: 0 费，本回合统率 +1（仅后手获得）
   flavor: 受命于天，既寿永昌。
   source:
     from: cards.yaml
-  dsl_status: 无技能（白板/关键词卡），无需翻译
+  effects:
+  - action: gain_command
+    value: 1
+    duration: this_turn
 - id: qun_zhangjiao
   name: 张角
   faction: qun
@@ -3689,3 +3736,62 @@ cards:
   source:
     new: 袁绍「威望」召唤的 1/1 衍生物
   dsl_status: 无技能（白板/关键词卡），无需翻译
+- id: elite_baima_yicong
+  name: 白马义从
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 1
+  health: 2
+  skills:
+  - name: 白马义从
+    text: 每回合对指定任意敌方人物造成 2 点伤害。
+    dsl:
+    - id: bai_ma_she
+      name: 白马义从
+      kind: trigger
+      trigger: turn_start
+      effects:
+      - action: damage
+        value: 2
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: 1
+          mode: choose
+    note: DSL 已翻译
+  keywords: []
+  troopKind: archer
+  memo: ''
+  flavor: ''
+  source:
+    new: 公孙瓒「白马义从」的进化目标
+- id: elite_xiliang_tieqi
+  name: 西凉铁骑
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 1
+  keywords:
+  - xian_gong
+  troopKind: infantry
+  memo: ''
+  flavor: ''
+  source:
+    new: 马腾「西凉铁骑」的进化目标
+- id: elite_xianzhen_dun
+  name: 陷阵盾兵
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 2
+  keywords:
+  - jia_dun
+  troopKind: shield
+  memo: ''
+  flavor: ''
+  source:
+    new: 高顺「陷阵营」的进化目标

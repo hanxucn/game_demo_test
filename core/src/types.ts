@@ -33,6 +33,8 @@ export interface CardEffect {
   value?: number;
   chance?: number;               // 概率 0–1（ADR-033）
   condition?: EffectCondition;   // 条件（ADR-033）
+  clashMode?: 'roll' | 'cost';   // clash 的比法（ADR-044）
+  from?: 'top' | 'bottom';       // scry 的取牌端（ADR-044）
   status_source?: 'self';        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
   value_from_discarded?: 'cost' | 'health';   // 取「最近被弃牌」的属性作为数值（ADR-040）
   value_from_flag?: string;                   // 取 flags 中 "<name>:N" 的 N 作为数值（ADR-041）        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
@@ -48,6 +50,7 @@ export interface CardEffect {
   count?: number;
   position?: string;
   to?: 'hand' | 'deck_top' | 'deck_bottom' | 'discard' | 'board';   // scry/steal 的落点
+  // transform：进化目标卡 id（写在 to 上，与 scry 的落点区分由 action 决定）
   target?: TargetSelector;
 }
 
@@ -65,7 +68,8 @@ export interface TargetSelector {
     row?: Row;
     health_max?: number;
     cost_max?: number;             // 统帅值上限（绝对）
-    cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADDR-036
+    cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADR-036
+    troopKind?: 'infantry' | 'shield' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
     has_status?: string;
     adjacent_to?: 'self';          // 相邻单位（"相邻的己方人物"）
   };
@@ -233,6 +237,7 @@ export type GameEvent =
   | { type: 'HEAL'; target: { kind: 'unit' | 'lord'; side: Side; row?: Row; col?: number }; amount: number; hp: number }
   | { type: 'ARMOR_GAINED'; side: Side; amount: number; armor: number }
   | { type: 'STATUS_APPLIED'; side: Side; row?: Row; col?: number; status: string; stacks: number; turns?: number }
+  | { type: 'UNIT_TRANSFORMED'; side: Side; row: Row; col: number; from: string; to: string; unit: Unit }
   | { type: 'DRAW_BLOCKED'; side: Side }
   | { type: 'EXTRA_ATTACK'; side: Side; row: Row; col: number }
   | { type: 'CONTROL_TAKEN'; from: Side; to: Side; unit: Unit }
