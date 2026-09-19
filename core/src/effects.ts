@@ -25,6 +25,8 @@ export interface EffectContext {
   flags?: string[];
   /** 光环收集模式（ADR-037）：非空时 modify 写入修正层而非直接改数值 */
   auraId?: string;
+  /** discard mode:'choose' 时，指定弃掉手牌的第几张（ADR-049） */
+  handIndex?: number;
 }
 
 /** 目标当前生命（主将/单位通用） */
@@ -487,7 +489,12 @@ export function runEffects(
           : sel === 'self' || sel === 'ally' ? [ctx.side] : [other(ctx.side)];
         for (const side of sides) {
           for (let i = 0; i < n && state.sides[side].hand.length; i++) {
-            const idx = rng.int(state.sides[side].hand.length);
+            // mode: 'choose' → 用 ctx.handIndex 指定的那张（ADR-049）；
+            // 未指定或越界则退回随机，绝不静默失败
+            const want = eff.mode === 'choose' && side === ctx.side ? ctx.handIndex : undefined;
+            const idx = typeof want === 'number' && want >= 0 && want < state.sides[side].hand.length
+              ? want
+              : rng.int(state.sides[side].hand.length);
             const [hc] = state.sides[side].hand.splice(idx, 1);
             if (!hc) continue;
             state.sides[side].discard.push(hc.card);

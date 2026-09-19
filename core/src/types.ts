@@ -52,6 +52,8 @@ export interface CardEffect {
   to?: 'hand' | 'deck_top' | 'deck_bottom' | 'discard' | 'board';   // scry/steal 的落点
   // transform：进化目标卡 id（写在 to 上，与 scry 的落点区分由 action 决定）
   target?: TargetSelector;
+  /** discard 专用：'choose' 表示由调用方通过 ctx.handIndex 指定弃哪张 */
+  mode?: 'choose' | 'random';
 }
 
 export interface TargetSelector {
@@ -226,8 +228,8 @@ export interface MatchState {
 export type Action =
   | { type: 'PLAY_CARD'; cardIndex: number; row?: Row; col?: number }
   | { type: 'ATTACK'; from: { row: Row; col: number }; to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' } }
-  | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number } }
-  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number } }
+  | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }
+  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }
   | { type: 'END_TURN' };
 
 /* ============================================================

@@ -2,42 +2,85 @@
 # 详见 docs/gdd/08-heroes.md
 #
 # 说明：
-#   · 主公不是卡牌，不进卡组、不占战场格
-#   · 主公技统一为「1 统率 / 每回合 1 次」
-#   · skill 字段是引擎内置实现的技能名（见 core/src/engine.ts 的 LORD_SKILLS）
+#   · 主公**不是人物卡**：不进卡组、不占战场格、无攻值、不参与普通攻击
+#   · 主公技统一为「2 统率 / 每回合 1 次」（ADR-049；GDD 原写的 1 统率已改）
+#   · 主公技用**与卡牌完全相同的那套 DSL** 写在 skills[0] 里（ADR-049：
+#     原先硬编码在 core/src/engine.ts 的 LORD_SKILLS 表里，改技能要改代码）
+#   · 手写稿依据：
+#       photo 92  刘备〈仁德〉「每回合能对自己或任意将领恢复█点血量」12 血
+#       photo 110 曹操〈奸雄〉「每回合开始时，可选择护驾：受到伤害时由指定己方人物承受；
+#                 或〔此行被划掉：选择指定敌方一人物〕指定己方一血，抽一张卡牌，伤害-1」
+#   · 群雄**暂不设主公**（ADR-049）：群雄作为公共卡池供各阵营选用
 
 - id: shu_liubei
   name: 刘备
   faction: shu
-  type: special
+  type: lord
   cost: 0
-  skill: 仁德
+  hp: 30                     # 待定：手写稿写 12、GDD 写 30，见 Q-08-5
+  skills:
+    - id: ren_de
+      name: 仁德
+      kind: active
+      cost: 2                # 统率值（ADR-049：三主公统一 2）
+      frequency: once_per_turn
+      effects:
+        - action: heal
+          value: 2
+          target: { side: ally, filter: { type: character }, count: 1, mode: choose }
+      text: 指定一名己方人物恢复 2 点生命（不超过其最大生命）。
+      note: "待定 Q-08-5：手写稿是「对自己或任意将领」——可否给自己（主将）回血待确认"
   memo: "主公技：为一名友方人物恢复 2 点生命"
   flavor: "惟贤惟德，能服于人。"
 
 - id: wei_caocao
   name: 曹操
   faction: wei
-  type: special
+  type: lord
   cost: 0
-  skill: 号令
-  memo: "主公技：使一名友方人物本回合 +2 攻击"
+  hp: 30
+  skills:
+    - id: jian_xiong
+      name: 奸雄
+      kind: active
+      cost: 2
+      frequency: once_per_turn
+      effects:
+        - action: damage
+          value: 2
+          target: { side: self, lord: true }
+        - action: draw
+          value: 1
+      text: 对自己主将造成 2 点伤害，抽 1 张牌。
+      note: >-
+        设计者裁定（2026-09）：自伤 2 点换 1 张牌，且**只能作用于曹操自身**。
+        与手写稿一致——原稿「选择指定敌方一人物」整行已被划掉；
+        技能名手写即为〈奸雄〉（早期翻译误记为「护驾」，护驾只是第一个模式的名字）。
+  memo: "主公技：自伤 2 换 1 张牌"
   flavor: "宁教我负天下人，休教天下人负我。"
 
 - id: wu_sunquan
   name: 孙权
   faction: wu
-  type: special
+  type: lord
   cost: 0
-  skill: 坐断东南
-  memo: "主公技：获得 2 点护甲"
+  hp: 30
+  skills:
+    - id: zuo_duan_dong_nan
+      name: 坐断东南
+      kind: active
+      cost: 2
+      frequency: once_per_turn
+      effects:
+        - action: discard
+          count: 1
+          mode: choose
+          target: { side: self, zone: hand }
+        - action: draw
+          value: 1
+      text: 弃 1 张手牌，然后抽 1 张牌。
+      note: >-
+        Q-08-6 待定：设计者原案是「手牌↔卡组置换 **或** 弃 1 抽 1」二选一。
+        置换需要「搜索卡组并挑一张」的待选机制（比选手牌更重），当前只实现了「弃 1 抽 1」。
+  memo: "主公技：弃 1 张手牌再抽 1 张"
   flavor: "生子当如孙仲谋。"
-
-- id: qun_dongzhuo
-  name: 董卓
-  faction: qun
-  type: special
-  cost: 0
-  skill: 暴虐
-  memo: "主公技：抽 1 张牌，并对自己的主将造成 1 点伤害"
-  flavor: "顺我者昌，逆我者亡。"

@@ -67,19 +67,49 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
     }
   }
 
-  // ⑤ 用主公技（仅当有明确收益时）
-  if (!state.sides[side].lord.skillUsedThisTurn && state.sides[side].command.cur >= 1) {
-    const skill = state.sides[side].lord.skill;
-    if (skill === '坐断东南') return { type: 'USE_LORD_SKILL' };
-    if (skill === '仁德') {
-      const wounded = allUnits(state, side).filter((r) => r.unit.hp < r.unit.maxHp)
-        .sort((a, b) => (a.unit.hp - a.unit.maxHp) - (b.unit.hp - b.unit.maxHp))[0];
-      if (wounded) return { type: 'USE_LORD_SKILL', target: { side, row: wounded.row, col: wounded.col } };
-    }
-    if (skill === '号令') {
-      const attacker = allUnits(state, side).filter((r) => canAttack(state, side, r.row, r.col).ok)
-        .sort((a, b) => b.unit.atk - a.unit.atk)[0];
-      if (attacker) return { type: 'USE_LORD_SKILL', target: { side, row: attacker.row, col: attacker.col } };
+  // ⑤ 主公技：**按数据判断**（ADR-049：主公技已从硬编码迁到 heroes.yaml 的 DSL）
+  //
+  // 原先按中文技能名硬编码（坐断东南/仁德/号令），主公技数据化后那些分支全部失效——
+  // 表现为 AI 完全不用曹操「奸雄」，却把孙权「坐断东南」当无脑循环技狂放（每回合净弃 1 抽 1，白烧 2 统率）。
+  const lord = state.sides[side].lord;
+  const lsk = lord.skillDef;
+  if (lsk && !lord.skillUsedThisTurn && state.sides[side].command.cur >= (lsk.cost ?? 2)) {
+    const effs = lsk.effects ?? [];
+    const healEff = effs.find((e) => e.action === 'heal');
+    const selfDmg = effs.find((e) => e.action === 'damage' && e.target?.lord
+      && (e.target?.side === 'self' || e.target?.side === 'ally'));
+    const draws = effs.filter((e) => e.action === 'draw').reduce((a, e) => a + (e.value ?? 1), 0);
+    const selfDiscard = effs.some((e) => e.action === 'discard'
+      && (e.target?.side === 'self' || e.target?.side === 'ally'));
+    const hand = state.sides[side].hand;
+
+    if (healEff) {
+      // 治疗型：只在真有伤兵时用，并优先救最危险的
+      const wounded = allUnits(state, side)
+        .filter((r) => r.unit.hp < r.unit.maxHp)
+        .sort((a, b) => a.unit.hp - b.unit.hp)[0];
+      if (wounded) {
+        return { type: 'USE_LORD_SKILL', target: { side, row: wounded.row, col: wounded.col } };
+      }
+    } else if (selfDmg) {
+      // 卖血换牌型（奸雄）：留足血量安全垫，且手牌/牌库要吃得下
+      const dmg = selfDmg.value ?? 0;
+      const safe = lord.hp - dmg > 12;                       // 自伤后仍留 >12 血
+      const room = hand.length < 10 && state.sides[side].deck.length > 0;
+      if (safe && room) return { type: 'USE_LORD_SKILL' };
+    } else if (selfDiscard && draws === 0) {
+      // 纯弃牌是亏的，不用
+    } else if (selfDiscard && draws > 0) {
+      // 弃 N 抽 N：净手牌不变，只赚手牌质量。AI 不会评估质量 →
+      // 仅在手里有「明显该换掉」的牌（费用最低）时才用，并指定弃它
+      const worst = hand.map((hc, i) => ({ hc, i })).sort((a, b) => a.hc.card.cost - b.hc.card.cost)[0];
+      const avg = hand.reduce((a, hc) => a + hc.card.cost, 0) / Math.max(1, hand.length);
+      if (worst && hand.length > 3 && worst.hc.card.cost < avg - 0.5
+        && state.sides[side].deck.length > 0) {
+        return { type: 'USE_LORD_SKILL', handIndex: worst.i };
+      }
+    } else {
+      return { type: 'USE_LORD_SKILL' };
     }
   }
 

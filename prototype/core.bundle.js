@@ -29,9 +29,12 @@ var Core = (() => {
     FORBIDDEN_KEYWORD_COMBOS: () => FORBIDDEN_KEYWORD_COMBOS,
     KEYWORDS: () => KEYWORDS,
     LORD_HP: () => LORD_HP,
+    LORD_SKILL_COST: () => LORD_SKILL_COST,
     MATCH: () => MATCH,
     MAX_COPIES: () => MAX_COPIES,
     NON_DECK_TYPES: () => NON_DECK_TYPES,
+    PLAYABLE_FACTIONS: () => PLAYABLE_FACTIONS,
+    PUBLIC_POOL: () => PUBLIC_POOL,
     STATUSES: () => STATUSES,
     SUGGESTED_CURVE: () => SUGGESTED_CURVE,
     TAGS: () => TAGS,
@@ -161,6 +164,7 @@ var Core = (() => {
   };
   var LORD_HP = 30;
   var COMMAND = { START: 1, MAX: 10 };
+  var LORD_SKILL_COST = 2;
   var DECK = {
     SIZE: 30,
     HAND_START_FIRST: 3,
@@ -1253,7 +1257,8 @@ var Core = (() => {
           const sides = sel === "both" ? ["own", "enemy"] : sel === "self" || sel === "ally" ? [ctx.side] : [other(ctx.side)];
           for (const side of sides) {
             for (let i = 0; i < n && state.sides[side].hand.length; i++) {
-              const idx = rng.int(state.sides[side].hand.length);
+              const want = eff.mode === "choose" && side === ctx.side ? ctx.handIndex : void 0;
+              const idx = typeof want === "number" && want >= 0 && want < state.sides[side].hand.length ? want : rng.int(state.sides[side].hand.length);
               const [hc] = state.sides[side].hand.splice(idx, 1);
               if (!hc) continue;
               state.sides[side].discard.push(hc.card);
@@ -1544,6 +1549,34 @@ var Core = (() => {
   }
 
   // src/engine.ts
+  function useLordSkill(state, ctx, action, events, rng) {
+    const side = state.active;
+    const lord = state.sides[side].lord;
+    const skill = lord.skillDef;
+    if (!skill || skill.kind !== "active") return false;
+    if (hasCapOn(lord.statuses, "block_lord_skill")) return false;
+    if (lord.skillUsedThisTurn && capStacks(lord.statuses, "extra_lord_skill") <= 0) return false;
+    const cost = skill.cost ?? LORD_SKILL_COST;
+    if (state.sides[side].command.cur < cost) return false;
+    const target = action.target ? action.target.row !== void 0 ? unitRef(action.target.side, action.target.row, action.target.col) : lordRef(action.target.side) : void 0;
+    state.sides[side].command.cur -= cost;
+    if (capStacks(lord.statuses, "extra_lord_skill") > 0 && lord.skillUsedThisTurn) {
+      const bonus = Object.entries(lord.statuses ?? {}).find(([id, st]) => st.stacks > 0 && STATUSES[id]?.caps?.includes("extra_lord_skill"));
+      if (bonus) bonus[1].stacks -= 1;
+    } else {
+      lord.skillUsedThisTurn = true;
+    }
+    events.push({ type: "LORD_SKILL_USED", side, skill: lord.skill });
+    runEffects(
+      state,
+      ctx.cards,
+      skill.effects,
+      { side, chosen: target, handIndex: action.handIndex },
+      rng,
+      events
+    );
+    return true;
+  }
   function startMatch(state, ctx) {
     const events = [];
     const next = cloneState(state);
@@ -1723,51 +1756,6 @@ var Core = (() => {
     }
     return true;
   }
-  var LORD_SKILLS = {
-    \u4EC1\u5FB7: (state, ctx, side, target, events) => {
-      if (target) healTarget(state, target, 2, events);
-    },
-    \u53F7\u4EE4: (state, ctx, side, target, events) => {
-      if (target?.kind === "unit") {
-        const u = getUnit(state, target.side, target.row, target.col);
-        if (u) {
-          u.statuses.zhen_fen = { stacks: (u.statuses.zhen_fen?.stacks ?? 0) + 2 };
-          events.push({ type: "STATUS_APPLIED", side: target.side, row: target.row, col: target.col, status: "zhen_fen", stacks: 2 });
-        }
-      }
-    },
-    \u5750\u65AD\u4E1C\u5357: (state, ctx, side, _t, events) => {
-      gainArmor(state, side, 2, events);
-    },
-    \u66B4\u8650: (state, ctx, side, _t, events) => {
-      drawCard(state, ctx.cards, side, events);
-      dealDamage(state, ctx.cards, lordRef(side), 1, events, "\u66B4\u8650");
-    }
-  };
-  function useLordSkill(state, ctx, action, events, rng) {
-    const side = state.active;
-    const lord = state.sides[side].lord;
-    if (hasCapOn(lord.statuses, "block_lord_skill")) return false;
-    if (lord.skillUsedThisTurn && capStacks(lord.statuses, "extra_lord_skill") <= 0) return false;
-    if (state.sides[side].command.cur < 1) return false;
-    const target = action.target ? action.target.row !== void 0 ? unitRef(action.target.side, action.target.row, action.target.col) : lordRef(action.target.side) : void 0;
-    const impl = lord.skillDef ? null : LORD_SKILLS[lord.skill];
-    if (!impl && !lord.skillDef) return false;
-    state.sides[side].command.cur -= 1;
-    if (capStacks(lord.statuses, "extra_lord_skill") > 0 && lord.skillUsedThisTurn) {
-      const bonus = Object.entries(lord.statuses ?? {}).find(([id, st]) => st.stacks > 0 && STATUSES[id]?.caps?.includes("extra_lord_skill"));
-      if (bonus) bonus[1].stacks -= 1;
-    } else {
-      lord.skillUsedThisTurn = true;
-    }
-    events.push({ type: "LORD_SKILL_USED", side, skill: lord.skill });
-    if (lord.skillDef) {
-      runEffects(state, ctx.cards, lord.skillDef.effects, { side, chosen: target }, rng, events);
-    } else if (impl) {
-      impl(state, ctx, side, target, events);
-    }
-    return true;
-  }
   function useUnitSkill(state, ctx, action, events, rng) {
     const side = state.active;
     const u = getUnit(state, side, action.row, action.col);
@@ -1780,7 +1768,14 @@ var Core = (() => {
     if ((skill.frequency ?? "once_per_turn") === "once") u.skillsUsedOnce.push(key);
     state.sides[side].command.cur -= skill.cost ?? 0;
     const target = action.target ? action.target.row !== void 0 ? unitRef(action.target.side, action.target.row, action.target.col) : lordRef(action.target.side) : void 0;
-    runEffects(state, ctx.cards, skill.effects, { side, source: u, chosen: target }, rng, events);
+    runEffects(
+      state,
+      ctx.cards,
+      skill.effects,
+      { side, source: u, chosen: target, handIndex: action.handIndex },
+      rng,
+      events
+    );
     return true;
   }
 
@@ -1903,9 +1898,11 @@ var Core = (() => {
     }
     for (const h of bundle.heroes) cards.set(h.id, h);
     const findLord = (id) => {
-      const l = bundle.heroes.find((h) => h.id === id);
-      if (!l) throw new Error(`\u627E\u4E0D\u5230\u4E3B\u516C\uFF1A${id}`);
-      return l;
+      const raw = bundle.heroes.find((h) => h.id === id);
+      if (!raw) throw new Error(`\u627E\u4E0D\u5230\u4E3B\u516C\uFF1A${id}`);
+      const sk = raw.skills?.[0];
+      if (!sk) throw new Error(`\u4E3B\u516C ${id} \u6CA1\u6709\u4E3B\u516C\u6280\uFF08heroes.yaml \u7684 skills[0]\uFF09`);
+      return { ...raw, skill: sk.name, skillDef: sk };
     };
     return {
       cards,
@@ -1916,11 +1913,15 @@ var Core = (() => {
 
   // src/deck.ts
   var MAX_COPIES = 2;
-  var NEUTRAL = "neutral";
+  var PUBLIC_POOL = ["neutral", "qun"];
+  var PLAYABLE_FACTIONS = ["shu", "wei", "wu"];
   var isDeckable = (c) => !NON_DECK_TYPES.includes(c.type);
-  var isPlayableBy = (c, faction) => isDeckable(c) && (c.faction === faction || c.faction === NEUTRAL);
+  var isPlayableBy = (c, faction) => isDeckable(c) && (c.faction === faction || PUBLIC_POOL.includes(c.faction));
   function cardPool(data, faction) {
-    return (data.byFaction.get(faction) ?? []).concat(data.byFaction.get(NEUTRAL) ?? []).filter((c) => isPlayableBy(c, faction));
+    return PUBLIC_POOL.reduce(
+      (acc, f) => acc.concat(data.byFaction.get(f) ?? []),
+      [...data.byFaction.get(faction) ?? []]
+    ).filter((c) => isPlayableBy(c, faction));
   }
   var SUGGESTED_CURVE = { 1: 4, 2: 7, 3: 7, 4: 6, 5: 4, 6: 2 };
   function computeStats(cards) {
@@ -1959,7 +1960,10 @@ var Core = (() => {
         continue;
       }
       if (!isPlayableBy(c, faction)) {
-        errors.push({ kind: "faction", message: `${c.name} \u5C5E\u4E8E ${c.faction}\uFF0C\u4E0D\u80FD\u8FDB ${faction} \u5361\u7EC4` });
+        errors.push({
+          kind: "faction",
+          message: `${c.name} \u5C5E\u4E8E ${c.faction}\uFF0C\u4E0D\u80FD\u8FDB ${faction} \u5361\u7EC4\uFF08\u53EA\u5141\u8BB8\u672C\u65B9\u9635\u8425 + ${PUBLIC_POOL.join("/")}\uFF09`
+        });
         continue;
       }
       cards.push(c);
@@ -2086,16 +2090,34 @@ var Core = (() => {
         return { type: "USE_SKILL", row: ref.row, col: ref.col, target: { side: foe, row: target.row, col: target.col } };
       }
     }
-    if (!state.sides[side].lord.skillUsedThisTurn && state.sides[side].command.cur >= 1) {
-      const skill = state.sides[side].lord.skill;
-      if (skill === "\u5750\u65AD\u4E1C\u5357") return { type: "USE_LORD_SKILL" };
-      if (skill === "\u4EC1\u5FB7") {
-        const wounded = allUnits(state, side).filter((r) => r.unit.hp < r.unit.maxHp).sort((a, b) => a.unit.hp - a.unit.maxHp - (b.unit.hp - b.unit.maxHp))[0];
-        if (wounded) return { type: "USE_LORD_SKILL", target: { side, row: wounded.row, col: wounded.col } };
-      }
-      if (skill === "\u53F7\u4EE4") {
-        const attacker = allUnits(state, side).filter((r) => canAttack(state, side, r.row, r.col).ok).sort((a, b) => b.unit.atk - a.unit.atk)[0];
-        if (attacker) return { type: "USE_LORD_SKILL", target: { side, row: attacker.row, col: attacker.col } };
+    const lord = state.sides[side].lord;
+    const lsk = lord.skillDef;
+    if (lsk && !lord.skillUsedThisTurn && state.sides[side].command.cur >= (lsk.cost ?? 2)) {
+      const effs = lsk.effects ?? [];
+      const healEff = effs.find((e) => e.action === "heal");
+      const selfDmg = effs.find((e) => e.action === "damage" && e.target?.lord && (e.target?.side === "self" || e.target?.side === "ally"));
+      const draws = effs.filter((e) => e.action === "draw").reduce((a, e) => a + (e.value ?? 1), 0);
+      const selfDiscard = effs.some((e) => e.action === "discard" && (e.target?.side === "self" || e.target?.side === "ally"));
+      const hand = state.sides[side].hand;
+      if (healEff) {
+        const wounded = allUnits(state, side).filter((r) => r.unit.hp < r.unit.maxHp).sort((a, b) => a.unit.hp - b.unit.hp)[0];
+        if (wounded) {
+          return { type: "USE_LORD_SKILL", target: { side, row: wounded.row, col: wounded.col } };
+        }
+      } else if (selfDmg) {
+        const dmg = selfDmg.value ?? 0;
+        const safe = lord.hp - dmg > 12;
+        const room = hand.length < 10 && state.sides[side].deck.length > 0;
+        if (safe && room) return { type: "USE_LORD_SKILL" };
+      } else if (selfDiscard && draws === 0) {
+      } else if (selfDiscard && draws > 0) {
+        const worst = hand.map((hc, i) => ({ hc, i })).sort((a, b) => a.hc.card.cost - b.hc.card.cost)[0];
+        const avg = hand.reduce((a, hc) => a + hc.card.cost, 0) / Math.max(1, hand.length);
+        if (worst && hand.length > 3 && worst.hc.card.cost < avg - 0.5 && state.sides[side].deck.length > 0) {
+          return { type: "USE_LORD_SKILL", handIndex: worst.i };
+        }
+      } else {
+        return { type: "USE_LORD_SKILL" };
       }
     }
     const spots = legalPlacements(state, side);

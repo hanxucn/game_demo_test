@@ -26,6 +26,7 @@ export {
 export { loadData, type DataBundle, type LoadedData } from './loader.ts';
 export {
   autoDeck, cardPool, validateDeck, isDeckable, isPlayableBy, MAX_COPIES, SUGGESTED_CURVE,
+  PUBLIC_POOL, PLAYABLE_FACTIONS,
   type DeckCheck, type DeckError, type DeckWarning, type DeckStats,
 } from './deck.ts';
 export { chooseAction, takeTurn } from './ai.ts';

@@ -602,6 +602,8 @@ cards:
   cost_original: null
   attack_original: null
   health_original: 12
+  excluded: true
+  exclude_reason: 设计者：袁绍为主公卡，群雄暂不设主公，移出卡池（ADR-049）
   type_proposed: 武将
   type_reason: 攻击 3 > 1（ADR-018 规则）
 - photo: 71
@@ -1519,6 +1521,8 @@ cards:
   health_original: null
   decisions:
   - 'health: None → 30（ADR-026）；设计者：曹操为主公卡，主公默认 30 血。'
+  excluded: true
+  exclude_reason: 设计者：曹操为主公（heroes.yaml），不作为卡牌（ADR-049）
   type_proposed: 主公
 - photo: 111
   faction: 魏
@@ -1747,6 +1751,8 @@ cards:
   skill_text_original: ''
   decisions:
   - 'skill_text:  → 主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵（ADR-027）；设计者答疑：袁绍（群雄）主公技'
+  excluded: true
+  exclude_reason: '设计者：袁绍为主公卡（与 #70 重复的两张照片），群雄暂不设主公，移出卡池（ADR-049）'
   type_proposed: （不适用）
 - photo: 123
   faction: 蜀

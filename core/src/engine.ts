@@ -1,3 +1,44 @@
+function useLordSkill(
+  state: MatchState, ctx: EngineContext,
+  action: Extract<Action, { type: 'USE_LORD_SKILL' }>,
+  events: GameEvent[], rng: ReturnType<typeof createRng>,
+): boolean {
+  const side = state.active;
+  const lord = state.sides[side].lord;
+  const skill = lord.skillDef;
+  // 主公技一律走数据（ADR-049）：heroes.yaml 的 skills[0]，与卡牌同一套 DSL。
+  // 原先按中文技能名硬编码在 LORD_SKILLS 表里，改技能必须改代码。
+  if (!skill || skill.kind !== 'active') return false;
+
+  // 主公技门控（ADR-040）：被「进言」封锁则不可用；「参谋」提升每回合可用次数
+  if (hasCapOn(lord.statuses, 'block_lord_skill')) return false;
+  if (lord.skillUsedThisTurn && capStacks(lord.statuses, 'extra_lord_skill') <= 0) return false;
+
+  // 费用来自数据（ADR-049：三主公统一 2），不再硬编码 1
+  const cost = skill.cost ?? LORD_SKILL_COST;
+  if (state.sides[side].command.cur < cost) return false;
+
+  const target: TargetRef | undefined = action.target
+    ? action.target.row !== undefined
+      ? unitRef(action.target.side, action.target.row, action.target.col as number)
+      : lordRef(action.target.side)
+    : undefined;
+
+  state.sides[side].command.cur -= cost;
+  // 有「参谋」加成时先消耗加成次数，再消耗基础次数
+  if (capStacks(lord.statuses, 'extra_lord_skill') > 0 && lord.skillUsedThisTurn) {
+    const bonus = Object.entries(lord.statuses ?? {})
+      .find(([id, st]) => st.stacks > 0 && STATUSES[id]?.caps?.includes('extra_lord_skill'));
+    if (bonus) bonus[1].stacks -= 1;
+  } else {
+    lord.skillUsedThisTurn = true;
+  }
+  events.push({ type: 'LORD_SKILL_USED', side, skill: lord.skill });
+  runEffects(state, ctx.cards, skill.effects,
+             { side, chosen: target, handIndex: action.handIndex }, rng, events);
+  return true;
+}
+
 /**
  * 引擎主循环：applyAction
  *
@@ -5,7 +46,7 @@
  * 客户端只消费 events 播放动画；服务器用同一个引擎做权威裁决。
  */
 
-import { COMMAND, MATCH, STATUSES, TIMING } from './constants.ts';
+import { COMMAND, LORD_SKILL_COST, MATCH, STATUSES, TIMING } from './constants.ts';
 import { createRng } from './rng.ts';
 import {
   capStacks,
@@ -261,70 +302,6 @@ function attack(
    技能
    ============================================================ */
 
-/** 主公技内置实现（当数据未提供 skillDef 时按技能名兜底） */
-const LORD_SKILLS: Record<string, (state: MatchState, ctx: EngineContext, side: Side, target: TargetRef | undefined, events: GameEvent[]) => void> = {
-  仁德: (state, ctx, side, target, events) => {
-    if (target) healTarget(state, target, 2, events);
-  },
-  号令: (state, ctx, side, target, events) => {
-    if (target?.kind === 'unit') {
-      const u = getUnit(state, target.side, target.row, target.col);
-      if (u) {
-        u.statuses.zhen_fen = { stacks: (u.statuses.zhen_fen?.stacks ?? 0) + 2 };
-        events.push({ type: 'STATUS_APPLIED', side: target.side, row: target.row, col: target.col, status: 'zhen_fen', stacks: 2 });
-      }
-    }
-  },
-  坐断东南: (state, ctx, side, _t, events) => { gainArmor(state, side, 2, events); },
-  暴虐: (state, ctx, side, _t, events) => {
-    drawCard(state, ctx.cards, side, events);
-    dealDamage(state, ctx.cards, lordRef(side), 1, events, '暴虐');
-  },
-};
-
-function useLordSkill(
-  state: MatchState, ctx: EngineContext,
-  action: Extract<Action, { type: 'USE_LORD_SKILL' }>,
-  events: GameEvent[], rng: ReturnType<typeof createRng>,
-): boolean {
-  const side = state.active;
-  const lord = state.sides[side].lord;
-  // 主公技门控（ADR-040）：被「进言」封锁则不可用；「参谋」提升每回合可用次数
-  if (hasCapOn(lord.statuses, 'block_lord_skill')) return false;
-  if (lord.skillUsedThisTurn && capStacks(lord.statuses, 'extra_lord_skill') <= 0) return false;
-  if (state.sides[side].command.cur < 1) return false;
-
-  const target: TargetRef | undefined = action.target
-    ? action.target.row !== undefined
-      ? unitRef(action.target.side, action.target.row, action.target.col as number)
-      : lordRef(action.target.side)
-    : undefined;
-
-  const impl = lord.skillDef
-    ? null
-    : LORD_SKILLS[lord.skill];
-
-  if (!impl && !lord.skillDef) return false;
-
-  state.sides[side].command.cur -= 1;
-  // 有「参谋」加成时先消耗加成次数，再消耗基础次数
-  if (capStacks(lord.statuses, 'extra_lord_skill') > 0 && lord.skillUsedThisTurn) {
-    const bonus = Object.entries(lord.statuses ?? {})
-      .find(([id, st]) => st.stacks > 0 && STATUSES[id]?.caps?.includes('extra_lord_skill'));
-    if (bonus) bonus[1].stacks -= 1;
-  } else {
-    lord.skillUsedThisTurn = true;
-  }
-  events.push({ type: 'LORD_SKILL_USED', side, skill: lord.skill });
-
-  if (lord.skillDef) {
-    runEffects(state, ctx.cards, lord.skillDef.effects, { side, chosen: target }, rng, events);
-  } else if (impl) {
-    impl(state, ctx, side, target, events);
-  }
-  return true;
-}
-
 function useUnitSkill(
   state: MatchState, ctx: EngineContext,
   action: Extract<Action, { type: 'USE_SKILL' }>,
@@ -347,6 +324,7 @@ function useUnitSkill(
       ? unitRef(action.target.side, action.target.row, action.target.col as number)
       : lordRef(action.target.side)
     : undefined;
-  runEffects(state, ctx.cards, skill.effects, { side, source: u, chosen: target }, rng, events);
+  runEffects(state, ctx.cards, skill.effects,
+             { side, source: u, chosen: target, handIndex: action.handIndex }, rng, events);
   return true;
 }

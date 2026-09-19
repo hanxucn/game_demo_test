@@ -13,15 +13,24 @@ meta:
   - photo: 57
     name: 【?】义
     why: 设计者：废弃，不放入 v1（ADR-028）
+  - photo: 70
+    name: 袁绍
+    why: 设计者：袁绍为主公卡，群雄暂不设主公，移出卡池（ADR-049）
   - photo: 92
     name: 刘备
     why: 设计者：刘备为主公，暂时不作为卡牌（ADR-014）
+  - photo: 110
+    name: 曹操
+    why: 设计者：曹操为主公（heroes.yaml），不作为卡牌（ADR-049）
   - photo: 114
     name: 夏侯恩
     why: 设计者：废弃，不放入 v1（ADR-028）
   - photo: 119
     name: 【张?】【飞?】
     why: 设计者：草稿，不进 v1（ADR-028）
+  - photo: 122
+    name: 袁绍
+    why: '设计者：袁绍为主公卡（与 #70 重复的两张照片），群雄暂不设主公，移出卡池（ADR-049）'
   - photo: 123
     name: 诸葛亮
     why: 设计者：空城计已独立为计谋牌，#123 不作为人物（ADR-014）
@@ -760,37 +769,6 @@ cards:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   cost_original: 6
-- id: qun_yuanshao
-  name: 袁绍
-  faction: qun
-  type: general
-  cost: 5
-  attack: 3
-  health: 5
-  skills:
-  - name: 威望
-    text: 每回合可召唤一个 1攻 1血的士族兵
-    dsl:
-    - id: wei_wang
-      name: 威望
-      kind: trigger
-      trigger: turn_start
-      effects:
-      - action: summon
-        unit: token_shizu_bing
-        count: 1
-        position: random
-    note: DSL 已翻译
-  keywords: []
-  tags:
-  - shi_zu
-  memo: ''
-  flavor: ''
-  source:
-    photo: 70
-  flags:
-  - 转录存疑 3 处（详见 cards_photo.draft.yaml）
-  - 缺 memo
 - id: qun_zhangbao
   name: 张宝
   faction: qun
@@ -2018,41 +1996,6 @@ cards:
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
   cost_original: null
-- id: wei_caocao_lord
-  name: 曹操
-  faction: wei
-  type: lord
-  cost: 0
-  skills:
-  - name: 奸雄
-    text: 每回合开始时，可选择护驾：受到伤害时由指定己方人物承受；或选择指定敌方一人物指定己方一血，抽一张卡牌，伤害-1.
-    dsl:
-    - id: hu_jia
-      name: 护驾
-      kind: active
-      cost: 0
-      frequency: once_per_turn
-      effects:
-      - action: apply_status
-        status: shou_hu
-        status_source: self
-        duration: 1
-        target:
-          side: ally
-          filter:
-            type: character
-          count: 1
-          mode: choose
-    note: DSL 已翻译
-  keywords: []
-  memo: ''
-  flavor: ''
-  source:
-    photo: 110
-  flags:
-  - 转录存疑 3 处（详见 cards_photo.draft.yaml）
-  - 缺 memo
-  cost_original: null
 - id: wei_zhangyan
   name: 张燕
   faction: wei
@@ -2329,37 +2272,6 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-- id: qun_yuanshao_lord
-  name: 袁绍
-  faction: qun
-  type: lord
-  cost: 0
-  skills:
-  - name: ''
-    text: 主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵
-    dsl:
-    - id: wei_wang_lord
-      name: 威望
-      kind: active
-      cost: 2
-      frequency: once_per_turn
-      effects:
-      - action: summon
-        unit: token_shizu_bing
-        count: 1
-        position: random
-    note: DSL 已翻译
-  keywords: []
-  tags:
-  - shi_zu
-  memo: ''
-  flavor: ''
-  source:
-    photo: 122
-  flags:
-  - 转录存疑 2 处（详见 cards_photo.draft.yaml）
-  - 缺 memo
-  cost_original: null
 - id: wu_zhouyu
   name: 周瑜
   faction: wu

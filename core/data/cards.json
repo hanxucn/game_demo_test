@@ -1224,51 +1224,6 @@
     }
   },
   {
-    "id": "wei_caocao_lord",
-    "name": "曹操",
-    "faction": "wei",
-    "type": "lord",
-    "cost": 0,
-    "keywords": [],
-    "skills": [
-      {
-        "id": "hu_jia",
-        "name": "护驾",
-        "kind": "active",
-        "cost": 0,
-        "frequency": "once_per_turn",
-        "effects": [
-          {
-            "action": "apply_status",
-            "status": "shou_hu",
-            "status_source": "self",
-            "duration": 1,
-            "target": {
-              "side": "ally",
-              "filter": {
-                "type": "character"
-              },
-              "count": 1,
-              "mode": "choose"
-            }
-          }
-        ],
-        "text": "每回合开始时，可选择护驾：受到伤害时由指定己方人物承受；或选择指定敌方一人物指定己方一血，抽一张卡牌，伤害-1."
-      }
-    ],
-    "memo": "",
-    "flavor": "",
-    "value": {
-      "stats": 0,
-      "keywords": 0,
-      "skills": 1.6,
-      "total": 1.6,
-      "budget": 1,
-      "diff": 0.6,
-      "level": "ok"
-    }
-  },
-  {
     "id": "wei_caogang",
     "name": "曹昂",
     "faction": "wei",
@@ -3147,46 +3102,6 @@
     }
   },
   {
-    "id": "qun_yuanshao_lord",
-    "name": "袁绍",
-    "faction": "qun",
-    "type": "lord",
-    "cost": 0,
-    "tags": [
-      "shi_zu"
-    ],
-    "keywords": [],
-    "skills": [
-      {
-        "id": "wei_wang_lord",
-        "name": "威望",
-        "kind": "active",
-        "cost": 2,
-        "frequency": "once_per_turn",
-        "effects": [
-          {
-            "action": "summon",
-            "unit": "token_shizu_bing",
-            "count": 1,
-            "position": "random"
-          }
-        ],
-        "text": "主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵"
-      }
-    ],
-    "memo": "",
-    "flavor": "",
-    "value": {
-      "stats": 0,
-      "keywords": 0,
-      "skills": 2.4,
-      "total": 2.4,
-      "budget": 1,
-      "diff": 1.4,
-      "level": "ok"
-    }
-  },
-  {
     "id": "qun_caimao",
     "name": "蔡瑁",
     "faction": "qun",
@@ -3567,47 +3482,6 @@
       "total": 10,
       "budget": 9,
       "diff": 1,
-      "level": "ok"
-    }
-  },
-  {
-    "id": "qun_yuanshao",
-    "name": "袁绍",
-    "faction": "qun",
-    "type": "general",
-    "cost": 5,
-    "attack": 3,
-    "health": 5,
-    "tags": [
-      "shi_zu"
-    ],
-    "keywords": [],
-    "skills": [
-      {
-        "id": "wei_wang",
-        "name": "威望",
-        "kind": "trigger",
-        "trigger": "turn_start",
-        "effects": [
-          {
-            "action": "summon",
-            "unit": "token_shizu_bing",
-            "count": 1,
-            "position": "random"
-          }
-        ],
-        "text": "每回合可召唤一个 1攻 1血的士族兵"
-      }
-    ],
-    "memo": "",
-    "flavor": "",
-    "value": {
-      "stats": 8,
-      "keywords": 0,
-      "skills": 2.1,
-      "total": 10.1,
-      "budget": 11,
-      "diff": -0.9,
       "level": "ok"
     }
   },

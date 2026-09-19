@@ -1226,51 +1226,6 @@ window.GameData = {
       }
     },
     {
-      "id": "wei_caocao_lord",
-      "name": "曹操",
-      "faction": "wei",
-      "type": "lord",
-      "cost": 0,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "hu_jia",
-          "name": "护驾",
-          "kind": "active",
-          "cost": 0,
-          "frequency": "once_per_turn",
-          "effects": [
-            {
-              "action": "apply_status",
-              "status": "shou_hu",
-              "status_source": "self",
-              "duration": 1,
-              "target": {
-                "side": "ally",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              }
-            }
-          ],
-          "text": "每回合开始时，可选择护驾：受到伤害时由指定己方人物承受；或选择指定敌方一人物指定己方一血，抽一张卡牌，伤害-1."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1.6,
-        "total": 1.6,
-        "budget": 1,
-        "diff": 0.6,
-        "level": "ok"
-      }
-    },
-    {
       "id": "wei_caogang",
       "name": "曹昂",
       "faction": "wei",
@@ -3149,46 +3104,6 @@ window.GameData = {
       }
     },
     {
-      "id": "qun_yuanshao_lord",
-      "name": "袁绍",
-      "faction": "qun",
-      "type": "lord",
-      "cost": 0,
-      "tags": [
-        "shi_zu"
-      ],
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wei_wang_lord",
-          "name": "威望",
-          "kind": "active",
-          "cost": 2,
-          "frequency": "once_per_turn",
-          "effects": [
-            {
-              "action": "summon",
-              "unit": "token_shizu_bing",
-              "count": 1,
-              "position": "random"
-            }
-          ],
-          "text": "主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵"
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 2.4,
-        "total": 2.4,
-        "budget": 1,
-        "diff": 1.4,
-        "level": "ok"
-      }
-    },
-    {
       "id": "qun_caimao",
       "name": "蔡瑁",
       "faction": "qun",
@@ -3569,47 +3484,6 @@ window.GameData = {
         "total": 10,
         "budget": 9,
         "diff": 1,
-        "level": "ok"
-      }
-    },
-    {
-      "id": "qun_yuanshao",
-      "name": "袁绍",
-      "faction": "qun",
-      "type": "general",
-      "cost": 5,
-      "attack": 3,
-      "health": 5,
-      "tags": [
-        "shi_zu"
-      ],
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wei_wang",
-          "name": "威望",
-          "kind": "trigger",
-          "trigger": "turn_start",
-          "effects": [
-            {
-              "action": "summon",
-              "unit": "token_shizu_bing",
-              "count": 1,
-              "position": "random"
-            }
-          ],
-          "text": "每回合可召唤一个 1攻 1血的士族兵"
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 2.1,
-        "total": 10.1,
-        "budget": 11,
-        "diff": -0.9,
         "level": "ok"
       }
     },
@@ -5235,9 +5109,34 @@ window.GameData = {
       "id": "shu_liubei",
       "name": "刘备",
       "faction": "shu",
-      "type": "special",
+      "type": "lord",
       "cost": 0,
-      "skill": "仁德",
+      "hp": 30,
+      "skills": [
+        {
+          "id": "ren_de",
+          "name": "仁德",
+          "kind": "active",
+          "cost": 2,
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "heal",
+              "value": 2,
+              "target": {
+                "side": "ally",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ],
+          "text": "指定一名己方人物恢复 2 点生命（不超过其最大生命）。",
+          "note": "待定 Q-08-5：手写稿是「对自己或任意将领」——可否给自己（主将）回血待确认"
+        }
+      ],
       "memo": "主公技：为一名友方人物恢复 2 点生命",
       "flavor": "惟贤惟德，能服于人。"
     },
@@ -5245,31 +5144,72 @@ window.GameData = {
       "id": "wei_caocao",
       "name": "曹操",
       "faction": "wei",
-      "type": "special",
+      "type": "lord",
       "cost": 0,
-      "skill": "号令",
-      "memo": "主公技：使一名友方人物本回合 +2 攻击",
+      "hp": 30,
+      "skills": [
+        {
+          "id": "jian_xiong",
+          "name": "奸雄",
+          "kind": "active",
+          "cost": 2,
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 2,
+              "target": {
+                "side": "self",
+                "lord": true
+              }
+            },
+            {
+              "action": "draw",
+              "value": 1
+            }
+          ],
+          "text": "对自己主将造成 2 点伤害，抽 1 张牌。",
+          "note": "设计者裁定（2026-09）：自伤 2 点换 1 张牌，且**只能作用于曹操自身**。 与手写稿一致——原稿「选择指定敌方一人物」整行已被划掉； 技能名手写即为〈奸雄〉（早期翻译误记为「护驾」，护驾只是第一个模式的名字）。"
+        }
+      ],
+      "memo": "主公技：自伤 2 换 1 张牌",
       "flavor": "宁教我负天下人，休教天下人负我。"
     },
     {
       "id": "wu_sunquan",
       "name": "孙权",
       "faction": "wu",
-      "type": "special",
+      "type": "lord",
       "cost": 0,
-      "skill": "坐断东南",
-      "memo": "主公技：获得 2 点护甲",
+      "hp": 30,
+      "skills": [
+        {
+          "id": "zuo_duan_dong_nan",
+          "name": "坐断东南",
+          "kind": "active",
+          "cost": 2,
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "discard",
+              "count": 1,
+              "mode": "choose",
+              "target": {
+                "side": "self",
+                "zone": "hand"
+              }
+            },
+            {
+              "action": "draw",
+              "value": 1
+            }
+          ],
+          "text": "弃 1 张手牌，然后抽 1 张牌。",
+          "note": "Q-08-6 待定：设计者原案是「手牌↔卡组置换 **或** 弃 1 抽 1」二选一。 置换需要「搜索卡组并挑一张」的待选机制（比选手牌更重），当前只实现了「弃 1 抽 1」。"
+        }
+      ],
+      "memo": "主公技：弃 1 张手牌再抽 1 张",
       "flavor": "生子当如孙仲谋。"
-    },
-    {
-      "id": "qun_dongzhuo",
-      "name": "董卓",
-      "faction": "qun",
-      "type": "special",
-      "cost": 0,
-      "skill": "暴虐",
-      "memo": "主公技：抽 1 张牌，并对自己的主将造成 1 点伤害",
-      "flavor": "顺我者昌，逆我者亡。"
     }
   ]
 };

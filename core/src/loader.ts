@@ -31,9 +31,12 @@ export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: stri
   for (const h of bundle.heroes) cards.set(h.id, h);
 
   const findLord = (id: string): LordDef => {
-    const l = bundle.heroes.find((h) => h.id === id);
-    if (!l) throw new Error(`找不到主公：${id}`);
-    return l;
+    const raw = bundle.heroes.find((h) => h.id === id);
+    if (!raw) throw new Error(`找不到主公：${id}`);
+    // 主公技写在 skills[0]（与卡牌同一套 DSL，ADR-049）
+    const sk = raw.skills?.[0];
+    if (!sk) throw new Error(`主公 ${id} 没有主公技（heroes.yaml 的 skills[0]）`);
+    return { ...raw, skill: sk.name, skillDef: sk };
   };
 
   return {

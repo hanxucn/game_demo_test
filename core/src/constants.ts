@@ -15,6 +15,9 @@ export const LORD_HP = 30;
 
 export const COMMAND = { START: 1, MAX: 10 };
 
+/** 主公技默认统率消耗（数据未给 cost 时兜底）；ADR-049 起统一 2 */
+export const LORD_SKILL_COST = 2;
+
 export const DECK = {
   SIZE: 30,
   HAND_START_FIRST: 3,

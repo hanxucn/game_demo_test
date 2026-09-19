@@ -2,10 +2,11 @@
  * 组卡：卡组校验与自动构筑
  *
  * 对应 docs/gdd/01-overview.md §6 与 docs/gdd/03-turn-flow.md §1：
- *   · 卡组 30 张，**单一阵营**（可搭配中立卡）
+ *   · 卡组 30 张：**本方阵营 + 公共池**（中立 + 群雄）
  *   · 同名卡上限 2 张
  *   · 精英 / 主公 / 衍生物 / 状态卡 / 特殊卡不进卡组
  *
+ * 群雄**不是可选阵营**（无主公，ADR-049），而是**公共卡池**，任何阵营都能选用。
  * 这里只做「卡组合法性」判断，不涉及对局状态——组卡发生在开局之前。
  */
 
@@ -18,6 +19,12 @@ export const MAX_COPIES = 2;
 
 /** 可搭配进任何阵营卡组的中立阵营 */
 export const NEUTRAL: Faction = 'neutral';
+
+/** 公共卡池阵营：任何阵营都能选用的牌（ADR-049） */
+export const PUBLIC_POOL: readonly Faction[] = ['neutral', 'qun'];
+
+/** 可选阵营（群雄不设主公，故不可选） */
+export const PLAYABLE_FACTIONS: readonly Faction[] = ['shu', 'wei', 'wu'];
 
 export interface DeckError {
   kind: 'size' | 'faction' | 'copies' | 'type' | 'unknown' | 'lord';
@@ -55,14 +62,15 @@ export interface DeckCheck {
 export const isDeckable = (c: CardDef): boolean =>
   !(NON_DECK_TYPES as readonly string[]).includes(c.type);
 
-/** 该卡能否进某个阵营的卡组 */
+/** 该卡能否进某个阵营的卡组（本方阵营 + 公共池） */
 export const isPlayableBy = (c: CardDef, faction: Faction): boolean =>
-  isDeckable(c) && (c.faction === faction || c.faction === NEUTRAL);
+  isDeckable(c) && (c.faction === faction || PUBLIC_POOL.includes(c.faction));
 
 /** 某阵营可用的卡池 */
 export function cardPool(data: LoadedData, faction: Faction): CardDef[] {
-  return (data.byFaction.get(faction) ?? [])
-    .concat(data.byFaction.get(NEUTRAL) ?? [])
+  return PUBLIC_POOL
+    .reduce<CardDef[]>((acc, f) => acc.concat(data.byFaction.get(f) ?? []),
+      [...(data.byFaction.get(faction) ?? [])])
     .filter((c) => isPlayableBy(c, faction));
 }
 
@@ -114,7 +122,10 @@ export function validateDeck(data: LoadedData, faction: Faction, deckIds: readon
       continue;
     }
     if (!isPlayableBy(c, faction)) {
-      errors.push({ kind: 'faction', message: `${c.name} 属于 ${c.faction}，不能进 ${faction} 卡组` });
+      errors.push({
+        kind: 'faction',
+        message: `${c.name} 属于 ${c.faction}，不能进 ${faction} 卡组（只允许本方阵营 + ${PUBLIC_POOL.join('/')}）`,
+      });
       continue;
     }
     cards.push(c);

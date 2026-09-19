@@ -15,7 +15,7 @@ IDS = {
  148:'tactic_yuqin_guzong',149:'tactic_chuqibuyi',150:'tactic_chenhuodajie',151:'tactic_tuntian',
  152:'tactic_huogong',153:'tactic_fudichouxin',154:'tactic_caochuanjiejian',157:'tactic_mantianguohai',
  158:'tactic_jijiang',159:'tactic_bishijixu',
- 54:'qun_gaoshun',55:'qun_mateng',56:'qun_gongsunzan',57:'qun_quyi',70:'qun_yuanshao',122:'qun_yuanshao_lord',
+ 54:'qun_gaoshun',55:'qun_mateng',56:'qun_gongsunzan',57:'qun_quyi',70:'qun_yuanshao_EXCLUDED',122:'qun_yuanshao_EXCLUDED',
  71:'qun_zhangbao',72:'qun_zhangliang',73:'qun_caimao',74:'qun_songxian',75:'qun_huangzu',
  76:'qun_diaochan',77:'qun_caiwenji',78:'qun_tianfeng',79:'qun_huatuo',80:'qun_chengong',
  81:'qun_zuoci',121:'qun_huaxiong',119:'qun_draft_zhangfei',
@@ -27,7 +27,7 @@ IDS = {
  107:'shu_huangyueying',
  59:'wei_xiahouyuan',60:'wei_zhangliao',61:'wei_chengyu',62:'wei_xunyou',63:'wei_xuhuang',
  64:'wei_xiahoudun',65:'wei_zhanghe',66:'wei_jiaxu',67:'wei_guojia',68:'wei_xuchu',69:'wei_simayi',
- 110:'wei_caocao_lord',111:'wei_zhangyan',112:'wei_caoxiu',113:'wei_caogang',114:'wei_xiahouen',
+ 110:'wei_caocao_EXCLUDED',111:'wei_zhangyan',112:'wei_caoxiu',113:'wei_caogang',114:'wei_xiahouen',
  115:'wei_guohuai',116:'wei_caozhang',117:'wei_caoren',118:'wei_dianwei',120:'wei_xunyu',
  124:'wu_zhouyu',125:'wu_luxun',126:'wu_taishici',127:'wu_sunce',128:'wu_chengpu',129:'wu_lvmeng',
  130:'wu_lingtong',131:'wu_ganning',132:'wu_sunjian',133:'wu_huanggai',134:'wu_handang',
@@ -37,7 +37,8 @@ FAC = {'蜀':'shu','魏':'wei','吴':'wu','群':'qun'}
 TYPE = {'武将':'general','谋臣':'strategist','主公':'lord','计谋卡':'tactic',
         '事件卡':'event','战法卡':'tactic','兵种':'troop','临时卡':'token','属性卡':'status'}
 
-TYPE_FIX = {'qun_yuanshao_lord': 'lord', 'shu_huangquan': 'general'}
+# 注：主公卡（曹操 #110 / 袁绍 #70,#122）已移出卡池——主公数据统一在 data/heroes.yaml（ADR-049）
+TYPE_FIX = {'shu_huangquan': 'general'}
 
 dec = yaml.safe_load(open(ROOT/'data/cards_decisions.draft.yaml', encoding='utf-8'))
 

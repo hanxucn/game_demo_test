@@ -42,7 +42,7 @@ open prototype/battlefield.html
 
 # 引擎（core）
 cd core
-npm test          # 121 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
+npm test          # 129 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
 npm run typecheck # tsc --noEmit
 npm run validate  # 卡牌数据校验（结构 + 平衡 + value 块新鲜度）
 npm run verify:dsl  # 逐张跑真实卡牌的 DSL，端到端验证
@@ -63,6 +63,7 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 | 对象 | 前缀 | 示例 |
 |---|---|---|
 | 阵营人物卡 | `shu_` / `wei_` / `wu_` / `qun_` | `shu_guanyu` |
+| 主公（非卡牌，在 `heroes.yaml`） | `shu_` / `wei_` / `wu_` | `shu_liubei` |
 | 中立卡 | `neutral_` | `neutral_infantry` |
 | 事件卡 | `event_` | `event_zainian` |
 | 战法卡 | `tactic_` | `tactic_huogong` |
@@ -108,7 +109,7 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 ## 提交前检查清单
 
 - [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
-- [ ] `cd core && npm test` 全过（121/121）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
+- [ ] `cd core && npm test` 全过（129/129）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（总价值在预算内）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
 - [ ] 若产生新决策，已写入 `docs/gdd/14-open-questions.md` 的 ADR 表

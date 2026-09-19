@@ -133,29 +133,66 @@ test('粮尽：牌库为空时抽牌受到递增伤害', () => {
   assert.equal(s3.state.sides.own.lord.hp, 29 - 2);
 });
 
-test('主公技·仁德：恢复 2 点生命', () => {
-  const { state, ctx } = scenario({ own: { front: ['neutral_infantry'] } });
+test('主公技·仁德：恢复 2 点生命（费用 2，ADR-049）', () => {
+  const { state, ctx } = scenario({ own: { front: ['test_champion'] }, ownCommand: 10 });
   const u = getUnit(state, 'own', 'front', 0)!;
-  u.hp = 0;  // 直接设 0 会被当作阵亡，这里改为设成 1 再治疗
-  u.hp = 1;
+  u.hp = 1;                                                  // 5/5 打残到 1
   const r = run(state, ctx, { type: 'USE_LORD_SKILL', target: { side: 'own', row: 'front', col: 0 } });
   assert.equal(r.ok, true);
-  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 1);   // 步兵 1/1 已满血，治疗无效
-  assert.equal(r.state.sides.own.command.cur, 9);
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 3, '恢复 2 点');
+  assert.equal(r.state.sides.own.command.cur, 8, '主公技消耗 2 统率');
 });
 
-test('主公技·坐断东南：获得护甲（换孙权）', () => {
-  const data = loadTestData();
-  const base = createMatch({
-    seed: 5, cards: data.cards,
-    lords: { own: data.cards.get('wu_sunquan')!, enemy: data.lords.enemy },
-    decks: { own: [], enemy: [] },
-  });
-  const ctx = { cards: data.cards, lords: { own: data.cards.get('wu_sunquan')!, enemy: data.lords.enemy } };
-  const s = startMatch(base, ctx);
-  const r = applyAction(s.state, ctx, { type: 'USE_LORD_SKILL' });
+test('主公技·仁德：治疗不超过最大生命', () => {
+  const { state, ctx } = scenario({ own: { front: ['test_champion'] }, ownCommand: 10 });
+  const u = getUnit(state, 'own', 'front', 0)!;
+  u.hp = 4;                                                  // 5/5 只差 1 点
+  const r = run(state, ctx, { type: 'USE_LORD_SKILL', target: { side: 'own', row: 'front', col: 0 } });
   assert.equal(r.ok, true);
-  assert.equal(r.state.sides.own.lord.armor, 2);
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 5, '夹到上限，不溢出');
+});
+
+test('主公技·奸雄：自伤 2 点并抽 1 张（只作用于曹操自身）', () => {
+  const data = loadTestData();
+  const caocao = data.cards.get('wei_caocao')!;
+  const { state, ctx } = scenario({ ownCommand: 10, ownHand: [] });
+  const base = structuredClone(state);
+  base.sides.own.deck = ['neutral_infantry'];   // 牌库非空，否则抽牌会触发粮尽（自伤 1）
+  const ctx2 = { cards: data.cards, lords: { own: caocao, enemy: data.lords.enemy } };
+  base.sides.own.lord = {
+    ...base.sides.own.lord, id: caocao.id, name: caocao.name,
+    skill: caocao.skills![0]!.name, skillDef: caocao.skills![0], skillUsedThisTurn: false,
+  };
+  const before = base.sides.own.lord.hp;
+  const handBefore = base.sides.own.hand.length;
+  const deckBefore = base.sides.own.deck.length;
+
+  const r = applyAction(base, ctx2, { type: 'USE_LORD_SKILL' });
+  assert.equal(r.ok, true);
+  assert.equal(r.state.sides.own.lord.hp, before - 2, '自伤 2 点');
+  assert.equal(r.state.sides.own.hand.length, handBefore + 1, '抽 1 张');
+  assert.equal(r.state.sides.own.deck.length, deckBefore - 1);
+  assert.equal(r.state.sides.own.command.cur, 8, '消耗 2 统率');
+  // 只作用于自身：敌方主将与场上都应无变化
+  assert.equal(r.state.sides.enemy.lord.hp, 30, '敌方主将不受影响');
+  void ctx;
+});
+
+test('主公技：每回合只能释放 1 次', () => {
+  const { state, ctx } = scenario({ own: { front: ['test_champion'] }, ownCommand: 10 });
+  const u = getUnit(state, 'own', 'front', 0)!;
+  u.hp = 1;
+  const cmd = { side: 'own', row: 'front', col: 0 } as const;
+  const r1 = run(state, ctx, { type: 'USE_LORD_SKILL', target: cmd });
+  assert.equal(r1.ok, true);
+  const r2 = applyAction(r1.state, ctx, { type: 'USE_LORD_SKILL', target: cmd });
+  assert.equal(r2.ok, false, '同一回合第二次应被拒');
+});
+
+test('主公技门控：统率值不足时不可用', () => {
+  const { state, ctx } = scenario({ own: { front: ['test_champion'] }, ownCommand: 1 });
+  const r = run(state, ctx, { type: 'USE_LORD_SKILL', target: { side: 'own', row: 'front', col: 0 } });
+  assert.equal(r.ok, false, '只有 1 统率，主公技需要 2');
 });
 
 test('谋臣主动技：火计造成 4 点伤害', () => {

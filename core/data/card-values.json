@@ -251,15 +251,6 @@
   "diff": -1,
   "level": "ok"
  },
- "wei_caocao_lord": {
-  "stats": 0,
-  "keywords": 0,
-  "skills": 1.6,
-  "total": 1.6,
-  "budget": 1,
-  "diff": 0.6,
-  "level": "ok"
- },
  "wei_caogang": {
   "stats": 4,
   "keywords": -1,
@@ -629,15 +620,6 @@
   "diff": -2.9,
   "level": "watch"
  },
- "qun_yuanshao_lord": {
-  "stats": 0,
-  "keywords": 0,
-  "skills": 2.4,
-  "total": 2.4,
-  "budget": 1,
-  "diff": 1.4,
-  "level": "ok"
- },
  "qun_caimao": {
   "stats": 4,
   "keywords": 0,
@@ -717,15 +699,6 @@
   "total": 10,
   "budget": 9,
   "diff": 1,
-  "level": "ok"
- },
- "qun_yuanshao": {
-  "stats": 8,
-  "keywords": 0,
-  "skills": 2.1,
-  "total": 10.1,
-  "budget": 11,
-  "diff": -0.9,
   "level": "ok"
  },
  "qun_caiwenji": {

@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { applyAction, startMatch } from '../src/engine.ts';
-import { autoDeck, cardPool, validateDeck, MAX_COPIES } from '../src/deck.ts';
+import { autoDeck, cardPool, validateDeck, MAX_COPIES, PLAYABLE_FACTIONS } from '../src/deck.ts';
 import { mulligan, setupMatch } from '../src/setup.ts';
 import { rollFirstSide, YUXI_ID } from '../src/state.ts';
 import { loadData } from '../src/loader.ts';
@@ -278,4 +278,78 @@ test('全流程：0 费主动技在场也不会无限循环（回归 ADR-047）'
     }
     assert.ok(n < 3000, `seed=${seed} 对局未在有限步内结束（${n} 步，turn=${s.turn}）`);
   }
+});
+
+/* ============================================================
+   ⑦ 主公与主公技（ADR-049：数据驱动 / 2 统率 / 群雄公共池）
+   ============================================================ */
+
+test('主公：三位主公的主公技都从数据读取，费用统一 2', () => {
+  const ids = ['shu_liubei', 'wei_caocao', 'wu_sunquan'];
+  for (const id of ids) {
+    const l = data.lords.own.id === id ? data.lords.own : data.cards.get(id);
+    assert.ok(l, `${id} 应存在`);
+    assert.equal(l!.type, 'lord', `${id} 应为 lord 类型（不是人物卡）`);
+    const sk = (l as { skills?: Array<{ kind: string; cost?: number; frequency?: string }> }).skills?.[0];
+    assert.ok(sk, `${id} 应有 skills[0]`);
+    assert.equal(sk!.kind, 'active');
+    assert.equal(sk!.cost, 2, `${id} 主公技应为 2 统率`);
+    assert.equal(sk!.frequency, 'once_per_turn');
+  }
+});
+
+test('主公：群雄不设主公（heroes.yaml 里没有群雄）', () => {
+  const heroes = HEROES;
+  assert.equal(heroes.length, 3, `应只有 3 位主公，实际 ${heroes.length}`);
+  assert.ok(!heroes.some((h) => h.faction === 'qun'), '不应有群雄主公');
+});
+
+test('组卡：群雄是公共池，三个阵营都能选用', () => {
+  for (const f of ['shu', 'wei', 'wu'] as Faction[]) {
+    const pool = cardPool(data, f);
+    assert.ok(pool.some((c) => c.faction === 'qun'), `${f} 应能用群雄卡`);
+    const d = autoDeck(data, f);
+    assert.equal(validateDeck(data, f, d).ok, true);
+  }
+  // 群雄不是可选阵营
+  assert.ok(!(PLAYABLE_FACTIONS as readonly string[]).includes('qun'), '群雄不可选为阵营');
+});
+
+test('卡池：cards.yaml 里不再有 type=lord 的卡（主公数据统一在 heroes.yaml）', () => {
+  // 注意：运行时 data.cards 会并入 heroes（loadData 的行为），所以要查 cards.json 本身
+  const lords = CARDS.filter((c) => c.type === 'lord');
+  assert.equal(lords.length, 0, `cards.yaml 不应含 lord 卡，实际 ${lords.map((c) => c.id).join(',')}`);
+  // 而运行时仍能按 id 取到主公（引擎要用）
+  assert.ok(data.cards.get('wu_sunquan'), '运行时应能取到主公');
+});
+
+test('主公技·坐断东南：mode:choose 时按 handIndex 弃指定的那张', async () => {
+  const { applyAction } = await import('../src/engine.ts');
+  const { createMatch } = await import('../src/state.ts');
+  // 必须走 loadData 拿主公（skillDef 是 loadData 从 skills[0] 接上的）
+  const wu = loadData({ cards: CARDS, heroes: HEROES }, { own: 'wu_sunquan', enemy: 'wei_caocao' });
+  const sunquan = wu.lords.own;
+  const base = createMatch({
+    seed: 3, cards: wu.cards,
+    lords: { own: sunquan, enemy: wu.lords.enemy },
+    // 牌库要够大：createMatch 会从牌库发起手，之后「抽 1 张」还要有牌可抽
+    decks: { own: Array(10).fill('shu_guanyu').concat(Array(10).fill('shu_zhangfei')), enemy: [] },
+    firstSide: 'own',
+  });
+  const ctx = { cards: wu.cards, lords: { own: sunquan, enemy: wu.lords.enemy } };
+  let s = startMatch(base, ctx).state;
+  s.sides.own.command.cur = 10;
+  // 保证手牌可预期：3 张，指定弃第 0 张
+  while (s.sides.own.hand.length < 3 && s.sides.own.deck.length) {
+    const id = s.sides.own.deck.pop()!;
+    s.sides.own.hand.push({ card: wu.cards.get(id)!, mods: [] });
+  }
+  const target = s.sides.own.hand[0]!.card.id;
+  const handBefore = s.sides.own.hand.length;
+
+  const r = applyAction(s, ctx, { type: 'USE_LORD_SKILL', handIndex: 0 });
+  assert.equal(r.ok, true);
+  assert.ok(r.state.sides.own.discard.some((c) => c.id === target), `应弃掉指定的 ${target}`);
+  assert.equal(r.state.sides.own.hand.length, handBefore, '弃 1 抽 1 → 手牌数不变');
+  assert.equal(r.state.sides.own.command.cur, 8, '消耗 2 统率');
 });
