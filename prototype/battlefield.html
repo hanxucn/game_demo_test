@@ -411,6 +411,90 @@
   #hud .warn { color: #ff8f7a; }
   #hud .ok { color: #7fd18a; }
 
+
+  /* ============ 开局流程覆盖层（阵营 → 构筑 → 换牌）============ */
+  #setup {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    background: #0b0906; color: var(--ink);
+    flex-direction: column; padding: 10px 14px 12px;
+    font-size: 12px;
+  }
+  #setup.show { display: flex; }
+  #setup h2 { margin: 0 0 2px; font-size: 15px; color: var(--gold-hi); letter-spacing: .08em; }
+  #setup .steps { display: flex; gap: 10px; margin: 6px 0 10px; font-size: 11px; color: var(--dim); }
+  #setup .steps b { color: var(--gold); }
+  #setup .steps .on { color: var(--ink); font-weight: 700; }
+  #setup .body { flex: 1; display: flex; gap: 12px; min-height: 0; }
+  #setup .col { display: flex; flex-direction: column; min-height: 0; }
+  #setup .col.pool { flex: 1.35; }
+  #setup .col.deck { flex: 1; }
+  #setup .hd { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  #setup .hd .t { font-weight: 700; color: var(--gold); }
+  #setup .list { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 4px; }
+  #setup .filters button, #setup .acts button {
+    background: #1c1710; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-family: inherit;
+  }
+  #setup .filters button.on { background: var(--gold); color: #201a10; border-color: var(--gold-hi); font-weight: 700; }
+  #setup .acts button:hover, #setup .filters button:hover { filter: brightness(1.25); }
+  #setup .acts button.primary { background: var(--gold); color: #201a10; font-weight: 700; border-color: var(--gold-hi); }
+  #setup .acts button:disabled { opacity: .4; cursor: not-allowed; }
+  /* 卡牌行 */
+  .crow {
+    display: flex; align-items: center; gap: 6px; padding: 3px 5px;
+    border-radius: 4px; cursor: pointer; line-height: 1.25;
+  }
+  .crow:hover { background: #1e1811; }
+  .crow .cst {
+    flex: 0 0 18px; height: 18px; border-radius: 50%; background: #2a2317;
+    color: var(--gold-hi); font-weight: 700; text-align: center; font-size: 11px; line-height: 18px;
+  }
+  .crow .nm { flex: 0 0 62px; font-weight: 700; }
+  .crow .st { flex: 0 0 34px; color: #d9a35a; }
+  .crow .tx { flex: 1; color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crow .n { flex: 0 0 20px; text-align: right; color: var(--gold); font-weight: 700; }
+  .crow.maxed { opacity: .42; }
+  .crow.foe { opacity: .35; cursor: not-allowed; }
+  .crow .kind { flex: 0 0 34px; color: #7f9fc0; font-size: 10px; }
+  /* 曲线 */
+  #setup .curve { display: flex; align-items: flex-end; gap: 3px; height: 46px; margin: 4px 0 6px; }
+  #setup .curve .bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+  #setup .curve .bar i { display: block; width: 100%; background: #4d6b3f; border-radius: 2px 2px 0 0; }
+  #setup .curve .bar.over i { background: #8a5a2b; }
+  #setup .curve .bar b { font-size: 9px; color: var(--dim); margin-top: 2px; }
+  #setup .msg { min-height: 30px; font-size: 11px; margin-top: 6px; }
+  #setup .msg .err { color: #e08a7a; }
+  #setup .msg .warn { color: #d9c07a; }
+  #setup .msg .ok { color: #9fd0a4; }
+  /* 换牌 */
+  #setup .handpick { display: flex; flex-wrap: wrap; gap: 8px; }
+  #setup .pick {
+    width: 96px; border: 1px solid var(--line); border-radius: 6px; padding: 6px;
+    cursor: pointer; background: #15110c;
+  }
+  #setup .pick.out { border-color: #c0705a; background: #2a1712; opacity: .6; }
+  #setup .pick .pn { font-weight: 700; color: var(--gold-hi); }
+  #setup .pick .ps { color: #d9a35a; font-size: 11px; }
+  #setup .pick .pt { color: var(--dim); font-size: 10px; margin-top: 3px; max-height: 46px; overflow: hidden; }
+  #setup .pick .pflag { color: #e08a7a; font-size: 10px; }
+
+  /* ============ 事件日志 ============ */
+  #log {
+    position: fixed; right: 8px; bottom: 8px; width: 300px; max-height: 42vh;
+    background: rgba(10,8,5,.9); border: 1px solid var(--line); border-radius: 6px;
+    font-size: 11px; line-height: 1.45; padding: 5px 7px; overflow-y: auto; z-index: 60;
+    display: none;
+  }
+  #log.show { display: block; }
+  #log .le { border-bottom: 1px dotted #2a2318; padding: 1px 0; color: var(--dim); }
+  #log .le b { color: var(--ink); }
+  #log .le.dmg b { color: #e08a7a; }
+  #log .le.heal b { color: #9fd0a4; }
+  #log .le.turn { color: var(--gold); border-bottom-color: #4a4034; margin-top: 2px; }
+  #log .le.eff b { color: #b9a6e0; }
+  #log .le.lord b { color: var(--gold-hi); }
+  #log .le.death b { color: #e0705a; }
+
   #detail {
     position: fixed; right: 10px; bottom: 10px; z-index: 300;
     width: 258px;
@@ -572,11 +656,15 @@
 
 <div id="hud">
   <h3>酒话三国 · 战场原型</h3>
-  <div class="tiny">统一卡牌 56×78 · 三国古战场背景</div>
+  <div class="tiny">一行 8 格 · ADR-051</div>
   <hr>
-  <div class="tiny">点手牌 → 点绿格出牌（飞行动画）</div>
+  <div class="tiny"><b>开局</b>：阵营 → 构筑 30 张 → 换牌</div>
+  <hr>
+  <div class="tiny">点手牌 → 点绿格出牌</div>
   <div class="tiny">点我方单位 → 点高亮目标攻击</div>
-  <div class="tiny">破阵后点敌方主公卡可斩将</div>
+  <div class="tiny">敌方<b>有架盾</b>时只能打盾；否则可直攻主将</div>
+  <div class="tiny">点主公卡 → 发动主公技（2 统率 / 每回合 1 次）</div>
+  <div class="tiny">右下角<b>事件日志</b>可查看每次结算细节</div>
   <hr>
   <div class="row2"><label>卡宽</label>
     <input id="s-cardw" type="range" min="44" max="70" value="56"><span class="val" id="v-cardw">56</span></div>
@@ -594,10 +682,14 @@
 </div>
 
 <div id="detail"></div>
+<div id="setup"></div>
+<div id="log"></div>
+
 
 <script src="core.bundle.js"></script>
 <script src="data.bundle.js"></script>
 <script src="card-render.js"></script>
+<script src="setup.js"></script>
 <script src="battlefield.engine.js"></script>
 </body>
 </html>

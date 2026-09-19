@@ -5325,5 +5325,168 @@ window.GameData = {
       "memo": "主公技：1 张手牌洗回牌组随机位置，再随机抽 1 张",
       "flavor": "生子当如孙仲谋。"
     }
+  ],
+  "statuses": [
+    {
+      "id": "zhen_fen",
+      "name": "振奋",
+      "kind": "buff",
+      "numeric": true,
+      "scope": "character",
+      "timing": 13,
+      "duration": "permanent",
+      "memo": "攻击 +N"
+    },
+    {
+      "id": "ji_jiu",
+      "name": "急救",
+      "kind": "buff",
+      "numeric": true,
+      "scope": "character",
+      "timing": 3,
+      "duration": "permanent",
+      "memo": "回合开始恢复 N 点生命"
+    },
+    {
+      "id": "jia_dun_status",
+      "name": "架盾",
+      "kind": "buff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 9,
+      "duration": "conditional",
+      "memo": "敌方必须先攻击它"
+    },
+    {
+      "id": "xian_gong_status",
+      "name": "先攻",
+      "kind": "buff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 12,
+      "duration": "permanent",
+      "memo": "先结算伤害"
+    },
+    {
+      "id": "qi_xi_status",
+      "name": "奇袭",
+      "kind": "buff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 9,
+      "duration": "until_consumed",
+      "memo": "不能被指定为目标"
+    },
+    {
+      "id": "wu_sheng_status",
+      "name": "武圣",
+      "kind": "buff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 10,
+      "duration": "until_consumed",
+      "memo": "免疫一次伤害"
+    },
+    {
+      "id": "hu_jia",
+      "name": "护甲",
+      "kind": "buff",
+      "numeric": true,
+      "scope": "lord",
+      "timing": 11,
+      "duration": "permanent",
+      "memo": "吸收伤害，永久保留"
+    },
+    {
+      "id": "zhen_she",
+      "name": "震慑",
+      "kind": "debuff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 8,
+      "duration": "turns",
+      "memo": "不能普通攻击，也不能使用主动技"
+    },
+    {
+      "id": "hun_luan",
+      "name": "混乱",
+      "kind": "debuff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 9,
+      "duration": "turns",
+      "memo": "普攻与主动技的目标在合法目标中随机"
+    },
+    {
+      "id": "zhong_du",
+      "name": "中毒",
+      "kind": "debuff",
+      "numeric": true,
+      "scope": "character",
+      "timing": 20,
+      "duration": "permanent",
+      "memo": "回合结束时失去 N 点生命"
+    },
+    {
+      "id": "xu_ruo",
+      "name": "虚弱",
+      "kind": "debuff",
+      "numeric": true,
+      "scope": "character",
+      "timing": 13,
+      "duration": "turns",
+      "memo": "攻击 −N"
+    },
+    {
+      "id": "duan_liang",
+      "name": "断粮",
+      "kind": "debuff",
+      "numeric": true,
+      "scope": "lord",
+      "timing": 1,
+      "duration": "turns",
+      "memo": "统率值上限 −N"
+    },
+    {
+      "id": "jin_yong",
+      "name": "禁用",
+      "kind": "debuff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 8,
+      "duration": "turns",
+      "caps": [
+        "block_skill"
+      ],
+      "memo": "持续时间内不能使用主动技与触发技（silence）"
+    },
+    {
+      "id": "mian_yi",
+      "name": "免疫",
+      "kind": "buff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 10,
+      "duration": "turns",
+      "caps": [
+        "immune_debuff",
+        "untargetable"
+      ],
+      "memo": "持续时间内免疫负面状态，且不能被指定为目标"
+    },
+    {
+      "id": "fan_mian",
+      "name": "翻面",
+      "kind": "debuff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 9,
+      "duration": "conditional",
+      "caps": [
+        "block_action",
+        "untargetable"
+      ],
+      "memo": "翻面期间无法行动也不能被选中；翻回正面后下回合才能行动"
+    }
   ]
 };

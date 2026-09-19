@@ -47,23 +47,27 @@ function viewCard(c) {
    对局生命周期
    ============================================================ */
 
-function newGame(seed) {
-  // 完整开局（GDD 03 §1）：掷点定先手 → 换牌 → 开打
-  // 注：开局三选一酒令已确认非设计者本意（草案），不实现，见 ADR-048
-  var setup = Core.setupMatch({
-    seed: seed,
-    cards: data.cards,
-    lords: data.lords,
-    decks: { own: Core.autoDeck(data, 'shu'), enemy: Core.autoDeck(data, 'wei') },
-    // 原型暂不做换牌交互：两边都不换（保留机会）
+function newGame() {
+  // 开局流程（阵营 → 构筑 → 换牌）；规则全部由 Core 判定
+  Setup.open({
+    data: data,
+    onStart: function (cfg) {
+      session = {
+        state: cfg.baseState,
+        ctx: { cards: data.cards, lords: data.lords },
+        meta: { ownFaction: cfg.ownFaction, enemyFaction: cfg.enemyFaction },
+      };
+      sel = null; drag = null; pendingSkill = null; busy = false;
+      logClear();
+      var started = Core.startMatch(session.state, session.ctx);
+      session = { state: started.state, ctx: session.ctx, meta: session.meta };
+      logEvents(started.events);
+      renderAll();
+      banner('对局开始',
+        session.state.sides.own.lord.name + ' vs ' + session.state.sides.enemy.lord.name +
+        '（先手：' + (session.state.active === 'own' ? '我方' : '敌方') + '）');
+    },
   });
-  session = { state: setup.state, ctx: { cards: data.cards, lords: data.lords } };
-  window.__setupLog = setup.log;
-  sel = null; drag = null; pendingSkill = null; busy = false;
-  renderAll();
-  banner('对局开始',
-    session.state.sides.own.lord.name + ' vs ' + session.state.sides.enemy.lord.name +
-    '（先手：' + (session.state.active === 'own' ? '我方' : '敌方') + '）');
 }
 
 /* ============================================================
@@ -499,7 +503,89 @@ function doAction(action) {
   });
 }
 
+/* ============================================================
+   事件日志（做卡牌测试最关键的一环：能看见"这张卡到底做了什么"）
+   ============================================================ */
+
+var LOG_MAX = 300;
+var SIDE_NAME = { own: '我方', enemy: '敌方' };
+var STATUS_NAME = null;
+
+function statusName(id) {
+  if (!STATUS_NAME) {
+    STATUS_NAME = {};
+    (GD.statuses || []).forEach(function (st) { STATUS_NAME[st.id] = st.name; });
+  }
+  return STATUS_NAME[id] || id;
+}
+
+/** 把一个事件翻成一行可读中文；返回 null 表示不记 */
+function describeEvent(e) {
+  var who = SIDE_NAME[e.side] || e.side || '';
+  switch (e.type) {
+    case 'TURN_START': return { cls: 'turn', text: '—— 第 ' + Math.ceil(e.turn / 2) + ' 回合 · ' + who + '（统率 ' + e.command.cur + '/' + e.command.max + '）——' };
+    case 'CARD_DRAWN': return { cls: '', text: who + ' 抽到 <b>' + e.card.name + '</b>（牌库剩 ' + e.deckLeft + '）' };
+    case 'CARD_AUTO_CAST': return { cls: 'eff', text: who + ' <b>' + e.card.name + '</b> 抽到时自动释放！' };
+    case 'DECK_ADDED': return { cls: 'eff', text: who + ' 牌库加入 ' + e.count + ' 张 <b>' + e.card.name + '</b>' };
+    case 'DECK_SENT': return { cls: 'eff', text: '把 ' + e.count + ' 张 ' + e.cardId + ' 塞进' + who + '牌库' };
+    case 'CARD_RETURNED_TO_DECK': return { cls: '', text: who + ' 把 <b>' + e.card.name + '</b> 洗回牌库' };
+    case 'CARD_PLAYED': return { cls: '', text: who + ' 打出 <b>' + e.card.name + '</b>' + (e.col != null ? '（第' + (e.col + 1) + '格）' : '') };
+    case 'UNIT_SUMMONED': return { cls: '', text: '　' + who + ' 上场 <b>' + e.unit.name + '</b> ' + e.unit.atk + '/' + e.unit.hp + '（第' + (e.col + 1) + '格）' };
+    case 'UNIT_TRANSFORMED': return { cls: 'eff', text: '　' + who + ' 进化：' + e.from + ' → <b>' + (e.unit ? e.unit.name : e.to) + '</b>' };
+    case 'ATTACK_DECLARED': return { cls: '', text: who + ' 第' + (e.from.col + 1) + '格 攻击 ' + (e.to && e.to.kind === 'lord' ? '敌方主将' : '第' + (e.to.col + 1) + '格') };
+    case 'DAMAGE': return { cls: 'dmg', text: '　→ ' + (e.target.kind === 'lord' ? who + '主将' : '') + '<b>-' + e.amount + '</b>' + (e.source ? '（' + e.source + '）' : '') };
+    case 'HEAL': return { cls: 'heal', text: '　→ <b>+' + e.amount + '</b> 治疗' };
+    case 'UNIT_DIED': return { cls: 'death', text: '　✝ ' + who + ' <b>' + e.unit.name + '</b> 阵亡' };
+    case 'STATUS_APPLIED': return { cls: 'eff', text: '　' + who + ' 获得状态 <b>' + statusName(e.status) + '</b>' + (e.stacks > 1 ? ' ×' + e.stacks : '') };
+    case 'STATUS_EXPIRED': return { cls: '', text: '　' + who + ' 状态 <b>' + statusName(e.status) + '</b> 到期' };
+    case 'STAT_MODIFIED': return { cls: 'eff', text: '　' + who + ' 属性变化 ' + (e.attack ? '攻' + (e.attack > 0 ? '+' : '') + e.attack : '') + (e.health ? ' 血' + (e.health > 0 ? '+' : '') + e.health : '') };
+    case 'ARMOR_GAINED': return { cls: 'eff', text: '　' + who + ' 获得护甲 <b>' + e.amount + '</b>（共 ' + e.armor + '）' };
+    case 'LORD_SKILL_USED': return { cls: 'lord', text: who + ' 发动主公技 <b>' + e.skill + '</b>' };
+    case 'CARD_DISCARDED': return { cls: '', text: who + ' 弃掉 <b>' + e.card.name + '</b>' };
+    case 'CARD_STOLEN': return { cls: 'eff', text: (SIDE_NAME[e.from] || '') + ' 的一张 <b>' + e.card.name + '</b> 被夺走' };
+    case 'CARD_SCRYED': return { cls: 'eff', text: who + ' 牌库操作：' + e.cardId + '（' + (e.from === 'top' ? '顶' : '底') + '）' };
+    case 'CLASH': return { cls: 'eff', text: '拼点 ' + who + ' ' + e.mine + ' vs ' + e.theirs + ' → ' + (e.won ? '胜' : '负') };
+    case 'FATIGUE': return { cls: 'dmg', text: '　' + who + ' <b>粮尽</b>！受到 ' + e.amount + ' 点伤害' };
+    case 'DRAW_BLOCKED': return { cls: 'eff', text: '　' + who + ' 抽牌被封锁（断抽）' };
+    case 'DAMAGE_REDIRECTED': return { cls: 'eff', text: '　伤害被 <b>' + e.guardName + '</b> 守护转移' };
+    case 'UNIT_RETURNED': return { cls: '', text: '　' + who + ' <b>' + e.unit.name + '</b> 被收回手牌' };
+    case 'FORCED_ATTACK': return { cls: 'eff', text: '　' + who + ' 第' + (e.col + 1) + '格 被强制攻击' };
+    case 'EXTRA_ATTACK': return { cls: 'eff', text: '　' + who + ' 第' + (e.col + 1) + '格 获得额外攻击' };
+    case 'UNIT_SURVIVED': return { cls: 'eff', text: '　✦ ' + who + ' <b>' + e.unit.name + '</b> 免死存活（1 血）' };
+    case 'SKILL_COPIED': return { cls: 'eff', text: '　' + who + ' 复制了技能 <b>' + e.skill + '</b>' };
+    case 'STATUS_BLOCKED': return { cls: '', text: '　' + who + ' 的状态 ' + statusName(e.status) + ' 被挡下（' + e.reason + '）' };
+    case 'LORD_STATUS_EXPIRED': return { cls: '', text: '　' + who + ' 主将状态 ' + statusName(e.status) + ' 到期' };
+    case 'CONTROL_TAKEN': return { cls: 'eff', text: '　<b>' + e.unit.name + '</b> 控制权 ' + (SIDE_NAME[e.from] || '') + ' → ' + (SIDE_NAME[e.to] || '') };
+    case 'HAND_MODIFIED': return { cls: 'eff', text: '　' + who + ' 手牌被修改（' + e.kind + ' ' + (e.value || '') + '）' };
+    case 'TURN_END': return null;
+    case 'REJECTED': return { cls: 'err', text: '⚠ 动作被拒：' + e.reason };
+    case 'GAME_OVER': return { cls: 'turn', text: '＝ 对局结束：' + (e.winner === 'own' ? '我方胜利' : e.winner === 'enemy' ? '敌方胜利' : '平局') + ' ＝' };
+    default: return { cls: 'eff', text: '[' + e.type + ']' };
+  }
+}
+
+function logClear() {
+  var el = $('#log');
+  if (el) { el.innerHTML = ''; el.classList.add('show'); }
+}
+
+function logEvents(events) {
+  var el = $('#log');
+  if (!el) return;
+  var html = '';
+  events.forEach(function (e) {
+    var d = describeEvent(e);
+    if (!d) return;
+    html += '<div class="le ' + (d.cls || '') + '">' + d.text + '</div>';
+  });
+  if (!html) return;
+  el.insertAdjacentHTML('beforeend', html);
+  while (el.children.length > LOG_MAX) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
 function playEvents(events, done) {
+  logEvents(events);
   var queue = events.slice();
   (function next() {
     if (!queue.length) { done(); return; }
@@ -659,7 +745,7 @@ function reportSizes() {
    ============================================================ */
 
 document.querySelector('.panel .btn').addEventListener('click', onEndTurn);
-$('#btn-reset').addEventListener('click', function () { newGame(Math.floor(Math.random() * 1e6)); });
+$('#btn-reset').addEventListener('click', function () { newGame(); });
 $('#btn-ai').addEventListener('click', function () {
   if (session.state.active === 'enemy') runAiTurn();
 });
@@ -676,4 +762,4 @@ if (location.search.indexOf('clean') >= 0) {
   document.getElementById('detail').style.display = 'none';
 }
 
-newGame(2026);
+newGame();
