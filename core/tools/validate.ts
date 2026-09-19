@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path';
 
 import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES, TAGS } from '../src/constants.ts';
 import { checkJiuling } from '../src/jiuling.ts';
-import type { CardDef, CardEffect, JiulingDef, SkillDef } from '../src/types.ts';
+import type { CardDef, CardEffect, JiulingDef, SkillDef, TargetSelector } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -35,8 +35,24 @@ const KEYWORD_VALUE: Record<string, number> = {
  */
 const CONDITION_RATE = 0.7;
 
-/** AOE（target.count: 'all'）在估算时按几张牌计——实际张数取决于场面，取名义值 */
-const AOE_NOMINAL = 2.5;
+/**
+ * AOE（`target.count: 'all'`）的期望命中数。
+ *
+ * 不能一律按满场算：`adjacent_to` 最多左右两个，"全体西凉人物"这类带标签/费用限制的
+ * 子集只会更少。按 filter 的**选择性**给名义值，比一个常数更接近真实（ADR-046）。
+ */
+function aoeTargets(sel?: TargetSelector): number {
+  if (sel?.count !== 'all') return 1;
+  const f = sel.filter ?? {};
+  if (f.adjacent_to) return 2;                       // 相邻：最多左右各一
+  const narrowing = (['tag', 'keyword', 'cost_max', 'cost_min',
+    'has_status', 'health_max', 'troopKind', 'row', 'lane', 'faction'] as const)
+    .filter((k) => f[k] !== undefined).length;
+  return narrowing === 0 ? 3 : narrowing === 1 ? 1.5 : 1;
+}
+
+/** 无 filter 的全体（如「全体敌方人物」）的期望命中数，用于统计口径 */
+const AOE_NOMINAL = 3;
 
 /** 估值上下文：transform 需要卡表做「进化前后」对比 */
 export interface ValueCtx {
@@ -76,24 +92,35 @@ function inferTransformSource(
 }
 
 function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
-  // 「打 N 次」类效果：eff.count 是次数，必须计入
+  // 两个独立的规模因子（ADR-046）：
+  //   times = 「打 N 次」——同一目标反复结算（张角 value=1 count=5）
+  //   aoe   = 「作用于全体」——target.count:'all'，实际张数取决于场面，取名义值（陆逊 AOE 毒）
   const times = Math.max(1, eff.count ?? 1);
+  const aoe = aoeTargets(eff.target);
+  const scale = times * aoe;
   switch (eff.action) {
-    case 'damage': return (eff.value ?? 0) * 0.5 * times;
-    case 'heal': return (eff.value ?? 0) * 0.4 * times;
+    case 'damage': return (eff.value ?? 0) * 0.5 * scale;
+    case 'heal': return (eff.value ?? 0) * 0.4 * scale;
     case 'draw': return (eff.value ?? 1) * 3;
     case 'summon': return (eff.count ?? 1) * 3;
-    case 'gain_armor': return (eff.value ?? 1) * 1;
+    case 'gain_armor': return (eff.value ?? 1) * 1 * scale;
     case 'apply_status':
-      return (eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2) * times;
+      return (eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2) * scale;
     case 'destroy': return 8;
-    case 'discard': return (eff.count ?? 1) * 1.5;
-    case 'return_to_hand': return 3;
+    case 'discard': {
+      // 弃牌是**代价**还是**收益**取决于弃谁的牌（ADR-046）：
+      // 弃自己的牌 = 净亏（"抽2弃2"净手牌为 0，不能两项都记正分）；弃对手的牌 = 干扰收益
+      const sel = eff.target?.side ?? 'enemy';
+      const self = sel === 'self' || sel === 'ally';
+      return self ? 0 : scale * 1.0;
+    }
+    case 'return_to_hand': return 2;              // 让对手单位回手：拖节奏，非净赚
+    case 'remove_status': return (eff.stacks ?? 1) * 2;        // 驱散（ADR-046：原先未计价）
     // ADR-033~042 新增动作的价值估算
     case 'clash': return 2;                                   // 拼点：中等收益
-    case 'scry': return (eff.count ?? 1) * 1.5;               // 卡池操作
+    case 'scry': return (eff.count ?? 1) * 2.5;               // 卡池操作 + 信息优势
     case 'flip': return 2.5;                                  // 翻面：既是保护也是封锁
-    case 'ban_play': return (eff.count ?? 1) * 2.5;           // 禁止上场
+    case 'ban_play': return (eff.count ?? 1) * 4.0;           // 禁止上场：与单体震慑(5)同级的硬控
     case 'steal_card': return (eff.count ?? 1) * 3.5;         // 夺取手牌
     case 'cost_modifier': return Math.abs(eff.value ?? 0) * 2 * (eff.count ?? 1);
     case 'survive': return 6;                                 // 免死
@@ -120,14 +147,26 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
       const cnt = eff.count ?? 1;
       // 动态取值（*_from）按 2 点预估
       const dyn = (eff.attack_from || eff.health_from) ? 2 : 0;
-      return ((a + h) * 1.5 + dyn) * cnt;
+      // 永久属性修正按**面值**计（+2 上限就是 2 分，与印刷属性同权）；
+      // 只有带 duration 的临时修正才因「本回合有效」而打折（ADR-046）
+      const rate = eff.duration === undefined ? 1.0 : 0.7;
+      return ((a + h) * rate + dyn) * cnt * aoe;
     }
     default: return 0;
   }
 }
 
+/** `value_from_discarded` 的取值名义值：被弃牌多在 3 费/3 血附近 */
+const DISCARDED_NOMINAL = 3;
+
 function effectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
   let v = baseEffectValue(eff, ctx);
+  // 读数取自「最近被弃牌」的机制（ADR-040）原先记 0 分，等于整张卡的核心机制白送
+  if (eff.value_from_discarded) {
+    v = eff.action === 'damage' ? DISCARDED_NOMINAL * 0.5
+      : eff.action === 'heal' ? DISCARDED_NOMINAL * 0.4
+      : v;
+  }
   if (typeof eff.chance === 'number') v *= eff.chance;        // 概率打折
   if (eff.condition) v *= CONDITION_RATE;                     // 条件打折
   return v;
@@ -143,7 +182,9 @@ const TRIGGER_RATE: Record<string, number> = {
 
 function skillValue(sk: SkillDef, ctx: ValueCtx = {}): number {
   const effs = sk.effects ?? [];
-  const raw = effs.reduce((s, e) => s + effectValue(e, withSiblings(effs, ctx)), 0);
+  let raw = effs.reduce((s, e) => s + effectValue(e, withSiblings(effs, ctx)), 0);
+  // 技能级概率（ADR-039：免死等）原先完全没参与折扣，导致 50% 的血战被按 100% 计价
+  if (typeof sk.chance === 'number') raw *= sk.chance;
   if (sk.kind === 'active') return raw * 0.8;          // 主动技可被震慑打断
   const rate = TRIGGER_RATE[sk.trigger ?? 'on_play'] ?? 0.8;
   return raw * rate;
@@ -274,6 +315,25 @@ export function validateCards(cards: CardDef[]): Issue[] {
         add('error', c.id, `${where} 有文案「${text.slice(0, 20)}…」但无任何效果`);
       }
     }
+  }
+
+  // ⑥bis value 块新鲜度：data/cards.yaml 的 value 是派生数据，必须与实时计算一致
+  // （改了效果/数值/度量后若忘记重跑 tools/build-cards.sh，这里会拦住）
+  let stale = 0;
+  for (const c of cards) {
+    const rec = c as CardDef & { value?: { total?: number; budget?: number; diff?: number } | null };
+    // 没有 value 键 = 测试用合成卡（真实数据里 promote-cards.py 一定会写这个键，缺值写 null）
+    if (!('value' in rec)) continue;
+    if (!rec.value) { stale += 1; continue; }
+    const v = cardValue(c, { cards: byId });
+    const budget = budgetOf(c.cost);
+    if (Math.abs((rec.value.total ?? NaN) - v.total) > 0.01
+      || Math.abs((rec.value.budget ?? NaN) - budget) > 0.01) {
+      stale += 1;
+    }
+  }
+  if (stale) {
+    add('error', '-', `${stale} 张卡的 value 核算块已过期或缺失——请重跑 bash tools/build-cards.sh`);
   }
 
   // ⑦ 羁绊引用（若提供了 bonds 数据）

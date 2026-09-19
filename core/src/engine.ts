@@ -18,7 +18,7 @@ import {
   allUnits, cloneState, getUnit, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks,
 } from './state.ts';
 import {
-  canPlayCard, effectiveAttack, legalPlacements, legalTargets,
+  canPlayCard, canUseUnitSkill, effectiveAttack, legalPlacements, legalTargets,
 } from './rules.ts';
 import {
   dealDamage, discardOverflow, drawCard, effectiveCost, expireHandMods, expireMods, expireStatuses,
@@ -89,7 +89,10 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   const duan = lordStatusStacks(s.lord, 'duan_liang');
   s.command.cur = Math.max(0, s.command.max - duan);
   s.lord.skillUsedThisTurn = false;
-  for (const ref of allUnits(state, side)) ref.unit.attackedThisTurn = 0;
+  for (const ref of allUnits(state, side)) {
+    ref.unit.attackedThisTurn = 0;
+    ref.unit.skillUsesThisTurn = {};              // 主动技频率每回合重置（GDD 10 §1.1）
+  }
   resetJiulingTurn(state, side);                       // 酒令计数每回合清零（GDD 11 §3）
 
   events.push({ type: 'TURN_START', side, turn: state.turn, command: { ...s.command } });
@@ -355,13 +358,15 @@ function useUnitSkill(
   const side = state.active;
   const u = getUnit(state, side, action.row, action.col);
   if (!u) return false;
-  if (hasCap(u, 'block_action') || hasCap(u, 'block_skill')) return false;   // ADR-034
-  const skill = (u.skills ?? []).find((sk) => sk.kind === 'active');
-  if (!skill) return false;
-  const cost = skill.cost ?? 0;
-  if (state.sides[side].command.cur < cost) return false;
+  // 频率 / 震慑 / 费用共用 rules.ts 的判定（AI 与引擎必须同源）
+  const check = canUseUnitSkill(state, side, action.row, action.col);
+  if (!check.ok) return false;
+  const skill = check.skill!;
 
-  state.sides[side].command.cur -= cost;
+  const key = skill.id || skill.name || '0';
+  u.skillUsesThisTurn[key] = (u.skillUsesThisTurn[key] ?? 0) + 1;
+  if ((skill.frequency ?? 'once_per_turn') === 'once') u.skillsUsedOnce.push(key);
+  state.sides[side].command.cur -= skill.cost ?? 0;
   const target: TargetRef | undefined = action.target
     ? action.target.row !== undefined
       ? unitRef(action.target.side, action.target.row, action.target.col as number)

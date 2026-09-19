@@ -46,6 +46,7 @@ var Core = (() => {
     autoDeck: () => autoDeck,
     canAttack: () => canAttack,
     canPlayCard: () => canPlayCard,
+    canUseUnitSkill: () => canUseUnitSkill,
     capStacks: () => capStacks,
     cardPool: () => cardPool,
     checkJiuling: () => checkJiuling,
@@ -619,7 +620,9 @@ var Core = (() => {
       statuses: {},
       skills: card.skills ? structuredClone(card.skills) : void 0,
       attackedThisTurn: 0,
-      enteredTurn: turn
+      enteredTurn: turn,
+      skillUsesThisTurn: {},
+      skillsUsedOnce: []
     };
   }
   function applyMods(u) {
@@ -638,6 +641,21 @@ var Core = (() => {
 
   // src/rules.ts
   var isMelee = (u) => u.type !== "strategist" && !hasKeyword(u, "shen_she");
+  function canUseUnitSkill(state, side, row, col) {
+    const u = getUnit(state, side, row, col);
+    if (!u) return { ok: false, reason: "\u8BE5\u683C\u6CA1\u6709\u5355\u4F4D" };
+    if (hasCap(u, "block_action") || hasCap(u, "block_skill")) return { ok: false, reason: "\u88AB\u7981\u7528\u6280\u80FD" };
+    const skill = (u.skills ?? []).find((sk) => sk.kind === "active");
+    if (!skill) return { ok: false, reason: "\u6CA1\u6709\u4E3B\u52A8\u6280" };
+    const key = skill.id || skill.name || "0";
+    const freq = skill.frequency ?? "once_per_turn";
+    if (freq === "once" && u.skillsUsedOnce.includes(key)) return { ok: false, reason: "\u672C\u5C40\u5DF2\u7528\u8FC7" };
+    if (freq === "once_per_turn" && (u.skillUsesThisTurn[key] ?? 0) >= 1) {
+      return { ok: false, reason: "\u672C\u56DE\u5408\u5DF2\u7528\u8FC7" };
+    }
+    if (state.sides[side].command.cur < (skill.cost ?? 0)) return { ok: false, reason: "\u7EDF\u7387\u503C\u4E0D\u8DB3" };
+    return { ok: true, skill };
+  }
   function canAttack(state, side, row, col) {
     const u = getUnit(state, side, row, col);
     if (!u) return { ok: false, reason: "\u8BE5\u683C\u6CA1\u6709\u4EBA\u7269\u5361" };
@@ -1703,7 +1721,10 @@ var Core = (() => {
     const duan = lordStatusStacks(s.lord, "duan_liang");
     s.command.cur = Math.max(0, s.command.max - duan);
     s.lord.skillUsedThisTurn = false;
-    for (const ref of allUnits(state, side)) ref.unit.attackedThisTurn = 0;
+    for (const ref of allUnits(state, side)) {
+      ref.unit.attackedThisTurn = 0;
+      ref.unit.skillUsesThisTurn = {};
+    }
     resetJiulingTurn(state, side);
     events.push({ type: "TURN_START", side, turn: state.turn, command: { ...s.command } });
     drawCard(state, ctx.cards, side, events);
@@ -1896,12 +1917,13 @@ var Core = (() => {
     const side = state.active;
     const u = getUnit(state, side, action.row, action.col);
     if (!u) return false;
-    if (hasCap(u, "block_action") || hasCap(u, "block_skill")) return false;
-    const skill = (u.skills ?? []).find((sk) => sk.kind === "active");
-    if (!skill) return false;
-    const cost = skill.cost ?? 0;
-    if (state.sides[side].command.cur < cost) return false;
-    state.sides[side].command.cur -= cost;
+    const check = canUseUnitSkill(state, side, action.row, action.col);
+    if (!check.ok) return false;
+    const skill = check.skill;
+    const key = skill.id || skill.name || "0";
+    u.skillUsesThisTurn[key] = (u.skillUsesThisTurn[key] ?? 0) + 1;
+    if ((skill.frequency ?? "once_per_turn") === "once") u.skillsUsedOnce.push(key);
+    state.sides[side].command.cur -= skill.cost ?? 0;
     const target = action.target ? action.target.row !== void 0 ? unitRef(action.target.side, action.target.row, action.target.col) : lordRef(action.target.side) : void 0;
     runEffects(state, ctx.cards, skill.effects, { side, source: u, chosen: target }, rng, events);
     return true;
@@ -2215,10 +2237,7 @@ var Core = (() => {
     }
     if (best) return best;
     for (const ref of allUnits(state, side)) {
-      const u = ref.unit;
-      const skill = (u.skills ?? []).find((sk) => sk.kind === "active");
-      if (!skill) continue;
-      if (state.sides[side].command.cur < (skill.cost ?? 0)) continue;
+      if (!canUseUnitSkill(state, side, ref.row, ref.col).ok) continue;
       const target = allUnits(state, foe).sort((a, b) => a.unit.hp - b.unit.hp)[0];
       if (target) {
         return { type: "USE_SKILL", row: ref.row, col: ref.col, target: { side: foe, row: target.row, col: target.col } };

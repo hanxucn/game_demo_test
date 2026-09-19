@@ -370,24 +370,51 @@ test('结束：主将阵亡 → reason「主将阵亡」且摘要含双方数据
    ⑥ 卡数据正确性回归（docs/balance-backlog.md 报告的问题）
    ============================================================ */
 
-test('回归·华雄「威震四方」：两条震慑分支互斥，不会对同一目标叠加', () => {
+test('回归·华雄「威震四方」：只震慑一名目标，不再双次结算', () => {
   const hx = data.cards.get('qun_huaxiong');
   assert.ok(hx, '华雄应存在于卡表');
   const effs = (hx.skills ?? []).flatMap((sk) => sk.effects ?? []);
-  assert.equal(effs.length, 2, '应为两条分支');
+  // ADR-047：原文「指定一名敌人物」，原先两条分支会各选一个目标各震慑一次（低价目标被双重结算）
+  assert.equal(effs.length, 1, `应合并为单条震慑，实际 ${effs.length} 条`);
+  const e = effs[0]!;
+  assert.equal(e.action, 'apply_status');
+  assert.equal(e.status, 'zhen_she');
+  assert.equal(e.target?.count, 1, '只作用于一个目标');
+  assert.equal(e.target?.filter?.cost_min, undefined, '不应再有互斥的 cost 分支');
+  assert.equal(e.target?.filter?.cost_below_source, undefined, '不应再有互斥的 cost 分支');
+  assert.equal(e.chance, 0.75, '概率按「低于华雄必中 / 否则半概率」的期望值折算');
+});
 
-  const f = effs.map((e) => e.target?.filter ?? {});
-  // 一条管 cost<4（必中），一条管 cost>=4（半概率）——两者的 cost 区间不得重叠
-  const cheap = f.find((x) => x.cost_below_source);
-  const dear = f.find((x) => typeof x.cost_min === 'number');
-  assert.ok(cheap, '应有「统帅低于华雄」的分支');
-  assert.ok(dear, '应有「统帅不低于华雄」的分支（cost_min）');
-  assert.equal(dear!.cost_min, 4, '华雄 4 费 → 阈值 4');
-  assert.equal(cheap!.cost_max, undefined, '低价分支不应再有 cost_max（会与 cost_min 重叠）');
+test('主动技频率：0 费主动技每回合只能用 1 次（GDD 10 §1.1）', () => {
+  // 用真实数据里一个 0 费主动技的卡：华佗「青囊」
+  const huatuo = data.cards.get('qun_huatuo');
+  assert.ok(huatuo, '华佗应存在');
+  const sk = (huatuo.skills ?? []).find((s) => s.kind === 'active');
+  assert.ok(sk, '华佗应有主动技');
+  assert.equal(sk!.cost ?? 0, 0, '青囊是 0 费主动技');
+  assert.equal(sk!.frequency ?? 'once_per_turn', 'once_per_turn');
+});
 
-  // 概率：低价必中、高价半概率（与文案一致）
-  const cheapEff = effs.find((e) => e.target?.filter?.cost_below_source)!;
-  const dearEff = effs.find((e) => typeof e.target?.filter?.cost_min === 'number')!;
-  assert.equal(cheapEff.chance, 1.0, '统帅低于华雄 → 100%');
-  assert.equal(dearEff.chance, 0.5, '统帅不低于华雄 → 50%');
+test('全流程：0 费主动技在场也不会无限循环（回归 ADR-047）', async () => {
+  const { chooseAction } = await import('../src/ai.ts');
+  // seed=7 曾让 AI 反复使用 0 费主动技，把对局卡在第 10 回合 4000 步
+  for (const seed of [7, 11, 2026, 99]) {
+    const { state } = setupMatch({
+      seed, cards: data.cards, lords: data.lords,
+      decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wu') },
+      jiulings: { own: 'jiuling_wenjiu', enemy: 'jiuling_qingmei' },
+      jiulingDefs: data.jiulings,
+    });
+    const ctx = { cards: data.cards, lords: data.lords, jiulings: data.jiulings };
+    let s = startMatch(state, ctx).state;
+    let n = 0;
+    while (!s.winner && n < 3000) {
+      const a: Action = chooseAction(s, ctx) ?? { type: 'END_TURN' };
+      const r = applyAction(s, ctx, a);
+      assert.equal(r.ok, true, `seed=${seed} 第 ${n} 步被拒：${JSON.stringify(a)}`);
+      s = r.state;
+      n += 1;
+    }
+    assert.ok(n < 3000, `seed=${seed} 对局未在有限步内结束（${n} 步，turn=${s.turn}）`);
+  }
 });

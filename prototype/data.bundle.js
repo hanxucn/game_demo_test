@@ -19,7 +19,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": -1,
+        "skills": 0,
+        "total": 3,
+        "budget": 5,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_liufeng",
@@ -51,7 +60,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 1.75,
+        "total": 7.75,
+        "budget": 5,
+        "diff": 2.75,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_xiangchong",
@@ -63,7 +81,16 @@ window.GameData = {
       "health": 3,
       "keywords": [],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 0,
+        "total": 5,
+        "budget": 5,
+        "diff": 0,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_chendao",
@@ -82,7 +109,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 0,
+        "total": 4,
+        "budget": 7,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_guanping",
@@ -122,7 +158,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 1.4,
+        "total": 7.4,
+        "budget": 7,
+        "diff": 0.4,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_huangquan",
@@ -152,7 +197,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": 0,
+        "skills": 2,
+        "total": 5,
+        "budget": 7,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_madai",
@@ -199,7 +253,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 2.1,
+        "total": 8.1,
+        "budget": 7,
+        "diff": 1.1,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_zhoucang",
@@ -222,7 +285,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": -1,
+        "skills": 0,
+        "total": 5,
+        "budget": 7,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_guanxing",
@@ -281,7 +353,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 2.38,
+        "total": 10.38,
+        "budget": 9,
+        "diff": 1.38,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_shamoke",
@@ -324,7 +405,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 7,
+        "keywords": 0,
+        "skills": 2,
+        "total": 9,
+        "budget": 9,
+        "diff": 0,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_weiyan",
@@ -355,7 +445,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 0.4,
+        "total": 8.4,
+        "budget": 9,
+        "diff": -0.6,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_zhangbao",
@@ -390,7 +489,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 7,
+        "keywords": 0,
+        "skills": 0.8,
+        "total": 7.8,
+        "budget": 9,
+        "diff": -1.2,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_huangzhong",
@@ -425,7 +533,55 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 0.7,
+        "total": 8.7,
+        "budget": 11,
+        "diff": -2.3,
+        "level": "watch"
+      }
+    },
+    {
+      "id": "shu_jiangwei",
+      "name": "姜维",
+      "faction": "shu",
+      "type": "general",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "wen_wu_shuang_quan",
+          "name": "文武双全",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "target": {
+                "source": true
+              }
+            }
+          ],
+          "text": "当普通攻击时，攻击力+1；当使用策略牌时.可额外抽一张牌，致致到抽出为非策略牌时停止."
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 0.8,
+        "total": 9.8,
+        "budget": 11,
+        "diff": -1.2,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_machao",
@@ -464,7 +620,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 2.8,
+        "total": 11.8,
+        "budget": 11,
+        "diff": 0.8,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_zhangfei",
@@ -498,7 +663,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 1.05,
+        "total": 10.05,
+        "budget": 11,
+        "diff": -0.95,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_zhaoyun",
@@ -529,16 +703,25 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 10,
+        "keywords": 0,
+        "skills": 2,
+        "total": 12,
+        "budget": 11,
+        "diff": 1,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_guanyu",
       "name": "关羽",
       "faction": "shu",
       "type": "general",
-      "cost": 6,
+      "cost": 7,
       "attack": 6,
-      "health": 5,
+      "health": 4,
       "keywords": [],
       "skills": [
         {
@@ -575,37 +758,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "shu_jiangwei",
-      "name": "姜维",
-      "faction": "shu",
-      "type": "general",
-      "cost": 6,
-      "attack": 4,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wen_wu_shuang_quan",
-          "name": "文武双全",
-          "kind": "trigger",
-          "trigger": "on_attack",
-          "effects": [
-            {
-              "action": "modify",
-              "attack": 1,
-              "target": {
-                "source": true
-              }
-            }
-          ],
-          "text": "当普通攻击时，攻击力+1；当使用策略牌时.可额外抽一张牌，致致到抽出为非策略牌时停止."
-        }
-      ],
-      "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 10,
+        "keywords": 0,
+        "skills": 7.5,
+        "total": 17.5,
+        "budget": 15,
+        "diff": 2.5,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_huanghao",
@@ -635,7 +797,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": 0,
+        "skills": 1,
+        "total": 4,
+        "budget": 5,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_jianyang",
@@ -669,7 +840,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": 0,
+        "skills": 1,
+        "total": 4,
+        "budget": 7,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_masu",
@@ -701,7 +881,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 6,
+        "total": 10,
+        "budget": 7,
+        "diff": 3,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_fazheng",
@@ -758,7 +947,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 2,
+        "total": 7,
+        "budget": 9,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_mifang",
@@ -793,7 +991,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 1.2,
+        "total": 6.2,
+        "budget": 9,
+        "diff": -2.8,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_huangyueying",
@@ -828,7 +1035,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": 0,
+        "skills": 6,
+        "total": 9,
+        "budget": 11,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "shu_pangtong",
@@ -872,7 +1088,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 7.6,
+        "total": 12.6,
+        "budget": 13,
+        "diff": -0.4,
+        "level": "ok"
+      }
     },
     {
       "id": "shu_zhugeliang",
@@ -914,7 +1139,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 7,
+        "keywords": 0,
+        "skills": 6.5,
+        "total": 13.5,
+        "budget": 15,
+        "diff": -1.5,
+        "level": "ok"
+      }
     },
     {
       "id": "neutral_archer",
@@ -950,7 +1184,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 1,
+        "keywords": 0,
+        "skills": 0.35,
+        "total": 1.35,
+        "budget": 3,
+        "diff": -1.65,
+        "level": "watch"
+      }
     },
     {
       "id": "neutral_infantry",
@@ -971,7 +1214,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 2,
+        "keywords": 0,
+        "skills": 0,
+        "total": 2,
+        "budget": 3,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_caocao_lord",
@@ -1006,7 +1258,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 1.6,
+        "total": 1.6,
+        "budget": null,
+        "diff": null,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_caogang",
@@ -1027,7 +1288,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": -1,
+        "skills": 0,
+        "total": 3,
+        "budget": 5,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_caoxiu",
@@ -1039,7 +1309,16 @@ window.GameData = {
       "health": 3,
       "keywords": [],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 0,
+        "total": 5,
+        "budget": 7,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_caozhang",
@@ -1058,7 +1337,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 0,
+        "total": 6,
+        "budget": 7,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_zhangyan",
@@ -1082,7 +1370,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": -1,
+        "skills": 0,
+        "total": 4,
+        "budget": 7,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_caoren",
@@ -1120,14 +1417,23 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 4,
+        "total": 12,
+        "budget": 9,
+        "diff": 3,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_guohuai",
       "name": "郭淮",
       "faction": "wei",
       "type": "general",
-      "cost": 4,
+      "cost": 5,
       "attack": 2,
       "health": 3,
       "keywords": [],
@@ -1167,7 +1473,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 8,
+        "total": 13,
+        "budget": 11,
+        "diff": 2,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_xiahoudun",
@@ -1214,7 +1529,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 10,
+        "keywords": 0,
+        "skills": 3,
+        "total": 13,
+        "budget": 11,
+        "diff": 2,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_xiahouyuan",
@@ -1245,7 +1569,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 2,
+        "total": 10,
+        "budget": 11,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_xuhuang",
@@ -1304,7 +1637,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 1.4,
+        "total": 10.4,
+        "budget": 11,
+        "diff": -0.6,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_zhanghe",
@@ -1339,7 +1681,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 2,
+        "total": 10,
+        "budget": 11,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_zhangliao",
@@ -1374,7 +1725,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 0.56,
+        "total": 9.56,
+        "budget": 11,
+        "diff": -1.44,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_dianwei",
@@ -1436,7 +1796,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 11,
+        "keywords": 0,
+        "skills": 3.5,
+        "total": 14.5,
+        "budget": 13,
+        "diff": 1.5,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_xuchu",
@@ -1481,7 +1850,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 11,
+        "keywords": 0,
+        "skills": 3.2,
+        "total": 14.2,
+        "budget": 13,
+        "diff": 1.2,
+        "level": "ok"
+      }
     },
     {
       "id": "wei_xunyou",
@@ -1517,7 +1895,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 2,
+        "total": 7,
+        "budget": 9,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_chengyu",
@@ -1572,48 +1959,23 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "wei_xunyu",
-      "name": "荀彧",
-      "faction": "wei",
-      "type": "strategist",
-      "cost": 5,
-      "attack": 1,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wang_zuo_zhi_ce",
-          "name": "王佐之策",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "gain_command",
-              "value": 2
-            },
-            {
-              "action": "cost_modifier",
-              "value": -1,
-              "target": {
-                "side": "self"
-              }
-            }
-          ],
-          "text": "永久增加主帅两点统帅，且当前回合所有手牌里的人物卡牌减少一个统帅消耗。"
-        }
-      ],
-      "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 2.7,
+        "total": 8.7,
+        "budget": 11,
+        "diff": -2.3,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_guojia",
       "name": "郭嘉",
       "faction": "wei",
       "type": "strategist",
-      "cost": 6,
+      "cost": 5,
       "attack": 1,
       "health": 4,
       "keywords": [],
@@ -1658,14 +2020,109 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 4.4,
+        "total": 9.4,
+        "budget": 11,
+        "diff": -1.6,
+        "level": "watch"
+      }
+    },
+    {
+      "id": "wei_simayi",
+      "name": "司马懿",
+      "faction": "wei",
+      "type": "strategist",
+      "cost": 5,
+      "attack": 1,
+      "health": 6,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "mou_ding_hou_dong",
+          "name": "谋定后动",
+          "kind": "trigger",
+          "trigger": "turn_end",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": "all"
+              }
+            }
+          ],
+          "text": "①如果当前回合司马懿没有任何行动,回合结束时对所有敌方人物卡牌造成一点伤害.②如果行动且对敌方造成伤害,则使敌方卡池随机丢弃一张卡牌.③当场上只剩司马懿时,效果同时包含②."
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 7,
+        "keywords": 0,
+        "skills": 1.05,
+        "total": 8.05,
+        "budget": 11,
+        "diff": -2.95,
+        "level": "watch"
+      }
+    },
+    {
+      "id": "wei_xunyu",
+      "name": "荀彧",
+      "faction": "wei",
+      "type": "strategist",
+      "cost": 5,
+      "attack": 1,
+      "health": 5,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "wang_zuo_zhi_ce",
+          "name": "王佐之策",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "gain_command",
+              "value": 2
+            },
+            {
+              "action": "cost_modifier",
+              "value": -1,
+              "target": {
+                "side": "self"
+              }
+            }
+          ],
+          "text": "永久增加主帅两点统帅，且当前回合所有手牌里的人物卡牌减少一个统帅消耗。"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 2,
+        "total": 8,
+        "budget": 11,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "wei_jiaxu",
       "name": "贾诩",
       "faction": "wei",
       "type": "strategist",
-      "cost": 6,
+      "cost": 7,
       "attack": 1,
       "health": 5,
       "keywords": [],
@@ -1715,41 +2172,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "wei_simayi",
-      "name": "司马懿",
-      "faction": "wei",
-      "type": "strategist",
-      "cost": 6,
-      "attack": 1,
-      "health": 6,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "mou_ding_hou_dong",
-          "name": "谋定后动",
-          "kind": "trigger",
-          "trigger": "turn_end",
-          "effects": [
-            {
-              "action": "damage",
-              "value": 1,
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": "all"
-              }
-            }
-          ],
-          "text": "①如果当前回合司马懿没有任何行动,回合结束时对所有敌方人物卡牌造成一点伤害.②如果行动且对敌方造成伤害,则使敌方卡池随机丢弃一张卡牌.③当场上只剩司马懿时,效果同时包含②."
-        }
-      ],
-      "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 11.2,
+        "total": 17.2,
+        "budget": 15,
+        "diff": 2.2,
+        "level": "watch"
+      }
     },
     {
       "id": "wu_liyi",
@@ -1761,7 +2193,16 @@ window.GameData = {
       "health": 2,
       "memo": "2 费 2/2 普通卡，低费填充",
       "keywords": [],
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 0,
+        "total": 4,
+        "budget": 5,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_songqian",
@@ -1773,7 +2214,16 @@ window.GameData = {
       "health": 3,
       "memo": "2 费 2/3 扎实身材，无技能纯站场",
       "keywords": [],
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 0,
+        "total": 5,
+        "budget": 5,
+        "diff": 0,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_zhuran",
@@ -1787,7 +2237,16 @@ window.GameData = {
         "jia_dun"
       ],
       "memo": "2 费前排嘲讽，敌方必须先打掉它",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": -1,
+        "skills": 0,
+        "total": 3,
+        "budget": 5,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "wu_mazhong",
@@ -1823,7 +2282,16 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 2.5,
+        "total": 7.5,
+        "budget": 7,
+        "diff": 0.5,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_quancong",
@@ -1835,7 +2303,16 @@ window.GameData = {
       "health": 2,
       "memo": "3 费 3/2，吴国中坚白板曲线",
       "keywords": [],
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 0,
+        "total": 5,
+        "budget": 7,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "wu_dingfeng",
@@ -1866,7 +2343,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 0,
+        "total": 8,
+        "budget": 9,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_handang",
@@ -1901,7 +2387,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 1,
+        "total": 9,
+        "budget": 9,
+        "diff": 0,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_huanggai",
@@ -1953,7 +2448,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 7,
+        "keywords": 0,
+        "skills": 2.88,
+        "total": 9.88,
+        "budget": 9,
+        "diff": 0.88,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_lukang",
@@ -1987,7 +2491,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 5,
+        "total": 11,
+        "budget": 9,
+        "diff": 2,
+        "level": "watch"
+      }
     },
     {
       "id": "wu_sunjian",
@@ -2024,7 +2537,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 7,
+        "keywords": 0,
+        "skills": 2.46,
+        "total": 9.46,
+        "budget": 9,
+        "diff": 0.46,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_zhoutai",
@@ -2033,7 +2555,7 @@ window.GameData = {
       "type": "general",
       "cost": 4,
       "attack": 3,
-      "health": 6,
+      "health": 5,
       "keywords": [],
       "skills": [
         {
@@ -2078,7 +2600,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 3.8,
+        "total": 11.8,
+        "budget": 9,
+        "diff": 2.8,
+        "level": "watch"
+      }
     },
     {
       "id": "wu_zhuhuan",
@@ -2108,14 +2639,211 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 0.28,
+        "total": 8.28,
+        "budget": 9,
+        "diff": -0.72,
+        "level": "ok"
+      }
+    },
+    {
+      "id": "wu_ganning",
+      "name": "甘宁",
+      "faction": "wu",
+      "type": "general",
+      "cost": 5,
+      "attack": 5,
+      "health": 5,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "bai_qi_jie_ying",
+          "name": "百骑劫营",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": -1,
+              "duration": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": "all"
+              }
+            }
+          ],
+          "text": "第一回合上场时获得先攻，且所有场上敌方人物 -1 攻一回合。"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 10,
+        "keywords": 0,
+        "skills": 2.1,
+        "total": 12.1,
+        "budget": 11,
+        "diff": 1.1,
+        "level": "ok"
+      }
+    },
+    {
+      "id": "wu_lingtong",
+      "name": "凌统",
+      "faction": "wu",
+      "type": "general",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "guo_shi_zhi_feng",
+          "name": "国士之风",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "zhen_she",
+              "duration": 1,
+              "chance": 0.5,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ],
+          "text": "获得先攻，并且对攻击的敌人有 50% 概率造成震慑。"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 2,
+        "total": 11,
+        "budget": 11,
+        "diff": 0,
+        "level": "ok"
+      }
+    },
+    {
+      "id": "wu_lvmeng",
+      "name": "吕蒙",
+      "faction": "wu",
+      "type": "general",
+      "cost": 5,
+      "attack": 3,
+      "health": 5,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "bai_yi_du_jiang",
+          "name": "白衣渡江",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "flip",
+              "target": {
+                "source": true
+              }
+            },
+            {
+              "action": "flip",
+              "target": {
+                "side": "ally",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ],
+          "text": "上场时可选择一名友方卡牌进行\"白衣渡江\"：本回合内将自己和选择的卡牌翻面，可在之后的回合开始行动。翻面卡牌无法被攻击以及被计策选中。"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 5,
+        "total": 13,
+        "budget": 11,
+        "diff": 2,
+        "level": "watch"
+      }
+    },
+    {
+      "id": "wu_sunce",
+      "name": "孙策",
+      "faction": "wu",
+      "type": "general",
+      "cost": 5,
+      "attack": 5,
+      "health": 5,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "jiang_dong_ba_wang",
+          "name": "江东霸王",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "damage",
+              "value_from": {
+                "side": "ally",
+                "filter": {
+                  "type": "character"
+                }
+              },
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ],
+          "text": "上场时，根据场上友军人物卡数对敌方指定敌人造成人物数伤害。"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 10,
+        "keywords": 0,
+        "skills": 0,
+        "total": 10,
+        "budget": 11,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_chengpu",
       "name": "程普",
       "faction": "wu",
       "type": "general",
-      "cost": 5,
+      "cost": 6,
       "attack": 4,
       "health": 5,
       "keywords": [],
@@ -2165,159 +2893,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "wu_ganning",
-      "name": "甘宁",
-      "faction": "wu",
-      "type": "general",
-      "cost": 5,
-      "attack": 5,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "bai_qi_jie_ying",
-          "name": "百骑劫营",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "modify",
-              "attack": -1,
-              "duration": 1,
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": "all"
-              }
-            }
-          ],
-          "text": "第一回合上场时获得先攻，且所有场上敌方人物 -1 攻一回合。"
-        }
-      ],
-      "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "wu_lingtong",
-      "name": "凌统",
-      "faction": "wu",
-      "type": "general",
-      "cost": 5,
-      "attack": 4,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "guo_shi_zhi_feng",
-          "name": "国士之风",
-          "kind": "trigger",
-          "trigger": "on_attack",
-          "effects": [
-            {
-              "action": "apply_status",
-              "status": "zhen_she",
-              "duration": 1,
-              "chance": 0.5,
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "random"
-              }
-            }
-          ],
-          "text": "获得先攻，并且对攻击的敌人有 50% 概率造成震慑。"
-        }
-      ],
-      "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "wu_lvmeng",
-      "name": "吕蒙",
-      "faction": "wu",
-      "type": "general",
-      "cost": 5,
-      "attack": 3,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "bai_yi_du_jiang",
-          "name": "白衣渡江",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "flip",
-              "target": {
-                "source": true
-              }
-            },
-            {
-              "action": "flip",
-              "target": {
-                "side": "ally",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              }
-            }
-          ],
-          "text": "上场时可选择一名友方卡牌进行\"白衣渡江\"：本回合内将自己和选择的卡牌翻面，可在之后的回合开始行动。翻面卡牌无法被攻击以及被计策选中。"
-        }
-      ],
-      "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "wu_sunce",
-      "name": "孙策",
-      "faction": "wu",
-      "type": "general",
-      "cost": 5,
-      "attack": 5,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "jiang_dong_ba_wang",
-          "name": "江东霸王",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "damage",
-              "value_from": {
-                "side": "ally",
-                "filter": {
-                  "type": "character"
-                }
-              },
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              }
-            }
-          ],
-          "text": "上场时，根据场上友军人物卡数对敌方指定敌人造成人物数伤害。"
-        }
-      ],
-      "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 5.32,
+        "total": 14.32,
+        "budget": 13,
+        "diff": 1.32,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_taishici",
@@ -2348,7 +2933,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 11,
+        "keywords": 0,
+        "skills": 1.6,
+        "total": 12.6,
+        "budget": 13,
+        "diff": -0.4,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_zhugeke",
@@ -2380,7 +2974,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 2.5,
+        "total": 6.5,
+        "budget": 7,
+        "diff": -0.5,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_lusu",
@@ -2414,14 +3017,23 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 4.8,
+        "total": 9.8,
+        "budget": 9,
+        "diff": 0.8,
+        "level": "ok"
+      }
     },
     {
       "id": "wu_luxun",
       "name": "陆逊",
       "faction": "wu",
       "type": "strategist",
-      "cost": 7,
+      "cost": 6,
       "attack": 1,
       "health": 5,
       "keywords": [],
@@ -2461,14 +3073,23 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 5.25,
+        "total": 11.25,
+        "budget": 13,
+        "diff": -1.75,
+        "level": "watch"
+      }
     },
     {
       "id": "wu_zhouyu",
       "name": "周瑜",
       "faction": "wu",
       "type": "strategist",
-      "cost": 7,
+      "cost": 6,
       "attack": 1,
       "health": 5,
       "keywords": [],
@@ -2515,7 +3136,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 4.1,
+        "total": 10.1,
+        "budget": 13,
+        "diff": -2.9,
+        "level": "watch"
+      }
     },
     {
       "id": "qun_yuanshao_lord",
@@ -2545,7 +3175,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 2.4,
+        "total": 2.4,
+        "budget": null,
+        "diff": null,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_caimao",
@@ -2557,7 +3196,16 @@ window.GameData = {
       "health": 2,
       "keywords": [],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 0,
+        "total": 4,
+        "budget": 5,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_songxian",
@@ -2569,7 +3217,16 @@ window.GameData = {
       "health": 3,
       "keywords": [],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 0,
+        "total": 5,
+        "budget": 5,
+        "diff": 0,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_huangzu",
@@ -2604,7 +3261,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 1,
+        "total": 6,
+        "budget": 7,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_zhangbao",
@@ -2645,7 +3311,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": 0,
+        "skills": 4.2,
+        "total": 7.2,
+        "budget": 7,
+        "diff": 0.2,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_zhangliang",
@@ -2686,7 +3361,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 4.2,
+        "total": 8.2,
+        "budget": 7,
+        "diff": 1.2,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_gaoshun",
@@ -2726,7 +3410,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 8,
+        "total": 12,
+        "budget": 9,
+        "diff": 3,
+        "level": "watch"
+      }
     },
     {
       "id": "qun_gongsunzan",
@@ -2747,8 +3440,9 @@ window.GameData = {
             {
               "action": "summon",
               "unit": "neutral_archer",
-              "count": 2,
-              "position": "random"
+              "count": 1,
+              "position": "random",
+              "note": "平衡（ADR-047）：白马义从每只 +1/+1 且每回合 2 伤，是三种进化里收益最高的；召唤数 2→1"
             },
             {
               "action": "transform",
@@ -2766,7 +3460,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 5.35,
+        "total": 9.35,
+        "budget": 9,
+        "diff": 0.35,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_huaxiong",
@@ -2788,38 +3491,32 @@ window.GameData = {
               "action": "apply_status",
               "status": "zhen_she",
               "duration": 1,
-              "chance": 0.5,
+              "chance": 0.75,
               "target": {
                 "side": "enemy",
                 "filter": {
-                  "type": "character",
-                  "cost_min": 4
+                  "type": "character"
                 },
                 "count": 1,
                 "mode": "choose"
-              }
-            },
-            {
-              "action": "apply_status",
-              "status": "zhen_she",
-              "duration": 1,
-              "chance": 1.0,
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character",
-                  "cost_below_source": true
-                },
-                "count": 1,
-                "mode": "choose"
-              }
+              },
+              "note": "平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）"
             }
           ],
           "text": "指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%."
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 3.75,
+        "total": 11.75,
+        "budget": 9,
+        "diff": 2.75,
+        "level": "watch"
+      }
     },
     {
       "id": "qun_mateng",
@@ -2862,7 +3559,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 6,
+        "total": 10,
+        "budget": 9,
+        "diff": 1,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_yuanshao",
@@ -2894,7 +3600,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 8,
+        "keywords": 0,
+        "skills": 2.1,
+        "total": 10.1,
+        "budget": 11,
+        "diff": -0.9,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_caiwenji",
@@ -2930,7 +3645,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 2,
+        "keywords": 0,
+        "skills": 2,
+        "total": 4,
+        "budget": 5,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_diaochan",
@@ -2976,7 +3700,57 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 5.5,
+        "total": 9.5,
+        "budget": 7,
+        "diff": 2.5,
+        "level": "watch"
+      }
+    },
+    {
+      "id": "qun_zuoci",
+      "name": "左慈",
+      "faction": "qun",
+      "type": "strategist",
+      "cost": 3,
+      "attack": 1,
+      "health": 3,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "jian_tong_xing_wei",
+          "name": "兼通星纬",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "scry",
+              "from": "top",
+              "count": 1,
+              "to": "deck_bottom",
+              "target": {
+                "side": "enemy"
+              }
+            }
+          ],
+          "text": "可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。"
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 2.5,
+        "total": 6.5,
+        "budget": 7,
+        "diff": -0.5,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_chengong",
@@ -3011,7 +3785,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 2,
+        "total": 7,
+        "budget": 9,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "qun_huatuo",
@@ -3067,7 +3850,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 2.56,
+        "total": 7.56,
+        "budget": 9,
+        "diff": -1.44,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_tianfeng",
@@ -3103,39 +3895,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
-    },
-    {
-      "id": "qun_zuoci",
-      "name": "左慈",
-      "faction": "qun",
-      "type": "strategist",
-      "cost": 4,
-      "attack": 1,
-      "health": 2,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "jian_tong_xing_wei",
-          "name": "兼通星纬",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "scry",
-              "from": "top",
-              "count": 1,
-              "to": "deck_bottom",
-              "target": {
-                "side": "enemy"
-              }
-            }
-          ],
-          "text": "可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。"
-        }
-      ],
-      "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 5,
+        "total": 9,
+        "budget": 9,
+        "diff": 0,
+        "level": "ok"
+      }
     },
     {
       "id": "qun_zhangjiao",
@@ -3183,7 +3952,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 3.22,
+        "total": 9.22,
+        "budget": 11,
+        "diff": -1.78,
+        "level": "watch"
+      }
     },
     {
       "id": "neutral_shieldman",
@@ -3198,7 +3976,16 @@ window.GameData = {
         "jia_dun"
       ],
       "memo": "仅前军生效：敌方必须先打掉它才能攻击其他人",
-      "flavor": "盾如铁壁，寸步不让。"
+      "flavor": "盾如铁壁，寸步不让。",
+      "value": {
+        "stats": 3,
+        "keywords": -1,
+        "skills": 0,
+        "total": 2,
+        "budget": 5,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "elite_baima_yicong",
@@ -3234,7 +4021,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": 0,
+        "skills": 0.7,
+        "total": 3.7,
+        "budget": 1,
+        "diff": 2.7,
+        "level": "watch"
+      }
     },
     {
       "id": "elite_xianzhen_dun",
@@ -3249,7 +4045,16 @@ window.GameData = {
         "jia_dun"
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": -1,
+        "skills": 0,
+        "total": 3,
+        "budget": 1,
+        "diff": 2,
+        "level": "watch"
+      }
     },
     {
       "id": "elite_xiliang_tieqi",
@@ -3264,7 +4069,16 @@ window.GameData = {
         "xian_gong"
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": -1,
+        "skills": 0,
+        "total": 2,
+        "budget": 1,
+        "diff": 1,
+        "level": "ok"
+      }
     },
     {
       "id": "token_huangjin_bing",
@@ -3279,7 +4093,16 @@ window.GameData = {
       ],
       "keywords": [],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 2,
+        "keywords": 0,
+        "skills": 0,
+        "total": 2,
+        "budget": 1,
+        "diff": 1,
+        "level": "ok"
+      }
     },
     {
       "id": "token_jixie_shaobing",
@@ -3296,7 +4119,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 0,
+        "total": 0,
+        "budget": null,
+        "diff": null,
+        "level": "ok"
+      }
     },
     {
       "id": "token_jixie_shouwei",
@@ -3313,7 +4145,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 0,
+        "total": 0,
+        "budget": null,
+        "diff": null,
+        "level": "ok"
+      }
     },
     {
       "id": "token_shizu_bing",
@@ -3328,7 +4169,16 @@ window.GameData = {
       ],
       "keywords": [],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 2,
+        "keywords": 0,
+        "skills": 0,
+        "total": 2,
+        "budget": 1,
+        "diff": 1,
+        "level": "ok"
+      }
     },
     {
       "id": "tactic_bishi_ruiqi",
@@ -3358,7 +4208,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 2,
+        "total": 2,
+        "budget": 5,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "tactic_cuoqi_ruiqi",
@@ -3390,7 +4249,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 1.4,
+        "total": 1.4,
+        "budget": 5,
+        "diff": -3.6,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_anduchencang",
@@ -3431,7 +4299,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 5,
+        "total": 5,
+        "budget": 7,
+        "diff": -2,
+        "level": "watch"
+      }
     },
     {
       "id": "tactic_bishijixu",
@@ -3462,7 +4339,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 1,
+        "total": 1,
+        "budget": 7,
+        "diff": -6,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_gongxinji",
@@ -3495,7 +4381,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 2.5,
+        "total": 2.5,
+        "budget": 7,
+        "diff": -4.5,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_huogong",
@@ -3539,7 +4434,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 1,
+        "total": 1,
+        "budget": 7,
+        "diff": -6,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_mantianguohai",
@@ -3571,7 +4475,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 11,
+        "total": 11,
+        "budget": 7,
+        "diff": 4,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_tuntian",
@@ -3594,7 +4507,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 6,
+        "total": 6,
+        "budget": 7,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "tactic_chuqibuyi",
@@ -3622,7 +4544,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 2.5,
+        "total": 2.5,
+        "budget": 9,
+        "diff": -6.5,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_fudichouxin",
@@ -3649,7 +4580,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 2,
+        "total": 2,
+        "budget": 9,
+        "diff": -7,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_jijiang",
@@ -3676,7 +4616,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 3.5,
+        "total": 3.5,
+        "budget": 9,
+        "diff": -5.5,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_shizhanqunru",
@@ -3707,7 +4656,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 6,
+        "total": 6,
+        "budget": 9,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "tactic_yuqin_guzong",
@@ -3747,7 +4705,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 3.4,
+        "total": 3.4,
+        "budget": 9,
+        "diff": -5.6,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_zhuchengjiliang",
@@ -3776,7 +4743,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 12,
+        "total": 12,
+        "budget": 9,
+        "diff": 3,
+        "level": "watch"
+      }
     },
     {
       "id": "tactic_chenhuodajie",
@@ -3804,7 +4780,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 2.5,
+        "total": 2.5,
+        "budget": 11,
+        "diff": -8.5,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_kongchengji",
@@ -3843,7 +4828,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 0,
+        "total": 0,
+        "budget": 11,
+        "diff": -11,
+        "level": "off"
+      }
     },
     {
       "id": "tactic_xiushengyangxi",
@@ -3877,7 +4871,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 12.6,
+        "total": 12.6,
+        "budget": 11,
+        "diff": 1.6,
+        "level": "watch"
+      }
     },
     {
       "id": "tactic_caochuanjiejian",
@@ -3920,7 +4923,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 10,
+        "total": 10,
+        "budget": 13,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "event_fengnian",
@@ -3950,7 +4962,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 12,
+        "total": 12,
+        "budget": 3,
+        "diff": 9,
+        "level": "off"
+      }
     },
     {
       "id": "event_zainian",
@@ -3978,7 +4999,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 2,
+        "total": 2,
+        "budget": 3,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "event_huangjin",
@@ -4003,7 +5033,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 6,
+        "total": 6,
+        "budget": 7,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "event_nanmanruqin",
@@ -4033,7 +5072,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 1.5,
+        "total": 1.5,
+        "budget": 7,
+        "diff": -5.5,
+        "level": "off"
+      }
     },
     {
       "id": "event_shichangshi",
@@ -4061,7 +5109,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 4,
+        "total": 4,
+        "budget": 7,
+        "diff": -3,
+        "level": "watch"
+      }
     },
     {
       "id": "event_huoshaoluoyang",
@@ -4098,7 +5155,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 1.5,
+        "total": 1.5,
+        "budget": 9,
+        "diff": -7.5,
+        "level": "off"
+      }
     },
     {
       "id": "neutral_chuanguo_yuxi",
@@ -4122,7 +5188,16 @@ window.GameData = {
           "value": 1,
           "duration": "this_turn"
         }
-      ]
+      ],
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 0,
+        "total": 0,
+        "budget": 1,
+        "diff": -1,
+        "level": "ok"
+      }
     },
     {
       "id": "status_jia_dun",
@@ -4138,7 +5213,16 @@ window.GameData = {
         }
       ],
       "memo": "",
-      "flavor": ""
+      "flavor": "",
+      "value": {
+        "stats": 0,
+        "keywords": 0,
+        "skills": 0,
+        "total": 0,
+        "budget": null,
+        "diff": null,
+        "level": "ok"
+      }
     }
   ],
   "heroes": [

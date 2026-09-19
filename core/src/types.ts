@@ -195,6 +195,10 @@ export interface Unit {
   skills?: SkillDef[];
   attackedThisTurn: number;
   enteredTurn: number;
+  /** 本回合各主动技已使用次数，key = 技能 id 或下标（GDD 10 §1.1 频率限制） */
+  skillUsesThisTurn: Record<string, number>;
+  /** 本局已用过的「一局一次」技能键 */
+  skillsUsedOnce: string[];
 }
 
 export interface Lord {

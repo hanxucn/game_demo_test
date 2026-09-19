@@ -258,6 +258,8 @@ export function makeUnit(card: CardDef, turn: number, seq: number): Unit {
     skills: card.skills ? structuredClone(card.skills) : undefined,
     attackedThisTurn: 0,
     enteredTurn: turn,
+    skillUsesThisTurn: {},
+    skillsUsedOnce: [],
   };
 }
 

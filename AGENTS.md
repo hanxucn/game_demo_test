@@ -42,16 +42,21 @@ open prototype/battlefield.html
 
 # 引擎（core）
 cd core
-npm test          # 34 个测试：规则 / 引擎 / 回放确定性
+npm test          # 129 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
 npm run typecheck # tsc --noEmit
-npm run validate  # 卡牌数据校验（10 条规则）
-npm run smoke     # 两个 AI 互打一局 + 回放一致性
+npm run validate  # 卡牌数据校验（结构 + 平衡 + value 块新鲜度）
+npm run verify:dsl  # 逐张跑真实卡牌的 DSL，端到端验证
+npm run smoke     # 两个 AI 互打一局 + 回放一致性（完整开局：掷点/酒令/换牌）
 ```
 
-**改数据后必须跑**：
+**改数据后必须跑**（一条命令重建整条数据链，含派生的 `value` 核算块）：
 ```bash
-python3 tools/yaml2json.py && cd core && npm run validate
+bash tools/build-cards.sh          # 八步：决策→归一化→入库→算 value→并回→导出 JSON→重建 bundle
+cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke
 ```
+
+> `data/cards.yaml` 的 `value:` 块是**派生数据**（由 `core/tools/emit-values.ts` 依当前度量算出）。
+> 不要手改；改了效果/数值后重跑 `build-cards.sh`，否则 `npm run validate` 会报"value 核算块已过期"。
 
 ## 命名约定
 
@@ -104,7 +109,7 @@ python3 tools/yaml2json.py && cd core && npm run validate
 ## 提交前检查清单
 
 - [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
-- [ ] `cd core && npm test` 全过（34/34）+ `npm run typecheck` + `npm run validate`
+- [ ] `cd core && npm test` 全过（129/129）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（总价值在预算内）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
 - [ ] 若产生新决策，已写入 `docs/gdd/14-open-questions.md` 的 ADR 表

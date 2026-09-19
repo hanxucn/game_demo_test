@@ -264,7 +264,7 @@ const troop = (id: string, kind: 'infantry' | 'shield' | 'archer', atk: number, 
   makeUnit({ id, name: id, faction: 'neutral', type: 'troop', troopKind: kind,
              cost: 1, attack: atk, health: hp, keywords: [], memo: '' } as CardDef, 1, 1);
 
-test('公孙瓒 白马义从：召唤 2 弓兵 + 场上弓兵全部进化', () => {
+test('公孙瓒 白马义从：召唤 1 弓兵 + 场上弓兵全部进化', () => {
   realCard('qun_gongsunzan');
   const { state, ctx } = scenario({ ownHand: ['qun_gongsunzan'] });
   setUnit(state, 'own', 'front', 0, troop('old_archer', 'archer', 0, 1));   // 场上已有弓兵
@@ -272,7 +272,8 @@ test('公孙瓒 白马义从：召唤 2 弓兵 + 场上弓兵全部进化', () =
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 });
 
   const evs = r.events.filter((e) => e.type === 'UNIT_TRANSFORMED');
-  assert.equal(evs.length, 3, `应进化 3 个弓兵（场上 1 + 召唤 2），实际 ${evs.length}`);
+  // ADR-047 平衡：召唤数 2→1（白马义从每只 +1/+1 且每回合 2 伤，是三种进化里收益最高的）
+  assert.equal(evs.length, 2, `应进化 2 个弓兵（场上 1 + 召唤 1），实际 ${evs.length}`);
   const old = getUnit(r.state, 'own', 'front', 0)!;
   assert.equal(old.cardId, 'elite_baima_yicong', '场上原弓兵应变为白马义从');
   assert.equal(old.atk, 1, '白马义从 1 攻');

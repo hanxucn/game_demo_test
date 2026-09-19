@@ -12,7 +12,7 @@ import { BOARD, DECK } from './constants.ts';
 import {
   allUnits, getUnit, hasCap, hasKeyword, other, shieldUnits, statusStacks, unitCount,
 } from './state.ts';
-import type { CardDef, MatchState, Row, Side, Unit } from './types.ts';
+import type { CardDef, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
 export interface Target {
   kind: 'unit' | 'lord';
@@ -34,6 +34,30 @@ export interface Check {
 /** 是否近战（非神射、非谋臣） */
 export const isMelee = (u: Unit): boolean =>
   u.type !== 'strategist' && !hasKeyword(u, 'shen_she');
+
+/**
+ * 能否使用某单位的主动技（GDD 10 §1.1：默认每回合 1 次）。
+ *
+ * 规则放在这里而不是 engine 里，是为了让 **AI 与引擎共用同一判定**——
+ * 否则 AI 会提出引擎必拒的动作（曾导致对局在回合中途直接停摆）。
+ */
+export function canUseUnitSkill(
+  state: MatchState, side: Side, row: Row, col: number,
+): Check & { skill?: SkillDef } {
+  const u = getUnit(state, side, row, col);
+  if (!u) return { ok: false, reason: '该格没有单位' };
+  if (hasCap(u, 'block_action') || hasCap(u, 'block_skill')) return { ok: false, reason: '被禁用技能' };
+  const skill = (u.skills ?? []).find((sk) => sk.kind === 'active');
+  if (!skill) return { ok: false, reason: '没有主动技' };
+  const key = skill.id || skill.name || '0';
+  const freq = skill.frequency ?? 'once_per_turn';
+  if (freq === 'once' && u.skillsUsedOnce.includes(key)) return { ok: false, reason: '本局已用过' };
+  if (freq === 'once_per_turn' && (u.skillUsesThisTurn[key] ?? 0) >= 1) {
+    return { ok: false, reason: '本回合已用过' };
+  }
+  if (state.sides[side].command.cur < (skill.cost ?? 0)) return { ok: false, reason: '统率值不足' };
+  return { ok: true, skill };
+}
 
 /** 能否普通攻击（与目标无关的限制） */
 export function canAttack(state: MatchState, side: Side, row: Row, col: number): Check {

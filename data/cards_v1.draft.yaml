@@ -291,8 +291,9 @@ cards:
       effects:
       - action: summon
         unit: neutral_archer
-        count: 2
+        count: 1
         position: random
+        note: 平衡（ADR-047）：白马义从每只 +1/+1 且每回合 2 伤，是三种进化里收益最高的；召唤数 2→1
       - action: transform
         to: elite_baima_yicong
         target:
@@ -597,7 +598,7 @@ cards:
   name: 贾诩
   faction: wei
   type: strategist
-  cost: 6
+  cost: 7
   attack: 1
   health: 5
   skills:
@@ -641,11 +642,12 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: wei_guojia
   name: 郭嘉
   faction: wei
   type: strategist
-  cost: 6
+  cost: 5
   attack: 1
   health: 4
   skills:
@@ -683,6 +685,7 @@ cards:
   flags:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: wei_xuchu
   name: 许褚
   faction: wei
@@ -727,7 +730,7 @@ cards:
   name: 司马懿
   faction: wei
   type: strategist
-  cost: 6
+  cost: 5
   attack: 1
   health: 6
   skills:
@@ -755,6 +758,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: qun_yuanshao
   name: 袁绍
   faction: qun
@@ -1116,9 +1120,9 @@ cards:
   name: 左慈
   faction: qun
   type: strategist
-  cost: 4
+  cost: 3
   attack: 1
-  health: 2
+  health: 3
   skills:
   - name: 兼通星纬
     text: 可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。
@@ -1144,6 +1148,8 @@ cards:
   - 未定稿：health = 2｜未定稿：纸面自带问号，数值待定
   - 转录存疑 5 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 4
+  health_original: 2
 - id: shu_madai
   name: 马岱
   faction: shu
@@ -1369,7 +1375,7 @@ cards:
   name: 姜维
   faction: shu
   type: general
-  cost: 6
+  cost: 5
   attack: 4
   health: 5
   skills:
@@ -1394,6 +1400,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: shu_machao
   name: 马超
   faction: shu
@@ -1633,9 +1640,9 @@ cards:
   name: 关羽
   faction: shu
   type: general
-  cost: 6
+  cost: 7
   attack: 6
-  health: 5
+  health: 4
   skills:
   - name: 水淹七军
     text: 使对方所有场上人物技能禁用一回合,并对其造成一点水攻伤害.
@@ -1670,6 +1677,8 @@ cards:
   - 未定稿：skill_name = 水淹七军 / 武圣（备选）｜未定稿：两个候选技能名都保留，一个作备选，设计者未定用哪个
   - 转录存疑 5 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
+  health_original: 5
 - id: shu_huanghao
   name: 黄皓
   faction: shu
@@ -2106,7 +2115,7 @@ cards:
   name: 郭淮
   faction: wei
   type: general
-  cost: 4
+  cost: 5
   attack: 2
   health: 3
   skills:
@@ -2143,6 +2152,7 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 4
 - id: wei_caozhang
   name: 曹彰
   faction: wei
@@ -2298,25 +2308,14 @@ cards:
       - action: apply_status
         status: zhen_she
         duration: 1
-        chance: 0.5
+        chance: 0.75
         target:
           side: enemy
           filter:
             type: character
-            cost_min: 4
           count: 1
           mode: choose
-      - action: apply_status
-        status: zhen_she
-        duration: 1
-        chance: 1.0
-        target:
-          side: enemy
-          filter:
-            type: character
-            cost_below_source: true
-          count: 1
-          mode: choose
+        note: 平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）
     note: DSL 已翻译
   keywords: []
   memo: ''
@@ -2360,7 +2359,7 @@ cards:
   name: 周瑜
   faction: wu
   type: strategist
-  cost: 7
+  cost: 6
   attack: 1
   health: 5
   skills:
@@ -2400,11 +2399,12 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 7
 - id: wu_luxun
   name: 陆逊
   faction: wu
   type: strategist
-  cost: 7
+  cost: 6
   attack: 1
   health: 5
   skills:
@@ -2441,6 +2441,7 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 7
 - id: wu_taishici
   name: 太史慈
   faction: wu
@@ -2511,7 +2512,7 @@ cards:
   name: 程普
   faction: wu
   type: general
-  cost: 5
+  cost: 6
   attack: 4
   health: 5
   skills:
@@ -2554,6 +2555,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 5
 - id: wu_lvmeng
   name: 吕蒙
   faction: wu
@@ -2807,7 +2809,7 @@ cards:
   type: general
   cost: 4
   attack: 3
-  health: 6
+  health: 5
   skills:
   - name: 铁血守护
     text: 每回合，若有己方将领被击破时，可选择是否援护一次，该将领受到的伤害由周泰承受。周泰被击败时，有一次机会50%概率存活。
@@ -2846,6 +2848,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  health_original: 6
 - id: wu_zhuhuan
   name: 朱桓
   faction: wu

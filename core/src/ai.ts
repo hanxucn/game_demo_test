@@ -7,7 +7,7 @@
 
 import { BOARD } from './constants.ts';
 import { allUnits, getUnit, other } from './state.ts';
-import { canAttack, canPlayCard, effectiveAttack, legalPlacements, legalTargets } from './rules.ts';
+import { canAttack, canPlayCard, canUseUnitSkill, effectiveAttack, legalPlacements, legalTargets } from './rules.ts';
 import { isBanned } from './mutate.ts';
 import type { Action, CardDef, EngineContext, MatchState, Row, Side } from './types.ts';
 
@@ -60,10 +60,7 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
 
   // ④ 用谋臣主动技
   for (const ref of allUnits(state, side)) {
-    const u = ref.unit;
-    const skill = (u.skills ?? []).find((sk) => sk.kind === 'active');
-    if (!skill) continue;
-    if (state.sides[side].command.cur < (skill.cost ?? 0)) continue;
+    if (!canUseUnitSkill(state, side, ref.row, ref.col).ok) continue;
     const target = allUnits(state, foe).sort((a, b) => a.unit.hp - b.unit.hp)[0];
     if (target) {
       return { type: 'USE_SKILL', row: ref.row, col: ref.col, target: { side: foe, row: target.row, col: target.col } };

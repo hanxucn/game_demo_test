@@ -46,6 +46,8 @@ COST_RULES = dec.get('card_cost_rules') or {}
 CARD_KW = dec.get('card_keywords') or {}
 CARD_TROOPKIND = dec.get('card_troopkind') or {}
 NAME_ONLY = dec.get('skill_name_only') or {}
+# 平衡调优：按卡 id 覆盖 cost/attack/health（值一律来自设计决策，见 docs/balance-backlog.md）
+STATS = dec.get('card_stats') or {}
 DSL_NONE = set((dec.get('dsl') or {}).get('_none') or [])
 PHOTO_TAGS: dict[int, list[str]] = {}
 for tag, photos in (dec.get('card_tags') or {}).items():
@@ -146,6 +148,16 @@ for card in out:
         card['effects'] = DSL_EFF[card['id']]
         if card.get('skills'):
             card['skills'][0]['note'] = 'DSL 已翻译（卡级 effects）'
+
+# 平衡调优覆盖（数值调整集中一处，便于复盘与回滚）
+for card in out:
+    ov = STATS.get(card['id'])
+    if not ov:
+        continue
+    for field in ('cost', 'attack', 'health', 'keywords', 'troopKind'):
+        if field in ov:
+            card[f'{field}_original'] = card.get(field)
+            card[field] = ov[field]
 
 doc = {
  'meta': {'version': 'v1', 'status': '初步定稿（待 DSL 翻译与数值校验）',

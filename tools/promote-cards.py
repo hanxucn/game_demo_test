@@ -86,6 +86,20 @@ def normalize(card: dict) -> dict:
     return out
 
 
+def attach_values(cards: list, values: dict) -> int:
+    """把 core/data/card-values.json 的核算块并入每张卡的 value 字段（派生数据）。
+
+    缺失核算的卡保留 value: null，validate 会报错提醒重跑工具链。
+    """
+    ok = 0
+    for c in cards:
+        v = values.get(c["id"])
+        c["value"] = v if v else None
+        if v:
+            ok += 1
+    return ok
+
+
 def main() -> int:
     check = "--check" in sys.argv
     doc = yaml.safe_load(SRC.read_text(encoding="utf-8"))
@@ -106,6 +120,15 @@ def main() -> int:
     print(f"  · 有技能名、效果待设计：{len(pending)} → {'、'.join(c['name'] for c in pending)}")
     print(f"  · 无技能（白板/关键词/纯属性）：{len(no_skill)}")
 
+    values_path = ROOT / "core" / "data" / "card-values.json"
+    if values_path.exists():
+        import json as _json
+        values = _json.loads(values_path.read_text(encoding="utf-8"))
+        n = attach_values(cards, values)
+        print(f"  · 并入 value 核算块：{n}/{len(cards)} 张")
+    else:
+        print("  · 未找到 core/data/card-values.json，value 块留空（先跑 core/tools/emit-values.ts）")
+
     if check:
         print("\n（--check 模式，未写盘）")
         return 0
@@ -121,8 +144,11 @@ def main() -> int:
 #      data/cards_v1.draft.yaml        归一化前的卡池
 #
 # 字段说明见 docs/gdd/05-cards.md §2；效果 DSL 见 docs/gdd/13-balance-data-model.md §7。
-# 数值核算（属性 + 关键词 + 技能 ≈ 2×费用+1）见 ADR-043，
-# 用 `cd core && npm run validate -- --verbose` 逐张打印。
+# value 块是**派生数据**：由 core/tools/emit-values.ts 依当前度量算出，
+#   写进 core/data/card-values.json，再由本脚本并入。**不要手改 value**；
+#   改了效果/数值后重跑 tools/build-cards.sh。validate 会比对它与实时计算是否一致。
+# 数值核算式（属性 + 关键词 + 技能 ≈ 2×费用+1）见 ADR-043，
+#   用 `cd core && npm run validate -- --verbose` 逐张打印。
 #
 # 技能里有 `pending: true` 的表示：技能名已定、效果待设计。
 #
