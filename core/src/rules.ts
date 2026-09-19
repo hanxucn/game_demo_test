@@ -177,7 +177,7 @@ export function canPlayCard(
   costOverride?: number,          // 手牌费用修正后的实际费用（ADR-038）
 ): Check {
   const s = state.sides[side];
-  const cost = costOverride ?? card.cost;
+  const cost = costOverride ?? card.cost ?? 0;
   if (cost > s.command.cur) {
     return { ok: false, reason: `统率值不足（需要 ${cost}，当前 ${s.command.cur}）` };
   }

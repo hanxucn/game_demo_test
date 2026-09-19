@@ -1230,6 +1230,7 @@ window.GameData = {
       "name": "曹操",
       "faction": "wei",
       "type": "lord",
+      "cost": 0,
       "keywords": [],
       "skills": [
         {
@@ -1264,8 +1265,8 @@ window.GameData = {
         "keywords": 0,
         "skills": 1.6,
         "total": 1.6,
-        "budget": null,
-        "diff": null,
+        "budget": 1,
+        "diff": 0.6,
         "level": "ok"
       }
     },
@@ -3152,6 +3153,7 @@ window.GameData = {
       "name": "袁绍",
       "faction": "qun",
       "type": "lord",
+      "cost": 0,
       "tags": [
         "shi_zu"
       ],
@@ -3181,8 +3183,8 @@ window.GameData = {
         "keywords": 0,
         "skills": 2.4,
         "total": 2.4,
-        "budget": null,
-        "diff": null,
+        "budget": 1,
+        "diff": 1.4,
         "level": "ok"
       }
     },
@@ -4109,6 +4111,7 @@ window.GameData = {
       "name": "机械哨兵",
       "faction": "neutral",
       "type": "token",
+      "cost": 0,
       "keywords": [],
       "skills": [
         {
@@ -4125,8 +4128,8 @@ window.GameData = {
         "keywords": 0,
         "skills": 0,
         "total": 0,
-        "budget": null,
-        "diff": null,
+        "budget": 1,
+        "diff": -1,
         "level": "ok"
       }
     },
@@ -4135,6 +4138,7 @@ window.GameData = {
       "name": "机械守卫",
       "faction": "neutral",
       "type": "token",
+      "cost": 0,
       "keywords": [],
       "skills": [
         {
@@ -4151,8 +4155,8 @@ window.GameData = {
         "keywords": 0,
         "skills": 0,
         "total": 0,
-        "budget": null,
-        "diff": null,
+        "budget": 1,
+        "diff": -1,
         "level": "ok"
       }
     },
@@ -5204,6 +5208,7 @@ window.GameData = {
       "name": "架盾",
       "faction": "neutral",
       "type": "status",
+      "cost": 0,
       "keywords": [],
       "skills": [
         {
@@ -5219,8 +5224,8 @@ window.GameData = {
         "keywords": 0,
         "skills": 0,
         "total": 0,
-        "budget": null,
-        "diff": null,
+        "budget": 1,
+        "diff": -1,
         "level": "ok"
       }
     }

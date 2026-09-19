@@ -24,7 +24,7 @@ export const handRef = (side: Side, index: number): TargetRef => ({ kind: 'hand'
 /** 手牌实际费用 = 卡面费用 + Σ 费用修正（ADR-038），下限 0 */
 export function effectiveCost(hc: HandCard, ruleDelta = 0): number {
   const delta = hc.mods.filter((m) => m.kind === 'cost').reduce((s, m) => s + (m.value ?? 0), 0);
-  return Math.max(0, hc.card.cost + ruleDelta + delta);
+  return Math.max(0, (hc.card.cost ?? 0) + ruleDelta + delta);   // 缺 cost 不该算出 NaN
 }
 
 /** 该手牌是否被禁止上场 */

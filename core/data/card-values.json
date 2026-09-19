@@ -256,8 +256,8 @@
   "keywords": 0,
   "skills": 1.6,
   "total": 1.6,
-  "budget": null,
-  "diff": null,
+  "budget": 1,
+  "diff": 0.6,
   "level": "ok"
  },
  "wei_caogang": {
@@ -634,8 +634,8 @@
   "keywords": 0,
   "skills": 2.4,
   "total": 2.4,
-  "budget": null,
-  "diff": null,
+  "budget": 1,
+  "diff": 1.4,
   "level": "ok"
  },
  "qun_caimao": {
@@ -841,8 +841,8 @@
   "keywords": 0,
   "skills": 0,
   "total": 0,
-  "budget": null,
-  "diff": null,
+  "budget": 1,
+  "diff": -1,
   "level": "ok"
  },
  "token_jixie_shouwei": {
@@ -850,8 +850,8 @@
   "keywords": 0,
   "skills": 0,
   "total": 0,
-  "budget": null,
-  "diff": null,
+  "budget": 1,
+  "diff": -1,
   "level": "ok"
  },
  "token_shizu_bing": {
@@ -1093,8 +1093,8 @@
   "keywords": 0,
   "skills": 0,
   "total": 0,
-  "budget": null,
-  "diff": null,
+  "budget": 1,
+  "diff": -1,
   "level": "ok"
  }
 }

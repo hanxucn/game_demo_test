@@ -160,7 +160,7 @@ cards:
   name: 架盾
   faction: neutral
   type: status
-  cost: null
+  cost: 0
   skills:
   - name: ''
     text: 只能攻击装备此状态的敌人。
@@ -175,6 +175,7 @@ cards:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
+  cost_original: null
 - id: event_zainian
   name: 灾年
   faction: neutral
@@ -1982,7 +1983,7 @@ cards:
   name: 机械哨兵
   faction: neutral
   type: token
-  cost: null
+  cost: 0
   skills:
   - name: ''
     text: 不能攻击敌方主帅.
@@ -1997,11 +1998,12 @@ cards:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
+  cost_original: null
 - id: token_jixie_shouwei
   name: 机械守卫
   faction: neutral
   type: token
-  cost: null
+  cost: 0
   skills:
   - name: ''
     text: 打开架盾效果. 不能攻击敌方主帅.
@@ -2015,11 +2017,12 @@ cards:
   flags:
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
+  cost_original: null
 - id: wei_caocao_lord
   name: 曹操
   faction: wei
   type: lord
-  cost: null
+  cost: 0
   skills:
   - name: 奸雄
     text: 每回合开始时，可选择护驾：受到伤害时由指定己方人物承受；或选择指定敌方一人物指定己方一血，抽一张卡牌，伤害-1.
@@ -2049,6 +2052,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: null
 - id: wei_zhangyan
   name: 张燕
   faction: wei
@@ -2329,7 +2333,7 @@ cards:
   name: 袁绍
   faction: qun
   type: lord
-  cost: null
+  cost: 0
   skills:
   - name: ''
     text: 主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵
@@ -2355,6 +2359,7 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: null
 - id: wu_zhouyu
   name: 周瑜
   faction: wu

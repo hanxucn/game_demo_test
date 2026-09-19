@@ -3188,4 +3188,19 @@ card_stats:
   shu_jiangwei:
     cost: 5
     reason: 4/5 但技能仅 0.8 分（on_attack +1 攻），6 费偏弱 3.2；降到 5 费
+  wei_caocao_lord:
+    cost: 0
+    reason: '主公卡不进卡组、不消耗统率值，显式补 cost: 0'
+  qun_yuanshao_lord:
+    cost: 0
+    reason: '主公卡不进卡组、不消耗统率值，显式补 cost: 0'
+  token_jixie_shaobing:
+    cost: 0
+    reason: '衍生物由效果召唤、不消耗统率值，显式补 cost: 0'
+  token_jixie_shouwei:
+    cost: 0
+    reason: '衍生物由效果召唤、不消耗统率值，显式补 cost: 0'
+  status_jia_dun:
+    cost: 0
+    reason: '状态卡置于状态区、不消耗统率值，显式补 cost: 0'
 card_stats_note: 平衡调优（ADR-047）：按卡 id 覆盖 cost/attack/health。每条的 reason 记录依据，原值留在 <field>_original。触发命令 cd core && npm run validate；依据 docs/balance-backlog.md 与 docs/gdd/13-balance-data-model.md §7.10。

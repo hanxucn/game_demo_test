@@ -189,7 +189,7 @@
   "name": "架盾",
   "faction": "neutral",
   "type": "status",
-  "cost": null,
+  "cost": 0,
   "skills": [
    {
     "name": "",
@@ -208,7 +208,8 @@
    "转录存疑 2 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
   ],
-  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+  "dsl_status": "无技能（白板/关键词卡），无需翻译",
+  "cost_original": null
  },
  {
   "id": "event_zainian",
@@ -2839,7 +2840,7 @@
   "name": "机械哨兵",
   "faction": "neutral",
   "type": "token",
-  "cost": null,
+  "cost": 0,
   "skills": [
    {
     "name": "",
@@ -2858,14 +2859,15 @@
    "转录存疑 2 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
   ],
-  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+  "dsl_status": "无技能（白板/关键词卡），无需翻译",
+  "cost_original": null
  },
  {
   "id": "token_jixie_shouwei",
   "name": "机械守卫",
   "faction": "neutral",
   "type": "token",
-  "cost": null,
+  "cost": 0,
   "skills": [
    {
     "name": "",
@@ -2883,14 +2885,15 @@
   "flags": [
    "缺 memo"
   ],
-  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+  "dsl_status": "无技能（白板/关键词卡），无需翻译",
+  "cost_original": null
  },
  {
   "id": "wei_caocao_lord",
   "name": "曹操",
   "faction": "wei",
   "type": "lord",
-  "cost": null,
+  "cost": 0,
   "skills": [
    {
     "name": "奸雄",
@@ -2932,7 +2935,8 @@
   "flags": [
    "转录存疑 3 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "cost_original": null
  },
  {
   "id": "wei_zhangyan",
@@ -3335,7 +3339,7 @@
   "name": "袁绍",
   "faction": "qun",
   "type": "lord",
-  "cost": null,
+  "cost": 0,
   "skills": [
    {
     "name": "",
@@ -3372,7 +3376,8 @@
   "flags": [
    "转录存疑 2 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "cost_original": null
  },
  {
   "id": "wu_zhouyu",

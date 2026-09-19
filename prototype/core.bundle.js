@@ -746,7 +746,7 @@ var Core = (() => {
   }
   function canPlayCard(state, side, card, slot, costOverride) {
     const s = state.sides[side];
-    const cost = costOverride ?? card.cost;
+    const cost = costOverride ?? card.cost ?? 0;
     if (cost > s.command.cur) {
       return { ok: false, reason: `\u7EDF\u7387\u503C\u4E0D\u8DB3\uFF08\u9700\u8981 ${cost}\uFF0C\u5F53\u524D ${s.command.cur}\uFF09` };
     }
@@ -765,7 +765,7 @@ var Core = (() => {
   var handRef = (side, index) => ({ kind: "hand", side, index });
   function effectiveCost(hc, ruleDelta = 0) {
     const delta = hc.mods.filter((m) => m.kind === "cost").reduce((s, m) => s + (m.value ?? 0), 0);
-    return Math.max(0, hc.card.cost + ruleDelta + delta);
+    return Math.max(0, (hc.card.cost ?? 0) + ruleDelta + delta);
   }
   var isBanned = (hc) => hc.mods.some((m) => m.kind === "ban");
   function findGuard(state, u) {
