@@ -8,6 +8,9 @@
 import { COMMAND, MATCH, STATUSES, TIMING } from './constants.ts';
 import { createRng } from './rng.ts';
 import {
+  consumeJiulingCost, jiulingCostDelta, jiulingDrawExtra, markJiulingDraw, resetJiulingTurn,
+} from './jiuling.ts';
+import {
   capStacks,
   hasCap,
   hasCapOn,
@@ -87,10 +90,27 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   s.command.cur = Math.max(0, s.command.max - duan);
   s.lord.skillUsedThisTurn = false;
   for (const ref of allUnits(state, side)) ref.unit.attackedThisTurn = 0;
+  resetJiulingTurn(state, side);                       // 酒令计数每回合清零（GDD 11 §3）
 
   events.push({ type: 'TURN_START', side, turn: state.turn, command: { ...s.command } });
 
   drawCard(state, ctx.cards, side, events);
+  // 酒令「对酒当歌」：每回合首次抽牌后多抽 N 张，再弃 M 张（GDD 11 §3.2 #2）
+  if (ctx.jiulings?.size) {
+    const dx = jiulingDrawExtra(state, side, ctx.jiulings);
+    if (dx) {
+      events.push({ type: 'JIULING_TRIGGERED', side, jiuling: s.jiuling ?? '',
+                    note: `多抽 ${dx.extra} 张，再弃 ${dx.discard} 张` });
+      for (let i = 0; i < dx.extra; i++) drawCard(state, ctx.cards, side, events);
+      for (let i = 0; i < dx.discard; i++) {
+        const hc = s.hand.pop();
+        if (!hc) break;
+        s.discard.push(hc.card);
+        events.push({ type: 'CARD_PLAYED', side, card: hc.card, handIndex: s.hand.length });
+      }
+      markJiulingDraw(state, side, ctx.jiulings);
+    }
+  }
   resolveTurnStartStatuses(state, ctx.cards, side, events);
   recomputeAuras(state, ctx.cards, rng, events);                              // 第 3 步 ②光环重算
   runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);   // 第 3 步 ③回合开始技
@@ -135,7 +155,8 @@ function playCard(
   if (!hc) return false;
   if (isBanned(hc)) return false;                 // 被禁止上场（ADR-038）
   const card = hc.card;
-  const cost = effectiveCost(hc, costRuleDelta(state, card, side, rng));  // 费用 = 卡面 + cost_rule + mods
+  const jDelta = ctx.jiulings?.size ? jiulingCostDelta(state, side, card, ctx.jiulings) : 0;
+  const cost = effectiveCost(hc, costRuleDelta(state, card, side, rng) + jDelta);  // 卡面 + cost_rule + mods + 酒令
 
   const isCharacter = ['troop', 'general', 'strategist'].includes(card.type);
   const slot = isCharacter ? { row: action.row as 'front' | 'back', col: action.col as number } : undefined;
@@ -144,6 +165,10 @@ function playCard(
 
   s.command.cur -= cost;
   s.hand.splice(action.cardIndex, 1);
+  if (jDelta !== 0 && ctx.jiulings?.size) {
+    consumeJiulingCost(state, side, ctx.jiulings);
+    events.push({ type: 'JIULING_TRIGGERED', side, jiuling: s.jiuling ?? '', note: `费用 ${jDelta}` });
+  }
   events.push({ type: 'CARD_PLAYED', side, card, row: slot?.row, col: slot?.col, handIndex: action.cardIndex });
 
   if (isCharacter && slot) {

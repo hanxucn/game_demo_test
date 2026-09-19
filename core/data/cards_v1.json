@@ -3297,7 +3297,7 @@
          "side": "enemy",
          "filter": {
           "type": "character",
-          "cost_below_source": true
+          "cost_min": 4
          },
          "count": 1,
          "mode": "choose"
@@ -3312,7 +3312,7 @@
          "side": "enemy",
          "filter": {
           "type": "character",
-          "cost_max": 3
+          "cost_below_source": true
          },
          "count": 1,
          "mode": "choose"

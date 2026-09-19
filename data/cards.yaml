@@ -1987,7 +1987,7 @@
         side: enemy
         filter:
           type: character
-          cost_below_source: true
+          cost_min: 4
         count: 1
         mode: choose
     - action: apply_status
@@ -1998,7 +1998,7 @@
         side: enemy
         filter:
           type: character
-          cost_max: 3
+          cost_below_source: true
         count: 1
         mode: choose
     text: 指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%.

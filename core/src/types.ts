@@ -67,7 +67,8 @@ export interface TargetSelector {
     lane?: number;
     row?: Row;
     health_max?: number;
-    cost_max?: number;             // 统帅值上限（绝对）
+    cost_max?: number;             // 统帅值上限（绝对，含）
+    cost_min?: number;             // 统帅值下限（绝对，含）——与 cost_max 配合可写出互斥分支
     cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADR-036
     troopKind?: 'infantry' | 'shield' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
     has_status?: string;
@@ -90,6 +91,8 @@ export interface SkillDef {
   chance?: number;               // 技能级概率（免死等，ADR-039）
   target?: TargetSelector;
   effects?: CardEffect[];
+  /** 卡面技能文案（来自手写卡；仅用于显示与校验，不参与结算） */
+  text?: string;
 }
 
 export interface CardDef {
@@ -111,6 +114,24 @@ export interface CardDef {
   memo?: string;
   flavor?: string;
   art?: string;
+}
+
+/** 酒令（data/jiuling.yaml，docs/gdd/11 §3） */
+export interface JiulingDef {
+  id: string;
+  name: string;
+  hook: 'cost_discount' | 'draw_extra' | 'damage_reduce' | 'deck_inject';
+  cost?: number;              // cost_discount
+  extra?: number;             // draw_extra：多抽几张
+  discard?: number;           // draw_extra：再弃几张
+  reduce?: number;            // damage_reduce：减免几点
+  unlock_turn?: number;       // deck_inject：最早可用回合
+  inject?: string;            // deck_inject：注入什么（语义见 core/src/jiuling.ts）
+  limit_per_turn?: number;    // 每回合触发上限，默认 1
+  filter?: { type?: string; faction?: string };
+  memo: string;
+  tradeoff?: string;          // 代价或限制（GDD 11 §3.3 强制）
+  implemented?: boolean;
 }
 
 export interface LordDef extends CardDef {
@@ -198,6 +219,12 @@ export interface SideState {
   discard: CardDef[];
   command: { cur: number; max: number };
   fatigue: number;
+  /** 本局选定的酒令 id（未选则无） */
+  jiuling?: string;
+  /** 酒令本回合触发计数：key = "<jiulingId>:<tag>" */
+  jiulingUsed: Record<string, number>;
+  /** 本局是否已用过换牌机会（GDD 03 §1 第③步） */
+  mulliganDone: boolean;
 }
 
 export interface MatchState {
@@ -258,6 +285,7 @@ export type GameEvent =
   | { type: 'STATUS_EXPIRED'; side: Side; row: Row; col: number; status: string }
   | { type: 'UNIT_DIED'; side: Side; row: Row; col: number; unit: Unit }
   | { type: 'LORD_SKILL_USED'; side: Side; skill: string }
+  | { type: 'JIULING_TRIGGERED'; side: Side; jiuling: string; note: string }
   | { type: 'GAME_OVER'; winner: Side | 'draw' }
   | { type: 'REJECTED'; reason: string; action: Action };
 
@@ -272,4 +300,6 @@ export interface ApplyResult {
 export interface EngineContext {
   cards: Map<string, CardDef>;
   lords: Record<Side, LordDef>;
+  /** 酒令表（可选）；不传则该局酒令 hook 全部不生效 */
+  jiulings?: Map<string, JiulingDef>;
 }

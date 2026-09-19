@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES, TAGS } from '../src/constants.ts';
-import type { CardDef, CardEffect, SkillDef } from '../src/types.ts';
+import { checkJiuling } from '../src/jiuling.ts';
+import type { CardDef, CardEffect, JiulingDef, SkillDef } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -34,15 +35,57 @@ const KEYWORD_VALUE: Record<string, number> = {
  */
 const CONDITION_RATE = 0.7;
 
-function baseEffectValue(eff: CardEffect): number {
+/** AOE（target.count: 'all'）在估算时按几张牌计——实际张数取决于场面，取名义值 */
+const AOE_NOMINAL = 2.5;
+
+/** 估值上下文：transform 需要卡表做「进化前后」对比 */
+export interface ValueCtx {
+  cards?: Map<string, CardDef>;
+  /** 同一技能里的兄弟效果（用于推断 transform 的作用对象与数量） */
+  siblings?: CardEffect[];
+  /** 递归保护：transform 估值会回头调 cardValue */
+  depth?: number;
+}
+
+/**
+ * 推断 transform 的「进化前」卡与受影响数量。
+ *
+ * 典型写法是同一技能里先 summon 再 transform（公孙瓒/马腾/高顺），
+ * 所以优先用兄弟 summon 的效果找来源卡与数量；找不到退回 filter.troopKind 反查。
+ */
+function inferTransformSource(
+  eff: CardEffect, ctx: ValueCtx,
+): { card: CardDef; count: number } | null {
+  const cards = ctx.cards;
+  if (!cards) return null;
+  const kind = eff.target?.filter?.troopKind;
+
+  for (const sib of ctx.siblings ?? []) {
+    if (sib === eff || sib.action !== 'summon' || !sib.unit) continue;
+    const c = cards.get(sib.unit);
+    if (!c) continue;
+    if (kind && c.troopKind !== kind) continue;
+    return { card: c, count: sib.count ?? 1 };
+  }
+  if (kind) {
+    for (const c of cards.values()) {
+      if (c.troopKind === kind && c.type !== 'elite') return { card: c, count: 1 };
+    }
+  }
+  return null;
+}
+
+function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
+  // 「打 N 次」类效果：eff.count 是次数，必须计入
+  const times = Math.max(1, eff.count ?? 1);
   switch (eff.action) {
-    case 'damage': return (eff.value ?? 0) * 0.5;
-    case 'heal': return (eff.value ?? 0) * 0.4;
+    case 'damage': return (eff.value ?? 0) * 0.5 * times;
+    case 'heal': return (eff.value ?? 0) * 0.4 * times;
     case 'draw': return (eff.value ?? 1) * 3;
     case 'summon': return (eff.count ?? 1) * 3;
     case 'gain_armor': return (eff.value ?? 1) * 1;
     case 'apply_status':
-      return eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2;
+      return (eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2) * times;
     case 'destroy': return 8;
     case 'discard': return (eff.count ?? 1) * 1.5;
     case 'return_to_hand': return 3;
@@ -58,7 +101,20 @@ function baseEffectValue(eff: CardEffect): number {
     case 'take_control': return 7;                            // 控制权转移
     case 'copy_skill': return 5;                              // 复制技能
     case 'force_attack': return (eff.count ?? 1) * 2;         // 强制攻击
-    case 'transform': return 4;                               // 进化（按单次估算）
+    case 'transform': {
+      // 进化：价值 = (进化后总价值 − 进化前总价值) × 受影响单位数
+      // 固定给 4 分会把「+1 攻」和「+1/2 攻且带每回合 2 伤技能」算成一样，方向都可能反（ADR-046）
+      const to = ctx.cards?.get(String(eff.to ?? ''));
+      if (!to || (ctx.depth ?? 0) > 2) return 4;             // 拿不到卡表 → 退回旧的名义值
+      const src = inferTransformSource(eff, ctx);
+      const cnt = eff.count
+        ?? (eff.target?.count === 'all' ? (src?.count ?? AOE_NOMINAL) : 1);
+      const after = cardValue(to).total;
+      const before = src ? cardValue(src.card).total : 0;
+      const delta = after - before;
+      if (!src) return 4;                                    // 来源未知 → 名义值
+      return Math.max(0, delta) * cnt;                       // 进化只会更强，负差值按 0 计
+    }
     case 'modify': {
       const a = Math.abs(eff.attack ?? 0), h = Math.abs(eff.health ?? 0);
       const cnt = eff.count ?? 1;
@@ -70,37 +126,47 @@ function baseEffectValue(eff: CardEffect): number {
   }
 }
 
-function effectValue(eff: CardEffect): number {
-  let v = baseEffectValue(eff);
+function effectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
+  let v = baseEffectValue(eff, ctx);
   if (typeof eff.chance === 'number') v *= eff.chance;        // 概率打折
   if (eff.condition) v *= CONDITION_RATE;                     // 条件打折
   return v;
 }
+
+/** 给一组效果补上兄弟上下文（transform 需要） */
+const withSiblings = (effs: CardEffect[], ctx: ValueCtx): ValueCtx => ({ ...ctx, siblings: effs });
 
 /** 触发概率折扣 */
 const TRIGGER_RATE: Record<string, number> = {
   on_play: 1.0, on_death: 0.6, turn_start: 0.7, turn_end: 0.7, on_damaged: 0.6,
 };
 
-function skillValue(sk: SkillDef): number {
-  const raw = (sk.effects ?? []).reduce((s, e) => s + effectValue(e), 0);
+function skillValue(sk: SkillDef, ctx: ValueCtx = {}): number {
+  const effs = sk.effects ?? [];
+  const raw = effs.reduce((s, e) => s + effectValue(e, withSiblings(effs, ctx)), 0);
   if (sk.kind === 'active') return raw * 0.8;          // 主动技可被震慑打断
   const rate = TRIGGER_RATE[sk.trigger ?? 'on_play'] ?? 0.8;
   return raw * rate;
 }
 
 /** 卡牌总价值 */
-export function cardValue(card: CardDef): { stats: number; keywords: number; skills: number; total: number } {
-  const isChar = ['troop', 'general', 'strategist'].includes(card.type);
-  const stats = isChar ? (card.attack ?? 0) + (card.health ?? 0) : 0;
+export function cardValue(
+  card: CardDef,
+  ctx: ValueCtx = {},
+): { stats: number; keywords: number; skills: number; total: number } {
+  // 场上有攻血的单位类型都要计属性——elite/token 是进化与召唤的产物，
+  // 在 transform/summon 的「前后对比」里必须算数，否则 delta 恒为负（ADR-046）
+  const isUnit = ['troop', 'general', 'strategist', 'elite', 'token'].includes(card.type);
+  const stats = isUnit ? (card.attack ?? 0) + (card.health ?? 0) : 0;
   const keywords = (card.keywords ?? []).reduce((s, k) => s + (KEYWORD_VALUE[k] ?? 0), 0);
   // ⚠️ 卡里的 DSL 存在 skills[].dsl（翻译结果），必须摊平后才能计入技能价值
   const flatSkills: SkillDef[] = (card.skills ?? []).flatMap((sk) => {
     const nested = (sk as SkillDef & { dsl?: SkillDef[] }).dsl;
     return nested?.length ? nested : [sk];
   });
-  const skills = flatSkills.reduce((s, sk) => s + skillValue(sk), 0)
-    + (card.effects ?? []).reduce((s, e) => s + effectValue(e), 0);
+  const next: ValueCtx = { ...ctx, depth: (ctx.depth ?? 0) + 1 };
+  const skills = flatSkills.reduce((s, sk) => s + skillValue(sk, next), 0)
+    + (card.effects ?? []).reduce((s, e) => s + effectValue(e, withSiblings(card.effects ?? [], next)), 0);
   return { stats, keywords, skills, total: stats + keywords + skills };
 }
 
@@ -114,6 +180,7 @@ export interface Issue { level: 'error' | 'warn'; cardId: string; message: strin
 export function validateCards(cards: CardDef[]): Issue[] {
   const issues: Issue[] = [];
   const ids = new Set(cards.map((c) => c.id));
+  const byId = new Map(cards.map((c) => [c.id, c]));
   const add = (level: Issue['level'], cardId: string, message: string) =>
     issues.push({ level, cardId, message });
 
@@ -163,7 +230,7 @@ export function validateCards(cards: CardDef[]): Issue[] {
 
     // ①② 数值预算（仅人物卡）
     if (['troop', 'general', 'strategist'].includes(c.type)) {
-      const v = cardValue(c);
+      const v = cardValue(c, { cards: byId });
       const budget = budgetOf(c.cost);
       const diff = v.total - budget;
       if (Math.abs(diff) > 3) {
@@ -174,6 +241,37 @@ export function validateCards(cards: CardDef[]): Issue[] {
       // 谋臣无普攻的补偿
       if (c.type === 'strategist' && diff < -1.5) {
         add('warn', c.id, `谋臣无普攻，总价值 ${v.total.toFixed(1)} 低于预算 ${budget}，可考虑加强`);
+      }
+    }
+  }
+
+  // ⑦bis 酒令（data/jiuling.yaml）：hook 合法 + 必填字段 + 代价限制
+  const jiulingPath = join(DATA, 'jiuling.json');
+  if (existsSync(jiulingPath)) {
+    const js = JSON.parse(readFileSync(jiulingPath, 'utf8')) as JiulingDef[];
+    for (const j of js) {
+      for (const msg of checkJiuling(j)) add('error', j.id, `酒令「${j.name}」${msg}`);
+    }
+    if (js.length < 4) add('warn', '-', `酒令只有 ${js.length} 个，GDD 11 §3.1 要求 v1 提供 4 个`);
+  }
+
+  // ⑦ter 技能文案与效果一致性：写了文案却没有任何效果 = 静默白板（与 `skills[].dsl` 同源的坑）
+  //
+  // 判定要点：
+  //   · 非人物卡的效果挂在**卡级** effects 上，卡级有效果就不算白板
+  //   · 条件费用规则 cost_rule 也算一种已实现的效果载体（如丁奉「奋勇」）
+  //   · 纯**限制型**文案（不能/只能/才可…）当前 schema 无处承载 → 报 warn 作为待补字段
+  const RESTRICTION = /不能|只能|才可|无法|不可/;
+  for (const c of cards) {
+    if (c.effects?.length || c.cost_rule) continue;
+    for (const sk of c.skills ?? []) {
+      const text = (sk.text ?? '').trim();
+      if (!text || sk.effects?.length || sk.dsl?.length || (c.keywords ?? []).length) continue;
+      const where = `技能「${sk.name || '(无名)'}」`;
+      if (RESTRICTION.test(text)) {
+        add('warn', c.id, `${where} 是限制型文案「${text.slice(0, 20)}…」，尚无 restrict 字段承载（见 ADR-045）`);
+      } else {
+        add('error', c.id, `${where} 有文案「${text.slice(0, 20)}…」但无任何效果`);
       }
     }
   }
@@ -232,9 +330,10 @@ function main(): void {
   console.log(`结果：${errors.length} 错误 / ${warns.length} 警告\n`);
 
   if (process.argv.includes('--verbose')) {
+    const byId = new Map(cards.map((c) => [c.id, c]));
     for (const c of cards) {
       if (!['troop', 'general', 'strategist'].includes(c.type)) continue;
-      const v = cardValue(c);
+      const v = cardValue(c, { cards: byId });
       console.log(`  ${c.name.padEnd(6)} ${c.cost}费  属性${v.stats} 关键词${v.keywords.toFixed(1)} 技能${v.skills.toFixed(1)} = ${v.total.toFixed(1)} / 预算 ${budgetOf(c.cost)}`);
     }
     console.log('');

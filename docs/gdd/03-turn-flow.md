@@ -1,6 +1,6 @@
 # 03 · 对局流程与回合结构
 
-> 状态：**已定**
+> 状态：**已定**（开局流程已实现于 `core/src/setup.ts`，见 ADR-044）
 
 ## 1. 对局建立流程
 
@@ -15,6 +15,19 @@
       ↓ 后手额外获得「传国玉玺」
 ⑤ 先手方开始第 1 回合
 ```
+
+**实现对应**（`core/src/setup.ts` / `core/src/state.ts`）：
+
+| 步骤 | 函数 | 说明 |
+|---|---|---|
+| ① 选阵营 / 任命主公 | `autoDeck` + `loadData` | 主公由 `data/heroes.yaml` 按阵营固定 |
+| ② 选酒令 | `offerJiuling` | 三选一；数据在 `data/jiuling.yaml` |
+| ③ 换牌 | `mulligan` | 任意张数、每方一次、换 N 补 N |
+| ④ 掷点定先手 | `rollFirstSide` | D6 平局重掷；后手由 `createMatch` 补玉玺 |
+| ⑤ 开打 | `startMatch` → `applyAction` | 唯一写入口 |
+
+> `createMatch` 是**纯构造器**：缺省先手为 `own`，只有显式传 `rollFirst: true` 才掷点。
+> 完整开局编排用 `setupMatch()`（不传 `firstSide` 即自动掷点）。
 
 ### 1.1 为什么先手用掷点而不是"比统率"
 

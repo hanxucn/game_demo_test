@@ -7,9 +7,10 @@
  */
 
 import { BOARD, DECK, STATUSES } from './constants.ts';
+import { consumeJiulingDamageReduce, jiulingDamageReduce } from './jiuling.ts';
 import { createRng } from './rng.ts';
 import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
-import type { CardDef, GameEvent, HandCard, MatchState, Row, Side, Unit } from './types.ts';
+import type { CardDef, GameEvent, HandCard, JiulingDef, MatchState, Row, Side, Unit } from './types.ts';
 
 export type TargetRef =
   | { kind: 'unit'; side: Side; row: Row; col: number }
@@ -117,8 +118,23 @@ export function dealDamage(
   events: GameEvent[],
   source: string,
   depth = 0,
+  jiulingDefs?: Map<string, JiulingDef>,
 ): number {
   if (amount <= 0 || !refAlive(state, ref)) return 0;
+
+  // 酒令「青梅煮酒」：每回合第一次受到的伤害 −1（GDD 11 §3.2 #3）
+  // 只在「对某方造成的第一次伤害」时结算，避免多段伤害把减免吃满
+  if (jiulingDefs?.size && depth === 0) {
+    const reduce = jiulingDamageReduce(state, ref.side, jiulingDefs);
+    if (reduce > 0) {
+      const real = Math.max(0, amount - reduce);
+      consumeJiulingDamageReduce(state, ref.side, jiulingDefs);
+      events.push({ type: 'JIULING_TRIGGERED', side: ref.side,
+                    jiuling: state.sides[ref.side].jiuling ?? '', note: `伤害 ${amount} → ${real}` });
+      amount = real;
+      if (amount <= 0) return 0;
+    }
+  }
 
   if (ref.kind === 'lord') {
     const lord = state.sides[ref.side].lord;
@@ -147,7 +163,7 @@ export function dealDamage(
     events.push({ type: 'DAMAGE_REDIRECTED', side: ref.side, row: ref.row, col: ref.col,
                   to: guard.side, guardName: guard.unit.name });
     return dealDamage(state, cards, unitRef(guard.side, guard.row, guard.col),
-                      amount, events, source, depth + 1);
+                      amount, events, source, depth + 1, jiulingDefs);
   }
 
   // 免疫伤害（武圣等，能力驱动 ADR-034）：消耗后失效

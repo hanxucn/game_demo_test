@@ -8,6 +8,7 @@
 import { BOARD } from './constants.ts';
 import { allUnits, getUnit, other } from './state.ts';
 import { canAttack, canPlayCard, effectiveAttack, legalPlacements, legalTargets } from './rules.ts';
+import { isBanned } from './mutate.ts';
 import type { Action, CardDef, EngineContext, MatchState, Row, Side } from './types.ts';
 
 /** 给当前行动方选一个动作；返回 null 表示无牌可出，应结束回合 */
@@ -85,20 +86,26 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
     }
   }
 
-  // ⑥ 出牌（能出的最贵的卡）
+  // ⑥ 出牌：先给每张牌定好落点，再用 canPlayCard 做**完整**合法性检查（含费用）
+  const spots = legalPlacements(state, side);
+  const slotFor = (c: CardDef): { row: Row; col: number } | undefined => {
+    if (!isCharacter(c)) return undefined;                 // 非人物卡不占格
+    // 谋臣放后军，其他放前军；没有理想排就退而求其次
+    const wantBack = c.type === 'strategist';
+    return spots.find((sp) => (wantBack ? sp.row === 'back' : sp.row === 'front')) ?? spots[0];
+  };
+
   const playable = state.sides[side].hand
-    .map((hc, i: number) => ({ c: hc.card, i }))
-    .filter(({ c }) => canPlayCard(state, side, c, { row: 'front', col: 0 }).ok || !isCharacter(c))
+    .map((hc, i: number) => ({ hc, c: hc.card, i }))
+    .filter(({ hc }) => !isBanned(hc))                     // 被 ban（如酒令未解锁）的不出
+    .map((x) => ({ ...x, slot: slotFor(x.c) }))
+    .filter(({ c, slot }) => canPlayCard(state, side, c, slot).ok)
     .sort((a, b) => b.c.cost - a.c.cost);
 
-  for (const { c, i } of playable) {
-    if (!isCharacter(c)) return { type: 'PLAY_CARD', cardIndex: i };
-    const spots = legalPlacements(state, side);
-    if (!spots.length) continue;
-    // 谋臣放后军，其他放前军
-    const wantBack = c.type === 'strategist';
-    const slot = spots.find((s) => (wantBack ? s.row === 'back' : s.row === 'front')) ?? spots[0];
-    return { type: 'PLAY_CARD', cardIndex: i, row: slot.row, col: slot.col };
+  for (const { c, i, slot } of playable) {
+    return slot
+      ? { type: 'PLAY_CARD', cardIndex: i, row: slot.row, col: slot.col }
+      : { type: 'PLAY_CARD', cardIndex: i };
   }
 
   return null;

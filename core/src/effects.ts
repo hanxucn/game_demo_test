@@ -65,6 +65,7 @@ const matchesFilter = (
   if (typeof f.health_max === 'number' && u.hp > f.health_max) return false;
   if (f.has_status && !((u.statuses[f.has_status]?.stacks ?? 0) > 0)) return false;
   if (typeof f.cost_max === 'number' && u.cost > f.cost_max) return false;
+  if (typeof f.cost_min === 'number' && u.cost < f.cost_min) return false;
   if (f.troopKind && u.troopKind !== f.troopKind) return false;   // 兵种过滤（ADR-042）
   if (f.cost_below_source && srcCost !== undefined && u.cost >= srcCost) return false;
   return true;

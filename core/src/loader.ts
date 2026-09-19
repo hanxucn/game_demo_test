@@ -5,18 +5,21 @@
  * （引擎不直接解析 YAML，避免引入依赖；YAML 是策划的编辑格式，JSON 是运行时格式）
  */
 
-import { NON_DECK_TYPES } from './constants.ts';
-import type { CardDef, Faction, LordDef, Side } from './types.ts';
+import type { CardDef, Faction, JiulingDef, LordDef, Side } from './types.ts';
 
 export interface DataBundle {
   cards: CardDef[];
   heroes: LordDef[];
+  /** 酒令（data/jiuling.yaml → core/data/jiuling.json）；可选 */
+  jiuling?: JiulingDef[];
 }
 
 export interface LoadedData {
   cards: Map<string, CardDef>;
   lords: Record<Side, LordDef>;
   byFaction: Map<Faction, CardDef[]>;
+  /** 酒令表（按 id 索引） */
+  jiulings: Map<string, JiulingDef>;
 }
 
 export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: string }): LoadedData {
@@ -41,37 +44,6 @@ export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: stri
     cards,
     lords: { own: findLord(lordIds.own), enemy: findLord(lordIds.enemy) },
     byFaction,
+    jiulings: new Map((bundle.jiuling ?? []).map((j) => [j.id, j])),
   };
-}
-
-/**
- * 按统率曲线自动组一套 30 张卡组（demo / AI 用）
- * 曲线建议见 docs/gdd/13-balance-data-model.md
- */
-export function autoDeck(data: LoadedData, faction: Faction, seed = 1): string[] {
-  const inDeck = (c: CardDef) => !(NON_DECK_TYPES as readonly string[]).includes(c.type);
-  const pool = (data.byFaction.get(faction) ?? []).filter(inDeck);
-  const neutral = data.byFaction.get('neutral') ?? [];
-  const all = [...pool, ...neutral].filter((c) => inDeck(c) && c.cost <= 8);
-  if (!all.length) throw new Error(`阵营 ${faction} 没有可用卡牌`);
-
-  const curve: Record<number, number> = { 1: 6, 2: 8, 3: 6, 4: 5, 5: 3, 6: 2 };
-  const deck: string[] = [];
-  const buckets = new Map<number, CardDef[]>();
-  for (const c of all) {
-    const b = buckets.get(c.cost) ?? [];
-    b.push(c);
-    buckets.set(c.cost, b);
-  }
-  let i = 0;
-  for (const [costStr, want] of Object.entries(curve)) {
-    const cost = Number(costStr);
-    const bucket = buckets.get(cost) ?? all;
-    for (let k = 0; k < want; k++) {
-      deck.push(bucket[(i++) % bucket.length]!.id);
-    }
-  }
-  // 补足 / 裁剪到 30 张
-  while (deck.length < 30) deck.push(all[deck.length % all.length]!.id);
-  return deck.slice(0, 30);
 }

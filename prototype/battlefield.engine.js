@@ -20,7 +20,7 @@ var COLS = [0, 1, 2, 3, 4];
 var CHARACTER_TYPES = ['troop', 'general', 'strategist'];
 
 var data = Core.loadData(
-  { cards: GD.cards, heroes: GD.heroes },
+  { cards: GD.cards, heroes: GD.heroes, jiuling: GD.jiuling || [] },
   { own: 'shu_liubei', enemy: 'wei_caocao' },
 );
 
@@ -48,15 +48,34 @@ function viewCard(c) {
    ============================================================ */
 
 function newGame(seed) {
-  session = Core.newMatch({
+  // 完整开局（GDD 03 §1）：掷点定先手 → 双方各选酒令 → 换牌 → 开打
+  var jlIds = (data.jiuling || []).map(function (j) { return j.id; });
+  var ownChoices = jlIds.length ? Core.offerJiuling(jlIds, seed, 'own') : [];
+  var enemyChoices = jlIds.length ? Core.offerJiuling(jlIds, seed, 'enemy') : [];
+
+  // 玩家酒令：三选一（存在 localStorage 则用它，否则取第一个候选）
+  var picked = null;
+  try { picked = window.localStorage.getItem('jiuling'); } catch (e) { picked = null; }
+  if (!picked || ownChoices.indexOf(picked) < 0) picked = ownChoices[0] || null;
+
+  var setup = Core.setupMatch({
     seed: seed,
     cards: data.cards,
     lords: data.lords,
     decks: { own: Core.autoDeck(data, 'shu'), enemy: Core.autoDeck(data, 'wei') },
+    jiulings: { own: picked, enemy: enemyChoices[0] || null },
+    jiulingDefs: data.jiulings,
+    // 原型暂不做换牌交互：两边都不换（保留机会）
   });
+  session = { state: setup.state, ctx: { cards: data.cards, lords: data.lords, jiulings: data.jiulings } };
+  window.__setupLog = setup.log;
+  window.__jiulingChoices = ownChoices;
   sel = null; drag = null; pendingSkill = null; busy = false;
   renderAll();
-  banner('对局开始', session.state.sides.own.lord.name + ' vs ' + session.state.sides.enemy.lord.name);
+  var jlName = picked && data.jiulings.get(picked) ? data.jiulings.get(picked).name : '无';
+  banner('对局开始',
+    session.state.sides.own.lord.name + ' vs ' + session.state.sides.enemy.lord.name +
+    '（先手：' + (session.state.active === 'own' ? '我方' : '敌方') + '，酒令：' + jlName + '）');
 }
 
 /* ============================================================
