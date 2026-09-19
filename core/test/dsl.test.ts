@@ -51,7 +51,7 @@ test('condition.event=killed：击杀后才召唤', () => {
   });
   const { state, ctx } = scenario({ ownHand: [] });
   const u = makeUnit(zhangjiao, 1, 90);
-  setUnit(state, 'own', 'back', 2, u);
+  setUnit(state, 'own', 'front', 2, u);
   // 敌方一个 1 血单位：必被 5 次雷击中的某一次击杀
   setUnit(state, 'enemy', 'front', 0, unit('dying', 1, 1));
   const r = applyAction(state, ctx, { type: 'END_TURN' });
@@ -73,7 +73,7 @@ test('condition.event=killed：没击杀就不召唤', () => {
     }],
   });
   const { state, ctx } = scenario({ ownHand: [] });
-  setUnit(state, 'own', 'back', 2, makeUnit(zhangjiao, 1, 91));
+  setUnit(state, 'own', 'front', 2, makeUnit(zhangjiao, 1, 91));
   setUnit(state, 'enemy', 'front', 0, unit('tanky', 1, 9));   // 9 血，1 点伤害杀不死
   const r = applyAction(state, ctx, { type: 'END_TURN' });
   const summoned = r.events.filter((e) => e.type === 'UNIT_SUMMONED' && e.side === 'own');
@@ -160,7 +160,7 @@ test('discard：从指定方手牌弃牌（按「方」结算，不依赖场上�
     enemyHand: ['neutral_infantry', 'neutral_archer', 'neutral_shieldman'],
   });
   const before = state.sides.enemy.hand.length;
-  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 1 });
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
   assert.equal(r.state.sides.enemy.hand.length, before - 2, '敌方手牌应少 2 张');
   assert.equal(r.state.sides.enemy.discard.length, 2, '弃牌堆应有 2 张');
 });
@@ -233,7 +233,7 @@ test('状态持续时间：1 回合后自动失效，永久状态保留', () => 
   });
   const { state, ctx } = scenario({ ownHand: ['test_applier'] });
   setUnit(state, 'enemy', 'front', 0, unit('e', 3, 9));
-  const r1 = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 1 });
+  const r1 = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
   const e1 = getUnit(r1.state, 'enemy', 'front', 0);
   assert.equal(e1?.statuses.zhen_she?.stacks, 1, '震慑应生效');
   assert.equal(e1?.statuses.zhen_she?.turns, 1, '震慑应剩 1 回合');
@@ -255,11 +255,11 @@ test('禁用状态：不能使用主动技，但仍可普通攻击', () => {
     skills: [{ id: 's', name: '火计', kind: 'active', cost: 1,
                effects: [{ action: 'damage', value: 2, target: { side: 'enemy' } }] }],
   });
-  const { state, ctx } = scenario({ own: { back: ['test_caster'] } });
+  const { state, ctx } = scenario({ own: { front: ['test_caster'] } });
   setUnit(state, 'enemy', 'front', 0, unit('e', 3, 9));
-  const blocked = { ...state.sides.own.rows.back[0]!, statuses: { jin_yong: { stacks: 1, turns: 1 } } };
-  setUnit(state, 'own', 'back', 0, blocked);
-  const skill = applyAction(state, ctx, { type: 'USE_SKILL', row: 'back', col: 0 });
+  const blocked = { ...state.sides.own.rows.front[0]!, statuses: { jin_yong: { stacks: 1, turns: 1 } } };
+  setUnit(state, 'own', 'front', 0, blocked);
+  const skill = applyAction(state, ctx, { type: 'USE_SKILL', row: 'front', col: 0 });
   assert.equal(skill.ok, false, '被禁用时不能使用主动技');
 });
 
@@ -275,7 +275,7 @@ test('免疫状态：不能作为目标，且免疫负面状态', () => {
   const { state, ctx } = scenario({ ownHand: ['test_debuff'] });
   const immune = { ...unit('immune', 3, 9), statuses: { mian_yi: { stacks: 1, turns: 2 } } };
   setUnit(state, 'enemy', 'front', 0, immune);
-  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 1 });
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
   const e = getUnit(r.state, 'enemy', 'front', 0);
   assert.equal(e?.statuses.zhen_she, undefined, '免疫单位不该被挂上震慑');
 });
@@ -294,11 +294,11 @@ test('混乱状态：目标在全体中随机（不分敌我）', () => {
   let hitAlly = 0;
   for (let seed = 0; seed < 30; seed++) {
     const { state, ctx } = scenario({ ownHand: [], seed });
-    setUnit(state, 'own', 'back', 1, makeUnit(confused, 1, 80));
+    setUnit(state, 'own', 'front', 1, makeUnit(confused, 1, 80));
     setUnit(state, 'own', 'front', 0, unit('ally1', 2, 5, [], 'shu'));
     setUnit(state, 'enemy', 'front', 0, unit('foe1', 2, 5));
     // 给混乱者挂上混乱
-    getUnit(state, 'own', 'back', 1)!.statuses.hun_luan = { stacks: 1, turns: 1 };
+    getUnit(state, 'own', 'front', 1)!.statuses.hun_luan = { stacks: 1, turns: 1 };
     const r = applyAction(state, ctx, { type: 'END_TURN' });
     if ((getUnit(r.state, 'own', 'front', 0)?.hp ?? 5) < 5) hitAlly++;
   }
@@ -390,7 +390,7 @@ test('临时属性修正：到期后回滚（甘宁「-1 攻一回合」）', ()
   });
   const { state, ctx } = scenario({ ownHand: ['test_gn'] });
   setUnit(state, 'enemy', 'front', 0, unit('foe', 4, 4));
-  const r1 = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 1 });
+  const r1 = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
   assert.equal(getUnit(r1.state, 'enemy', 'front', 0)?.atk, 3, '打出时 -1 攻');
 
   // 走完敌方回合 → 临时修正到期
@@ -445,7 +445,7 @@ test('手牌实例：费用修正不污染共享的卡牌定义', () => {
   });
   const { state, ctx } = scenario({ ownHand: ['test_cheap', 'neutral_infantry'] });
   const originalCost = base('neutral_infantry').cost;
-  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 1 });
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
   // 手牌费用被改
   const hc = r.state.sides.own.hand.find((x) => x.card.id === 'neutral_infantry')!;
   assert.equal(effectiveCost(hc), originalCost - 1, '手牌费用应 -1');
@@ -463,7 +463,7 @@ test('禁止上场：被 ban 的手牌打不出去，到期后恢复', () => {
     }],
   });
   const { state, ctx } = scenario({ ownHand: ['test_ban'], enemyHand: ['neutral_infantry'] });
-  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 1 });
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
   assert.ok(isBanned(r.state.sides.enemy.hand[0]!), '敌方手牌应被禁止上场');
 });
 
@@ -475,7 +475,7 @@ test('夺取手牌：从敌方手牌取走并强制上场', () => {
   const { state, ctx } = scenario({ ownHand: ['test_steal'], enemyHand: ['neutral_infantry'] });
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
   assert.equal(r.state.sides.enemy.hand.length, 0, '敌方手牌应被取走');
-  const onBoard = ['front', 'back'] as const;
+  const onBoard = ['front', 'front'] as const;
   const summoned = onBoard.some((row) => r.state.sides.own.rows[row].some((u) => u?.cardId === 'neutral_infantry'));
   assert.ok(summoned, '被夺取的人物卡应强制上场到我方');
 });

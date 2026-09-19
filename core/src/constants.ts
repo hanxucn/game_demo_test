@@ -5,10 +5,17 @@
 
 import type { Row } from './types.ts';
 
+/**
+ * 战场：**一行 8 格**（ADR-051）。
+ *
+ * 原设计是 5 列 × 2 排（前后军），现已改为单排——「同列」「穿透」「前后军」概念全部作废。
+ * `back` 这一排在数据模型里保留（值为空、任何迭代都不会读它），
+ * 以免一次性改动过大；后续清理时可整体删除。
+ */
 export const BOARD = {
-  COLS: 5,
-  ROWS: ['front', 'back'] as Row[],
-  MAX_UNITS: 10,
+  COLS: 8,
+  ROWS: ['front'] as Row[],
+  MAX_UNITS: 8,
 };
 
 export const LORD_HP = 30;
@@ -33,9 +40,9 @@ export const KEYWORDS: Record<string, { name: string; implemented: boolean; note
   zhong_yi:  { name: '忠义', implemented: true, note: '阵亡时触发卡牌定义的 on_death 效果' },
   yi_ji:     { name: '遗计', implemented: true, note: '阵亡时抽 1 张牌' },
   ji_xing:   { name: '疾行', implemented: true, note: '入场当回合即可攻击' },
-  jia_dun:   { name: '架盾', implemented: true, note: '仅前军生效的全局嘲讽' },
+  jia_dun:   { name: '架盾', implemented: true, note: '嘲讽：敌方必须先攻击它（ADR-051）' },
   wu_sheng_status: { name: '武圣', implemented: true, note: '免疫一次伤害' },
-  shen_she:  { name: '神射', implemented: true, note: '可攻击任意列的人物卡' },
+  shen_she:  { name: '神射', implemented: true, note: '可攻击任意位置的人物卡（单排后已无实义）' },
   lian_ji:   { name: '连击', implemented: true, note: '每回合可攻击 2 次' },
   yin_xue:   { name: '饮血', implemented: true, note: '造成伤害时为己方主将回复等量生命' },
   qi_xi_status: { name: '奇袭', implemented: true, note: '不能被指定为攻击目标；攻击后失去' },

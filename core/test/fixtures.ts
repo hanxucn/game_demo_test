@@ -115,7 +115,7 @@ export function scenario(opts: Scenario): { state: MatchState; ctx: EngineContex
 
   const place = (side: Side, rows?: Partial<Record<Row, Array<string | null>>>) => {
     if (!rows) return;
-    for (const row of ['front', 'back'] as Row[]) {
+    for (const row of ['front', 'front'] as Row[]) {
       const arr = rows[row];
       if (!arr) continue;
       arr.forEach((id, col) => {

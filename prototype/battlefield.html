@@ -10,12 +10,13 @@
     --canvas-w: 736px;
     --canvas-h: 414px;
     --pad: 2px;
-    --card-w: 47px;        /* 所有卡牌统一尺寸 */
-    --card-h: 66px;
+    /* ADR-051：战场改为一行 8 格，卡面相应缩小以塞进 736px 画布 */
+    --card-w: 42px;        /* 所有卡牌统一尺寸 */
+    --card-h: 59px;
     --hand-h: 72px;
-    --col-gap: 6px;
+    --col-gap: 4px;
     --row-gap: 2px;
-    --board-w: calc(5 * var(--card-w) + 4 * var(--col-gap));
+    --board-w: calc(8 * var(--card-w) + 7 * var(--col-gap));
     --ink: #e9e2d5;
     --dim: #a99e8c;
     --gold: #d4af6a;
@@ -190,8 +191,7 @@
     position: relative; z-index: 3;
     display: flex; flex-direction: column; gap: var(--row-gap);
   }
-  /* 远端行压暗，用光影而不是变形来表现纵深 */
-  .boards .row[data-side="enemy"][data-row="back"] { filter: brightness(.82) saturate(.9); }
+  /* ADR-051：单排——敌方一行略压暗，用光影区分敌我 */
   .boards .row[data-side="enemy"][data-row="front"] { filter: brightness(.92); }
   .row { display: flex; gap: var(--col-gap); height: var(--card-h); justify-content: center; }
   .slot {
@@ -541,11 +541,9 @@
         <div class="lord-bar enemy" id="lord-enemy"></div>
 
         <div class="boards" id="boards">
-          <div class="row" data-side="enemy" data-row="back"></div>
           <div class="row" data-side="enemy" data-row="front"></div>
           <div class="mid"></div>
           <div class="row" data-side="own" data-row="front"></div>
-          <div class="row" data-side="own" data-row="back"></div>
         </div>
 
         <div class="lord-bar own" id="lord-own"></div>

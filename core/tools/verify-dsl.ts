@@ -67,13 +67,13 @@ for (const c of cards) {
 
   const play: Action = isTactic
     ? { type: 'PLAY_CARD', cardIndex: 0 }
-    : { type: 'PLAY_CARD', cardIndex: 0, row: 'back', col: 2 };
+    : { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 2 };
   try {
     const r = applyAction(state, ctx, play);
     if (!r.ok) { fails.push(`${c.id}(${r.error})`); continue; }
     const evs = [...(r.events as GameEvent[])];
     if ((c.skills ?? []).some((s) => s.kind === 'active')) {
-      const r2 = applyAction(r.state, ctx, { type: 'USE_SKILL', row: 'back', col: 2 } as Action);
+      const r2 = applyAction(r.state, ctx, { type: 'USE_SKILL', row: 'front', col: 2 } as Action);
       if (!r2.ok) { fails.push(`${c.id}(主动技被拒:${r2.error})`); continue; }
       evs.push(...(r2.events as GameEvent[]));
     }
@@ -90,7 +90,7 @@ for (const c of cards) {
       // 找到该卡在场上的单位，比较派生值与基础值
       let applied = false;
       for (const side of ['own', 'enemy'] as const) {
-        for (const row of ['front', 'back'] as const) {
+        for (const row of ['front', 'front'] as const) {
           for (let col = 0; col < 5; col++) {
             const u = r.state.sides[side].rows[row][col];
             if (u?.cardId === c.id && (u.atk !== u.baseAtk || u.maxHp !== u.baseMaxHp)) applied = true;

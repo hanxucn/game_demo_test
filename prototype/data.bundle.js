@@ -1162,10 +1162,10 @@ window.GameData = {
       "keywords": [],
       "skills": [
         {
-          "id": "shen_she_ji",
-          "name": "神射",
+          "id": "she_jian",
+          "name": "射箭",
           "kind": "trigger",
-          "trigger": "turn_start",
+          "trigger": "turn_end",
           "effects": [
             {
               "action": "damage",
@@ -1173,10 +1173,11 @@ window.GameData = {
               "target": {
                 "side": "enemy",
                 "filter": {
-                  "type": "character"
+                  "type": "character",
+                  "include_lord": true
                 },
                 "count": 1,
-                "mode": "choose"
+                "mode": "random"
               }
             }
           ],

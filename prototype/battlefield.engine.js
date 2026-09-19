@@ -15,8 +15,8 @@ var CR = window.CardRender;
 var GD = window.GameData;
 
 var DESIGN_W = 736, DESIGN_H = 414;
-var ROWS = ['front', 'back'];
-var COLS = [0, 1, 2, 3, 4];
+var ROWS = ['front'];        // ADR-051：单排
+var COLS = [0, 1, 2, 3, 4, 5, 6, 7];   // 一行 8 格
 var CHARACTER_TYPES = ['troop', 'general', 'strategist'];
 
 var data = Core.loadData(
@@ -159,33 +159,20 @@ function renderBoard(st) {
   });
 }
 
+/**
+ * 目标高亮（ADR-051：列概念已取消，原先的「列光束」作废）。
+ * 选中自己的单位后，把所有合法目标（含主将）描边高亮。
+ */
 function renderLanes(st) {
-  var inner = document.querySelector('.arena-inner');
-  $all('.lane-beam').forEach(function (el) { el.remove(); });
-  if (!Core.allUnits(st, 'enemy').length) return;
-
-  var open = Core.openColumns(st, 'enemy');
-  if (!open.length) return;
-
-  var hotCol = null;
-  if (sel) {
-    var res = Core.legalTargets(st, 'own', sel.row, sel.col);
-    if (res.targets.some(function (t) { return t.kind === 'lord'; })) hotCol = sel.col;
-  }
-
-  var boards = document.getElementById('boards');
-  var bb = boards.getBoundingClientRect();
-  var ib = inner.getBoundingClientRect();
-  open.forEach(function (c) {
-    var slot = document.querySelector('.row[data-side="enemy"][data-row="back"] .slot[data-col="' + c + '"]');
-    if (!slot) return;
-    var sb = slot.getBoundingClientRect();
-    var beam = document.createElement('div');
-    beam.className = 'lane-beam' + (c === hotCol ? ' hot' : '');
-    beam.style.left = (sb.left - ib.left) + 'px';
-    beam.style.top = (bb.top - ib.top) + 'px';
-    beam.style.height = (bb.height / 2) + 'px';
-    inner.appendChild(beam);
+  $all('.unit-wrap.is-target').forEach(function (el) { el.classList.remove('is-target'); });
+  $('#lord-enemy').classList.remove('is-target');
+  if (!sel) return;
+  var res = Core.legalTargets(st, 'own', sel.row, sel.col);
+  res.targets.forEach(function (t) {
+    if (t.kind === 'lord') { $('#lord-enemy').classList.add('is-target'); return; }
+    var slot = document.querySelector('.row[data-side="' + t.side + '"][data-row="' + t.row + '"] .slot[data-col="' + t.col + '"]');
+    var wrap = slot && slot.querySelector('.unit-wrap');
+    if (wrap) wrap.classList.add('is-target');
   });
 }
 
@@ -207,11 +194,17 @@ function renderHand(st) {
     if (isCharacter(c)) {
       // 人物卡：按住拖到战场
       wrap.addEventListener('pointerdown', function (e) { startDrag(e, i, c, wrap); });
+      wrap.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (busy || session.state.winner || session.state.active !== 'own') return;
+        onHandPick(i);
+      });
     } else {
       // 非人物卡：点击直接打出
       wrap.addEventListener('click', function (e) {
         e.stopPropagation();
         if (busy || session.state.winner || session.state.active !== 'own') return;
+        if (onHandPick(i)) return;                       // 主公技正在等选一张手牌
         doAction({ type: 'PLAY_CARD', cardIndex: i });
       });
     }
@@ -327,11 +320,23 @@ function onSlotClick() {
   pendingSkill = null;
 }
 
+/** 主公技「选一张手牌」模式（如孙权坐断东南）。返回 true 表示已消费这次点击 */
+function onHandPick(index) {
+  if (!pendingSkill || !pendingSkill.handPick) return false;
+  var action = pendingSkill.action || { type: 'USE_LORD_SKILL' };
+  pendingSkill = null;
+  var a = {};
+  for (var k in action) a[k] = action[k];
+  a.handIndex = index;
+  doAction(a);
+  return true;
+}
+
 function onUnitClick(side, row, col) {
   if (busy || session.state.winner) return;
 
-  // ① 主公技等待选目标
-  if (pendingSkill && side === 'own') {
+  // ① 主公技等待选目标（ADR-051：仁德可指定敌我任何人，故不再限定 side==='own'）
+  if (pendingSkill && pendingSkill.targets) {
     var okSkill = pendingSkill.targets.some(function (t) {
       return t.side === side && t.row === row && t.col === col;
     });
@@ -398,32 +403,71 @@ function onLordClick(side, bar) {
   var l = session.state.sides[side].lord;
   showDetail(side === 'enemy' ? '敌方主公' : '我方主公',
     l.name + '　♥ ' + l.hp + (l.armor ? '　◈ ' + l.armor : ''),
-    '主公技：' + l.skill + '（消耗 1 统率 / 每回合 1 次）');
+    '主公技：' + l.skill + '（消耗 ' + ((l.skillDef && l.skillDef.cost) || 2) + ' 统率 / 每回合 1 次）');
 }
 
-/** 主公技：消耗 1 统率、每回合 1 次；需要目标的进入选目标模式 */
+/**
+ * 主公技：费用与是否需要选目标都**从数据读**（ADR-049/051）。
+ *
+ * 原先按中文技能名硬编码（仁德/号令），主公技数据化后那些分支全部失效；
+ * 现在只看 skillDef.cost 与 effects[].target 的形状。
+ */
 function onLordSkillClick(side) {
   if (busy || session.state.winner) return;
   var st = session.state;
   if (side !== 'own' || st.active !== 'own') return;
 
   var lord = st.sides.own.lord;
-  if (lord.skillUsedThisTurn) { showDetail('主公技', lord.skill, '本回合已使用过'); return; }
-  if (st.sides.own.command.cur < 1) { showDetail('主公技', lord.skill, '统率值不足（需要 1）'); return; }
+  var sk = lord.skillDef;
+  if (!sk) { showDetail('主公技', lord.skill, '该主公没有可用的主公技'); return; }
+  var cost = sk.cost || 2;
 
-  var NEEDS_TARGET = ['仁德', '号令'];
-  if (NEEDS_TARGET.indexOf(lord.skill) >= 0) {
-    clearMarks();
-    var targets = Core.allUnits(st, 'own').map(function (r) { return { side: 'own', row: r.row, col: r.col }; });
-    if (!targets.length) { showDetail('主公技', lord.skill, '场上没有友方人物'); return; }
-    pendingSkill = { targets: targets };
-    targets.forEach(function (t) {
-      var el = document.querySelector('.slot[data-side="own"][data-row="' + t.row + '"][data-col="' + t.col + '"] .unit-wrap');
-      if (el) el.classList.add('is-target');
-    });
-    showDetail('选择目标', lord.skill + '（消耗 1 统率）', '点击一名友方人物');
+  if (lord.skillUsedThisTurn) { showDetail('主公技', lord.skill, '本回合已使用过'); return; }
+  if (st.sides.own.command.cur < cost) {
+    showDetail('主公技', lord.skill, '统率值不足（需要 ' + cost + '）');
     return;
   }
+
+  // 需要选目标吗？看效果里有没有带 count:1 + mode:'choose' 的选择器
+  var picks = (sk.effects || []).filter(function (e) {
+    return e.target && e.target.count === 1 && e.target.mode === 'choose';
+  });
+  if (picks.length) {
+    clearMarks();
+    var sel0 = picks[0].target;
+    // side:'both' → 敌我都能选（仁德）；否则按 selector 的 side
+    var sides = sel0.side === 'both' ? ['own', 'enemy'] : [sel0.side === 'enemy' ? 'enemy' : 'own'];
+    var targets = [];
+    sides.forEach(function (sd) {
+      Core.allUnits(st, sd).forEach(function (r) {
+        targets.push({ side: sd, row: r.row, col: r.col });
+      });
+    });
+    if (!targets.length) { showDetail('主公技', lord.skill, '场上没有可选人物'); return; }
+    pendingSkill = { targets: targets };
+    targets.forEach(function (t) {
+      var el = document.querySelector('.slot[data-side="' + t.side + '"][data-row="' + t.row + '"][data-col="' + t.col + '"] .unit-wrap');
+      if (el) el.classList.add('is-target');
+    });
+    showDetail('选择目标', lord.skill + '（消耗 ' + cost + ' 统率）',
+      sel0.side === 'both' ? '点击任意一名场上人物（敌我皆可）' : '点击一名符合条件的己方人物');
+    return;
+  }
+
+  // 不需要选目标（奸雄/坐断东南）——坐断东南要指定弃哪张手牌
+  var needsHand = (sk.effects || []).some(function (e) {
+    return e.action === 'cycle_to_deck' || (e.action === 'discard' && e.mode === 'choose');
+  });
+  if (needsHand) {
+    var hand = st.sides.own.hand;
+    if (!hand.length) { showDetail('主公技', lord.skill, '手牌为空，无法使用'); return; }
+    // 进入「选一张手牌」模式：给手牌加高亮，由 onHandClick 处理
+    pendingSkill = { handPick: true, action: { type: 'USE_LORD_SKILL' } };
+    $all('.hcard-wrap').forEach(function (el) { el.classList.add('is-target'); });
+    showDetail('选择手牌', lord.skill + '（消耗 ' + cost + ' 统率）', '点击一张手牌放回牌组随机位置，再随机抽一张');
+    return;
+  }
+
   doAction({ type: 'USE_LORD_SKILL' });
 }
 
@@ -432,10 +476,6 @@ function onEndTurn() {
   if (session.state.active !== 'own') return;
   doAction({ type: 'END_TURN' });
 }
-
-/* ============================================================
-   执行 Action → 播放事件
-   ============================================================ */
 
 function doAction(action) {
   if (busy || session.state.winner) return;

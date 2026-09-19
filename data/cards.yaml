@@ -878,10 +878,10 @@
   troopKind: archer
   keywords: []
   skills:
-  - id: shen_she_ji
-    name: 神射
+  - id: she_jian
+    name: 射箭
     kind: trigger
-    trigger: turn_start
+    trigger: turn_end
     effects:
     - action: damage
       value: 1
@@ -889,8 +889,9 @@
         side: enemy
         filter:
           type: character
+          include_lord: true
         count: 1
-        mode: choose
+        mode: random
     text: 每回合对指定任意敌方人物造成一点伤害。
   memo: ''
   flavor: ''

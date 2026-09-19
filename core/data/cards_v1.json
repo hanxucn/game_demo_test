@@ -4277,10 +4277,10 @@
     "text": "每回合对指定任意敌方人物造成一点伤害。",
     "dsl": [
      {
-      "id": "shen_she_ji",
-      "name": "神射",
+      "id": "she_jian",
+      "name": "射箭",
       "kind": "trigger",
-      "trigger": "turn_start",
+      "trigger": "turn_end",
       "effects": [
        {
         "action": "damage",
@@ -4288,13 +4288,15 @@
         "target": {
          "side": "enemy",
          "filter": {
-          "type": "character"
+          "type": "character",
+          "include_lord": true
          },
          "count": 1,
-         "mode": "choose"
+         "mode": "random"
         }
        }
-      ]
+      ],
+      "text": "回合结束时，随机对敌方一名人物或主将造成 1 点伤害。"
      }
     ],
     "note": "DSL 已翻译"

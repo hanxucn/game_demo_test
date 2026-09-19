@@ -197,11 +197,11 @@ test('主公技门控：统率值不足时不可用', () => {
 
 test('谋臣主动技：火计造成 4 点伤害', () => {
   const { state, ctx } = scenario({
-    own: { back: [null, null, 'test_strategist', null, null] },
+    own: { front: [null, null, 'test_strategist', null, null] },
     enemy: { front: ['test_champion'] },       // 5/5
   });
   const r = run(state, ctx, {
-    type: 'USE_SKILL', row: 'back', col: 2,
+    type: 'USE_SKILL', row: 'front', col: 2,
     target: { side: 'enemy', row: 'front', col: 0 },
   });
   assert.equal(r.ok, true);
@@ -233,7 +233,7 @@ test('turn_end 触发技：张角五雷轰顶（5 次随机 1 伤）', () => {
   };
   const { state, ctx } = scenario({ ownHand: [] });
   const u = makeUnit(zhangjiao, 1, 99);
-  setUnit(state, 'own', 'back', 2, u);
+  setUnit(state, 'own', 'front', 2, u);
   // 敌方一个 10 血靶子：5 次雷击后应剩 5 血（打满 5 点）
   const target = makeUnit(
     { id: 'dummy', name: '靶子', faction: 'wei', type: 'general', cost: 2, attack: 1, health: 10, keywords: [], memo: '' },

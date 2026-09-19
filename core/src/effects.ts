@@ -383,6 +383,13 @@ export function resolveTargets(
       });
     }
   }
+  // include_lord（ADR-051）：把该方主将也放进候选池，供「随机打敌方任意目标（含主将）」使用
+  if (selector.filter?.include_lord) {
+    for (const s of poolSides) {
+      if (state.sides[s].lord.hp > 0) pool.push(lordRef(s));
+    }
+  }
+
   // 相邻（adjacent_to: self）：只保留与来源单位同列或左右相邻列的单位
   let finalPool = pool;
   if (selector.filter?.adjacent_to === 'self' && ctx.source) {

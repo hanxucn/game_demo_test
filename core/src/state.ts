@@ -88,6 +88,7 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
         skillUsedThisTurn: false,
       },
       rows: {
+        // ADR-051：仅 front 一排参与游戏（8 格）；back 保留为空壳以免大改
         front: new Array<Unit | null>(BOARD.COLS).fill(null),
         back: new Array<Unit | null>(BOARD.COLS).fill(null),
       },
@@ -192,9 +193,9 @@ export function capStacks(
 export const activeStatuses = (u: Unit | null): string[] =>
   Object.entries(u?.statuses ?? {}).filter(([, v]) => v.stacks > 0).map(([k]) => k);
 
-/** 「架盾」生效单位（仅前军） */
+/** 「架盾」生效单位（ADR-051：单排后为纯嘲讽，不再限定前军） */
 export const shieldUnits = (s: MatchState, side: Side): UnitRef[] =>
-  allUnits(s, side).filter(({ row, unit }) => row === 'front' && hasKeyword(unit, 'jia_dun') && unit.hp > 0);
+  allUnits(s, side).filter(({ unit }) => hasKeyword(unit, 'jia_dun') && unit.hp > 0);
 
 export const lordAlive = (s: MatchState, side: Side): boolean => s.sides[side].lord.hp > 0;
 

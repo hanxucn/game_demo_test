@@ -75,6 +75,7 @@ export interface TargetSelector {
     troopKind?: 'infantry' | 'shield' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
     has_status?: string;
     adjacent_to?: 'self';          // 相邻单位（"相邻的己方人物"）
+    include_lord?: boolean;        // 候选池额外纳入该方主将（ADR-051，弓兵射箭「含主将」）
   };
   count?: number | 'all';
   mode?: 'choose' | 'random' | 'first' | 'lowest_health';

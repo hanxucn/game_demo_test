@@ -36,7 +36,7 @@
       ],
       "stackable": false,
       "value": -1,
-      "memo": "仅前军生效：敌方必须先攻击它"
+      "memo": "嘲讽：敌方普通攻击必须先打它（ADR-051）"
     },
     {
       "id": "wu_sheng",

@@ -2493,10 +2493,10 @@ dsl:
       target:
         source: true
   neutral_archer:
-  - id: shen_she_ji
-    name: 神射
+  - id: she_jian
+    name: 射箭
     kind: trigger
-    trigger: turn_start
+    trigger: turn_end
     effects:
     - action: damage
       value: 1
@@ -2504,8 +2504,10 @@ dsl:
         side: enemy
         filter:
           type: character
+          include_lord: true
         count: 1
-        mode: choose
+        mode: random
+    text: 回合结束时，随机对敌方一名人物或主将造成 1 点伤害。
   tactic_caochuanjiejian: []
   shu_liufeng:
   - id: you_yu_bu_jue

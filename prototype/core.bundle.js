@@ -160,9 +160,9 @@ var Core = (() => {
 
   // src/constants.ts
   var BOARD = {
-    COLS: 5,
-    ROWS: ["front", "back"],
-    MAX_UNITS: 10
+    COLS: 8,
+    ROWS: ["front"],
+    MAX_UNITS: 8
   };
   var LORD_HP = 30;
   var COMMAND = { START: 1, MAX: 10 };
@@ -179,9 +179,9 @@ var Core = (() => {
     zhong_yi: { name: "\u5FE0\u4E49", implemented: true, note: "\u9635\u4EA1\u65F6\u89E6\u53D1\u5361\u724C\u5B9A\u4E49\u7684 on_death \u6548\u679C" },
     yi_ji: { name: "\u9057\u8BA1", implemented: true, note: "\u9635\u4EA1\u65F6\u62BD 1 \u5F20\u724C" },
     ji_xing: { name: "\u75BE\u884C", implemented: true, note: "\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u653B\u51FB" },
-    jia_dun: { name: "\u67B6\u76FE", implemented: true, note: "\u4EC5\u524D\u519B\u751F\u6548\u7684\u5168\u5C40\u5632\u8BBD" },
+    jia_dun: { name: "\u67B6\u76FE", implemented: true, note: "\u5632\u8BBD\uFF1A\u654C\u65B9\u5FC5\u987B\u5148\u653B\u51FB\u5B83\uFF08ADR-051\uFF09" },
     wu_sheng_status: { name: "\u6B66\u5723", implemented: true, note: "\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3" },
-    shen_she: { name: "\u795E\u5C04", implemented: true, note: "\u53EF\u653B\u51FB\u4EFB\u610F\u5217\u7684\u4EBA\u7269\u5361" },
+    shen_she: { name: "\u795E\u5C04", implemented: true, note: "\u53EF\u653B\u51FB\u4EFB\u610F\u4F4D\u7F6E\u7684\u4EBA\u7269\u5361\uFF08\u5355\u6392\u540E\u5DF2\u65E0\u5B9E\u4E49\uFF09" },
     lian_ji: { name: "\u8FDE\u51FB", implemented: true, note: "\u6BCF\u56DE\u5408\u53EF\u653B\u51FB 2 \u6B21" },
     yin_xue: { name: "\u996E\u8840", implemented: true, note: "\u9020\u6210\u4F24\u5BB3\u65F6\u4E3A\u5DF1\u65B9\u4E3B\u5C06\u56DE\u590D\u7B49\u91CF\u751F\u547D" },
     qi_xi_status: { name: "\u5947\u88AD", implemented: true, note: "\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u653B\u51FB\u76EE\u6807\uFF1B\u653B\u51FB\u540E\u5931\u53BB" },
@@ -427,6 +427,7 @@ var Core = (() => {
           skillUsedThisTurn: false
         },
         rows: {
+          // ADR-051：仅 front 一排参与游戏（8 格）；back 保留为空壳以免大改
           front: new Array(BOARD.COLS).fill(null),
           back: new Array(BOARD.COLS).fill(null)
         },
@@ -499,7 +500,7 @@ var Core = (() => {
     return n;
   }
   var activeStatuses = (u) => Object.entries(u?.statuses ?? {}).filter(([, v]) => v.stacks > 0).map(([k]) => k);
-  var shieldUnits = (s, side) => allUnits(s, side).filter(({ row, unit }) => row === "front" && hasKeyword(unit, "jia_dun") && unit.hp > 0);
+  var shieldUnits = (s, side) => allUnits(s, side).filter(({ unit }) => hasKeyword(unit, "jia_dun") && unit.hp > 0);
   var lordAlive = (s, side) => s.sides[side].lord.hp > 0;
   function openColumns(s, side) {
     const out = [];
@@ -567,7 +568,6 @@ var Core = (() => {
   function canAttack(state, side, row, col) {
     const u = getUnit(state, side, row, col);
     if (!u) return { ok: false, reason: "\u8BE5\u683C\u6CA1\u6709\u4EBA\u7269\u5361" };
-    if (u.type === "strategist") return { ok: false, reason: "\u8C0B\u81E3\u4E0D\u80FD\u666E\u901A\u653B\u51FB" };
     if (hasCap(u, "block_action") || hasCap(u, "block_attack")) {
       return { ok: false, reason: "\u5F53\u524D\u72B6\u6001\u65E0\u6CD5\u666E\u901A\u653B\u51FB" };
     }
@@ -598,49 +598,22 @@ var Core = (() => {
   function legalTargets(state, side, row, col) {
     const u = getUnit(state, side, row, col);
     if (!u) return { targets: [], why: "\u7A7A\u683C" };
-    if (u.type === "strategist") return { targets: [], why: "\u8C0B\u81E3\u4E0D\u80FD\u666E\u901A\u653B\u51FB" };
     const gate = canAttack(state, side, row, col);
     if (!gate.ok) return { targets: [], why: gate.reason };
     const foe = other(side);
-    const targets = [];
     const shields = shieldUnits(state, foe);
     if (shields.length) {
-      shields.forEach((s) => targets.push({ kind: "unit", side: foe, row: s.row, col: s.col }));
       return {
-        targets,
-        why: `\u654C\u65B9\u5B58\u5728\u300C\u67B6\u76FE\u300D\uFF08\u5217${shields.map((s) => s.col + 1).join("\u3001")}\u524D\u519B\uFF09\u2192 \u5FC5\u987B\u5148\u653B\u51FB\u5B83\uFF08\u53EF\u8DE8\u5217\uFF09`
+        targets: shields.map((sh) => ({ kind: "unit", side: foe, row: sh.row, col: sh.col })),
+        why: `\u654C\u65B9\u5B58\u5728\u300C\u67B6\u76FE\u300D${shields.map((sh) => `\u7B2C${sh.col + 1}\u683C`).join("\u3001")} \u2192 \u5FC5\u987B\u5148\u653B\u51FB\u5B83\uFF08\u5632\u8BBD\uFF09`
       };
     }
-    if (hasKeyword(u, "shen_she")) {
-      for (const r of BOARD.ROWS) {
-        state.sides[foe].rows[r].forEach((x, c) => {
-          if (x && !hasKeyword(x, "qi_xi")) targets.push({ kind: "unit", side: foe, row: r, col: c });
-        });
-      }
-      const ownColClear = !state.sides[foe].rows.front[col] && !state.sides[foe].rows.back[col];
-      if (ownColClear) targets.push({ kind: "lord", side: foe });
-      return {
-        targets,
-        why: "\u300C\u795E\u5C04\u300D\uFF1A\u53EF\u653B\u51FB\u4EFB\u610F\u5217\u7684\u4EBA\u7269\u5361" + (ownColClear ? "\uFF1B\u672C\u5217\u4E24\u6392\u7686\u7A7A \u2192 \u53EF\u653B\u51FB\u4E3B\u5C06" : "\uFF1B\u672C\u5217\u6709\u654C\u65B9\u5355\u4F4D \u2192 \u4E0D\u80FD\u653B\u51FB\u4E3B\u5C06")
-      };
-    }
-    if (row === "back" && state.sides[side].rows.front[col]) {
-      return { targets: [], why: "\u4F4D\u4E8E\u540E\u519B\u4E14\u540C\u5217\u524D\u65B9\u6709\u53CB\u65B9\u5355\u4F4D \u2192 \u88AB\u81EA\u5DF1\u4EBA\u6321\u4F4F\uFF0C\u65E0\u6CD5\u653B\u51FB" };
-    }
-    const front = state.sides[foe].rows.front[col];
-    if (front) {
-      if (hasKeyword(front, "qi_xi")) return { targets: [], why: "\u8BE5\u5217\u654C\u65B9\u524D\u519B\u5904\u4E8E\u300C\u5947\u88AD\u300D\uFF0C\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807" };
-      targets.push({ kind: "unit", side: foe, row: "front", col });
-      return { targets, why: `\u540C\u5217\uFF08\u5217${col + 1}\uFF09\u654C\u65B9\u524D\u519B\u6709\u4EBA\u7269\u5361 \u2192 \u76EE\u6807\u53EA\u80FD\u662F\u5B83` };
-    }
-    const back = state.sides[foe].rows.back[col];
-    if (back) {
-      if (hasKeyword(back, "qi_xi")) return { targets: [], why: "\u8BE5\u5217\u654C\u65B9\u540E\u519B\u5904\u4E8E\u300C\u5947\u88AD\u300D\uFF0C\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807" };
-      targets.push({ kind: "unit", side: foe, row: "back", col });
-      return { targets, why: `\u540C\u5217\uFF08\u5217${col + 1}\uFF09\u524D\u519B\u4E3A\u7A7A \u2192 \u7A7F\u900F\u653B\u51FB\u8BE5\u5217\u540E\u519B` };
-    }
+    const targets = allUnits(state, foe).filter(({ unit }) => unit.hp > 0 && !hasCap(unit, "untargetable") && !hasKeyword(unit, "qi_xi")).map(({ row: r, col: c }) => ({ kind: "unit", side: foe, row: r, col: c }));
     targets.push({ kind: "lord", side: foe });
-    return { targets, why: `\u540C\u5217\uFF08\u5217${col + 1}\uFF09\u4E24\u6392\u7686\u7A7A \u2192 \u53EF\u653B\u51FB\u654C\u65B9\u4E3B\u5C06\uFF08\u7834\u9635\u65A9\u5C06\uFF09` };
+    return {
+      targets,
+      why: "\u65E0\u654C\u65B9\u67B6\u76FE \u2192 \u53EF\u81EA\u7531\u9009\u62E9\u4EFB\u610F\u654C\u65B9\u4EBA\u7269\uFF0C\u6216\u76F4\u63A5\u653B\u51FB\u654C\u65B9\u4E3B\u5C06"
+    };
   }
   function legalPlacements(state, side) {
     const out = [];
@@ -1189,6 +1162,11 @@ var Core = (() => {
           if (hasCap(u, "duel_lock") && ctx.source && !hasCap(ctx.source, "duel_lock")) return;
           if (matchesFilter(u, selector.filter ?? {}, r, ctx.source?.cost)) pool.push(unitRef(s, r, c));
         });
+      }
+    }
+    if (selector.filter?.include_lord) {
+      for (const s of poolSides) {
+        if (state.sides[s].lord.hp > 0) pool.push(lordRef(s));
       }
     }
     let finalPool = pool;
@@ -2194,8 +2172,7 @@ var Core = (() => {
     const spots = legalPlacements(state, side);
     const slotFor = (c) => {
       if (!isCharacter(c)) return void 0;
-      const wantBack = c.type === "strategist";
-      return spots.find((sp) => wantBack ? sp.row === "back" : sp.row === "front") ?? spots[0];
+      return spots[0];
     };
     const playable = state.sides[side].hand.map((hc, i) => ({ hc, c: hc.card, i })).filter(({ hc }) => !isBanned(hc)).map((x) => ({ ...x, slot: slotFor(x.c) })).filter(({ c, slot }) => canPlayCard(state, side, c, slot).ok).sort((a, b) => b.c.cost - a.c.cost);
     for (const { c, i, slot } of playable) {

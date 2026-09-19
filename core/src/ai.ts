@@ -118,9 +118,7 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
   const spots = legalPlacements(state, side);
   const slotFor = (c: CardDef): { row: Row; col: number } | undefined => {
     if (!isCharacter(c)) return undefined;                 // 非人物卡不占格
-    // 谋臣放后军，其他放前军；没有理想排就退而求其次
-    const wantBack = c.type === 'strategist';
-    return spots.find((sp) => (wantBack ? sp.row === 'back' : sp.row === 'front')) ?? spots[0];
+    return spots[0];                                       // ADR-051：单排，无所谓前后军
   };
 
   const playable = state.sides[side].hand
