@@ -135,6 +135,10 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   events.push({ type: 'TURN_START', side, turn: state.turn, command: { ...s.command } });
 
   drawCard(state, ctx.cards, side, events);
+  // 后手补偿（ADR-053）：该方第 1 回合额外抽 1 张
+  if (state.secondCompensation === 'extra_draw' && state.turn === 2) {
+    drawCard(state, ctx.cards, side, events);
+  }
   resolveTurnStartStatuses(state, ctx.cards, side, events);
   recomputeAuras(state, ctx.cards, rng, events);                              // 第 3 步 ②光环重算
   runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);   // 第 3 步 ③回合开始技

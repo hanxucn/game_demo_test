@@ -3835,30 +3835,6 @@
     budget: 9
     diff: -7.5
     level: 'off'
-- id: neutral_chuanguo_yuxi
-  name: 传国玉玺
-  faction: neutral
-  type: special
-  cost: 0
-  memo: 0 费，本回合统率 +1（仅后手获得）
-  flavor: 受命于天，既寿永昌。
-  keywords: []
-  skills:
-  - id: ''
-    name: ''
-    text: 本回合统率 +1（仅后手获得）
-  effects:
-  - action: gain_command
-    value: 1
-    duration: this_turn
-  value:
-    stats: 0
-    keywords: 0
-    skills: 0
-    total: 0
-    budget: 1
-    diff: -1
-    level: ok
 - id: status_jia_dun
   name: 架盾
   faction: neutral

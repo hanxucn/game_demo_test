@@ -805,7 +805,7 @@ export function runEffects(
         gainArmor(state, ctx.side, eff.value ?? 1, events);
         break;
       case 'gain_command': {
-        // 本回合临时统率（传国玉玺等）
+        // 本回合临时统率（gain_command）
         const cmd = state.sides[ctx.side].command;
         cmd.cur = Math.min(cmd.max, cmd.cur + (eff.value ?? 1));
         break;

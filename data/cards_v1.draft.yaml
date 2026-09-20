@@ -1,7 +1,7 @@
 meta:
   version: v1
   status: 初步定稿（待 DSL 翻译与数值校验）
-  generated: '2026-09-19'
+  generated: '2026-09-20'
   note: 本文件由工具生成，数据源为 cards_photo.draft.yaml + characters.draft.yaml。不要手改。
   skipped:
   - photo: 45
@@ -3626,25 +3626,6 @@ cards:
     oral: true
     note: 设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）
   dsl_status: 无技能（白板/关键词卡），无需翻译
-- id: neutral_chuanguo_yuxi
-  name: 传国玉玺
-  faction: neutral
-  type: special
-  cost: 0
-  skills:
-  - name: ''
-    text: 本回合统率 +1（仅后手获得）
-    dsl: null
-    note: DSL 已翻译（卡级 effects）
-  keywords: []
-  memo: 0 费，本回合统率 +1（仅后手获得）
-  flavor: 受命于天，既寿永昌。
-  source:
-    from: cards.yaml
-  effects:
-  - action: gain_command
-    value: 1
-    duration: this_turn
 - id: qun_zhangjiao
   name: 张角
   faction: qun

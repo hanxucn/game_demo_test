@@ -42,7 +42,7 @@ open prototype/battlefield.html
 
 # 引擎（core）
 cd core
-npm test          # 134 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
+npm test          # 136 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
 npm run typecheck # tsc --noEmit
 npm run validate  # 卡牌数据校验（结构 + 平衡 + value 块新鲜度）
 npm run verify:dsl  # 逐张跑真实卡牌的 DSL，端到端验证
@@ -109,7 +109,7 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 ## 提交前检查清单
 
 - [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
-- [ ] `cd core && npm test` 全过（134/134）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
+- [ ] `cd core && npm test` 全过（136/136）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（总价值在预算内）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
 - [ ] 若产生新决策，已写入 `docs/gdd/14-open-questions.md` 的 ADR 表

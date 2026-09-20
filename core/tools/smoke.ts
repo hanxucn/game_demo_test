@@ -6,7 +6,7 @@
  *   npm run smoke -- --seed 42 --turns 30 --verbose
  *
  * 完成标准（docs/PROJECT_STATE 里的验收项）：
- *   3 张基础兵种 + 传国玉玺跑通"两个 AI 互打一局"，无异常、可复现
+ *   3 张基础兵种跑通"两个 AI 互打一局"，无异常、可复现
  */
 
 import { readFileSync, existsSync } from 'node:fs';

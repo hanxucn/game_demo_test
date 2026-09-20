@@ -89,7 +89,7 @@
       + '· 卡组 30 张，同名上限 2 张<br>'
       + '· 可用卡池 = <b>本方阵营</b> + <b>公共池</b>（中立 + 群雄），群雄不是可选阵营<br>'
       + '· 主公由阵营自动任命，不进卡组<br>'
-      + '· 先手由掷点决定，后手补「传国玉玺」'
+      + '· 先手由掷点决定，后手第 1 回合多抽 1 张（补偿先手优势）'
       + '</div>'
       + '<div class="acts" style="margin-topauto;margin-top:16px">'
       + '<button class="primary" data-act="toDeck">下一步：构筑卡组</button></div>';
@@ -216,7 +216,7 @@
     var n = Object.keys(mulliganOut).length;
     return '<h2>换牌</h2>' + steps(2)
       + '<div style="color:var(--dim);margin-bottom:8px">'
-      + (first ? '你是<b>先手</b>（起手 3 张）' : '你是<b>后手</b>（起手 4 张 + 传国玉玺）')
+      + (first ? '你是<b>先手</b>（起手 3 张）' : '你是<b>后手</b>（起手 4 张 + 第 1 回合多抽 1 张）')
       + '　·　点卡牌标记要换掉的，换 N 张补 N 张　·　<b>每局只有一次机会</b>'
       + '</div>'
       + '<div class="handpick">' + picks + '</div>'

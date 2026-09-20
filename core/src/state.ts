@@ -23,12 +23,15 @@ export interface CreateMatchOptions {
   firstSide?: Side;
   /** 按 GDD 03 §1 第④步掷点定先手（用本对局的确定性 Rng）；优先于 firstSide */
   rollFirst?: boolean;
-  /** 内测/复盘用：跳过「后手补传国玉玺」 */
-  skipYuxi?: boolean;
+  /**
+   * 后手补偿方式（ADR-053）。
+   *   'none'       不补偿
+   *   'extra_draw' 后手第 1 回合多抽 1 张（牌差补偿）
+   */
+  secondCompensation?: SecondCompensation;
 }
 
-/** 后手补偿卡（GDD 03 §1.2） */
-export const YUXI_ID = 'neutral_chuanguo_yuxi';
+export type SecondCompensation = 'none' | 'extra_draw';
 
 /** 掷点定先手（GDD 03 §1 第④步）：双方各掷 D6，平局重掷。确定性 Rng */
 export function rollFirstSide(rng: ReturnType<typeof createRng>): { side: Side; own: number; enemy: number } {
@@ -44,11 +47,11 @@ export function rollFirstSide(rng: ReturnType<typeof createRng>): { side: Side; 
  * 新建对局（GDD 03 §1 的 ①②④⑤ 步）。
  *
  * ③ 换牌不在这里——它是玩家的独立动作，见 core/src/setup.ts 的 mulligan()。
- * 本函数负责：任命主公 → 洗牌 → 发起手 → 接酒令 → 注入卡 → 后手补玉玺 → 定先手。
+ * 本函数负责：任命主公 → 洗牌 → 发起手 → 定先手。（后手补偿见 secondCompensation）
  */
 export function createMatch(opts: CreateMatchOptions): MatchState {
   const {
-    seed = 1, lords, decks, cards, skipYuxi = false,
+    seed = 1, lords, decks, cards, secondCompensation = 'extra_draw',
   } = opts;
   const rng = createRng(seed);
 
@@ -65,14 +68,6 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
       const id = deck.pop() as string;
       const c = cards.get(id);
       if (c) hand.push({ card: c, mods: [] });
-    }
-
-    // 后手补「传国玉玺」×1（GDD 03 §1.2）
-    if (!skipYuxi && side !== firstSide) {
-      const yuxi = cards.get(YUXI_ID);
-      if (yuxi && !hand.some((h) => h.card.id === YUXI_ID)) {
-        hand.push({ card: yuxi, mods: [] });
-      }
     }
 
     return {
@@ -107,6 +102,7 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
     rngState: rng.getState(),
     turn: 0,
     active: firstSide,
+    secondCompensation,
     sides: { own: makeSide('own'), enemy: makeSide('enemy') },
     winner: null,
   };

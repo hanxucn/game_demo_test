@@ -5206,34 +5206,6 @@
   "dsl_status": "无技能（白板/关键词卡），无需翻译"
  },
  {
-  "id": "neutral_chuanguo_yuxi",
-  "name": "传国玉玺",
-  "faction": "neutral",
-  "type": "special",
-  "cost": 0,
-  "skills": [
-   {
-    "name": "",
-    "text": "本回合统率 +1（仅后手获得）",
-    "dsl": null,
-    "note": "DSL 已翻译（卡级 effects）"
-   }
-  ],
-  "keywords": [],
-  "memo": "0 费，本回合统率 +1（仅后手获得）",
-  "flavor": "受命于天，既寿永昌。",
-  "source": {
-   "from": "cards.yaml"
-  },
-  "effects": [
-   {
-    "action": "gain_command",
-    "value": 1,
-    "duration": "this_turn"
-   }
-  ]
- },
- {
   "id": "qun_zhangjiao",
   "name": "张角",
   "faction": "qun",

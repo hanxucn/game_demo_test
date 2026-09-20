@@ -39,7 +39,6 @@ var Core = (() => {
     SUGGESTED_CURVE: () => SUGGESTED_CURVE,
     TAGS: () => TAGS,
     TIMING: () => TIMING,
-    YUXI_ID: () => YUXI_ID,
     activeStatuses: () => activeStatuses,
     allUnits: () => allUnits,
     applyAction: () => applyAction,
@@ -379,7 +378,6 @@ var Core = (() => {
   var NON_DECK_TYPES = ["elite", "lord", "token", "status", "special"];
 
   // src/state.ts
-  var YUXI_ID = "neutral_chuanguo_yuxi";
   function rollFirstSide(rng) {
     for (let i = 0; i < 100; i++) {
       const own = rng.int(6) + 1;
@@ -394,7 +392,7 @@ var Core = (() => {
       lords,
       decks,
       cards,
-      skipYuxi = false
+      secondCompensation = "extra_draw"
     } = opts;
     const rng = createRng(seed);
     const firstSide = opts.rollFirst ? rollFirstSide(rng).side : opts.firstSide ?? "own";
@@ -407,12 +405,6 @@ var Core = (() => {
         const id = deck.pop();
         const c = cards.get(id);
         if (c) hand.push({ card: c, mods: [] });
-      }
-      if (!skipYuxi && side !== firstSide) {
-        const yuxi = cards.get(YUXI_ID);
-        if (yuxi && !hand.some((h) => h.card.id === YUXI_ID)) {
-          hand.push({ card: yuxi, mods: [] });
-        }
       }
       return {
         lord: {
@@ -445,6 +437,7 @@ var Core = (() => {
       rngState: rng.getState(),
       turn: 0,
       active: firstSide,
+      secondCompensation,
       sides: { own: makeSide("own"), enemy: makeSide("enemy") },
       winner: null
     };
@@ -1689,6 +1682,9 @@ var Core = (() => {
     }
     events.push({ type: "TURN_START", side, turn: state.turn, command: { ...s.command } });
     drawCard(state, ctx.cards, side, events);
+    if (state.secondCompensation === "extra_draw" && state.turn === 2) {
+      drawCard(state, ctx.cards, side, events);
+    }
     resolveTurnStartStatuses(state, ctx.cards, side, events);
     recomputeAuras(state, ctx.cards, rng, events);
     runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);
@@ -1913,8 +1909,9 @@ var Core = (() => {
       decks: opts.decks,
       cards: opts.cards,
       firstSide: opts.firstSide,
-      rollFirst: opts.firstSide === void 0
+      rollFirst: opts.firstSide === void 0,
       // 未指定 → 按 GDD 掷点
+      secondCompensation: opts.secondCompensation
     });
     log.push(`\u4E3B\u516C\uFF1A\u5DF1\u65B9 ${state.sides.own.lord.name} / \u654C\u65B9 ${state.sides.enemy.lord.name}`);
     log.push(`\u5148\u624B\uFF1A${state.active === "own" ? "\u5DF1\u65B9" : "\u654C\u65B9"}`);

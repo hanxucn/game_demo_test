@@ -3,7 +3,7 @@
  *
  *   ① 选阵营 → 自动任命主公
  *   ② 换牌（起手可替换任意张数，每张仅一次机会）
- *   ③ 掷点决定先手（后手补「传国玉玺」）
+ *   ③ 掷点决定先手（后手补偿见 secondCompensation）
  *   ④ 先手方开始第 1 回合
  *
  * ①③④ 在 createMatch 里一次做完；**② 换牌是玩家的独立动作**，在这里实现，
@@ -105,6 +105,8 @@ export interface SetupOptions {
   /** 各方要换掉的手牌下标；缺省 = 不换 */
   mulliganIndices?: Partial<Record<Side, number[]>>;
   firstSide?: Side;
+  /** 后手补偿方式（ADR-053），透传给 createMatch */
+  secondCompensation?: import('./state.ts').SecondCompensation;
 }
 
 export interface SetupResult {
@@ -121,6 +123,7 @@ export function setupMatch(opts: SetupOptions): SetupResult {
     cards: opts.cards,
     firstSide: opts.firstSide,
     rollFirst: opts.firstSide === undefined,      // 未指定 → 按 GDD 掷点
+    secondCompensation: opts.secondCompensation,
   });
 
   log.push(`主公：己方 ${state.sides.own.lord.name} / 敌方 ${state.sides.enemy.lord.name}`);

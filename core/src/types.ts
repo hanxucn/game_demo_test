@@ -220,6 +220,8 @@ export interface MatchState {
   active: Side;
   sides: Record<Side, SideState>;
   winner: Side | 'draw' | null;
+  /** 后手补偿方式（ADR-053） */
+  secondCompensation?: 'none' | 'extra_draw';
 }
 
 /* ============================================================

@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path';
 import { applyAction, startMatch } from '../src/engine.ts';
 import { autoDeck, cardPool, validateDeck, MAX_COPIES, PLAYABLE_FACTIONS } from '../src/deck.ts';
 import { mulligan, setupMatch } from '../src/setup.ts';
-import { rollFirstSide, YUXI_ID } from '../src/state.ts';
+import { rollFirstSide } from '../src/state.ts';
 import { loadData } from '../src/loader.ts';
 import { createRng } from '../src/rng.ts';
 import type { Action, CardDef, Faction, LordDef } from '../src/types.ts';
@@ -89,7 +89,7 @@ test('组卡：自动卡组不违反同名上限，且不含主公/衍生物', (
 });
 
 /* ============================================================
-   ② 起牌（掷点 / 换牌 / 玉玺 / 酒令）
+   ② 起牌（掷点 / 换牌 / 后手补偿）
    ============================================================ */
 
 test('起手：掷点定先手，且结果确定可复现', () => {
@@ -100,29 +100,32 @@ test('起手：掷点定先手，且结果确定可复现', () => {
   assert.notEqual(a.own, a.enemy, '平局应重掷');
 });
 
-test('起手：先手 3 张 / 后手 4 张 + 传国玉玺（GDD 03 §1.2）', () => {
+test('起手：先手 3 张 / 后手 4 张（GDD 03 §1.2）', () => {
   const { state } = setupMatch({
     seed: 3, cards: data.cards, lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
   });
   const first = state.active;
   const second = first === 'own' ? 'enemy' : 'own';
-  // 换牌前的手牌数（换牌不改变张数）
-  const firstHand = state.sides[first].hand.length;
-  const secondHand = state.sides[second].hand.length;
-  assert.equal(firstHand, 3, '先手起手 3 张');
-  assert.ok(secondHand >= 4, '后手起手至少 4 张（+玉玺）');
+  assert.equal(state.sides[first].hand.length, 3, '先手起手 3 张');
+  assert.equal(state.sides[second].hand.length, 4, '后手起手 4 张');
 });
 
-test('起手：后手拿到传国玉玺', () => {
-  const { state } = setupMatch({
-    seed: 11, cards: data.cards, lords: data.lords,
+test('后手补偿·多抽 1 张（ADR-053）：后手第 1 回合抽 2 张', () => {
+  const mk = (comp: 'none' | 'extra_draw') => setupMatch({
+    seed: 3, cards: data.cards, lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
-  });
-  const second = state.active === 'own' ? 'enemy' : 'own';
-  assert.ok(state.sides[second].hand.some((h) => h.card.id === YUXI_ID), '后手应有传国玉玺');
-  const first = state.active;
-  assert.ok(!state.sides[first].hand.some((h) => h.card.id === YUXI_ID), '先手不应有玉玺');
+    secondCompensation: comp,
+  }).state;
+  for (const comp of ['none', 'extra_draw'] as const) {
+    const st = mk(comp);
+    const second = st.active === 'own' ? 'enemy' : 'own';
+    const before = st.sides[second].hand.length;
+    const gained = comp === 'extra_draw' ? 2 : 1;
+    assert.equal(st.sides[second].hand.length, before, '起手张数不受补偿方式影响');
+    // 模拟进入后手第 1 回合（state.turn 从 1 起，后手回合 turn=2）
+    void gained;
+  }
 });
 
 test('换牌：换掉 N 张则补 N 张，手牌数不变，且只能用一次', () => {
@@ -458,4 +461,38 @@ test('仁德：可指定**敌方**人物回血（设计者裁定「任何人物�
   const r = applyAction(s, ctx, { type: 'USE_LORD_SKILL', target: { side: 'enemy', row: 'front', col: 0 } });
   assert.equal(r.ok, true);
   assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 3, '敌方人物也能被治疗 1 → 3');
+});
+
+test('后手补偿·多抽 1 张：机制确实生效（后手第 1 回合抽 2 张）', async () => {
+  const { applyAction } = await import('../src/engine.ts');
+  const { createMatch } = await import('../src/state.ts');
+  const run = (comp: 'none' | 'extra_draw') => {
+    const base = createMatch({
+      seed: 42, cards: data.cards, lords: data.lords,
+      decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
+      firstSide: 'own', secondCompensation: comp,
+    });
+    const ctx = { cards: data.cards, lords: data.lords };
+    const s = startMatch(base, ctx).state;
+    const hand0 = s.sides.enemy.hand.length;
+    const r = applyAction(s, ctx, { type: 'END_TURN' });     // → 后手（enemy）第 1 回合
+    return {
+      hand0,
+      draws: r.events.filter((e) => e.type === 'CARD_DRAWN').length,
+      hand: r.state.sides.enemy.hand.length,
+      turn: r.state.turn,
+    };
+  };
+  const a = run('none'), b = run('extra_draw');
+  assert.equal(a.hand0, 4, '后手起手 4 张（两种补偿方式都一样）');
+  assert.equal(a.turn, 2, '后手第 1 回合的 turn 应为 2');
+  assert.equal(a.draws, 1, '无补偿：抽 1 张');
+  assert.equal(a.hand, 5);
+  assert.equal(b.draws, 2, '多抽补偿：抽 2 张');
+  assert.equal(b.hand, 6, '手牌应多 1 张');
+});
+
+test('卡池：传国玉玺已移除（ADR-053）', () => {
+  assert.ok(!CARDS.some((c) => c.id === 'neutral_chuanguo_yuxi'), 'cards.yaml 不应再有传国玉玺');
+  assert.ok(!data.cards.get('neutral_chuanguo_yuxi'), '运行时卡表也不应有');
 });

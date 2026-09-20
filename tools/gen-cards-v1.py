@@ -101,15 +101,12 @@ for c in yaml.safe_load(open(ROOT/'data/characters.draft.yaml', encoding='utf-8'
                 'flavor': c.get('flavor') or '', 'source': {'oral': True},
                 'flags': ['口述录入，数值未经校验']})
 
-# 基础卡：盾兵（设计者答疑给出新数值）、传国玉玺（沿用 cards.yaml）
+# 基础卡：盾兵（设计者答疑给出新数值）
 out.append({'id':'neutral_shieldman','name':'盾兵','faction':'neutral','type':'troop','troopKind':'shield',
     'cost':2,'attack':1,'health':2,'skills':[],'keywords':['jia_dun'],
     'memo':'仅前军生效：敌方必须先打掉它才能攻击其他人','flavor':'盾如铁壁，寸步不让。',
     'source':{'oral':True,'note':'设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）'}})
-out.append({'id':'neutral_chuanguo_yuxi','name':'传国玉玺','faction':'neutral','type':'special',
-    'cost':0,'skills':[{'name':'','text':'本回合统率 +1（仅后手获得）','dsl':None,'note':'沿用 cards.yaml'}],
-    'keywords':[],'memo':'0 费，本回合统率 +1（仅后手获得）','flavor':'受命于天，既寿永昌。',
-    'source':{'from':'cards.yaml'}})
+# 传国玉玺已删除（ADR-053：设计者裁定非本人设计；后手补偿改为后手第 1 回合多抽 1 张）
 
 # 设计者新增的卡（非照片来源）
 for nc in dec.get('new_cards') or []:

@@ -56,8 +56,9 @@
       id: 'ph_tactic', name: '占位战法', type: 'tactic', faction: 'neutral',
       cost: 3, memo: '【占位】验证手牌与画廊卡面',
     },
+    // 传国玉玺已删除（ADR-053）；此处保留一个通用 0 费非人物卡占位，供布局示例用
     yuxi: {
-      id: 'neutral_chuanguo_yuxi', name: '传国玉玺', type: 'special', faction: 'neutral',
+      id: 'placeholder_special', name: '特殊牌', type: 'special', faction: 'neutral',
       cost: 0, memo: '0 费，本回合统率 +1',
     },
   };
