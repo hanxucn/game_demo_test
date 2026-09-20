@@ -553,3 +553,27 @@ test('ADR-054：先攻＝入场当回合即可攻击（原疾行的行为）', a
   assert.equal(canAttack(s, 'own', 'front', 0).ok, false, '当回合入场的普通单位不能攻击');
   assert.equal(canAttack(s, 'own', 'front', 1).ok, true, '带「先攻」的当回合即可攻击');
 });
+
+test('ADR-055：先攻不含「击杀不遭反击」——目标存活时仍会反击', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit } = await import('../src/state.ts');
+  const { applyAction } = await import('../src/engine.ts');
+  const d = qun();
+  const base = createMatch({ seed: 7, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+  // 数值直接设定，避免依赖卡面组合：攻击者 3 攻 20 血（挂先攻），目标 2 攻 10 血
+  const atk = makeUnit(d.cards.get('qun_yuanshao')!, 0, 810);
+  atk.kw.push('xian_gong');
+  atk.hp = 20; atk.maxHp = 20;
+  setUnit(s, 'own', 'front', 0, atk);
+  const victim = makeUnit(d.cards.get('shu_guanyu')!, 0, 811);
+  victim.hp = 10; victim.maxHp = 10; victim.atk = 2;
+  setUnit(s, 'enemy', 'front', 0, victim);
+
+  const r = applyAction(s, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.ok(getUnit(r.state, 'enemy', 'front', 0), '目标应存活（10 血 > 3 攻）');
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 7, '目标掉 3 血');
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 18,
+    '目标存活 → 必须反击 2 点；「先攻」不再压制反击（原定义是 AI 编的，已删）');
+});

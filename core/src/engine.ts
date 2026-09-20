@@ -243,7 +243,6 @@ function attack(
 
   const dmg = effectiveAttack(state, side, from.row, from.col);
   const hasWuShuang = hasKeyword(attacker, 'wu_shuang');   // 「无双」已取消（ADR-054），无卡使用；保留分支待清理
-  const hasXianGong = hasKeyword(attacker, 'xian_gong');
   const hasYinXue = hasKeyword(attacker, 'yin_xue');
   const foe = other(side);
 
@@ -269,8 +268,11 @@ function attack(
     if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, 'on_damaged', rng, events);
     if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);
 
-    // 反击：无双免疫；先攻若击杀则不反击
-    if (!targetDied && !hasWuShuang && !hasXianGong) {
+    // 反击：目标存活则反击。
+    // 注：「无双」（攻击不受反击）已取消（ADR-054）。
+    // 「先攻」**不含**"击杀不遭反击"——那是初始提交 GDD 里 AI 编的定义，
+    // 手写稿四处「获得先攻/上场时先攻」均指"入场当回合即可行动"（ADR-055）。
+    if (!targetDied && !hasWuShuang) {
       dealDamage(state, ctx.cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? '反击');
       const back = getUnit(state, side, from.row, from.col);
       if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, 'on_damaged', rng, events);

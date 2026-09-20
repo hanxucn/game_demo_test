@@ -184,7 +184,7 @@ var Core = (() => {
     xian_gong: {
       name: "\u5148\u653B",
       implemented: true,
-      note: "\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u653B\u51FB\uFF08= \u75BE\u884C\uFF1B\u8BBE\u8BA1\u8005\u88C1\u5B9A\u4E24\u8005\u662F\u540C\u4E00\u4E2A\u4E1C\u897F\uFF0C\u53EA\u4FDD\u7559\u300C\u5148\u653B\u300D\u4E00\u540D\uFF09"
+      note: "\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u884C\u52A8\u653B\u51FB\uFF08ADR-055 \u8BBE\u8BA1\u8005\u6F84\u6E05\uFF1A\u8FD9\u5C31\u662F\u5B83\u7684\u5168\u90E8\u542B\u4E49\uFF0C\u4E0E\u300C\u75BE\u884C\u300D\u662F\u540C\u4E00\u4E2A\uFF09"
     },
     lian_ji: {
       name: "\u8FDE\u51FB",
@@ -203,8 +203,8 @@ var Core = (() => {
     },
     wu_sheng: {
       name: "\u6B66\u5723",
-      implemented: true,
-      note: "\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"
+      implemented: false,
+      note: '\u26A0\uFE0F \u5B9A\u4E49\u672A\u7ECF\u786E\u8BA4\uFF1A\u624B\u5199\u7A3F\u91CC\u300C\u6B66\u5723\u300D\u53EA\u4F5C\u4E3A\u5173\u7FBD\u7684\u4E24\u4E2A\u5019\u9009\u6280\u80FD\u540D\u4E4B\u4E00\u51FA\u73B0\uFF0C\u5E76\u672A\u5B9A\u4E49\u673A\u5236\uFF1B"\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"\u662F\u521D\u59CB\u63D0\u4EA4 GDD \u91CC AI \u5199\u7684\uFF08\u5F85\u8BBE\u8BA1\u8005\u5B9A\u4E49\uFF0CQ-06-4\uFF09'
     },
     shen_she: {
       name: "\u795E\u5C04",
@@ -249,7 +249,7 @@ var Core = (() => {
       kind: "buff",
       numeric: false,
       duration: "permanent",
-      note: "\u26A0\uFE0F \u5F85\u8BBE\u8BA1\u8005\u786E\u8BA4\uFF1A\u5F15\u64CE\u91CC\u540C\u65F6\u5B58\u5728\u4E24\u79CD\u7406\u89E3\u2014\u2014\u2460\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u653B\u51FB \u2461\u51FB\u6740\u5219\u4E0D\u906D\u53CD\u51FB"
+      note: "\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u884C\u52A8\u653B\u51FB\uFF08ADR-055\uFF09"
     },
     qi_xi_status: { name: "\u5947\u88AD", kind: "buff", numeric: false, duration: "until_consumed", note: "\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807" },
     wu_sheng_status: {
@@ -1805,7 +1805,6 @@ var Core = (() => {
     if (!target) return false;
     const dmg = effectiveAttack(state, side, from.row, from.col);
     const hasWuShuang = hasKeyword(attacker, "wu_shuang");
-    const hasXianGong = hasKeyword(attacker, "xian_gong");
     const hasYinXue = hasKeyword(attacker, "yin_xue");
     const foe = other(side);
     events.push({ type: "ATTACK_DECLARED", side, from: { ...from }, to: target });
@@ -1823,7 +1822,7 @@ var Core = (() => {
       const hit = getUnit(state, foe, tRow, tCol);
       if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, "on_damaged", rng, events);
       if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);
-      if (!targetDied && !hasWuShuang && !hasXianGong) {
+      if (!targetDied && !hasWuShuang) {
         dealDamage(state, ctx.cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? "\u53CD\u51FB");
         const back = getUnit(state, side, from.row, from.col);
         if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, "on_damaged", rng, events);

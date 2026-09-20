@@ -1,6 +1,9 @@
 note: '关键词表 —— 定义由设计者逐条给出（ADR-054，2026-09-12）。
 
-  手写稿里出现过、且设计者已定义的关键词如下；未在此列的一律不是本作关键词。'
+  手写稿里出现过、且设计者已定义的关键词如下；未在此列的一律不是本作关键词。
+
+
+  ⚠️ ADR-055 教训：核对关键词时**不能只查名字在不在手写稿里，必须核对定义**。「先攻」名字在手写稿出现 8 次、我据此判它"可信"，但它的定义（击杀不遭反击）是 AI 编的。'
 keywords:
 - id: jia_dun
   name: 架盾
@@ -20,9 +23,9 @@ keywords:
   stackable: false
   value: -1
   implemented: true
-  definition: 入场当回合即可攻击。设计者裁定「疾行 = 先攻」，两者是同一个关键词，已合并为「先攻」。
+  definition: 入场当回合即可行动攻击。（= 疾行，两者是同一个关键词，已合并为「先攻」）
   memo: 下了就能打
-  open: ⚠️ 引擎里另有「击杀则不遭反击」的旧理解，含义待设计者确认（Q-06-1）
+  source: 手写稿四处「获得先攻 / 上场时先攻」均指此意（ADR-055 设计者澄清）
 - id: lian_ji
   name: 连击
   type: buff
@@ -58,9 +61,10 @@ keywords:
   - wu_sheng_status
   stackable: false
   value: -1
-  implemented: true
-  definition: 免疫一次伤害。
-  memo: 挡一刀
+  implemented: false
+  definition: ⚠️ 尚未定义。手写稿里「武圣」只作为关羽的两个候选技能名之一出现（〈水淹七军〉? / 〈武圣〉?），未写机制。
+  memo: （待定义）
+  open: 原「免疫一次伤害」是初始提交 GDD 里 AI 写的定义，未经设计者确认（Q-06-4）
 - id: shen_she
   name: 神射
   type: buff
@@ -113,12 +117,12 @@ forbidden_combos:
 - - jia_dun
   - qi_xi
 open_questions:
-- id: Q-06-1
-  q: 「先攻」的确切含义：入场当回合即可攻击，还是击杀则不遭反击？（引擎两种都有）
-  owner: 策划
 - id: Q-06-2
   q: 「饮血」恢复给谁：该单位自身，还是己方主将？
   owner: 策划
 - id: Q-06-3
   q: 「结阵」的具体机制
+  owner: 策划
+- id: Q-06-4
+  q: 「武圣」的机制是什么？（手写稿只给了名字，没写效果）
   owner: 策划
