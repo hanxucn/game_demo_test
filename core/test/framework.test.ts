@@ -370,32 +370,7 @@ function qun() {
   return loadData({ cards: CARDS, heroes: HEROES }, { own: 'shu_liubei', enemy: 'wei_caocao' });
 }
 
-test('袁绍：6 费 3/6 普通人物卡，三个技能（每回合召唤/战吼/亡语）', () => {
-  const ys = CARDS.find((c) => c.id === 'qun_yuanshao');
-  assert.ok(ys, '袁绍应在卡池里');
-  assert.equal(ys!.type, 'general', '应为普通人物卡，不是主公');
-  assert.equal(ys!.cost, 6);
-  assert.equal(ys!.attack, 3);
-  assert.equal(ys!.health, 6);
-  const triggers = (ys!.skills ?? []).map((s) => s.trigger);
-  assert.deepEqual(triggers, ['turn_start', 'on_play', 'on_death']);
-});
 
-test('袁绍战吼：获得 1 张 + 加入牌组 2 张「万箭齐发」', async () => {
-  const { applyAction } = await import('../src/engine.ts');
-  const { createMatch } = await import('../src/state.ts');
-  const d = qun();
-  const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
-  const ctx = { cards: d.cards, lords: d.lords };
-  let s = startMatch(base, ctx).state;
-  s.sides.own.command.cur = 10;
-  s.sides.own.hand.push({ card: d.cards.get('qun_yuanshao')!, mods: [] });
-  const idx = s.sides.own.hand.length - 1;
-  const r = applyAction(s, ctx, { type: 'PLAY_CARD', cardIndex: idx, row: 'front', col: 0 });
-  assert.equal(r.ok, true);
-  const n = r.state.sides.own.deck.filter((x) => x === 'tactic_wanjianqifa').length;
-  assert.equal(n, 3, `牌组里应有 3 张万箭齐发（1+2），实际 ${n}`);
-});
 
 test('万箭齐发：抽到时自动释放（不进手牌），对全体敌方人物各 1 点伤害', async () => {
   const { applyAction } = await import('../src/engine.ts');
@@ -576,4 +551,48 @@ test('ADR-055：先攻不含「击杀不遭反击」——目标存活时仍会�
   assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 7, '目标掉 3 血');
   assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 18,
     '目标存活 → 必须反击 2 点；「先攻」不再压制反击（原定义是 AI 编的，已删）');
+});
+
+test('张角：5 费 1/5 谋臣「五雷轰顶」——5 次随机雷击 + 50% 震慑 + 击杀召唤黄巾兵', () => {
+  const zj = CARDS.find((c) => c.id === 'qun_zhangjiao');
+  assert.ok(zj, '张角应在卡池里');
+  assert.equal(zj!.cost, 5);
+  assert.equal(zj!.attack, 1);
+  assert.equal(zj!.health, 5);
+  assert.equal(zj!.type, 'strategist');
+  const sk = zj!.skills![0]!;
+  assert.equal(sk.trigger, 'turn_end');
+  const dmg = sk.effects!.find((e) => e.action === 'damage')!;
+  assert.equal(dmg.count, 5, '5 次雷击');
+  assert.equal(dmg.value, 1);
+  assert.equal(dmg.target!.mode, 'random');
+  const st = sk.effects!.find((e) => e.action === 'apply_status')!;
+  assert.equal(st.status, 'zhen_she');
+  assert.equal(st.chance, 0.5, '每次 50% 震慑');
+  assert.equal(st.count, 5);
+  const sm = sk.effects!.find((e) => e.action === 'summon')!;
+  assert.equal(sm.unit, 'token_huangjin_bing');
+  assert.equal(sm.condition!.event, 'killed', '击杀才召唤');
+});
+
+test('袁绍：6 费 3/6，每回合召唤弓兵 + 战吼 1 张进手牌/2 张进牌组 + 亡语转手', async () => {
+  const { applyAction } = await import('../src/engine.ts');
+  const { createMatch } = await import('../src/state.ts');
+  const d = qun();
+  const ys = CARDS.find((c) => c.id === 'qun_yuanshao')!;
+  assert.equal(ys.cost, 6);
+  assert.equal(ys.attack, 3);
+  assert.equal(ys.health, 6);
+  assert.deepEqual((ys.skills ?? []).map((s) => s.trigger), ['turn_start', 'on_play', 'on_death']);
+
+  const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+  s.sides.own.command.cur = 10;
+  s.sides.own.hand.push({ card: d.cards.get('qun_yuanshao')!, mods: [] });
+  const r = applyAction(s, ctx, { type: 'PLAY_CARD', cardIndex: s.sides.own.hand.length - 1, row: 'front', col: 0 });
+  assert.equal(r.ok, true);
+  const own = r.state.sides.own;
+  assert.equal(own.hand.filter((h) => h.card.id === 'tactic_wanjianqifa').length, 1, '战吼：1 张进手牌');
+  assert.equal(own.deck.filter((x) => x === 'tactic_wanjianqifa').length, 2, '战吼：2 张进牌组');
 });

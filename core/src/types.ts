@@ -244,7 +244,7 @@ export type GameEvent =
   | { type: 'TURN_END'; side: Side; turn: number }
   | { type: 'CARD_DRAWN'; side: Side; card: CardDef; deckLeft: number }
   | { type: 'CARD_AUTO_CAST'; side: Side; card: CardDef }
-  | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number }
+  | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number; to?: 'hand' | 'deck' }
   | { type: 'DECK_SENT'; side: Side; cardId: string; count: number }
   | { type: 'CARD_RETURNED_TO_DECK'; side: Side; card: CardDef }
   | { type: 'FATIGUE'; side: Side; amount: number; hp: number }

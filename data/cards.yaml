@@ -2635,6 +2635,7 @@
     - action: add_to_deck
       unit: tactic_wanjianqifa
       count: 1
+      to: hand
       target:
         side: self
     - action: add_to_deck
@@ -2643,7 +2644,7 @@
       target:
         side: self
     text: 每回合可召唤一个 1攻 1血的士族兵
-  - id: yuan_shao_yiji
+  - id: yuan_shao_yidu
     name: 遗毒
     kind: trigger
     trigger: on_death
@@ -2906,22 +2907,34 @@
           type: character
         count: 1
         mode: random
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 0.5
+      count: 5
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: random
+      note: DSL 建模范式：与 5 次雷击独立结算，聚合概率等价；不可绑同一次伤害
     - action: summon
       unit: token_huangjin_bing
       count: 1
       position: random
       condition:
         event: killed
-    text: 每回合结束时释放 5 次随机 1 伤害的雷击，对敌方随机人物。如果雷击击杀敌人则上场一个 1 攻 1 血的黄巾士兵。
+    text: 每回合结束时释放 5 次随机 1 点雷击，目标为敌方随机人物；每次雷击有 50% 概率对其造成震慑；若雷击击杀敌人，则上场一个 1 攻 1 血的黄巾兵。
   memo: ''
   flavor: ''
   value:
     stats: 6
     keywords: 0
-    skills: 3.22
-    total: 9.22
+    skills: 7.07
+    total: 13.07
     budget: 11
-    diff: -1.78
+    diff: 2.07
     level: watch
 - id: neutral_shieldman
   name: 盾兵

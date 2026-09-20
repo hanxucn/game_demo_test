@@ -112,8 +112,15 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
     case 'draw': return (eff.value ?? 1) * 3;
     case 'summon': return (eff.count ?? 1) * 3;
     case 'gain_armor': return (eff.value ?? 1) * 1 * scale;
-    case 'apply_status':
-      return (eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2) * scale;
+    case 'apply_status': {
+      const per = eff.status === 'zhen_she' ? 5 : (eff.stacks ?? 1) * 2;
+      // 标志型状态（numeric: false，如震慑/混乱/翻面）**不叠加**：
+      // 同一张卡多次施加时，重复命中同一目标是浪费，不能按次数线性计价（ADR-056）。
+      // 数值型状态（如中毒 stacks:2）可以叠，仍按次数计。
+      const isFlag = STATUSES[eff.status ?? '']?.numeric === false;
+      const effectiveCount = isFlag && times > 1 ? 1 + (times - 1) * 0.3 : times;
+      return per * effectiveCount * aoe;
+    }
     case 'destroy': return 8;
     case 'discard': {
       // 弃牌是**代价**还是**收益**取决于弃谁的牌（ADR-046）：

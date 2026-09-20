@@ -795,6 +795,7 @@ cards:
       - action: add_to_deck
         unit: tactic_wanjianqifa
         count: 1
+        to: hand
         target:
           side: self
       - action: add_to_deck
@@ -803,7 +804,7 @@ cards:
         target:
           side: self
       text: 战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。
-    - id: yuan_shao_yiji
+    - id: yuan_shao_yidu
       name: 遗毒
       kind: trigger
       trigger: on_death
@@ -3626,47 +3627,6 @@ cards:
     oral: true
     note: 设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）
   dsl_status: 无技能（白板/关键词卡），无需翻译
-- id: qun_zhangjiao
-  name: 张角
-  faction: qun
-  type: strategist
-  cost: 5
-  attack: 1
-  health: 5
-  skills:
-  - name: 五雷轰顶
-    text: 每回合结束时释放 5 次随机 1 伤害的雷击，对敌方随机人物。如果雷击击杀敌人则上场一个 1 攻 1 血的黄巾士兵。
-    dsl:
-    - id: wu_lei_hong_ding
-      name: 五雷轰顶
-      kind: trigger
-      trigger: turn_end
-      effects:
-      - action: damage
-        value: 1
-        count: 5
-        target:
-          side: enemy
-          filter:
-            type: character
-          count: 1
-          mode: random
-      - action: summon
-        unit: token_huangjin_bing
-        count: 1
-        position: random
-        condition:
-          event: killed
-    note: DSL 已翻译
-  keywords: []
-  tags:
-  - huang_jin
-  memo: ''
-  flavor: ''
-  source:
-    new: 设计者口述（2026-09-12）
-  flags:
-  - 「如果雷击击杀敌人则上场黄巾士兵」是**条件触发**，当前 DSL 无 condition 字段，暂未翻译
 - id: token_huangjin_bing
   name: 黄巾兵
   faction: neutral
@@ -3784,3 +3744,55 @@ cards:
   flavor: ''
   source:
     new: 设计者新增
+- id: qun_zhangjiao
+  name: 张角
+  faction: qun
+  type: strategist
+  cost: 5
+  attack: 1
+  health: 5
+  skills:
+  - name: 五雷轰顶
+    text: 每回合结束时释放 5 次随机 1 点雷击，目标为敌方随机人物；每次雷击有 50% 概率对其造成震慑；若雷击击杀敌人，则上场一个 1 攻 1 血的黄巾兵。
+    dsl:
+    - id: wu_lei_hong_ding
+      name: 五雷轰顶
+      kind: trigger
+      trigger: turn_end
+      effects:
+      - action: damage
+        value: 1
+        count: 5
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: 1
+          mode: random
+      - action: apply_status
+        status: zhen_she
+        duration: 1
+        chance: 0.5
+        count: 5
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: 1
+          mode: random
+        note: DSL 建模范式：与 5 次雷击独立结算，聚合概率等价；不可绑同一次伤害
+      - action: summon
+        unit: token_huangjin_bing
+        count: 1
+        position: random
+        condition:
+          event: killed
+      text: 每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。
+    note: DSL 已翻译
+  keywords: []
+  tags:
+  - huang_jin
+  memo: ''
+  flavor: ''
+  source:
+    new: 设计者口述（2026-09-12 定稿：5 费 1/5 + 50% 震慑）

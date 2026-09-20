@@ -537,11 +537,18 @@ export function runEffects(
         const def = cards.get(String(eff.unit ?? ''));
         if (!def) { events.push({ type: 'REJECTED', reason: `add_to_deck 的卡不存在：${eff.unit}` } as never); break; }
         const n = eff.count ?? 1;
-        for (let i = 0; i < n; i++) {
-          const deck = state.sides[who].deck;
-          deck.splice(rng.int(deck.length + 1), 0, def.id);
+        // to:'hand' → 直接进手牌（"获得一张"）；默认进牌库随机位置（"加入牌组"）
+        if (eff.to === 'hand') {
+          for (let i = 0; i < n; i++) {
+            state.sides[who].hand.push({ card: def, mods: [] });
+          }
+        } else {
+          for (let i = 0; i < n; i++) {
+            const deck = state.sides[who].deck;
+            deck.splice(rng.int(deck.length + 1), 0, def.id);
+          }
         }
-        events.push({ type: 'DECK_ADDED', side: who, card: def, count: n });
+        events.push({ type: 'DECK_ADDED', side: who, card: def, count: n, to: eff.to === 'hand' ? 'hand' : 'deck' } as never);
         break;
       }
       case 'send_to_deck': {
@@ -792,12 +799,21 @@ export function runEffects(
         break;
       }
       case 'apply_status': {
-        const list = targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []);
+        // count > 1 时重复结算，且每次**重新解析目标**（与 damage 同构，ADR-056）。
+        // 张角「五雷轰顶」需要「5 次雷击各 50% 概率震慑」——原先 count 被忽略，
+        // 而估值公式（ADR-046）却已按次数计价，两边不一致，此处补齐。
+        const times = eff.count ?? 1;
         const turns = typeof eff.duration === 'number' ? eff.duration
           : eff.duration === 'this_turn' ? 1 : undefined;
         const srcUid = eff.status_source === 'self' ? ctx.source?.uid : undefined;
-        for (const t of list) {
-          applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+        for (let i = 0; i < times; i++) {
+          const list = i === 0
+            ? (targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []))
+            : (eff.target ? resolveTargets(state, eff.target, ctx, rng)
+                          : (ctx.chosen ? [ctx.chosen] : []));
+          for (const t of list) {
+            applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+          }
         }
         break;
       }

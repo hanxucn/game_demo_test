@@ -1322,11 +1322,17 @@ var Core = (() => {
             break;
           }
           const n = eff.count ?? 1;
-          for (let i = 0; i < n; i++) {
-            const deck = state.sides[who].deck;
-            deck.splice(rng.int(deck.length + 1), 0, def.id);
+          if (eff.to === "hand") {
+            for (let i = 0; i < n; i++) {
+              state.sides[who].hand.push({ card: def, mods: [] });
+            }
+          } else {
+            for (let i = 0; i < n; i++) {
+              const deck = state.sides[who].deck;
+              deck.splice(rng.int(deck.length + 1), 0, def.id);
+            }
           }
-          events.push({ type: "DECK_ADDED", side: who, card: def, count: n });
+          events.push({ type: "DECK_ADDED", side: who, card: def, count: n, to: eff.to === "hand" ? "hand" : "deck" });
           break;
         }
         case "send_to_deck": {
@@ -1569,11 +1575,14 @@ var Core = (() => {
           break;
         }
         case "apply_status": {
-          const list = targets.length ? targets : ctx.chosen ? [ctx.chosen] : [];
+          const times = eff.count ?? 1;
           const turns = typeof eff.duration === "number" ? eff.duration : eff.duration === "this_turn" ? 1 : void 0;
           const srcUid = eff.status_source === "self" ? ctx.source?.uid : void 0;
-          for (const t of list) {
-            applyStatus(state, t, eff.status, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+          for (let i = 0; i < times; i++) {
+            const list = i === 0 ? targets.length ? targets : ctx.chosen ? [ctx.chosen] : [] : eff.target ? resolveTargets(state, eff.target, ctx, rng) : ctx.chosen ? [ctx.chosen] : [];
+            for (const t of list) {
+              applyStatus(state, t, eff.status, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+            }
           }
           break;
         }

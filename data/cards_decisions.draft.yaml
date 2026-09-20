@@ -1576,25 +1576,12 @@ card_tags:
   - 72
   - 106
   - 111
+  - qun_zhangjiao
   shi_zu:
   - 70
   - 122
 card_tags_note: ADR-029 归属标签。待确认：周仓/张燕是否算黄巾、董卓是否算西凉、士族是否必要
 new_cards:
-- id: qun_zhangjiao
-  name: 张角
-  faction: qun
-  type: strategist
-  cost: 5
-  attack: 1
-  health: 5
-  tags:
-  - huang_jin
-  skill_name: 五雷轰顶
-  skill_text: 每回合结束时释放 5 次随机 1 伤害的雷击，对敌方随机人物。如果雷击击杀敌人则上场一个 1 攻 1 血的黄巾士兵。
-  source: 设计者口述（2026-09-12）
-  open:
-  - 「如果雷击击杀敌人则上场黄巾士兵」是**条件触发**，当前 DSL 无 condition 字段，暂未翻译
 - id: token_huangjin_bing
   name: 黄巾兵
   faction: neutral
@@ -1666,6 +1653,19 @@ new_cards:
   skill_name: ''
   skill_text: 抽到时释放：对所有敌方人物造成 1 点伤害。
   note: ADR-050 袁绍专属：不进手牌、不可主动打出（cost 0 且仅由 on_draw 触发）
+- id: qun_zhangjiao
+  name: 张角
+  faction: qun
+  type: strategist
+  cost: 5
+  attack: 1
+  health: 5
+  tags:
+  - huang_jin
+  open: false
+  skill_name: 五雷轰顶
+  skill_text: 每回合结束时释放 5 次随机 1 点雷击，目标为敌方随机人物；每次雷击有 50% 概率对其造成震慑；若雷击击杀敌人，则上场一个 1 攻 1 血的黄巾兵。
+  source: 设计者口述（2026-09-12 定稿：5 费 1/5 + 50% 震慑）
 dsl:
   wei_xunyou:
   - id: fen_er_ji_zhi
@@ -1734,12 +1734,25 @@ dsl:
           type: character
         count: 1
         mode: random
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 0.5
+      count: 5
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: random
+      note: DSL 建模范式：与 5 次雷击独立结算，聚合概率等价；不可绑同一次伤害
     - action: summon
       unit: token_huangjin_bing
       count: 1
       position: random
       condition:
         event: killed
+    text: 每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。
   shu_shamoke:
   - id: hu_wang
     name: 胡王
@@ -2204,6 +2217,7 @@ dsl:
     - action: add_to_deck
       unit: tactic_wanjianqifa
       count: 1
+      to: hand
       target:
         side: self
     - action: add_to_deck
@@ -2212,7 +2226,7 @@ dsl:
       target:
         side: self
     text: 战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。
-  - id: yuan_shao_yiji
+  - id: yuan_shao_yidu
     name: 遗毒
     kind: trigger
     trigger: on_death
