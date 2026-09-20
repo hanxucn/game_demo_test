@@ -107,6 +107,8 @@ function newGame() {
       banner('对局开始',
         session.state.sides.own.lord.name + ' vs ' + session.state.sides.enemy.lord.name +
         '（先手：' + (session.state.active === 'own' ? '我方' : '敌方') + '）');
+      // 先手若是 AI（敌方恒为 AI；双 AI 模式我方也是）→ 自动开打
+      if (shouldAuto()) setTimeout(runAiTurn, 500);
     },
   });
 }
@@ -664,7 +666,7 @@ function doAction(action) {
     renderAll();
     if (session.state.winner) {
       banner('对局结束', session.state.winner === 'own' ? '我方胜利' : session.state.winner === 'enemy' ? '敌方胜利' : '平局');
-    } else if (session.state.active === 'enemy') {
+    } else if (shouldAuto()) {
       setTimeout(runAiTurn, 350);
     }
   });
@@ -699,9 +701,21 @@ function describeEvent(e) {
     case 'CARD_PLAYED': return { cls: '', text: who + ' 打出 <b>' + e.card.name + '</b>' + (e.col != null ? '（第' + (e.col + 1) + '格）' : '') };
     case 'UNIT_SUMMONED': return { cls: '', text: '　' + who + ' 上场 <b>' + e.unit.name + '</b> ' + e.unit.atk + '/' + e.unit.hp + '（第' + (e.col + 1) + '格）' };
     case 'UNIT_TRANSFORMED': return { cls: 'eff', text: '　' + who + ' 进化：' + e.from + ' → <b>' + (e.unit ? e.unit.name : e.to) + '</b>' };
-    case 'ATTACK_DECLARED': return { cls: '', text: who + ' 第' + (e.from.col + 1) + '格 攻击 ' + (e.to && e.to.kind === 'lord' ? '敌方主将' : '第' + (e.to.col + 1) + '格') };
-    case 'DAMAGE': return { cls: 'dmg', text: '　→ ' + (e.target.kind === 'lord' ? who + '主将' : '') + '<b>-' + e.amount + '</b>' + (e.source ? '（' + e.source + '）' : '') };
-    case 'HEAL': return { cls: 'heal', text: '　→ <b>+' + e.amount + '</b> 治疗' };
+    case 'ATTACK_DECLARED': return { cls: '', text: who + ' 第' + (e.from.col + 1) + '格 攻击 ' + (e.to && e.to.kind === 'lord' ? (SIDE_NAME[e.to.side] || '') + '主将' : '第' + (e.to.col + 1) + '格') };
+    case 'DAMAGE': {
+      // DAMAGE 事件没有顶层 side，挨打的是谁只能看 target.side。
+      // 早先误用 who（＝undefined）→ 日志成了没头没尾的"→ -2"，也分不清打的是谁。
+      var tgt = e.target.kind === 'lord'
+        ? (SIDE_NAME[e.target.side] || '') + '主将'
+        : (SIDE_NAME[e.target.side] || '') + '第' + (e.target.col + 1) + '格';
+      return { cls: 'dmg', text: '　→ ' + tgt + ' <b>-' + e.amount + '</b>' + (e.source ? '（' + e.source + '）' : '') };
+    }
+    case 'HEAL': {
+      var htg = e.target.kind === 'lord'
+        ? (SIDE_NAME[e.target.side] || '') + '主将'
+        : (SIDE_NAME[e.target.side] || '') + '第' + (e.target.col + 1) + '格';
+      return { cls: 'heal', text: '　→ ' + htg + ' <b>+' + e.amount + '</b> 治疗' };
+    }
     case 'UNIT_DIED': return { cls: 'death', text: '　✝ ' + who + ' <b>' + e.unit.name + '</b> 阵亡' };
     case 'STATUS_APPLIED': return { cls: 'eff', text: '　' + who + ' 获得状态 <b>' + statusName(e.status) + '</b>' + (e.stacks > 1 ? ' ×' + e.stacks : '') };
     case 'STATUS_EXPIRED': return { cls: '', text: '　' + who + ' 状态 <b>' + statusName(e.status) + '</b> 到期' };
@@ -768,14 +782,78 @@ function unitEl(side, row, col) {
 }
 function lordEl(side) { return document.getElementById('lord-' + side); }
 
+/* ---------- 伤害来源分类 ----------
+   事件里的 source 是：攻击者单位名（普攻）/「反击」/「中毒」/「摧毁」/
+   「fatigue」/ 战法或事件卡名。做卡牌测试时"这一下是谁打的"最关键，
+   所以按来源分色 + 在飘字下标出出处。 */
+var CARD_TYPE_BY_NAME = null;
+function cardTypeByName(name) {
+  if (!CARD_TYPE_BY_NAME) {
+    CARD_TYPE_BY_NAME = {};
+    (GD.cards || []).forEach(function (c) { CARD_TYPE_BY_NAME[c.name] = c.type; });
+  }
+  return CARD_TYPE_BY_NAME[name];
+}
+
+function damageFlavor(e) {
+  var src = e.source || '';
+  if (src === '反击') return { cls: 'is-counter', label: '反击' };
+  if (src === 'fatigue' || src === '粮尽') return { cls: 'is-fatigue', label: '粮尽' };
+  if (src === '中毒') return { cls: 'is-status', label: '中毒' };
+  var t = cardTypeByName(src);
+  if (t === 'tactic' || t === 'event' || src === '摧毁' || src === '效果') {
+    return { cls: 'is-skill', label: src };
+  }
+  return { cls: 'is-dmg', label: src || '攻击' };
+}
+
+/** 把刚上场的单位立刻插进格子：否则它要等整段动画播完才出现，
+ *  后续的伤害/阵亡动画就找不到元素（renderAll 在事件全部播完才跑）。 */
+function insertUnitNow(e) {
+  var slot = document.querySelector('.slot[data-side="' + e.side + '"][data-row="' + e.row + '"][data-col="' + e.col + '"]');
+  if (!slot || !e.unit) return null;
+  var wrap = slot.querySelector('.unit-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'unit-wrap';
+    slot.appendChild(wrap);
+  }
+  wrap.innerHTML = '';
+  wrap.dataset.uid = e.unit.uid;
+  wrap.appendChild(CR.mini(e.unit, { row: e.row, hurt: false, statuses: statusList(e.unit) }));
+  var flash = document.createElement('div');
+  flash.className = 'cr-land-flash';
+  wrap.appendChild(flash);
+  wrap.classList.add('cr-land-bounce');
+  setTimeout(function () { flash.remove(); wrap.classList.remove('cr-land-bounce'); }, 460);
+  return wrap;
+}
+
 function animate(e) {
   switch (e.type) {
     case 'CARD_PLAYED': {
-      if (e.row === undefined) return 0;
+      if (e.row === undefined) {
+        // 战法 / 事件卡：没有落点，用整块战场闪光表示"技能释放"
+        CR.spell(null, null, true);
+        return 340;
+      }
       var handEl = document.querySelector('.hcard-wrap[data-card-index="' + e.handIndex + '"]');
       var slotEl = document.querySelector('.slot[data-side="' + e.side + '"][data-row="' + e.row + '"][data-col="' + e.col + '"]');
       if (handEl && slotEl) { CR.flyTo(handEl, slotEl, null); return 430; }
       return 0;
+    }
+    case 'UNIT_SUMMONED': {
+      insertUnitNow(e);
+      return 240;
+    }
+    case 'UNIT_TRANSFORMED': {
+      var te = unitEl(e.side, e.row, e.col);
+      if (te && e.unit) {
+        te.innerHTML = '';
+        te.appendChild(CR.mini(e.unit, { row: e.row, hurt: e.unit.hp < e.unit.maxHp, statuses: statusList(e.unit) }));
+        CR.spell(te, 'rgba(255,225,150,.95)');
+      }
+      return 320;
     }
     case 'ATTACK_DECLARED': {
       var from = unitEl(e.side, e.from.row, e.from.col);
@@ -787,57 +865,96 @@ function animate(e) {
     case 'DAMAGE': {
       var el = e.target.kind === 'lord' ? lordEl(e.target.side)
              : unitEl(e.target.side, e.target.row, e.target.col);
+      var f = damageFlavor(e);
       if (el) {
         el.classList.add('cr-hit');
-        setTimeout(function () { el.classList.remove('cr-hit'); }, 300);
-        floatNumber(el, '-' + e.amount, 'cr-dmg');
+        setTimeout(function () { el.classList.remove('cr-hit'); }, 320);
+        CR.spell(el, f.cls === 'is-skill' ? 'rgba(200,150,255,.9)' : null);
+        CR.float(el, '-' + e.amount, f.cls + (e.amount >= 4 ? ' is-big' : ''), f.label);
+        CR.tickHp(el, -e.amount);          // 卡面血量当场掉下来
       }
-      return 230;
+      return 300;
     }
     case 'HEAL': {
       var he = e.target.kind === 'lord' ? lordEl(e.target.side)
              : unitEl(e.target.side, e.target.row, e.target.col);
-      if (he) floatNumber(he, '+' + e.amount, 'cr-heal');
-      return 200;
+      if (he) {
+        CR.float(he, '+' + e.amount, 'is-heal', '治疗');
+        CR.tickHp(he, e.amount);
+      }
+      return 260;
     }
     case 'ARMOR_GAINED': {
       var le = lordEl(e.side);
-      if (le) floatNumber(le, '◈+' + e.amount, 'cr-armor');
-      return 200;
+      if (le) CR.float(le, '◈+' + e.amount, 'is-armor', '护甲');
+      return 240;
     }
     case 'STATUS_APPLIED': {
       var se = unitEl(e.side, e.row, e.col);
-      if (se) floatNumber(se, e.status, 'cr-status');
-      return 180;
+      if (se) CR.float(se, statusName(e.status) + (e.stacks > 1 ? '×' + e.stacks : ''), 'is-status', '状态');
+      return 220;
+    }
+    case 'STAT_MODIFIED': {
+      var me = unitEl(e.side, e.row, e.col);
+      if (me) {
+        var txt = (e.attack ? '攻' + (e.attack > 0 ? '+' : '') + e.attack : '')
+                + (e.health ? ' 血' + (e.health > 0 ? '+' : '') + e.health : '');
+        CR.float(me, txt.trim() || '属性变化', (e.attack > 0 || e.health > 0) ? 'is-buff' : 'is-nerf');
+      }
+      return 220;
+    }
+    case 'UNIT_FLIPPED': {
+      var fe2 = unitEl(e.side, e.row, e.col);
+      if (fe2) CR.float(fe2, e.to === 'back' ? '翻面' : '翻回正面', 'is-nerf');
+      return 240;
+    }
+    case 'UNIT_SURVIVED': {
+      var ve = unitEl(e.side, e.row, e.col);
+      if (ve) CR.float(ve, '免死', 'is-buff', '1 血存活');
+      return 300;
+    }
+    case 'DAMAGE_REDIRECTED': {
+      var ge = unitEl(e.side, e.row, e.col);
+      if (ge) CR.float(ge, '守护', 'is-buff', e.guardName);
+      return 240;
     }
     case 'UNIT_DIED': {
       var de = unitEl(e.side, e.row, e.col);
-      if (de) { CR.die(de, null); return 400; }
+      if (de) {
+        CR.float(de, '✝', 'is-dmg', e.unit ? e.unit.name : '');
+        CR.die(de, null);
+        return 520;
+      }
       return 0;
     }
     case 'TURN_START': {
       banner('第 ' + e.turn + ' 回合', e.side === 'own' ? '我方' : '敌方');
       return 320;
     }
+    case 'LORD_SKILL_USED': {
+      var lse = lordEl(e.side);
+      if (lse) {
+        CR.spell(lse, 'rgba(255,220,140,.95)');
+        CR.float(lse, e.skill, 'is-buff', '主公技');
+      }
+      return 380;
+    }
     case 'FATIGUE': {
-      var fe = lordEl(e.side);
-      if (fe) floatNumber(fe, '粮尽 -' + e.amount, 'cr-dmg');
+      var fte = lordEl(e.side);
+      if (fte) {
+        CR.float(fte, '-' + e.amount, 'is-fatigue', '粮尽');
+        CR.tickHp(fte, -e.amount);
+      }
       return 260;
+    }
+    case 'CLASH': {
+      var ce = lordEl(e.side);
+      if (ce) CR.float(ce, e.mine + ' vs ' + e.theirs, e.won ? 'is-buff' : 'is-nerf', '拼点');
+      return 320;
     }
     default:
       return 0;
   }
-}
-
-function floatNumber(el, text, cls) {
-  var n = document.createElement('div');
-  n.className = cls;
-  n.textContent = text;
-  n.style.left = '50%';
-  n.style.top = '14%';
-  el.style.position = 'relative';
-  el.appendChild(n);
-  setTimeout(function () { n.remove(); }, 760);
 }
 
 function banner(title, sub) {
@@ -851,8 +968,17 @@ function banner(title, sub) {
    AI 对手
    ============================================================ */
 
+/** 双 AI 对打：我方也交给 AI。用于自动跑完整局，
+ *  连续触发普攻/反击/技能/阵亡动画，也方便观察机制与平衡。 */
+var AUTO_BOTH = location.search.indexOf('autoboth') >= 0;
+
+/** 当前该由 AI 接管吗（敌方回合恒为真；我方仅双 AI 模式） */
+function shouldAuto() {
+  return session.state.active === 'enemy' || AUTO_BOTH;
+}
+
 function runAiTurn() {
-  if (busy || session.state.winner || session.state.active !== 'enemy') return;
+  if (busy || session.state.winner || !shouldAuto()) return;
   var action = Core.chooseAction(session.state, session.ctx) || { type: 'END_TURN' };
   var res = Core.applyAction(session.state, session.ctx, action);
   if (!res.ok) {
@@ -871,7 +997,7 @@ function runAiTurn() {
       banner('对局结束', session.state.winner === 'own' ? '我方胜利' : '敌方胜利');
       return;
     }
-    if (session.state.active === 'enemy') setTimeout(runAiTurn, 320);
+    if (shouldAuto()) setTimeout(runAiTurn, 320);
   });
 }
 
@@ -916,6 +1042,12 @@ document.querySelector('.panel .btn').addEventListener('click', onEndTurn);
 $('#btn-reset').addEventListener('click', function () { newGame(); });
 $('#btn-ai').addEventListener('click', function () {
   if (session.state.active === 'enemy') runAiTurn();
+});
+$('#btn-auto').addEventListener('click', function () {
+  AUTO_BOTH = !AUTO_BOTH;
+  this.classList.toggle('is-on', AUTO_BOTH);
+  this.textContent = AUTO_BOTH ? '双 AI 对打 ●' : '双 AI 对打';
+  if (AUTO_BOTH && !busy && !session.state.winner) setTimeout(runAiTurn, 200);
 });
 document.addEventListener('click', function () {
   if (busy || drag) return;

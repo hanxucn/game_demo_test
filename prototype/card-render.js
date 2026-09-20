@@ -149,6 +149,12 @@ window.CardRender = (function () {
     }
 
     el.innerHTML = html;
+    // 战场卡带上血量快照：播动画时据此逐点扣血，
+    // 免得"飘字已经 -3 了、卡面血量还停在原值"（结算完才 renderAll）。
+    if (opts.board && isCharacter(card)) {
+      el.dataset.hp = String(card.hp != null ? card.hp : 0);
+      el.dataset.maxHp = String(card.maxHp != null ? card.maxHp : (card.hp != null ? card.hp : 0));
+    }
     return el;
   }
 
@@ -253,13 +259,61 @@ window.CardRender = (function () {
     }, 170);
   }
 
-  /** 死亡 */
+  /** 死亡：过曝 → 灰化下沉，并炸开一圈尘光 */
   function die(el, done) {
+    var burst = document.createElement('div');
+    burst.className = 'cr-death-burst';
+    el.style.position = 'relative';
+    el.appendChild(burst);
     el.classList.add('cr-dying');
     setTimeout(function () {
+      burst.remove();
       el.classList.remove('cr-dying');
       if (done) done();
-    }, 400);
+    }, 500);
+  }
+
+  /** 飘字：伤害/治疗/护甲/状态。cls 见 card-render.css 的 .cr-float.is-* */
+  function float(el, text, cls, source) {
+    if (!el) return;
+    var n = document.createElement('div');
+    n.className = 'cr-float ' + (cls || 'is-dmg');
+    n.innerHTML = text + (source ? '<span class="cr-src">' + source + '</span>' : '');
+    el.style.position = 'relative';
+    el.appendChild(n);
+    setTimeout(function () { n.remove(); }, 960);
+  }
+
+  /** 技能释放：目标处爆开光环；wholeBoard=true 时整块战场闪一下（群体技） */
+  function spell(el, color, wholeBoard) {
+    if (wholeBoard) {
+      var c = document.getElementById('canvas');
+      if (c) {
+        c.style.setProperty('--spell-c', color || 'rgba(190,140,255,.5)');
+        c.classList.add('cr-board-spell');
+        setTimeout(function () { c.classList.remove('cr-board-spell'); }, 620);
+      }
+      return;
+    }
+    if (!el) return;
+    var f = document.createElement('div');
+    f.className = 'cr-spell';
+    if (color) f.style.setProperty('--spell-c', color);
+    el.style.position = 'relative';
+    el.appendChild(f);
+    setTimeout(function () { f.remove(); }, 660);
+  }
+
+  /** 卡面血量本地扣减：返回扣减后的值（数据仍以 core 为准，此处只为看得见掉血） */
+  function tickHp(el, delta) {
+    var node = el && (el.querySelector('.cr-stat.hp') || el.querySelector('.cr-hero-hp'));
+    if (!node) return null;
+    var cur = parseInt(String(node.textContent).replace(/[^0-9-]/g, ''), 10);
+    if (isNaN(cur)) return null;
+    var next = Math.max(0, cur + delta);
+    node.textContent = node.classList.contains('cr-hero-hp') ? '♥' + next : String(next);
+    if (delta < 0) node.classList.add('is-hurt');
+    return next;
   }
 
   return {
@@ -270,6 +324,7 @@ window.CardRender = (function () {
     },
     lord: lord,
     flyTo: flyTo, attack: attack, die: die,
+    float: float, spell: spell, tickHp: tickHp,
     hash: hash, glyphOf: glyphOf, factionGlyph: factionGlyph,
     isCharacter: isCharacter, typeLabel: typeLabel,
   };

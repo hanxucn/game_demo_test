@@ -58,9 +58,8 @@
       "stackable": false,
       "value": -1,
       "implemented": false,
-      "definition": "对敌人造成的伤害，为自己恢复一定数量生命。",
-      "memo": "打多少回多少",
-      "open": "待实现；且「为自己」是指该单位自身还是己方主将，待设计者确认（Q-06-2）"
+      "definition": "对敌人造成的伤害，为该单位自身恢复等量生命。",
+      "memo": "打多少回多少"
     },
     {
       "id": "sheng_dun",
