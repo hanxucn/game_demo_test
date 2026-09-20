@@ -156,13 +156,7 @@ function endTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng
   dropped.forEach((c) => events.push({ type: 'CARD_PLAYED', side, card: c }));   // 弃牌也用同一事件，客户端可区分
   events.push({ type: 'TURN_END', side, turn: state.turn });
 
-  if (state.turn >= MATCH.TURN_LIMIT) {
-    const own = state.sides.own.lord.hp;
-    const enemy = state.sides.enemy.lord.hp;
-    state.winner = own === enemy ? 'draw' : own > enemy ? 'own' : 'enemy';
-    events.push({ type: 'GAME_OVER', winner: state.winner });
-    return;
-  }
+  // ADR-054：不设回合上限、不判平局——对局只能由主将阵亡结束（粮尽保证必然收束）
 
   state.active = other(side);
   startTurn(state, ctx, events, rng);
@@ -248,7 +242,7 @@ function attack(
   if (!target) return false;
 
   const dmg = effectiveAttack(state, side, from.row, from.col);
-  const hasWuShuang = hasKeyword(attacker, 'wu_shuang');
+  const hasWuShuang = hasKeyword(attacker, 'wu_shuang');   // 「无双」已取消（ADR-054），无卡使用；保留分支待清理
   const hasXianGong = hasKeyword(attacker, 'xian_gong');
   const hasYinXue = hasKeyword(attacker, 'yin_xue');
   const foe = other(side);
@@ -286,7 +280,7 @@ function attack(
 
   attacker.attackedThisTurn += 1;
 
-  // 奇袭：攻击后失去
+  // 奇袭：攻击后失去隐身（ADR-054 的新定义还要求"上场自动隐身"，尚未实现，见 Q-06-*）
   if (hasKeyword(attacker, 'qi_xi')) {
     attacker.kw = attacker.kw.filter((k) => k !== 'qi_xi');
     delete attacker.statuses.qi_xi_status;

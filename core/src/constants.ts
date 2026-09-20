@@ -33,23 +33,50 @@ export const DECK = {
   DRAW_PER_TURN: 1,
 };
 
-export const MATCH = { TURN_LIMIT: 40 };
+/**
+ * 对局终止（ADR-054）：**只有主将阵亡一种结束方式，没有回合上限、没有平局**。
+ *
+ * 依据：每回合至少抽 1 张；牌库抽空后触发「粮尽」递增伤害（1、2、3…），
+ * 必然会把某一方主将扣死——所以对局一定会自然收束，不需要人为设上限。
+ */
+export const MATCH = { TURN_LIMIT: Infinity };
 
 /** 关键词表（implemented=false 表示引擎尚未实现，校验器会告警） */
+/**
+ * 关键词表（ADR-054：定义由设计者逐条给出，2026-09-12）
+ *
+ * `implemented: false` 表示**定义已定、引擎尚未实现**——校验器会对使用者告警，
+ * 避免"卡面写了但实际不生效"的静默白板。
+ */
 export const KEYWORDS: Record<string, { name: string; implemented: boolean; note: string }> = {
-  zhong_yi:  { name: '忠义', implemented: true, note: '阵亡时触发卡牌定义的 on_death 效果' },
-  yi_ji:     { name: '遗计', implemented: true, note: '阵亡时抽 1 张牌' },
-  ji_xing:   { name: '疾行', implemented: true, note: '入场当回合即可攻击' },
-  jia_dun:   { name: '架盾', implemented: true, note: '嘲讽：敌方必须先攻击它（ADR-051）' },
-  wu_sheng_status: { name: '武圣', implemented: true, note: '免疫一次伤害' },
-  shen_she:  { name: '神射', implemented: true, note: '可攻击任意位置的人物卡（单排后已无实义）' },
-  lian_ji:   { name: '连击', implemented: true, note: '每回合可攻击 2 次' },
-  yin_xue:   { name: '饮血', implemented: true, note: '造成伤害时为己方主将回复等量生命' },
-  qi_xi_status: { name: '奇袭', implemented: true, note: '不能被指定为攻击目标；攻击后失去' },
-  xian_gong: { name: '先攻', implemented: true, note: '先结算伤害，目标阵亡则不受反击' },
-  jie_zhen:  { name: '结阵', implemented: true, note: '相邻有友方步兵时本次普攻 +1' },
-  wu_shuang: { name: '无双', implemented: true, note: '攻击时不受到反击伤害' },
+  jia_dun:   { name: '架盾', implemented: true,
+               note: '嘲讽：敌方普通攻击必须先打它（ADR-051）' },
+  xian_gong: { name: '先攻', implemented: true,
+               note: '入场当回合即可攻击（= 疾行；设计者裁定两者是同一个东西，只保留「先攻」一名）' },
+  lian_ji:   { name: '连击', implemented: true,
+               note: '当前回合普通攻击可执行 2 次' },
+  yi_ji:     { name: '遗计', implemented: true,
+               note: '类亡语：阵亡时触发该卡定义的 on_death 逻辑' },
+  yin_xue:   { name: '饮血', implemented: false,
+               note: '对敌人造成的伤害，为自己恢复一定数量生命（待实现）' },
+  wu_sheng:  { name: '武圣', implemented: true,
+               note: '免疫一次伤害' },
+  shen_she:  { name: '神射', implemented: false,
+               note: '对随机敌人造成远程伤害，且不受对方攻击影响（待实现）' },
+  qi_xi:     { name: '奇袭', implemented: false,
+               note: '上场先隐身（不能被选定）；下回合可选择行动攻击，执行过行动后隐身消失（待实现）' },
+  zhong_yi:  { name: '忠义', implemented: false,
+               note: '免疫混乱、离间等状态（待实现。注：原实现误做成"阵亡触发亡语"，已纠正）' },
+  jie_zhen:  { name: '结阵', implemented: false,
+               note: '⚠️ 设计者尚未设计具体机制，先保留名字（当前引擎里的"相邻步兵+1攻"是 AI 旧推定，不可用）' },
 };
+
+/** 已取消的关键词（保留列表以免数据误用） */
+export const RETIRED_KEYWORDS: Record<string, string> = {
+  ji_xing: '疾行 —— 与「先攻」是同一个东西（设计者裁定），已合并，请改用 xian_gong',
+  wu_shuang: '无双 —— 设计者：暂时没有这个状态',
+};
+
 
 /**
  * 归属标签注册表（ADR-029）
@@ -99,8 +126,9 @@ export interface StatusDef {
 export const STATUSES: Record<string, StatusDef> = {
   zhen_fen:   { name: '振奋', kind: 'buff',   numeric: true,  duration: 'permanent', note: '攻击 +N' },
   ji_jiu:     { name: '急救', kind: 'buff',   numeric: true,  duration: 'permanent', note: '回合开始恢复 N 点生命' },
-  jia_dun_status: { name: '架盾', kind: 'buff',   numeric: false, duration: 'conditional', note: '仅前军生效' },
-  xian_gong_status: { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent', note: '先结算伤害' },
+  jia_dun_status: { name: '架盾', kind: 'buff',   numeric: false, duration: 'conditional', note: '嘲讽（ADR-051）' },
+  xian_gong_status: { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent',
+                note: '⚠️ 待设计者确认：引擎里同时存在两种理解——①入场当回合即可攻击 ②击杀则不遭反击' },
   qi_xi_status: { name: '奇袭', kind: 'buff',   numeric: false, duration: 'until_consumed', note: '不能被指定为目标' },
   wu_sheng_status:   { name: '武圣', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
                 note: '免疫一次伤害' },

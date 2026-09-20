@@ -21,10 +21,19 @@ const DATA = join(ROOT, 'data');
 
 /** 关键词成本（负值 = 占用预算） */
 const KEYWORD_VALUE: Record<string, number> = {
-  jie_zhen: -0.5, shen_she: -0.5, jia_dun: -1, wu_sheng: -1, xian_gong: -1,
-  qi_xi: -1, yin_xue: -1, ji_xing: -1.5, lian_ji: -1.5, yi_ji: -2, wu_shuang: -2,
-  zhong_yi: 0,   // 视具体亡语效果而定
+  // ADR-054：关键词定义由设计者逐条给出。数值为"占用预算"（负值）。
+  jia_dun: -1,     // 嘲讽
+  xian_gong: -1,   // 入场当回合即可攻击（= 已合并的「疾行」）
+  lian_ji: -1.5,   // 每回合攻击 2 次
+  yi_ji: -2,       // 亡语
+  yin_xue: -1,     // 饮血（待实现）
+  wu_sheng: -1,    // 免疫一次伤害
+  shen_she: -1,    // 神射（待实现）
+  qi_xi: -1,       // 奇袭（待实现）
+  zhong_yi: -1,    // 忠义：免疫混乱/离间（待实现）
+  jie_zhen: 0,     // ⚠️ 设计者尚未设计，暂不计价
 };
+
 
 /**
  * 效果等效价值

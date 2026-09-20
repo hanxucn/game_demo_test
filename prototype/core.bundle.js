@@ -35,6 +35,7 @@ var Core = (() => {
     NON_DECK_TYPES: () => NON_DECK_TYPES,
     PLAYABLE_FACTIONS: () => PLAYABLE_FACTIONS,
     PUBLIC_POOL: () => PUBLIC_POOL,
+    RETIRED_KEYWORDS: () => RETIRED_KEYWORDS,
     STATUSES: () => STATUSES,
     SUGGESTED_CURVE: () => SUGGESTED_CURVE,
     TAGS: () => TAGS,
@@ -173,20 +174,62 @@ var Core = (() => {
     HAND_LIMIT: 10,
     DRAW_PER_TURN: 1
   };
-  var MATCH = { TURN_LIMIT: 40 };
+  var MATCH = { TURN_LIMIT: Infinity };
   var KEYWORDS = {
-    zhong_yi: { name: "\u5FE0\u4E49", implemented: true, note: "\u9635\u4EA1\u65F6\u89E6\u53D1\u5361\u724C\u5B9A\u4E49\u7684 on_death \u6548\u679C" },
-    yi_ji: { name: "\u9057\u8BA1", implemented: true, note: "\u9635\u4EA1\u65F6\u62BD 1 \u5F20\u724C" },
-    ji_xing: { name: "\u75BE\u884C", implemented: true, note: "\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u653B\u51FB" },
-    jia_dun: { name: "\u67B6\u76FE", implemented: true, note: "\u5632\u8BBD\uFF1A\u654C\u65B9\u5FC5\u987B\u5148\u653B\u51FB\u5B83\uFF08ADR-051\uFF09" },
-    wu_sheng_status: { name: "\u6B66\u5723", implemented: true, note: "\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3" },
-    shen_she: { name: "\u795E\u5C04", implemented: true, note: "\u53EF\u653B\u51FB\u4EFB\u610F\u4F4D\u7F6E\u7684\u4EBA\u7269\u5361\uFF08\u5355\u6392\u540E\u5DF2\u65E0\u5B9E\u4E49\uFF09" },
-    lian_ji: { name: "\u8FDE\u51FB", implemented: true, note: "\u6BCF\u56DE\u5408\u53EF\u653B\u51FB 2 \u6B21" },
-    yin_xue: { name: "\u996E\u8840", implemented: true, note: "\u9020\u6210\u4F24\u5BB3\u65F6\u4E3A\u5DF1\u65B9\u4E3B\u5C06\u56DE\u590D\u7B49\u91CF\u751F\u547D" },
-    qi_xi_status: { name: "\u5947\u88AD", implemented: true, note: "\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u653B\u51FB\u76EE\u6807\uFF1B\u653B\u51FB\u540E\u5931\u53BB" },
-    xian_gong: { name: "\u5148\u653B", implemented: true, note: "\u5148\u7ED3\u7B97\u4F24\u5BB3\uFF0C\u76EE\u6807\u9635\u4EA1\u5219\u4E0D\u53D7\u53CD\u51FB" },
-    jie_zhen: { name: "\u7ED3\u9635", implemented: true, note: "\u76F8\u90BB\u6709\u53CB\u65B9\u6B65\u5175\u65F6\u672C\u6B21\u666E\u653B +1" },
-    wu_shuang: { name: "\u65E0\u53CC", implemented: true, note: "\u653B\u51FB\u65F6\u4E0D\u53D7\u5230\u53CD\u51FB\u4F24\u5BB3" }
+    jia_dun: {
+      name: "\u67B6\u76FE",
+      implemented: true,
+      note: "\u5632\u8BBD\uFF1A\u654C\u65B9\u666E\u901A\u653B\u51FB\u5FC5\u987B\u5148\u6253\u5B83\uFF08ADR-051\uFF09"
+    },
+    xian_gong: {
+      name: "\u5148\u653B",
+      implemented: true,
+      note: "\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u653B\u51FB\uFF08= \u75BE\u884C\uFF1B\u8BBE\u8BA1\u8005\u88C1\u5B9A\u4E24\u8005\u662F\u540C\u4E00\u4E2A\u4E1C\u897F\uFF0C\u53EA\u4FDD\u7559\u300C\u5148\u653B\u300D\u4E00\u540D\uFF09"
+    },
+    lian_ji: {
+      name: "\u8FDE\u51FB",
+      implemented: true,
+      note: "\u5F53\u524D\u56DE\u5408\u666E\u901A\u653B\u51FB\u53EF\u6267\u884C 2 \u6B21"
+    },
+    yi_ji: {
+      name: "\u9057\u8BA1",
+      implemented: true,
+      note: "\u7C7B\u4EA1\u8BED\uFF1A\u9635\u4EA1\u65F6\u89E6\u53D1\u8BE5\u5361\u5B9A\u4E49\u7684 on_death \u903B\u8F91"
+    },
+    yin_xue: {
+      name: "\u996E\u8840",
+      implemented: false,
+      note: "\u5BF9\u654C\u4EBA\u9020\u6210\u7684\u4F24\u5BB3\uFF0C\u4E3A\u81EA\u5DF1\u6062\u590D\u4E00\u5B9A\u6570\u91CF\u751F\u547D\uFF08\u5F85\u5B9E\u73B0\uFF09"
+    },
+    wu_sheng: {
+      name: "\u6B66\u5723",
+      implemented: true,
+      note: "\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"
+    },
+    shen_she: {
+      name: "\u795E\u5C04",
+      implemented: false,
+      note: "\u5BF9\u968F\u673A\u654C\u4EBA\u9020\u6210\u8FDC\u7A0B\u4F24\u5BB3\uFF0C\u4E14\u4E0D\u53D7\u5BF9\u65B9\u653B\u51FB\u5F71\u54CD\uFF08\u5F85\u5B9E\u73B0\uFF09"
+    },
+    qi_xi: {
+      name: "\u5947\u88AD",
+      implemented: false,
+      note: "\u4E0A\u573A\u5148\u9690\u8EAB\uFF08\u4E0D\u80FD\u88AB\u9009\u5B9A\uFF09\uFF1B\u4E0B\u56DE\u5408\u53EF\u9009\u62E9\u884C\u52A8\u653B\u51FB\uFF0C\u6267\u884C\u8FC7\u884C\u52A8\u540E\u9690\u8EAB\u6D88\u5931\uFF08\u5F85\u5B9E\u73B0\uFF09"
+    },
+    zhong_yi: {
+      name: "\u5FE0\u4E49",
+      implemented: false,
+      note: '\u514D\u75AB\u6DF7\u4E71\u3001\u79BB\u95F4\u7B49\u72B6\u6001\uFF08\u5F85\u5B9E\u73B0\u3002\u6CE8\uFF1A\u539F\u5B9E\u73B0\u8BEF\u505A\u6210"\u9635\u4EA1\u89E6\u53D1\u4EA1\u8BED"\uFF0C\u5DF2\u7EA0\u6B63\uFF09'
+    },
+    jie_zhen: {
+      name: "\u7ED3\u9635",
+      implemented: false,
+      note: '\u26A0\uFE0F \u8BBE\u8BA1\u8005\u5C1A\u672A\u8BBE\u8BA1\u5177\u4F53\u673A\u5236\uFF0C\u5148\u4FDD\u7559\u540D\u5B57\uFF08\u5F53\u524D\u5F15\u64CE\u91CC\u7684"\u76F8\u90BB\u6B65\u5175+1\u653B"\u662F AI \u65E7\u63A8\u5B9A\uFF0C\u4E0D\u53EF\u7528\uFF09'
+    }
+  };
+  var RETIRED_KEYWORDS = {
+    ji_xing: "\u75BE\u884C \u2014\u2014 \u4E0E\u300C\u5148\u653B\u300D\u662F\u540C\u4E00\u4E2A\u4E1C\u897F\uFF08\u8BBE\u8BA1\u8005\u88C1\u5B9A\uFF09\uFF0C\u5DF2\u5408\u5E76\uFF0C\u8BF7\u6539\u7528 xian_gong",
+    wu_shuang: "\u65E0\u53CC \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u6682\u65F6\u6CA1\u6709\u8FD9\u4E2A\u72B6\u6001"
   };
   var TAGS = {
     xi_liang: { name: "\u897F\u51C9", note: "\u897F\u51C9\u51FA\u8EAB\uFF1A\u9A6C\u817E\u3001\u9A6C\u8D85\u3001\u9A6C\u5CB1" },
@@ -200,8 +243,14 @@ var Core = (() => {
   var STATUSES = {
     zhen_fen: { name: "\u632F\u594B", kind: "buff", numeric: true, duration: "permanent", note: "\u653B\u51FB +N" },
     ji_jiu: { name: "\u6025\u6551", kind: "buff", numeric: true, duration: "permanent", note: "\u56DE\u5408\u5F00\u59CB\u6062\u590D N \u70B9\u751F\u547D" },
-    jia_dun_status: { name: "\u67B6\u76FE", kind: "buff", numeric: false, duration: "conditional", note: "\u4EC5\u524D\u519B\u751F\u6548" },
-    xian_gong_status: { name: "\u5148\u653B", kind: "buff", numeric: false, duration: "permanent", note: "\u5148\u7ED3\u7B97\u4F24\u5BB3" },
+    jia_dun_status: { name: "\u67B6\u76FE", kind: "buff", numeric: false, duration: "conditional", note: "\u5632\u8BBD\uFF08ADR-051\uFF09" },
+    xian_gong_status: {
+      name: "\u5148\u653B",
+      kind: "buff",
+      numeric: false,
+      duration: "permanent",
+      note: "\u26A0\uFE0F \u5F85\u8BBE\u8BA1\u8005\u786E\u8BA4\uFF1A\u5F15\u64CE\u91CC\u540C\u65F6\u5B58\u5728\u4E24\u79CD\u7406\u89E3\u2014\u2014\u2460\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u653B\u51FB \u2461\u51FB\u6740\u5219\u4E0D\u906D\u53CD\u51FB"
+    },
     qi_xi_status: { name: "\u5947\u88AD", kind: "buff", numeric: false, duration: "until_consumed", note: "\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807" },
     wu_sheng_status: {
       name: "\u6B66\u5723",
@@ -568,8 +617,8 @@ var Core = (() => {
     if (u.attackedThisTurn >= maxAttacks) {
       return { ok: false, reason: `\u672C\u56DE\u5408\u5DF2\u653B\u51FB ${u.attackedThisTurn} \u6B21` };
     }
-    if (u.enteredTurn === state.turn && !hasKeyword(u, "ji_xing")) {
-      return { ok: false, reason: "\u672C\u56DE\u5408\u5165\u573A\uFF0C\u65E0\u6CD5\u653B\u51FB\uFF08\u75BE\u884C\u9664\u5916\uFF09" };
+    if (u.enteredTurn === state.turn && !hasKeyword(u, "xian_gong")) {
+      return { ok: false, reason: "\u672C\u56DE\u5408\u5165\u573A\uFF0C\u65E0\u6CD5\u653B\u51FB\uFF08\u300C\u5148\u653B\u300D\u9664\u5916\uFF09" };
     }
     return { ok: true };
   }
@@ -859,7 +908,7 @@ var Core = (() => {
     const ownDead = state.sides.own.lord.hp <= 0;
     const enemyDead = state.sides.enemy.lord.hp <= 0;
     if (!ownDead && !enemyDead) return;
-    state.winner = ownDead && enemyDead ? "draw" : ownDead ? "enemy" : "own";
+    state.winner = ownDead ? "enemy" : "own";
     events.push({ type: "GAME_OVER", winner: state.winner });
   }
   function resolveTurnStartStatuses(state, cards, side, events) {
@@ -1700,13 +1749,6 @@ var Core = (() => {
     const dropped = discardOverflow(state, side);
     dropped.forEach((c) => events.push({ type: "CARD_PLAYED", side, card: c }));
     events.push({ type: "TURN_END", side, turn: state.turn });
-    if (state.turn >= MATCH.TURN_LIMIT) {
-      const own = state.sides.own.lord.hp;
-      const enemy = state.sides.enemy.lord.hp;
-      state.winner = own === enemy ? "draw" : own > enemy ? "own" : "enemy";
-      events.push({ type: "GAME_OVER", winner: state.winner });
-      return;
-    }
     state.active = other(side);
     startTurn(state, ctx, events, rng);
   }

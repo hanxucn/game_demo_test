@@ -496,3 +496,60 @@ test('卡池：传国玉玺已移除（ADR-053）', () => {
   assert.ok(!CARDS.some((c) => c.id === 'neutral_chuanguo_yuxi'), 'cards.yaml 不应再有传国玉玺');
   assert.ok(!data.cards.get('neutral_chuanguo_yuxi'), '运行时卡表也不应有');
 });
+
+/* ============================================================
+   ⑨ ADR-054：对局终止与关键词定义
+   ============================================================ */
+
+test('ADR-054：没有回合上限，也没有平局', async () => {
+  const { MATCH } = await import('../src/constants.ts');
+  assert.equal(MATCH.TURN_LIMIT, Infinity, '回合上限应为 Infinity（不设上限）');
+  // 类型层面已无 draw：长局只能由主将阵亡结束
+  const { chooseAction } = await import('../src/ai.ts');
+  const { state } = setupMatch({
+    seed: 5, cards: data.cards, lords: data.lords,
+    decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
+  });
+  const ctx = { cards: data.cards, lords: data.lords };
+  let s = startMatch(state, ctx).state;
+  let n = 0;
+  while (!s.winner && n < 4000) {
+    const a: Action = chooseAction(s, ctx) ?? { type: 'END_TURN' };
+    const r = applyAction(s, ctx, a);
+    assert.equal(r.ok, true);
+    s = r.state; n += 1;
+  }
+  assert.ok(s.winner, '对局必须自然收束（粮尽保证）');
+  assert.notEqual(s.winner, 'draw', '不应出现平局');
+  assert.ok(['own', 'enemy'].includes(s.winner!));
+});
+
+test('ADR-054：关键词表——疾行已合并入先攻，无双已取消', async () => {
+  const { KEYWORDS, RETIRED_KEYWORDS } = await import('../src/constants.ts');
+  assert.ok(KEYWORDS.xian_gong, '先攻应存在');
+  assert.ok(!KEYWORDS.ji_xing, '疾行不应再是独立关键词（已合并）');
+  assert.ok(!KEYWORDS.wu_shuang, '无双不应再是关键词（已取消）');
+  assert.ok(RETIRED_KEYWORDS.ji_xing.includes('先攻'), '疾行应指向先攻');
+  // 定义已给出但引擎未实现的关键词，必须显式标 false，避免"卡面写了却不生效"
+  for (const k of ['yin_xue', 'shen_she', 'qi_xi', 'zhong_yi', 'jie_zhen']) {
+    assert.equal(KEYWORDS[k]!.implemented, false, `${k} 应标为未实现`);
+  }
+  // 忠义的定义已从"亡语"纠正为"免疫控制"
+  assert.ok(KEYWORDS.zhong_yi!.note.includes('免疫'), '忠义应为免疫控制类');
+});
+
+test('ADR-054：先攻＝入场当回合即可攻击（原疾行的行为）', async () => {
+  const { createMatch, setUnit, makeUnit } = await import('../src/state.ts');
+  const { canAttack } = await import('../src/rules.ts');
+  const d = qun();
+  const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+  const plain = makeUnit(d.cards.get('neutral_infantry')!, s.turn, 800);   // 无先攻
+  const fast = makeUnit(d.cards.get('neutral_infantry')!, s.turn, 801);
+  fast.kw.push('xian_gong');
+  setUnit(s, 'own', 'front', 0, plain);
+  setUnit(s, 'own', 'front', 1, fast);
+  assert.equal(canAttack(s, 'own', 'front', 0).ok, false, '当回合入场的普通单位不能攻击');
+  assert.equal(canAttack(s, 'own', 'front', 1).ok, true, '带「先攻」的当回合即可攻击');
+});

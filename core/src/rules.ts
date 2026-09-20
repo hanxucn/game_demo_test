@@ -71,8 +71,9 @@ export function canAttack(state: MatchState, side: Side, row: Row, col: number):
   if (u.attackedThisTurn >= maxAttacks) {
     return { ok: false, reason: `本回合已攻击 ${u.attackedThisTurn} 次` };
   }
-  if (u.enteredTurn === state.turn && !hasKeyword(u, 'ji_xing')) {
-    return { ok: false, reason: '本回合入场，无法攻击（疾行除外）' };
+  // 「先攻」= 入场当回合即可攻击（ADR-054：设计者裁定「疾行 = 先攻」，已合并为同名）
+  if (u.enteredTurn === state.turn && !hasKeyword(u, 'xian_gong')) {
+    return { ok: false, reason: '本回合入场，无法攻击（「先攻」除外）' };
   }
   return { ok: true };
 }

@@ -33,7 +33,7 @@ export const TEST_CARDS: CardDef[] = [
   },
   {
     id: 'test_assassin', name: '测试刺客', faction: 'qun', type: 'general',
-    cost: 4, attack: 4, health: 3, keywords: ['wu_shuang'],
+    cost: 4, attack: 4, health: 3, keywords: [],   // 「无双」已取消（ADR-054）
     memo: '带无双的测试武将',
   },
   {
@@ -53,7 +53,7 @@ export const TEST_CARDS: CardDef[] = [
   },
   {
     id: 'test_deathrattle', name: '测试忠义', faction: 'shu', type: 'general',
-    cost: 3, attack: 2, health: 2, keywords: ['zhong_yi'],
+    cost: 3, attack: 2, health: 2, keywords: ['yi_ji'],   // 亡语类关键词是「遗计」，「忠义」改为免疫控制
     memo: '阵亡时对全体敌人造成 1 点伤害',
     skills: [{ id: 'lastword', name: '遗志', kind: 'trigger', trigger: 'on_death', effects: [{ action: 'damage', value: 1 }] }],
   },

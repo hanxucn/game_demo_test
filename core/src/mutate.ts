@@ -399,7 +399,8 @@ export function checkWinner(state: MatchState, events: GameEvent[]): void {
   const ownDead = state.sides.own.lord.hp <= 0;
   const enemyDead = state.sides.enemy.lord.hp <= 0;
   if (!ownDead && !enemyDead) return;
-  state.winner = ownDead && enemyDead ? 'draw' : ownDead ? 'enemy' : 'own';
+  // ADR-054：无平局。双方同时阵亡的极端情况按「同时判负」处理为敌方胜（不会出现在正常对局）
+  state.winner = ownDead ? 'enemy' : 'own';
   events.push({ type: 'GAME_OVER', winner: state.winner });
 }
 
