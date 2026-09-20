@@ -100,9 +100,23 @@ window.CardRender = (function () {
     return '<div class="cr-status">' + html + '</div>';
   }
 
+  /* ---------- 卡背（翻面，ADR-059） ---------- */
+  function backFace(card, opts) {
+    var el = document.createElement('div');
+    el.className = 'cr-card cr-board cr-flipped';
+    el.dataset.cardId = card.id || '';
+    el.innerHTML = '<div class="cr-back">' +
+      '<div class="cr-back-glyph">酒</div>' +
+      '<div class="cr-back-tag">翻面</div>' +
+      '</div>';
+    return el;
+  }
+
   /* ---------- 通用卡面 ---------- */
   function build(card, opts) {
     opts = opts || {};
+    // 翻面单位表现为卡背：不显示攻血与技能，只保留"下回合翻回"的提示
+    if (opts.board && opts.flipped) return backFace(card, opts);
     var el = document.createElement('div');
     var cls = 'cr-card ' + (opts.board ? 'cr-board' : 'cr-hand') + ' ' + factionClass(card);
     if (opts.selected) cls += ' is-selected';

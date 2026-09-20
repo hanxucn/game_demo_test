@@ -185,9 +185,11 @@ function renderBoard(st) {
           wrap.dataset.uid = u.uid;
           // 不能攻击的单位置灰（已攻击过 / 本回合入场 / 被震慑）
           if (side === 'own' && !Core.canAttack(st, 'own', row, col).ok) wrap.classList.add('is-tired');
-          var skill = side === 'own' ? unitSkillState(st, 'own', row, col) : null;
+          var flipped = !!(u.statuses && u.statuses.fan_mian);
+          var skill = (side === 'own' && !flipped) ? unitSkillState(st, 'own', row, col) : null;
           wrap.appendChild(CR.mini(u, {
             row: row, hurt: u.hp < u.maxHp,
+            flipped: !!(u.statuses && u.statuses.fan_mian),
             statuses: statusList(u),
             skill: skill ? skill.name : null,
             skillUsable: skill ? skill.usable : false,
@@ -714,6 +716,7 @@ function describeEvent(e) {
     case 'FORCED_ATTACK': return { cls: 'eff', text: '　' + who + ' 第' + (e.col + 1) + '格 被强制攻击' };
     case 'EXTRA_ATTACK': return { cls: 'eff', text: '　' + who + ' 第' + (e.col + 1) + '格 获得额外攻击' };
     case 'UNIT_SURVIVED': return { cls: 'eff', text: '　✦ ' + who + ' <b>' + e.unit.name + '</b> 免死存活（1 血）' };
+    case 'UNIT_FLIPPED': return { cls: 'eff', text: '　' + who + ' <b>' + e.unit.name + '</b> ' + (e.to === 'back' ? '翻面（下回合翻回）' : '翻回正面') };
     case 'SKILL_COPIED': return { cls: 'eff', text: '　' + who + ' 复制了技能 <b>' + e.skill + '</b>' };
     case 'STATUS_BLOCKED': return { cls: '', text: '　' + who + ' 的状态 ' + statusName(e.status) + ' 被挡下（' + e.reason + '）' };
     case 'LORD_STATUS_EXPIRED': return { cls: '', text: '　' + who + ' 主将状态 ' + statusName(e.status) + ' 到期' };

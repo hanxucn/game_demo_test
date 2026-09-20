@@ -356,7 +356,7 @@ var Core = (() => {
       numeric: false,
       duration: "conditional",
       caps: ["block_action", "untargetable"],
-      note: "\u7FFB\u9762\u671F\u95F4\u65E0\u6CD5\u884C\u52A8\u4E5F\u4E0D\u80FD\u88AB\u9009\u4E2D\uFF0C\u9700\u7279\u5B9A\u6761\u4EF6\u7FFB\u56DE\u6B63\u9762\uFF0C\u4E0B\u56DE\u5408\u624D\u80FD\u884C\u52A8"
+      note: "\u88AB\u7FFB\u9762\uFF1A\u5F53\u56DE\u5408\u4E0D\u80FD\u884C\u52A8\u3001\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807\uFF1B\u81EA\u5DF1\u7684\u4E0B\u4E2A\u56DE\u5408\u5F00\u59CB\u65F6\u7FFB\u56DE\u6B63\u9762\uFF08ADR-059\uFF09"
     },
     zhong_du: { name: "\u4E2D\u6BD2", kind: "debuff", numeric: true, duration: "permanent", note: "\u56DE\u5408\u7ED3\u675F\u5931\u53BB N \u751F\u547D" },
     xu_ruo: { name: "\u865A\u5F31", kind: "debuff", numeric: true, duration: "turns", note: "\u653B\u51FB \u2212N" },
@@ -1555,6 +1555,8 @@ var Core = (() => {
           for (const t of targets) {
             if (t.kind !== "unit") continue;
             applyStatus(state, t, "fan_mian", 1, events);
+            const u = getUnit(state, t.side, t.row, t.col);
+            if (u) events.push({ type: "UNIT_FLIPPED", side: t.side, row: t.row, col: t.col, to: "back", unit: u });
           }
           break;
         }
@@ -1744,6 +1746,12 @@ var Core = (() => {
     if (state.secondCompensation === "extra_draw" && state.turn === 2) {
       drawCard(state, ctx.cards, side, events);
     }
+    for (const ref of allUnits(state, side)) {
+      if (ref.unit.statuses.fan_mian) {
+        delete ref.unit.statuses.fan_mian;
+        events.push({ type: "UNIT_FLIPPED", side, row: ref.row, col: ref.col, to: "front", unit: ref.unit });
+      }
+    }
     resolveTurnStartStatuses(state, ctx.cards, side, events);
     recomputeAuras(state, ctx.cards, rng, events);
     runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);
@@ -1826,7 +1834,7 @@ var Core = (() => {
       const tRow = target.row;
       const tCol = target.col;
       const targetUnit = getUnit(state, foe, tRow, tCol);
-      const retaliate = targetUnit?.atk ?? 0;
+      const retaliate = effectiveAttack(state, foe, tRow, tCol);
       const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name);
       const targetDied = !getUnit(state, foe, tRow, tCol);
       const hit = getUnit(state, foe, tRow, tCol);

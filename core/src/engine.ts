@@ -139,6 +139,14 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   if (state.secondCompensation === 'extra_draw' && state.turn === 2) {
     drawCard(state, ctx.cards, side, events);
   }
+  // ADR-059：翻面的单位在**自己的回合开始时翻回正面并能行动**
+  // （翻面 = 当回合不能行动 + 不能被指定为目标；下个回合开始即恢复）
+  for (const ref of allUnits(state, side)) {
+    if (ref.unit.statuses.fan_mian) {
+      delete ref.unit.statuses.fan_mian;
+      events.push({ type: 'UNIT_FLIPPED', side, row: ref.row, col: ref.col, to: 'front', unit: ref.unit });
+    }
+  }
   resolveTurnStartStatuses(state, ctx.cards, side, events);
   recomputeAuras(state, ctx.cards, rng, events);                              // 第 3 步 ②光环重算
   runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);   // 第 3 步 ③回合开始技
@@ -258,7 +266,8 @@ function attack(
     const tRow = target.row as 'front' | 'back';
     const tCol = target.col as number;
     const targetUnit = getUnit(state, foe, tRow, tCol);
-    const retaliate = targetUnit?.atk ?? 0;
+    // 反击力 = 目标的**有效**攻击力（含振奋/虚弱等，与攻击方算法对称，ADR-059）
+    const retaliate = effectiveAttack(state, foe, tRow, tCol);
 
     const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name);
     const targetDied = !getUnit(state, foe, tRow, tCol);

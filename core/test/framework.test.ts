@@ -602,3 +602,87 @@ test('袁绍：6 费 3/6，每回合召唤弓兵 + 战吼 1 张进手牌/2 张�
   assert.equal(own.hand.filter((h) => h.card.id === 'tactic_wanjianqifa').length, 1, '战吼：1 张进手牌');
   assert.equal(own.deck.filter((x) => x === 'tactic_wanjianqifa').length, 2, '战吼：2 张进牌组');
 });
+
+/* ============================================================
+   ⑩ ADR-059：翻面、反击、阵亡
+   ============================================================ */
+
+test('翻面：当回合不能行动、不能被指定；自己下个回合开始时翻回正面', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { canAttack, legalTargets } = await import('../src/rules.ts');
+  const d = qun();
+  const base = createMatch({ seed: 9, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  let s = startMatch(base, ctx).state;
+  const u = makeUnit(d.cards.get('shu_guanyu')!, 0, 820);
+  setUnit(s, 'enemy', 'front', 0, u);
+  setUnit(s, 'own', 'front', 0, makeUnit(d.cards.get('neutral_infantry')!, 0, 821));
+
+  // 施加翻面
+  const { applyStatus } = await import('../src/mutate.ts');
+  applyStatus(s, { kind: 'unit', side: 'enemy', row: 'front', col: 0 }, 'fan_mian', 1, []);
+  assert.ok(gu(s, 'enemy', 'front', 0)!.statuses.fan_mian, '应带有翻面状态');
+  // 不能被指定为目标
+  const tg = legalTargets(s, 'own', 'front', 0);
+  assert.ok(!tg.targets.some((t) => t.kind === 'unit' && t.col === 0), '翻面单位不可被指定');
+  // 不能行动
+  assert.equal(canAttack(s, 'enemy', 'front', 0).ok, false, '翻面单位不能攻击');
+
+  // 轮到敌方（翻面单位拥有者）回合开始 → 翻回正面
+  const r = applyAction(s, ctx, { type: 'END_TURN' });
+  assert.equal(r.ok, true);
+  assert.ok(r.events.some((e) => e.type === 'UNIT_FLIPPED' && e.to === 'front'), '应产生翻回正面事件');
+  assert.ok(!gu(r.state, 'enemy', 'front', 0)!.statuses.fan_mian, '回合开始后翻面应解除');
+  assert.equal(canAttack(r.state, 'enemy', 'front', 0).ok, true, '翻回正面后可以行动');
+});
+
+test('普通攻击：目标掉攻击力等量的血，攻击者也受目标攻击力的反击', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+  const a = makeUnit(d.cards.get('qun_yuanshao')!, 0, 830); a.hp = 20; a.maxHp = 20; a.atk = 3;
+  const t = makeUnit(d.cards.get('shu_guanyu')!, 0, 831); t.hp = 10; t.maxHp = 10; t.atk = 2;
+  setUnit(s, 'own', 'front', 0, a); setUnit(s, 'enemy', 'front', 0, t);
+
+  const r = applyAction(s, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  const dmg = r.events.filter((e) => e.type === 'DAMAGE').map((e) => e.amount);
+  assert.deepEqual(dmg, [3, 2], '先目标掉 3，再攻击者挨 2');
+  assert.equal(gu(r.state, 'enemy', 'front', 0)!.hp, 7, '目标 10 → 7');
+  assert.equal(gu(r.state, 'own', 'front', 0)!.hp, 18, '攻击者 20 → 18（受反击）');
+});
+
+test('阵亡：血量归 0 → UNIT_DIED 且移出战场；目标已死则不反击', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+  const a = makeUnit(d.cards.get('qun_yuanshao')!, 0, 840); a.hp = 20; a.maxHp = 20; a.atk = 3;
+  const t = makeUnit(d.cards.get('neutral_infantry')!, 0, 841); t.hp = 2; t.maxHp = 2; t.atk = 5;
+  setUnit(s, 'own', 'front', 0, a); setUnit(s, 'enemy', 'front', 0, t);
+
+  const r = applyAction(s, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.ok(r.events.some((e) => e.type === 'UNIT_DIED'), '应产生阵亡事件');
+  assert.equal(gu(r.state, 'enemy', 'front', 0), null, '阵亡单位应移出战场');
+  assert.equal(gu(r.state, 'own', 'front', 0)!.hp, 20, '目标已阵亡 → 不反击');
+});
+
+test('技能伤害同样扣血并可致阵亡', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { dealDamage, unitRef } = await import('../src/mutate.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+  const victim = makeUnit(d.cards.get('shu_guanyu')!, 0, 850);
+  victim.hp = 5; victim.maxHp = 5;              // 显式设定血量，不依赖卡面数值
+  setUnit(s, 'enemy', 'front', 0, victim);
+  const evs: import('../src/types.ts').GameEvent[] = [];
+  dealDamage(s, d.cards, unitRef('enemy', 'front', 0), 4, evs, '技能');
+  assert.equal(gu(s, 'enemy', 'front', 0)!.hp, 1, '4 点技能伤害：5 → 1');
+  dealDamage(s, d.cards, unitRef('enemy', 'front', 0), 99, evs, '技能');
+  assert.equal(gu(s, 'enemy', 'front', 0), null, '超量伤害应致阵亡并移出');
+});

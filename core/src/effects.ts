@@ -775,10 +775,12 @@ export function runEffects(
         break;
       }
       case 'flip': {
-        // 翻面（ADR-034）：施加 fan_mian，直到被条件翻回
+        // 翻面（ADR-059）：当回合不能行动、不能被指定为目标；下个回合开始翻回正面
         for (const t of targets) {
           if (t.kind !== 'unit') continue;
           applyStatus(state, t, 'fan_mian', 1, events);
+          const u = getUnit(state, t.side, t.row, t.col);
+          if (u) events.push({ type: 'UNIT_FLIPPED', side: t.side, row: t.row, col: t.col, to: 'back', unit: u });
         }
         break;
       }

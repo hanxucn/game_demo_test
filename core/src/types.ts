@@ -264,6 +264,7 @@ export type GameEvent =
   | { type: 'LORD_STATUS_EXPIRED'; side: Side; status: string }
   | { type: 'DAMAGE_REDIRECTED'; side: Side; row: Row; col: number; to: Side; guardName: string }
   | { type: 'UNIT_SURVIVED'; side: Side; row: Row; col: number; unit: Unit }
+  | { type: 'UNIT_FLIPPED'; side: Side; row: Row; col: number; to: 'front' | 'back'; unit: Unit }
   | { type: 'HAND_MODIFIED'; side: Side; index: number; kind: 'cost' | 'ban'; value?: number; turns?: number }
   | { type: 'CARD_STOLEN'; from: Side; to: Side; card: CardDef }
   | { type: 'CARD_SCRYED'; side: Side; cardId: string; from: 'top' | 'bottom' }
