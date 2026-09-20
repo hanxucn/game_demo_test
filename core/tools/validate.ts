@@ -27,7 +27,7 @@ const KEYWORD_VALUE: Record<string, number> = {
   lian_ji: -1.5,   // 每回合攻击 2 次
   yi_ji: -2,       // 亡语
   yin_xue: -1,     // 饮血（待实现）
-  wu_sheng: -1,    // 免疫一次伤害
+  sheng_dun: -1,   // 圣盾：免疫一次伤害
   shen_she: -1,    // 神射（待实现）
   qi_xi: -1,       // 奇袭（待实现）
   zhong_yi: -1,    // 忠义：免疫混乱/离间（待实现）

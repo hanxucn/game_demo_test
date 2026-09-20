@@ -198,13 +198,13 @@ var Core = (() => {
     },
     yin_xue: {
       name: "\u996E\u8840",
-      implemented: false,
-      note: "\u5BF9\u654C\u4EBA\u9020\u6210\u7684\u4F24\u5BB3\uFF0C\u4E3A\u81EA\u5DF1\u6062\u590D\u4E00\u5B9A\u6570\u91CF\u751F\u547D\uFF08\u5F85\u5B9E\u73B0\uFF09"
+      implemented: true,
+      note: "\u5BF9\u654C\u4EBA\u9020\u6210\u7684\u4F24\u5BB3\uFF0C\u4E3A\u8BE5\u5355\u4F4D\u81EA\u8EAB\u6062\u590D\u7B49\u91CF\u751F\u547D\uFF08ADR-057 \u8BBE\u8BA1\u8005\u5B9A\u7A3F\uFF1A\u56DE\u81EA\u5DF1\uFF0C\u4E0D\u56DE\u4E3B\u5C06\uFF09"
     },
-    wu_sheng: {
-      name: "\u6B66\u5723",
-      implemented: false,
-      note: '\u26A0\uFE0F \u5B9A\u4E49\u672A\u7ECF\u786E\u8BA4\uFF1A\u624B\u5199\u7A3F\u91CC\u300C\u6B66\u5723\u300D\u53EA\u4F5C\u4E3A\u5173\u7FBD\u7684\u4E24\u4E2A\u5019\u9009\u6280\u80FD\u540D\u4E4B\u4E00\u51FA\u73B0\uFF0C\u5E76\u672A\u5B9A\u4E49\u673A\u5236\uFF1B"\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"\u662F\u521D\u59CB\u63D0\u4EA4 GDD \u91CC AI \u5199\u7684\uFF08\u5F85\u8BBE\u8BA1\u8005\u5B9A\u4E49\uFF0CQ-06-4\uFF09'
+    sheng_dun: {
+      name: "\u5723\u76FE",
+      implemented: true,
+      note: "\u62E5\u6709\u4E00\u4E2A\u5723\u76FE\u72B6\u6001\uFF0C\u53EF\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3\uFF1B\u4F24\u5BB3\u88AB\u514D\u75AB\u540E\u8BE5\u72B6\u6001\u6D88\u8017\u6389\uFF08ADR-057 \u8BBE\u8BA1\u8005\u5B9A\u7A3F\uFF09"
     },
     shen_she: {
       name: "\u795E\u5C04",
@@ -229,7 +229,8 @@ var Core = (() => {
   };
   var RETIRED_KEYWORDS = {
     ji_xing: "\u75BE\u884C \u2014\u2014 \u4E0E\u300C\u5148\u653B\u300D\u662F\u540C\u4E00\u4E2A\u4E1C\u897F\uFF08\u8BBE\u8BA1\u8005\u88C1\u5B9A\uFF09\uFF0C\u5DF2\u5408\u5E76\uFF0C\u8BF7\u6539\u7528 xian_gong",
-    wu_shuang: "\u65E0\u53CC \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u6682\u65F6\u6CA1\u6709\u8FD9\u4E2A\u72B6\u6001"
+    wu_shuang: "\u65E0\u53CC \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u6682\u65F6\u6CA1\u6709\u8FD9\u4E2A\u72B6\u6001",
+    wu_sheng: '\u6B66\u5723 \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u5E9F\u5F03\u6B64\u540D\uFF08\u5173\u7FBD\u7684\u6280\u80FD\u540D\u7528\u300C\u6C34\u6DF9\u4E03\u519B\u300D\uFF09\uFF1B\u5176"\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"\u7684\u673A\u5236\u6539\u540D\u4E3A\u300C\u5723\u76FE\u300D'
   };
   var TAGS = {
     xi_liang: { name: "\u897F\u51C9", note: "\u897F\u51C9\u51FA\u8EAB\uFF1A\u9A6C\u817E\u3001\u9A6C\u8D85\u3001\u9A6C\u5CB1" },
@@ -252,8 +253,8 @@ var Core = (() => {
       note: "\u5165\u573A\u5F53\u56DE\u5408\u5373\u53EF\u884C\u52A8\u653B\u51FB\uFF08ADR-055\uFF09"
     },
     qi_xi_status: { name: "\u5947\u88AD", kind: "buff", numeric: false, duration: "until_consumed", note: "\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807" },
-    wu_sheng_status: {
-      name: "\u6B66\u5723",
+    sheng_dun_status: {
+      name: "\u5723\u76FE",
       kind: "buff",
       numeric: false,
       duration: "until_consumed",
@@ -1820,7 +1821,7 @@ var Core = (() => {
     runUnitTrigger(state, ctx.cards, attacker, "on_attack", rng, events);
     if (target.kind === "lord") {
       const dealt = dealDamage(state, ctx.cards, lordRef(foe), dmg, events, attacker.name);
-      if (hasYinXue) healTarget(state, lordRef(side), dealt, events);
+      if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
     } else {
       const tRow = target.row;
       const tCol = target.col;
@@ -1836,7 +1837,7 @@ var Core = (() => {
         const back = getUnit(state, side, from.row, from.col);
         if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, "on_damaged", rng, events);
       }
-      if (hasYinXue) healTarget(state, lordRef(side), dealt, events);
+      if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
     }
     attacker.attackedThisTurn += 1;
     if (hasKeyword(attacker, "qi_xi")) {

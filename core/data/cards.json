@@ -1361,7 +1361,7 @@
           },
           {
             "action": "apply_status",
-            "status": "wu_sheng_status",
+            "status": "sheng_dun_status",
             "stacks": 1,
             "target": {
               "source": true

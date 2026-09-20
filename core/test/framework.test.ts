@@ -506,11 +506,17 @@ test('ADR-054：关键词表——疾行已合并入先攻，无双已取消', a
   assert.ok(!KEYWORDS.wu_shuang, '无双不应再是关键词（已取消）');
   assert.ok(RETIRED_KEYWORDS.ji_xing.includes('先攻'), '疾行应指向先攻');
   // 定义已给出但引擎未实现的关键词，必须显式标 false，避免"卡面写了却不生效"
-  for (const k of ['yin_xue', 'shen_she', 'qi_xi', 'zhong_yi', 'jie_zhen']) {
+  for (const k of ['shen_she', 'qi_xi', 'zhong_yi', 'jie_zhen']) {
     assert.equal(KEYWORDS[k]!.implemented, false, `${k} 应标为未实现`);
   }
   // 忠义的定义已从"亡语"纠正为"免疫控制"
   assert.ok(KEYWORDS.zhong_yi!.note.includes('免疫'), '忠义应为免疫控制类');
+  // ADR-057：武圣废弃 → 圣盾（免疫一次伤害）；饮血已实现（回自身）
+  assert.ok(!KEYWORDS.wu_sheng, '武圣应已废弃');
+  assert.ok(KEYWORDS.sheng_dun, '圣盾应存在');
+  assert.equal(KEYWORDS.sheng_dun!.implemented, true, '圣盾机制已实现');
+  assert.equal(KEYWORDS.yin_xue!.implemented, true, '饮血已实现');
+  assert.ok(RETIRED_KEYWORDS.wu_sheng, '武圣应记入已取消');
 });
 
 test('ADR-054：先攻＝入场当回合即可攻击（原疾行的行为）', async () => {

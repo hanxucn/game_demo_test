@@ -34,6 +34,47 @@ var $ = function (s) { return document.querySelector(s); };
 var $all = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
 var isCharacter = function (c) { return CHARACTER_TYPES.indexOf(c.type) >= 0; };
 
+/* ---------- 状态与技能辅助 ---------- */
+
+var STATUS_NAME = null;
+function statusName(id) {
+  if (!STATUS_NAME) {
+    STATUS_NAME = {};
+    (GD.statuses || []).forEach(function (st) { STATUS_NAME[st.id] = st.name; });
+  }
+  return STATUS_NAME[id] || id;
+}
+
+/** 把 Unit.statuses 转成卡面标记用的数组 */
+function statusList(u) {
+  var out = [];
+  var sts = u.statuses || {};
+  Object.keys(sts).forEach(function (id) {
+    var inst = sts[id];
+    if (!inst || !inst.stacks) return;
+    out.push({ id: id, name: statusName(id), stacks: inst.stacks, turns: inst.turns });
+  });
+  // 关键词里带状态的（如架盾/圣盾）也标出来
+  (u.kw || []).forEach(function (k) {
+    var map = { jia_dun: 'jia_dun_status', sheng_dun: 'sheng_dun_status', xian_gong: 'xian_gong_status' };
+    var sid = map[k];
+    if (sid && !out.some(function (x) { return x.id === sid; })) {
+      out.push({ id: sid, name: statusName(sid), stacks: 1 });
+    }
+  });
+  return out;
+}
+
+/** 该单位有可用主动技吗（用引擎的共享判定，UI 不做规则判断） */
+function unitSkillState(st, side, row, col) {
+  var u = st.sides[side].rows[row][col];
+  if (!u) return null;
+  var sk = (u.skills || []).filter(function (x) { return x.kind === 'active'; })[0];
+  if (!sk) return null;
+  var can = Core.canUseUnitSkill(st, side, row, col);
+  return { name: sk.name, usable: can.ok, why: can.reason || '' };
+}
+
 /* ---------- 视图适配 ---------- */
 function viewCard(c) {
   return {
@@ -144,7 +185,20 @@ function renderBoard(st) {
           wrap.dataset.uid = u.uid;
           // 不能攻击的单位置灰（已攻击过 / 本回合入场 / 被震慑）
           if (side === 'own' && !Core.canAttack(st, 'own', row, col).ok) wrap.classList.add('is-tired');
-          wrap.appendChild(CR.mini(u, { row: row, hurt: u.hp < u.maxHp }));
+          var skill = side === 'own' ? unitSkillState(st, 'own', row, col) : null;
+          wrap.appendChild(CR.mini(u, {
+            row: row, hurt: u.hp < u.maxHp,
+            statuses: statusList(u),
+            skill: skill ? skill.name : null,
+            skillUsable: skill ? skill.usable : false,
+          }));
+          if (skill) {
+            var sb = wrap.querySelector('.cr-skillbtn');
+            if (sb) sb.addEventListener('click', function (e) {
+              e.stopPropagation();
+              onUnitSkillClick(row, col, skill);
+            });
+          }
           wrap.addEventListener('click', function (e) {
             e.stopPropagation();
             onUnitClick(side, row, col);
@@ -185,6 +239,9 @@ function renderHand(st) {
   hand.innerHTML = '';
   var list = st.sides.own.hand;
   var mid = (list.length - 1) / 2;
+  var cmd = st.sides.own.command.cur;
+  var myTurn = st.active === 'own' && !st.winner;
+
   list.forEach(function (c, i) {
     var wrap = document.createElement('div');
     wrap.className = 'hcard-wrap';
@@ -193,28 +250,98 @@ function renderHand(st) {
     wrap.style.setProperty('--rot', (off * 3.2) + 'deg');
     wrap.style.setProperty('--lift', (Math.abs(off) * 1.8) + 'px');
     wrap.style.zIndex = 10 + i;
+
+    // ADR-058：统率值不足 → 置灰并标注还差几点（费用判定由引擎给，UI 只显示）
+    var cost = c.cost != null ? c.cost : 0;
+    var affordable = cmd >= cost;
+    var playable = myTurn && affordable;
     wrap.appendChild(CR.big(viewCard(c)));
+    if (!affordable) {
+      wrap.classList.add('is-poor');
+      var tag = document.createElement('div');
+      tag.className = 'hcard-cost';
+      tag.textContent = '需 ' + cost + '（差 ' + (cost - cmd) + '）';
+      wrap.appendChild(tag);
+    } else if (cost > 0) {
+      var tag2 = document.createElement('div');
+      tag2.className = 'hcard-cost ok';
+      tag2.textContent = '需 ' + cost + ' → 余 ' + (cmd - cost);
+      wrap.appendChild(tag2);
+    }
 
     if (isCharacter(c)) {
-      // 人物卡：按住拖到战场
+      // 人物卡：按住拖到战场；单击看详情
       wrap.addEventListener('pointerdown', function (e) { startDrag(e, i, c, wrap); });
       wrap.addEventListener('click', function (e) {
         e.stopPropagation();
-        if (busy || session.state.winner || session.state.active !== 'own') return;
-        onHandPick(i);
+        if (busy || st.winner || st.active !== 'own') return;
+        if (onHandPick(i)) return;
+        showCardDetail(c);
       });
     } else {
-      // 非人物卡：点击直接打出
       wrap.addEventListener('click', function (e) {
         e.stopPropagation();
-        if (busy || session.state.winner || session.state.active !== 'own') return;
-        if (onHandPick(i)) return;                       // 主公技正在等选一张手牌
+        if (busy || st.winner || st.active !== 'own') return;
+        if (onHandPick(i)) return;
+        if (!playable) { showCardDetail(c); return; }   // 打不出 → 改看详情
         doAction({ type: 'PLAY_CARD', cardIndex: i });
       });
     }
     hand.appendChild(wrap);
   });
 }
+
+/* ============================================================
+   卡牌 / 技能详情（ADR-058：点卡或点技能名弹出）
+   ============================================================ */
+
+var KW_DESC = {
+  jia_dun: '嘲讽：敌方普通攻击必须先打它。',
+  xian_gong: '入场当回合即可行动攻击。',
+  lian_ji: '当前回合普通攻击可执行两次。',
+  yi_ji: '类亡语：阵亡时触发该卡定义的亡语逻辑。',
+  yin_xue: '对敌人造成的伤害，为该单位自身恢复等量生命。',
+  sheng_dun: '拥有圣盾状态，可免疫一次伤害。',
+  shen_she: '对随机敌人造成远程伤害，不受对方攻击影响。',
+  qi_xi: '上场先隐身（不能被选定），下个回合行动后隐身消失。',
+  zhong_yi: '免疫混乱、离间等状态。',
+  jie_zhen: '（设计者尚未设计具体机制）',
+};
+var TRIGGER_NAME = {
+  on_play: '入场', on_death: '阵亡', turn_start: '回合开始', turn_end: '回合结束',
+  on_attack: '攻击时', on_damaged: '受伤时', on_card_played: '打出牌时', on_draw: '抽到时',
+};
+
+/** 弹出卡牌详情：费用/攻血、关键词释义、每个技能的完整文案 */
+function showCardDetail(c) {
+  var el = $('#detail');
+  var rows = [];
+  rows.push('<h4>' + c.name + '　<span class="sub">' + (c.cost != null ? c.cost + ' 费' : '') +
+    (c.attack != null ? '　' + c.attack + '/' + c.health : '') +
+    '　' + (TYPE_LABEL[c.type] || c.type || '') + '</span></h4>');
+  var kws = c.keywords || c.kw || [];
+  if (kws.length) {
+    rows.push('<div class="sub">关键词：' + kws.map(function (k) {
+      return '<b>' + statusName(k) + '</b>（' + (KW_DESC[k] || '—') + '）';
+    }).join('　') + '</div>');
+  }
+  (c.skills || []).forEach(function (sk) {
+    if (!sk.name && !sk.text) return;
+    rows.push('<div class="sk"><b class="skname">' + (sk.name || '（无名技能）') + '</b>'
+      + (sk.kind ? '<span class="sub">　' + (sk.kind === 'active' ? '主动技'
+        : sk.kind === 'aura' ? '光环' : '触发技')
+        + (sk.trigger ? '·' + (TRIGGER_NAME[sk.trigger] || sk.trigger) : '') + '</span>' : '')
+      + '<div class="why">' + (sk.text || '（无文案）') + '</div></div>');
+  });
+  if (c.memo) rows.push('<div class="sub" style="margin-top:6px">记忆点：' + c.memo + '</div>');
+  el.innerHTML = rows.join('');
+  el.classList.add('show');
+}
+
+var TYPE_LABEL = {
+  troop: '兵种', general: '武将', strategist: '谋臣', event: '事件',
+  tactic: '战法', token: '衍生物', elite: '精英', special: '特殊',
+};
 
 /* ============================================================
    拖拽出牌
@@ -324,6 +451,37 @@ function onSlotClick() {
   pendingSkill = null;
 }
 
+/** 谋臣主动技：点卡上的「技」按钮。合法性由 Core.canUseUnitSkill 判定 */
+function onUnitSkillClick(row, col, skill) {
+  if (busy || session.state.winner) return;
+  var st = session.state;
+  if (st.active !== 'own') { showDetail('主动技', skill.name, '现在不是你的回合'); return; }
+  if (!skill.usable) { showDetail('主动技', skill.name, skill.why || '本回合不可用'); return; }
+
+  var u = st.sides.own.rows[row][col];
+  var def = (u.skills || []).filter(function (x) { return x.kind === 'active'; })[0];
+  var needTarget = (def.effects || []).some(function (e) {
+    return e.target && e.target.count === 1 && e.target.mode === 'choose';
+  });
+  if (needTarget) {
+    var t0 = (def.effects || []).filter(function (e) { return e.target && e.target.count === 1 && e.target.mode === 'choose'; })[0].target;
+    var sides = t0.side === 'both' ? ['own', 'enemy'] : [t0.side === 'enemy' ? 'enemy' : 'own'];
+    var targets = [];
+    sides.forEach(function (sd) {
+      Core.allUnits(st, sd).forEach(function (r) { targets.push({ side: sd, row: r.row, col: r.col }); });
+    });
+    if (!targets.length) { showDetail('主动技', def.name, '没有合法目标'); return; }
+    pendingSkill = { targets: targets, useSkill: { row: row, col: col } };
+    targets.forEach(function (t) {
+      var el = unitEl(t.side, t.row, t.col);
+      if (el) el.classList.add('is-target');
+    });
+    showDetail('选择目标', def.name, '点击一名合法目标');
+    return;
+  }
+  doAction({ type: 'USE_SKILL', row: row, col: col });
+}
+
 /** 主公技「选一张手牌」模式（如孙权坐断东南）。返回 true 表示已消费这次点击 */
 function onHandPick(index) {
   if (!pendingSkill || !pendingSkill.handPick) return false;
@@ -345,8 +503,12 @@ function onUnitClick(side, row, col) {
       return t.side === side && t.row === row && t.col === col;
     });
     if (okSkill) {
+      var act = pendingSkill.useSkill
+        ? { type: 'USE_SKILL', row: pendingSkill.useSkill.row, col: pendingSkill.useSkill.col,
+            target: { side: side, row: row, col: col } }
+        : { type: 'USE_LORD_SKILL', target: { side: side, row: row, col: col } };
       pendingSkill = null;
-      doAction({ type: 'USE_LORD_SKILL', target: { side: side, row: row, col: col } });
+      doAction(act);
       return;
     }
   }

@@ -63,11 +63,11 @@
       "open": "待实现；且「为自己」是指该单位自身还是己方主将，待设计者确认（Q-06-2）"
     },
     {
-      "id": "wu_sheng",
+      "id": "sheng_dun",
       "name": "武圣",
       "type": "buff",
       "grants": [
-        "wu_sheng_status"
+        "sheng_dun_status"
       ],
       "stackable": false,
       "value": -1,

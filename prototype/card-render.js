@@ -81,11 +81,23 @@ window.CardRender = (function () {
     if (!list.length) return '';
     var html = list.map(function (k) {
       var meta = KW[k] || { name: k };
-      var off = (k === 'jia_dun' && row === 'back');   // 架盾仅前军生效
-      return '<i class="' + (off ? 'is-off' : '') + '" title="' + meta.name +
-        (off ? '（仅前军生效，当前位置已失效）' : '') + '">' + meta.name + '</i>';
+      return '<i title="' + meta.name + '">' + meta.name + '</i>';
     }).join('');
     return '<div class="cr-kw">' + html + '</div>';
+  }
+
+  /* ---------- 状态标记（卡头） ---------- */
+  /** opts.statuses = [{ id, name, stacks, turns }]，在名称行右侧显示 */
+  function statusHTML(opts) {
+    var list = opts.statuses || [];
+    if (!list.length) return '';
+    var html = list.map(function (st) {
+      var n = st.stacks > 1 ? st.stacks : '';
+      var t = st.turns != null ? '（剩 ' + st.turns + ' 回合）' : '';
+      return '<i class="cr-st" data-st="' + st.id + '" title="' + st.name + t + '">'
+        + st.name + n + '</i>';
+    }).join('');
+    return '<div class="cr-status">' + html + '</div>';
   }
 
   /* ---------- 通用卡面 ---------- */
@@ -101,7 +113,14 @@ window.CardRender = (function () {
     var costInline = opts.board ? '' :
       '<b class="cr-costnum">' + (card.cost != null ? card.cost : 0) + '</b>';
     html += '<div class="cr-name">' + costInline + (card.name || '') + '</div>';
+    html += statusHTML(opts);
     html += keywordsHTML(card, opts.row);
+
+    // 主动技可用标记（点它使用）——仅在战场卡上显示
+    if (opts.board && opts.skill) {
+      html += '<div class="cr-skillbtn' + (opts.skillUsable ? '' : ' is-off') + '" title="'
+        + opts.skill + (opts.skillUsable ? '（点击使用）' : '（本回合不可用）') + '">技</div>';
+    }
 
     if (isCharacter(card)) {
       html += '<div class="cr-stat atk">' + (card.atk != null ? card.atk : 0) + '</div>';

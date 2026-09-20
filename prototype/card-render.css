@@ -456,3 +456,30 @@
     0 0 0 1px #000, 0 0 0 3px #7fd18a, 0 0 22px rgba(111,191,115,.9),
     0 8px 22px rgba(0,0,0,.85);
 }
+
+/* ---------- 卡头状态标记（ADR-058） ---------- */
+.cr-status {
+  position: absolute; left: 2px; top: 13px; right: 2px;
+  display: flex; flex-wrap: wrap; gap: 2px; z-index: 4;
+}
+.cr-status .cr-st {
+  font-size: 8px; line-height: 1.15; padding: 0 2px; border-radius: 2px;
+  background: rgba(20,14,8,.88); color: #ffd9a0; border: 1px solid #6b5a3a;
+  font-style: normal; white-space: nowrap;
+}
+.cr-status .cr-st[data-st="zhen_she"] { color: #ffb0a0; border-color: #7a4a3a; }
+.cr-status .cr-st[data-st="hun_luan"]  { color: #e0b0ff; border-color: #5a3a7a; }
+.cr-status .cr-st[data-st="jia_dun_status"] { color: #a8d0ff; border-color: #3a5a7a; }
+.cr-status .cr-st[data-st="fan_mian"] { color: #b0b0b0; border-color: #555; }
+.cr-status .cr-st[data-st="sheng_dun_status"] { color: #ffe9a0; border-color: #8a7a3a; }
+.cr-status .cr-st[data-st="zhong_du"] { color: #a8e0a0; border-color: #3a6a3a; }
+
+/* ---------- 主动技按钮 ---------- */
+.cr-skillbtn {
+  position: absolute; right: 1px; top: 13px; z-index: 5;
+  width: 13px; height: 13px; border-radius: 50%; cursor: pointer;
+  background: radial-gradient(circle at 35% 30%, #ffe9a0, #a8862f);
+  color: #2a1f08; font-size: 9px; font-weight: 700; line-height: 13px; text-align: center;
+  box-shadow: 0 0 0 1px #000, 0 0 6px rgba(255,220,120,.7);
+}
+.cr-skillbtn.is-off { filter: grayscale(1) brightness(.6); cursor: not-allowed; }

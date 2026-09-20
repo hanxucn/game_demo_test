@@ -253,7 +253,7 @@ function attack(
 
   if (target.kind === 'lord') {
     const dealt = dealDamage(state, ctx.cards, lordRef(foe), dmg, events, attacker.name);
-    if (hasYinXue) healTarget(state, lordRef(side), dealt, events);
+    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
   } else {
     const tRow = target.row as 'front' | 'back';
     const tCol = target.col as number;
@@ -277,7 +277,7 @@ function attack(
       const back = getUnit(state, side, from.row, from.col);
       if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, 'on_damaged', rng, events);
     }
-    if (hasYinXue) healTarget(state, lordRef(side), dealt, events);
+    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
   }
 
   attacker.attackedThisTurn += 1;

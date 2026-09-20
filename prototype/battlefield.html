@@ -495,6 +495,20 @@
   #log .le.lord b { color: var(--gold-hi); }
   #log .le.death b { color: #e0705a; }
 
+
+  /* ---------- 手牌费用提示（ADR-058） ---------- */
+  .hcard-wrap.is-poor .cr-card { filter: grayscale(.85) brightness(.62); }
+  .hcard-cost {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: -14px;
+    font-size: 9px; white-space: nowrap; padding: 0 3px; border-radius: 3px;
+    background: rgba(60,16,10,.92); color: #ffb0a0; border: 1px solid #7a3a2a;
+  }
+  .hcard-cost.ok { background: rgba(14,30,16,.92); color: #9fd0a4; border-color: #3a5a3a; }
+
+  /* ---------- 详情弹窗里的技能块 ---------- */
+  #detail .sk { margin-top: 6px; padding-top: 5px; border-top: 1px dotted #3a3228; }
+  #detail .sk .skname { color: var(--gold-hi); font-size: 12px; }
+
   #detail {
     position: fixed; right: 10px; bottom: 10px; z-index: 300;
     width: 258px;

@@ -57,11 +57,10 @@ export const KEYWORDS: Record<string, { name: string; implemented: boolean; note
                note: '当前回合普通攻击可执行 2 次' },
   yi_ji:     { name: '遗计', implemented: true,
                note: '类亡语：阵亡时触发该卡定义的 on_death 逻辑' },
-  yin_xue:   { name: '饮血', implemented: false,
-               note: '对敌人造成的伤害，为自己恢复一定数量生命（待实现）' },
-  wu_sheng:  { name: '武圣', implemented: false,
-               note: '⚠️ 定义未经确认：手写稿里「武圣」只作为关羽的两个候选技能名之一出现，'
-                   + '并未定义机制；"免疫一次伤害"是初始提交 GDD 里 AI 写的（待设计者定义，Q-06-4）' },
+  yin_xue:   { name: '饮血', implemented: true,
+               note: '对敌人造成的伤害，为该单位自身恢复等量生命（ADR-057 设计者定稿：回自己，不回主将）' },
+  sheng_dun: { name: '圣盾', implemented: true,
+               note: '拥有一个圣盾状态，可免疫一次伤害；伤害被免疫后该状态消耗掉（ADR-057 设计者定稿）' },
   shen_she:  { name: '神射', implemented: false,
                note: '对随机敌人造成远程伤害，且不受对方攻击影响（待实现）' },
   qi_xi:     { name: '奇袭', implemented: false,
@@ -76,6 +75,7 @@ export const KEYWORDS: Record<string, { name: string; implemented: boolean; note
 export const RETIRED_KEYWORDS: Record<string, string> = {
   ji_xing: '疾行 —— 与「先攻」是同一个东西（设计者裁定），已合并，请改用 xian_gong',
   wu_shuang: '无双 —— 设计者：暂时没有这个状态',
+  wu_sheng: '武圣 —— 设计者：废弃此名（关羽的技能名用「水淹七军」）；其"免疫一次伤害"的机制改名为「圣盾」',
 };
 
 
@@ -131,7 +131,7 @@ export const STATUSES: Record<string, StatusDef> = {
   xian_gong_status: { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent',
                 note: '入场当回合即可行动攻击（ADR-055）' },
   qi_xi_status: { name: '奇袭', kind: 'buff',   numeric: false, duration: 'until_consumed', note: '不能被指定为目标' },
-  wu_sheng_status:   { name: '武圣', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
+  sheng_dun_status:   { name: '圣盾', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
                 note: '免疫一次伤害' },
   hu_jia:     { name: '护甲', kind: 'buff',   numeric: true,  duration: 'permanent', scope: 'lord', note: '吸收伤害' },
   zhen_she:   { name: '震慑', kind: 'debuff', numeric: false, duration: 'turns', caps: ['block_action'],
