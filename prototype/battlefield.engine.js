@@ -244,7 +244,10 @@ function renderHand(st) {
   var cmd = st.sides.own.command.cur;
   var myTurn = st.active === 'own' && !st.winner;
 
-  list.forEach(function (c, i) {
+  list.forEach(function (hc, i) {
+    // ⚠️ ADR-038：手牌是 HandCard 实例 {card, mods}，不是 CardDef。
+    // 原型原先直接当 CardDef 用（显示 0 费、名字空白、人物卡被误判为非人物卡）。
+    var c = hc.card;
     var wrap = document.createElement('div');
     wrap.className = 'hcard-wrap';
     wrap.dataset.cardIndex = String(i);

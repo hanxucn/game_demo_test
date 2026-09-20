@@ -63,6 +63,7 @@
     else if (step === 1) el.innerHTML = viewDeck();
     else el.innerHTML = viewMulligan();
     el.classList.add('show');
+    document.body.classList.add('is-setup');   // 隐藏调试面板，避免盖住开局界面
     bind();
   }
 
@@ -316,6 +317,7 @@
       if (res2.ok) st = res2.state;
 
       $('#setup').classList.remove('show');
+      document.body.classList.remove('is-setup');
       onStart({
         ownFaction: ownFaction,
         enemyFaction: enemyFaction,
