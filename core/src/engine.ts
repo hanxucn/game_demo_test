@@ -118,16 +118,19 @@ export function applyAction(state: MatchState, ctx: EngineContext, action: Actio
    ============================================================ */
 
 function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng: ReturnType<typeof createRng>): void {
-  state.turn += 1;
+  // 回合计数（ADR-064，设计者裁定）：**双方都行动完才算一个完整回合**。
+  // halfTurn 每有一方开始行动就 +1；turn 只在完整回合推进时 +1，
+  // 与统率值上限的增长严格同步（原先 turn 每半回合 +1，导致显示的第 N 回合
+  // 与统率值的第 N 档对不上）。
+  state.halfTurn += 1;
   const side = state.active;
   const s = state.sides[side];
 
-  // 统率值增长（ADR-061，设计者裁定）：双方都行动完才算一个完整回合，
-  // **完整回合结束后双方一起 +1**。早先的写法是在各自回合开始时给自己 +1 ——
-  // 先手方在自己第 1 回合就白拿 1 点（对手还没动过），同一"回合"里双方上限不等。
-  const round = Math.ceil(state.turn / 2);
-  if (round > state.round) {
-    state.round = round;
+  // 第 1、3、5… 个半回合 = 新一轮完整回合的开始。
+  // 第 1 个半回合属于开局的第 1 回合（已在 createMatch 里计过），故不再 +1。
+  if (state.halfTurn % 2 === 1 && state.halfTurn > 1) {
+    state.turn += 1;
+    // 统率值增长（ADR-061）：完整回合结束后**双方一起** +1
     for (const sd of ['own', 'enemy'] as Side[]) {
       state.sides[sd].command.max = Math.min(COMMAND.MAX, state.sides[sd].command.max + 1);
     }
@@ -141,11 +144,11 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
     ref.unit.skillUsesThisTurn = {};              // 主动技频率每回合重置（GDD 10 §1.1）
   }
 
-  events.push({ type: 'TURN_START', side, turn: state.turn, command: { ...s.command } });
+  events.push({ type: 'TURN_START', side, turn: state.turn, halfTurn: state.halfTurn, command: { ...s.command } });
 
   drawCard(state, ctx.cards, side, events);
   // 后手补偿（ADR-053）：该方第 1 回合额外抽 1 张
-  if (state.secondCompensation === 'extra_draw' && state.turn === 2) {
+  if (state.secondCompensation === 'extra_draw' && state.halfTurn === 2) {
     drawCard(state, ctx.cards, side, events);
   }
   // ADR-059：翻面的单位在**自己的回合开始时翻回正面并能行动**
@@ -171,7 +174,7 @@ function endTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng
   recomputeAuras(state, ctx.cards, rng, events);                              // 第 21 步后重算
   const dropped = discardOverflow(state, side);
   dropped.forEach((c) => events.push({ type: 'CARD_PLAYED', side, card: c }));   // 弃牌也用同一事件，客户端可区分
-  events.push({ type: 'TURN_END', side, turn: state.turn });
+  events.push({ type: 'TURN_END', side, turn: state.turn, halfTurn: state.halfTurn });
 
   // ADR-054：不设回合上限、不判平局——对局只能由主将阵亡结束（粮尽保证必然收束）
 

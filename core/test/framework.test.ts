@@ -16,6 +16,8 @@ import { autoDeck, cardPool, validateDeck, MAX_COPIES, PLAYABLE_FACTIONS } from 
 import { mulligan, setupMatch } from '../src/setup.ts';
 import { rollFirstSide } from '../src/state.ts';
 import { loadData } from '../src/loader.ts';
+import { canAttack } from '../src/rules.ts';
+import { COMMAND } from '../src/constants.ts';
 import { createRng } from '../src/rng.ts';
 import type { Action, CardDef, Faction, LordDef } from '../src/types.ts';
 
@@ -123,7 +125,7 @@ test('后手补偿·多抽 1 张（ADR-053）：后手第 1 回合抽 2 张', ()
     const before = st.sides[second].hand.length;
     const gained = comp === 'extra_draw' ? 2 : 1;
     assert.equal(st.sides[second].hand.length, before, '起手张数不受补偿方式影响');
-    // 模拟进入后手第 1 回合（state.turn 从 1 起，后手回合 turn=2）
+    // 模拟进入后手第 1 回合（后手是该完整回合的第 2 个半回合，故 halfTurn=2）
     void gained;
   }
 });
@@ -456,11 +458,14 @@ test('后手补偿·多抽 1 张：机制确实生效（后手第 1 回合抽 2 
       draws: r.events.filter((e) => e.type === 'CARD_DRAWN').length,
       hand: r.state.sides.enemy.hand.length,
       turn: r.state.turn,
+      halfTurn: r.state.halfTurn,
     };
   };
   const a = run('none'), b = run('extra_draw');
   assert.equal(a.hand0, 4, '后手起手 4 张（两种补偿方式都一样）');
-  assert.equal(a.turn, 2, '后手第 1 回合的 turn 应为 2');
+  // ADR-064：后手第 1 回合仍属**第 1 个完整回合**（它只是第 2 个半回合）
+  assert.equal(a.halfTurn, 2, '后手是该完整回合的第 2 个半回合');
+  assert.equal(a.turn, 1, '后手第 1 回合的 turn 仍是 1');
   assert.equal(a.draws, 1, '无补偿：抽 1 张');
   assert.equal(a.hand, 5);
   assert.equal(b.draws, 2, '多抽补偿：抽 2 张');
@@ -686,4 +691,108 @@ test('技能伤害同样扣血并可致阵亡', async () => {
   assert.equal(gu(s, 'enemy', 'front', 0)!.hp, 1, '4 点技能伤害：5 → 1');
   dealDamage(s, d.cards, unitRef('enemy', 'front', 0), 99, evs, '技能');
   assert.equal(gu(s, 'enemy', 'front', 0), null, '超量伤害应致阵亡并移出');
+});
+
+
+/* ============================================================
+   战场单位的攻击全链路（设计者要求确认）
+   ============================================================ */
+
+test('回合数与统率同步：双方各行动一次才推进（ADR-061/064）', async () => {
+  const { createMatch } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({
+    seed: 5, cards: d.cards, lords: d.lords,
+    decks: { own: Array(30).fill('neutral_infantry'), enemy: Array(30).fill('neutral_infantry') },
+    firstSide: 'own',
+  });
+  const ctx = { cards: d.cards, lords: d.lords };
+  let s = startMatch(base, ctx).state;
+
+  // 完整回合 1：双方都是起始统率，谁都不额外白拿
+  assert.equal(s.turn, 1);
+  assert.equal(s.halfTurn, 1);
+  assert.equal(s.sides.own.command.max, COMMAND.START);
+  assert.equal(s.sides.enemy.command.max, COMMAND.START);
+
+  // 后手方开始行动 —— 同一个完整回合，turn 与统率都不动
+  s = applyAction(s, ctx, { type: 'END_TURN' }).state;
+  assert.equal(s.halfTurn, 2);
+  assert.equal(s.turn, 1, '后手方还没行动完 → 仍是第 1 回合');
+  assert.equal(s.sides.enemy.command.max, COMMAND.START);
+
+  // 回到先手方 = 完整回合结束 → turn +1，且**双方**统率一起 +1
+  s = applyAction(s, ctx, { type: 'END_TURN' }).state;
+  assert.equal(s.halfTurn, 3);
+  assert.equal(s.turn, 2);
+  assert.equal(s.sides.own.command.max, COMMAND.START + 1);
+  assert.equal(s.sides.enemy.command.max, COMMAND.START + 1, '双方上限必须一致');
+});
+
+test('战场单位攻击全链路：入场当回合不能攻击 → 下回合可攻击 → 打完后本回合不能再攻击', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  let s = startMatch(base, ctx).state;
+
+  // ① 本回合入场 → 召唤失调，不能攻击
+  // 注意：改属性必须连 baseAtk / baseMaxHp 一起改 ——
+  // applyMods()（ADR-037）会用 base + mods 重算 atk/maxHp，
+  // 只改 atk/hp/maxHp 会在下一次光环重算时被打回原形。
+  const a = makeUnit(d.cards.get('qun_yuanshao')!, s.turn, 900);
+  a.baseAtk = 3; a.baseMaxHp = 4; a.atk = 3; a.maxHp = 4; a.hp = 4;
+  setUnit(s, 'own', 'front', 0, a);
+  assert.equal(canAttack(s, 'own', 'front', 0).ok, false, '入场当回合不能攻击');
+  assert.match(canAttack(s, 'own', 'front', 0).reason ?? '', /入场/);
+
+  // ② 走完一个完整回合：我 → 敌 → 我
+  s = applyAction(s, ctx, { type: 'END_TURN' }).state;
+  s = applyAction(s, ctx, { type: 'END_TURN' }).state;
+  assert.equal(s.active, 'own');
+  assert.equal(canAttack(s, 'own', 'front', 0).ok, true, '过一个完整回合后应可攻击');
+
+  // 敌方放一个 2/5 作靶子
+  const t = makeUnit(d.cards.get('neutral_infantry')!, s.turn, 901);
+  t.baseAtk = 2; t.baseMaxHp = 5; t.atk = 2; t.maxHp = 5; t.hp = 5;
+  setUnit(s, 'enemy', 'front', 0, t);
+
+  // ③ 攻击：我造成 3，**同时**吃它 2 点反击（ADR-062）
+  const r = applyAction(s, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(gu(r.state, 'enemy', 'front', 0)!.hp, 2, '目标 5-3');
+  assert.equal(gu(r.state, 'own', 'front', 0)!.hp, 2, '攻击者 4-2（反击）');
+
+  // ④ 本回合已攻击 → 不能再攻击
+  const again = canAttack(r.state, 'own', 'front', 0);
+  assert.equal(again.ok, false);
+  assert.match(again.reason ?? '', /已攻击/);
+
+  // ⑤ 再过一回合 → 又能攻击
+  let s2 = applyAction(r.state, ctx, { type: 'END_TURN' }).state;
+  s2 = applyAction(s2, ctx, { type: 'END_TURN' }).state;
+  assert.equal(canAttack(s2, 'own', 'front', 0).ok, true, '新回合恢复可攻击');
+});
+
+test('先攻：入场当回合即可攻击（与反击无关，ADR-055/062）', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctx = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctx).state;
+
+  const t0 = makeUnit(d.cards.get('neutral_infantry')!, 0, 902);
+  t0.baseAtk = 2; t0.baseMaxHp = 2; t0.atk = 2; t0.maxHp = 2; t0.hp = 2;
+  setUnit(s, 'enemy', 'front', 0, t0);
+
+  const a = makeUnit(d.cards.get('wei_zhangyan')!, s.turn, 903);   // 张燕：关键词「先攻」
+  setUnit(s, 'own', 'front', 0, a);
+  assert.ok(a.kw.includes('xian_gong'), '张燕应带先攻关键词');
+  assert.equal(canAttack(s, 'own', 'front', 0).ok, true, '先攻单位入场当回合即可攻击');
+
+  // 打死目标也照样吃反击（同时结算）
+  a.baseAtk = 9; a.baseMaxHp = 5; a.atk = 9; a.maxHp = 5; a.hp = 5;
+  const r = applyAction(s, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(gu(r.state, 'enemy', 'front', 0), null, '目标应阵亡');
+  assert.equal(gu(r.state, 'own', 'front', 0)!.hp, 3, '打死目标仍吃 2 点反击');
 });

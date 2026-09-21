@@ -177,11 +177,17 @@ function renderPanel(st) {
   // 敌方牌库/手牌：只给张数（不泄露内容），手牌另用一排卡背表示
   $('#foe-deck-num').textContent = f.deck.length;
   $('#foe-hand-num').textContent = f.hand.length;
+  // 敌方手牌：右侧面板里排一排，同时在战场上以卡背正面呈现（对称于我方手牌）
   var backs = '';
-  for (var k = 0; k < f.hand.length; k++) {
-    backs += '<i style="animation-delay:' + (k * 30) + 'ms"></i>';
-  }
+  for (var k = 0; k < f.hand.length; k++) backs += '<i></i>';
   $('#foe-hand-backs').innerHTML = backs;
+
+  var vis = '';
+  for (var v = 0; v < f.hand.length; v++) {
+    vis += '<i class="pback" style="animation-delay:' + (v * 26) + 'ms"></i>';
+  }
+  $('#foe-hand-visual').innerHTML = vis;
+  $('#foe-deck-visual-num').textContent = f.deck.length;
   var pips = '';
   for (var i = 0; i < 10; i++) pips += '<div class="pip' + (i < s.command.cur ? ' on' : '') + '"></div>';
   $('#cmd-pips').innerHTML = pips;
@@ -481,17 +487,22 @@ function onDragEnd(e) {
   var d = drag;
   drag = null;
 
+  // ⚠️ 落点合法性必须在 clearDropHighlights() **之前**判定 ——
+  // 它会把 is-placeable / is-target 一并抹掉，之后再查 classList 永远为假。
+  // 曾因此导致"费用够也放不下去"（出牌 100% 失败）。
+  var dropSlot = (t && t.kind === 'slot' && t.el.classList.contains('is-placeable')) ? t.el : null;
+  var dropUnit = (t && t.kind === 'unit' && t.el.classList.contains('is-target')) ? t.el : null;
+  var dropLord = (t && t.kind === 'lord' && t.el.classList.contains('is-target')) ? t.el : null;
+
   d.ghost.remove();
   d.wrap.classList.remove('is-dragging');
-  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover').forEach(function (el) {
-    el.classList.remove('is-placeable', 'is-hover');
-  });
+  clearDropHighlights();
 
   if (d.kind === 'card') {
-    if (t && t.kind === 'slot' && t.el.classList.contains('is-placeable')) {
+    if (dropSlot) {
       doAction({
         type: 'PLAY_CARD', cardIndex: d.index,
-        row: t.el.dataset.row, col: Number(t.el.dataset.col),
+        row: dropSlot.dataset.row, col: Number(dropSlot.dataset.col),
       });
     } else {
       clearMarks();
@@ -501,18 +512,28 @@ function onDragEnd(e) {
   }
 
   // 攻击拖拽：落点必须是高亮过的合法目标，合法性一律由 Core.legalTargets 判定
-  if (t && t.kind === 'unit' && t.el.classList.contains('is-target')) {
+  if (dropUnit) {
     doAction({
       type: 'ATTACK', from: { row: d.row, col: d.col },
-      to: { kind: 'unit', row: t.el.dataset.row, col: Number(t.el.dataset.col) },
+      to: { kind: 'unit', row: dropUnit.dataset.row, col: Number(dropUnit.dataset.col) },
     });
-  } else if (t && t.kind === 'lord' && t.el.classList.contains('is-target')) {
+  } else if (dropLord) {
     doAction({ type: 'ATTACK', from: { row: d.row, col: d.col }, to: { kind: 'lord' } });
   } else {
     clearMarks();
     sel = null;
     showDetail('取消攻击', '', '拖到高亮的敌方人物卡或其主将上才能攻击');
   }
+}
+
+/**
+ * 清除拖拽留下的高亮。
+ * ⚠️ 调用它会抹掉 is-placeable / is-target —— 任何"这个落点合法吗"的判断
+ * 都必须排在它前面（见 onDragEnd）。这个先后顺序曾经弄反过，代价是出牌完全失效。
+ */
+function clearDropHighlights() {
+  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover')
+    .forEach(function (el) { el.classList.remove('is-placeable', 'is-hover'); });
 }
 
 /** 落点解析：战场单位 / 主将条 / 格子（拖拽幽灵设了 pointer-events:none，不会拦截） */
@@ -791,7 +812,9 @@ function statusName(id) {
 function describeEvent(e) {
   var who = SIDE_NAME[e.side] || e.side || '';
   switch (e.type) {
-    case 'TURN_START': return { cls: 'turn', text: '—— 第 ' + Math.ceil(e.turn / 2) + ' 回合 · ' + who + '（统率 ' + e.command.cur + '/' + e.command.max + '）——' };
+    // e.turn 现在是**完整回合数**（双方都行动完才 +1，ADR-064），
+    // 不再是半回合计数 —— 原先这里要 Math.ceil(e.turn / 2)，现在直接用。
+    case 'TURN_START': return { cls: 'turn', text: '—— 第 ' + e.turn + ' 回合 · ' + who + '（统率 ' + e.command.cur + '/' + e.command.max + '）——' };
     case 'CARD_DRAWN': return { cls: '', text: who + ' 抽到 <b>' + e.card.name + '</b>（牌库剩 ' + e.deckLeft + '）' };
     case 'CARD_AUTO_CAST': return { cls: 'eff', text: who + ' <b>' + e.card.name + '</b> 抽到时自动释放！' };
     case 'DECK_ADDED': return { cls: 'eff', text: who + ' 牌库加入 ' + e.count + ' 张 <b>' + e.card.name + '</b>' };
