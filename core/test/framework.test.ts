@@ -654,7 +654,7 @@ test('普通攻击：目标掉攻击力等量的血，攻击者也受目标攻�
   assert.equal(gu(r.state, 'own', 'front', 0)!.hp, 18, '攻击者 20 → 18（受反击）');
 });
 
-test('阵亡：血量归 0 → UNIT_DIED 且移出战场；目标已死则不反击', async () => {
+test('阵亡：血量归 0 → UNIT_DIED 且移出战场；打死目标仍受其反击（ADR-062）', async () => {
   const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
   const d = qun();
   const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
@@ -667,7 +667,8 @@ test('阵亡：血量归 0 → UNIT_DIED 且移出战场；目标已死则不反
   const r = applyAction(s, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
   assert.ok(r.events.some((e) => e.type === 'UNIT_DIED'), '应产生阵亡事件');
   assert.equal(gu(r.state, 'enemy', 'front', 0), null, '阵亡单位应移出战场');
-  assert.equal(gu(r.state, 'own', 'front', 0)!.hp, 20, '目标已阵亡 → 不反击');
+  // ADR-062：伤害同时结算，目标被打死也照样反击（此处 20-5=15）
+  assert.equal(gu(r.state, 'own', 'front', 0)!.hp, 15, '打死目标仍应吃下其 5 点反击');
 });
 
 test('技能伤害同样扣血并可致阵亡', async () => {

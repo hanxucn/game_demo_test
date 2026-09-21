@@ -259,7 +259,6 @@ function attack(
   if (!target) return false;
 
   const dmg = effectiveAttack(state, side, from.row, from.col);
-  const hasWuShuang = hasKeyword(attacker, 'wu_shuang');   // 「无双」已取消（ADR-054），无卡使用；保留分支待清理
   const hasYinXue = hasKeyword(attacker, 'yin_xue');
   const foe = other(side);
 
@@ -275,22 +274,23 @@ function attack(
     const tRow = target.row as 'front' | 'back';
     const tCol = target.col as number;
     const targetUnit = getUnit(state, foe, tRow, tCol);
-    // 反击力 = 目标的**有效**攻击力（含振奋/虚弱等，与攻击方算法对称，ADR-059）
+    // 反击力 = 目标的**有效**攻击力（含振奋/虚弱等，与攻击方算法对称，ADR-059）。
+    // 必须在造成伤害**之前**取值：伤害不改变攻击力，但目标可能被打死而离场。
     const retaliate = effectiveAttack(state, foe, tRow, tCol);
 
     const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name);
-    const targetDied = !getUnit(state, foe, tRow, tCol);
 
     // 时机表第 16 步：受到伤害触发技（on_damaged）
     const hit = getUnit(state, foe, tRow, tCol);
     if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, 'on_damaged', rng, events);
     if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);
 
-    // 反击：目标存活则反击。
-    // 注：「无双」（攻击不受反击）已取消（ADR-054）。
-    // 「先攻」**不含**"击杀不遭反击"——那是初始提交 GDD 里 AI 编的定义，
-    // 手写稿四处「获得先攻/上场时先攻」均指"入场当回合即可行动"（ADR-055）。
-    if (!targetDied && !hasWuShuang) {
+    // 反击（ADR-062，设计者裁定）：**同时结算**，与炉石一致。
+    // 只要目标有攻击力，攻击方就吃下这一下 —— **哪怕目标已被打死**。
+    // 目标 0 攻则无伤害；攻击方身上的「圣盾」（immune_damage）会在 dealDamage 里
+    // 消耗一层并免掉本次伤害，这才是唯一的免疫途径。
+    // 「无双」（攻击不受反击）已取消（ADR-054），分支一并移除。
+    if (retaliate > 0) {
       dealDamage(state, ctx.cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? '反击');
       const back = getUnit(state, side, from.row, from.col);
       if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, 'on_damaged', rng, events);

@@ -1829,7 +1829,6 @@ var Core = (() => {
     }
     if (!target) return false;
     const dmg = effectiveAttack(state, side, from.row, from.col);
-    const hasWuShuang = hasKeyword(attacker, "wu_shuang");
     const hasYinXue = hasKeyword(attacker, "yin_xue");
     const foe = other(side);
     events.push({ type: "ATTACK_DECLARED", side, from: { ...from }, to: target });
@@ -1843,11 +1842,10 @@ var Core = (() => {
       const targetUnit = getUnit(state, foe, tRow, tCol);
       const retaliate = effectiveAttack(state, foe, tRow, tCol);
       const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name);
-      const targetDied = !getUnit(state, foe, tRow, tCol);
       const hit = getUnit(state, foe, tRow, tCol);
       if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, "on_damaged", rng, events);
       if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);
-      if (!targetDied && !hasWuShuang) {
+      if (retaliate > 0) {
         dealDamage(state, ctx.cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? "\u53CD\u51FB");
         const back = getUnit(state, side, from.row, from.col);
         if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, "on_damaged", rng, events);

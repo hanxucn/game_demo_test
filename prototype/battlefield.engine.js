@@ -1001,8 +1001,9 @@ function animate(e) {
       var to = e.to && e.to.kind === 'lord' ? lordEl(e.to.side)
              : e.to ? unitEl(e.to.side, e.to.row, e.to.col) : null;
       if (from && to) CR.attack(from, to, null);
-      // 反击是"目标存活才发生"，0 攻目标与一击必杀都不会有反击 ——
-      // 玩家看不到任何数字就以为规则没生效，故主动说明原因。
+      // ADR-062：反击是**同时结算**的，打死目标也照样吃它这一下；
+      // 唯一没有反击的情形是目标 0 攻。玩家看不到数字时会以为规则没生效，
+      // 故这里主动说明原因。
       if (from && to && e.to && e.to.kind === 'unit') {
         var atk = statOf(to, '.cr-stat.atk');
         var rec = { attackerEl: from, targetEl: to, targetAtk: atk, seen: false, killed: false };
@@ -1056,6 +1057,16 @@ function animate(e) {
       }
       return 220;
     }
+    case 'STATUS_EXPIRED': {
+      // 圣盾（immune_damage）触发时 dealDamage 直接返回 0、只发 STATUS_EXPIRED，
+      // 不产生 DAMAGE 事件 —— 不提示的话玩家会以为"这一下怎么没掉血"。
+      if (e.status === 'sheng_dun_status' || e.status === 'sheng_dun') {
+        var sde = unitEl(e.side, e.row, e.col);
+        if (sde) CR.float(sde, '圣盾', 'is-buff', '免疫本次伤害');
+        return 320;
+      }
+      return 0;
+    }
     case 'UNIT_FLIPPED': {
       var fe2 = unitEl(e.side, e.row, e.col);
       if (fe2) CR.float(fe2, e.to === 'back' ? '翻面' : '翻回正面', 'is-nerf');
@@ -1076,10 +1087,7 @@ function animate(e) {
       if (de) {
         CR.float(de, '✝', 'is-dmg', e.unit ? e.unit.name : '');
         CR.die(de, null);
-        if (lastAttack && lastAttack.targetEl === de) {
-          lastAttack.killed = true;
-          CR.float(lastAttack.attackerEl, '击杀', 'is-buff', '不遭反击');
-        }
+        if (lastAttack && lastAttack.targetEl === de) lastAttack.killed = true;
         return 520;
       }
       return 0;

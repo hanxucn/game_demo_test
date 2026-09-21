@@ -46,36 +46,55 @@ test('战斗：目标存活时反击', () => {
   assert.equal(getUnit(r.state, 'own', 'front', 0), null);
 });
 
-test('战斗：击杀目标则不反击（非先攻也成立）', () => {
+// ADR-062（设计者裁定）：攻击伤害**同时结算**，与炉石一致 ——
+// 只要目标有攻击力，攻击方就吃下这一下，**哪怕目标已被打死**。
+test('战斗：打死目标仍然遭受其反击（同时结算，ADR-062）', () => {
   const { state, ctx } = scenario({
-    own: { front: ['neutral_infantry'] },        // 2/1
+    own: { front: ['test_champion'] },           // 5/5
     enemy: { front: ['neutral_shieldman'] },     // 1/2（架盾，必须先打它）
   });
   const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
   assert.equal(r.ok, true);
-  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null);
-  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 1);   // 目标已死，未受反击
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null);        // 目标被打死
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 4);        // 仍吃了 1 点反击（5-1）
 });
 
-test('先攻：击杀目标则不受反击', () => {
+test('战斗：目标 0 攻则无反击伤害', () => {
   const { state, ctx } = scenario({
-    own: { front: ['test_champion'] },           // 5/5 先攻
-    enemy: { front: ['neutral_infantry'] },      // 2/1
+    own: { front: ['neutral_infantry'] },        // 2/1
+    enemy: { front: ['test_strategist'] },       // 0/3 谋臣
   });
   const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
   assert.equal(r.ok, true);
-  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null);
-  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 5);   // 未被反击
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 1);      // 3-2
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 1);        // 0 攻 → 无反击
 });
 
-test('无双：攻击时不受反击', () => {
+// 设计者原话：「除非是明显自己身上带有圣盾（免疫伤害的状态）的才能免疫此次伤害」
+test('战斗：攻击方带圣盾 → 免疫反击并消耗圣盾', () => {
   const { state, ctx } = scenario({
-    own: { front: ['test_assassin'] },           // 4/3 无双
+    own: { front: ['test_champion'] },
+    enemy: { front: ['test_champion'] },         // 5/5：反击 5 点，足以打死我
+  });
+  const me = getUnit(state, 'own', 'front', 0)!;
+  setUnit(state, 'own', 'front', 0, { ...me, statuses: { ...me.statuses, sheng_dun_status: { stacks: 1 } } });
+
+  const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
+  assert.equal(r.ok, true);
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 5, '圣盾应免掉这次反击伤害');
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.statuses.sheng_dun_status, undefined, '圣盾为一次性，触发后消耗');
+  assert.ok(r.events.some((e: GameEvent) => e.type === 'STATUS_EXPIRED' && e.status === 'sheng_dun_status'));
+});
+
+// 「无双」（攻击不受反击）已取消（ADR-054）；ADR-062 明确免疫只能靠圣盾
+test('已取消的「无双」不再免疫反击', () => {
+  const { state, ctx } = scenario({
+    own: { front: ['test_assassin'] },           // 4/3（测试卡仍带 wu_shuang 关键词）
     enemy: { front: ['neutral_shieldman'] },     // 1/2
   });
   const r = run(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 } });
   assert.equal(r.ok, true);
-  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 3);   // 未被反击
+  assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 2);        // 吃了 1 点反击（3-1）
 });
 
 test('阵亡：移除单位并触发遗计抽牌', () => {
