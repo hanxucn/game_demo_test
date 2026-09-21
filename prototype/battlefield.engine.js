@@ -177,11 +177,17 @@ function renderPanel(st) {
   // 敌方牌库/手牌：只给张数（不泄露内容），手牌另用一排卡背表示
   $('#foe-deck-num').textContent = f.deck.length;
   $('#foe-hand-num').textContent = f.hand.length;
+  // 敌方手牌：右侧面板里排一排，同时在战场上以卡背正面呈现（对称于我方手牌）
   var backs = '';
-  for (var k = 0; k < f.hand.length; k++) {
-    backs += '<i style="animation-delay:' + (k * 30) + 'ms"></i>';
-  }
+  for (var k = 0; k < f.hand.length; k++) backs += '<i></i>';
   $('#foe-hand-backs').innerHTML = backs;
+
+  var vis = '';
+  for (var v = 0; v < f.hand.length; v++) {
+    vis += '<i class="pback" style="animation-delay:' + (v * 26) + 'ms"></i>';
+  }
+  $('#foe-hand-visual').innerHTML = vis;
+  $('#foe-deck-visual-num').textContent = f.deck.length;
   var pips = '';
   for (var i = 0; i < 10; i++) pips += '<div class="pip' + (i < s.command.cur ? ' on' : '') + '"></div>';
   $('#cmd-pips').innerHTML = pips;

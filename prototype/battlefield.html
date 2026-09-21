@@ -324,6 +324,33 @@
   .panel .btn:active { transform: translateY(1px); }
 
   /* ---------- 手牌 ---------- */
+  /* ---------- 敌方手牌区（战场上方，对称于我下方的手牌） ---------- */
+  .foe-tray {
+    display: flex; align-items: center; gap: 8px;
+    padding: 2px 6px 3px; border-radius: 5px;
+    background: linear-gradient(180deg, rgba(10,7,5,.55) 0%, rgba(10,7,5,.15) 100%);
+    min-height: 24px;
+  }
+  .foe-deck {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 5px 1px 3px; border-radius: 3px;
+    background: rgba(12,9,6,.72); border: 1px solid #3d3226;
+  }
+  .foe-deck b { font-size: 9px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .foe-deck .pback, .foe-hand .pback {
+    display: block; border-radius: 2px;
+    background: linear-gradient(135deg, #5a2f2f 0%, #33191a 55%, #462424 100%);
+    box-shadow: inset 0 0 0 1px #8a5050, 0 1px 2px rgba(0,0,0,.6);
+  }
+  .foe-deck .pback { width: 13px; height: 18px; }
+  .foe-deck.is-drawing { animation: pileDraw .45s ease-out; }
+  .foe-hand { display: flex; gap: 2px; align-items: flex-end; min-height: 22px; }
+  .foe-hand .pback {
+    width: 16px; height: 22px;
+    animation: backIn .3s ease-out backwards;
+  }
+  .foe-hand .pback:hover { transform: translateY(-3px); }
+
   .hand {
     height: var(--hand-h);
     flex: 0 0 auto;
@@ -732,6 +759,15 @@
 
     <div class="arena">
       <div class="arena-inner">
+        <!-- 敌方手牌 + 牌库：以卡背正面呈现（对称于我下方的手牌），
+             对方手里几张牌一眼可见 —— 原先只在右侧面板里有个数字 -->
+        <div class="foe-tray">
+          <div class="foe-deck" id="foe-deck-visual" title="敌方牌库">
+            <i class="pback"></i><b id="foe-deck-visual-num">25</b>
+          </div>
+          <div class="foe-hand" id="foe-hand-visual"></div>
+        </div>
+
         <div class="lord-bar enemy" id="lord-enemy"></div>
 
         <div class="boards" id="boards">
