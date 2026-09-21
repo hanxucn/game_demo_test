@@ -45,7 +45,7 @@ bash tools/serve.sh          # → http://127.0.0.1:8099/prototype/battlefield.h
 
 # 引擎（core）
 cd core
-npm test          # 144 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
+npm test          # 148 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
 npm run typecheck # tsc --noEmit
 npm run validate  # 卡牌数据校验（结构 + 平衡 + value 块新鲜度）
 npm run verify:dsl  # 逐张跑真实卡牌的 DSL，端到端验证
@@ -89,6 +89,23 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 - 结算顺序严格遵循 `docs/gdd/10-skills-statuses.md` §4 的 23 步时机表
 - 新增效果动作（action）必须先注册到 DSL 类型表
 
+## Git 提交约定（重要）
+
+**AI 不要自行 `git commit`。** 每完成一处改动/修复后，向设计者报告：
+
+1. 改了什么、为什么改（含验证结果）
+2. 涉及哪些文件
+3. 建议的提交粒度与提交信息
+
+**由设计者决定**是继续改还是先提交。理由：AI 按"一个修复一个 commit"的节奏提交
+会把历史切得太碎，设计者需要自己掌控提交边界与节奏。
+
+- ✅ 允许：`git status` / `git diff` / `git log` / `git show` 等只读操作
+- ✅ 允许：在设计者明确要求时提交，或按设计者指定的粒度提交
+- ❌ 不要：改完就自动 `git add -A && git commit`
+- ⚠️ 不要用 `git add -A`（会把 `prototype/_probe.html` 等生成物带进版本库）
+  —— 只 add 自己确实改过的文件
+
 ## AI 使用边界
 
 | 让 AI 干 | 别让 AI 干 |
@@ -114,7 +131,7 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 ## 提交前检查清单
 
 - [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
-- [ ] `cd core && npm test` 全过（144/144）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
+- [ ] `cd core && npm test` 全过（148/148）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（总价值在预算内）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
 - [ ] 若产生新决策，已写入 `docs/gdd/14-open-questions.md` 的 ADR 表
