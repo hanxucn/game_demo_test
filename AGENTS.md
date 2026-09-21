@@ -40,6 +40,9 @@ python3 tools/yaml2json.py && python3 tools/build-data-bundle.py
 cd core && npm run build:browser && cd ..
 open prototype/battlefield.html
 
+# 需要本地服务器时用这个（发 no-store，避免改了 JS 刷新还在跑旧代码）
+bash tools/serve.sh          # → http://127.0.0.1:8099/prototype/battlefield.html
+
 # 引擎（core）
 cd core
 npm test          # 144 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
@@ -78,7 +81,9 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 ## 代码规范
 
 - TypeScript strict；`core` 内不允许 `any`
-- `core` 用 Node 原生类型剥离运行：`node --experimental-strip-types`（无需构建步骤）
+- `core` 用 Node 原生类型剥离运行：`node --experimental-strip-types`（无需构建步骤）。
+  **但浏览器原型跑的是 `prototype/core.bundle.js`** —— 改了 `core/src/*.ts` 后必须
+  `cd core && npm run build:browser`，否则页面仍跑旧引擎（症状：改了规则但行为不变）。
 - 随机数**只能**用 `core` 的确定性 RNG（`Rng`），禁止 `Math.random()`
   —— 否则 golden replay 无法复现
 - 结算顺序严格遵循 `docs/gdd/10-skills-statuses.md` §4 的 23 步时机表
