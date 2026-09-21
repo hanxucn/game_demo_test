@@ -217,6 +217,8 @@ export interface MatchState {
   uidSeq: number;
   rngState: number;
   turn: number;
+  /** 完整回合数（双方各行动一次 = 一个完整回合，ADR-061）；统率值按它增长 */
+  round: number;
   active: Side;
   sides: Record<Side, SideState>;
   winner: Side | 'draw' | null;

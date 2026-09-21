@@ -486,6 +486,7 @@ var Core = (() => {
       uidSeq: 0,
       rngState: rng.getState(),
       turn: 0,
+      round: 1,
       active: firstSide,
       secondCompensation,
       sides: { own: makeSide("own"), enemy: makeSide("enemy") },
@@ -1733,7 +1734,13 @@ var Core = (() => {
     state.turn += 1;
     const side = state.active;
     const s = state.sides[side];
-    s.command.max = Math.min(COMMAND.MAX, s.command.max + 1);
+    const round = Math.ceil(state.turn / 2);
+    if (round > state.round) {
+      state.round = round;
+      for (const sd of ["own", "enemy"]) {
+        state.sides[sd].command.max = Math.min(COMMAND.MAX, state.sides[sd].command.max + 1);
+      }
+    }
     const duan = lordStatusStacks(s.lord, "duan_liang");
     s.command.cur = Math.max(0, s.command.max - duan);
     s.lord.skillUsedThisTurn = false;

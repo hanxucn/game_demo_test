@@ -122,7 +122,16 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   const side = state.active;
   const s = state.sides[side];
 
-  s.command.max = Math.min(COMMAND.MAX, s.command.max + 1);
+  // 统率值增长（ADR-061，设计者裁定）：双方都行动完才算一个完整回合，
+  // **完整回合结束后双方一起 +1**。早先的写法是在各自回合开始时给自己 +1 ——
+  // 先手方在自己第 1 回合就白拿 1 点（对手还没动过），同一"回合"里双方上限不等。
+  const round = Math.ceil(state.turn / 2);
+  if (round > state.round) {
+    state.round = round;
+    for (const sd of ['own', 'enemy'] as Side[]) {
+      state.sides[sd].command.max = Math.min(COMMAND.MAX, state.sides[sd].command.max + 1);
+    }
+  }
   // 断粮：主公状态「断粮」按层数削减本回合统率上限（ADR-040）
   const duan = lordStatusStacks(s.lord, 'duan_liang');
   s.command.cur = Math.max(0, s.command.max - duan);

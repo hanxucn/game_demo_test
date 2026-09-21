@@ -1,7 +1,7 @@
 meta:
   version: v1
   status: 初步定稿（待 DSL 翻译与数值校验）
-  generated: '2026-09-20'
+  generated: '2026-09-21'
   note: 本文件由工具生成，数据源为 cards_photo.draft.yaml + characters.draft.yaml。不要手改。
   skipped:
   - photo: 45

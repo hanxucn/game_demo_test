@@ -119,6 +119,7 @@ function newGame() {
 
 function renderAll() {
   var st = session.state;
+  if (drawnThisAction) highlightNewHandCard();
   renderLords(st);
   renderPanel(st);
   renderBoard(st);
@@ -157,12 +158,30 @@ function renderLords(st) {
   });
 }
 
+/** 起牌后把最新一张手牌弹一下，明确"刚抽到的是这张" */
+function highlightNewHandCard() {
+  var cards = $all('#hand .hcard-wrap');
+  var el = cards[cards.length - 1];
+  if (!el) return;
+  el.classList.add('cr-land-bounce');
+  setTimeout(function () { el.classList.remove('cr-land-bounce'); }, 420);
+}
+
 function renderPanel(st) {
   var s = st.sides.own;
+  var f = st.sides.enemy;
   $('#cmd-num').innerHTML = s.command.cur + '<small> / ' + s.command.max + '</small>';
   $('#turn-num').textContent = st.turn;
   $('#hand-num').textContent = s.hand.length;
   $('#deck-num').textContent = s.deck.length;
+  // 敌方牌库/手牌：只给张数（不泄露内容），手牌另用一排卡背表示
+  $('#foe-deck-num').textContent = f.deck.length;
+  $('#foe-hand-num').textContent = f.hand.length;
+  var backs = '';
+  for (var k = 0; k < f.hand.length; k++) {
+    backs += '<i style="animation-delay:' + (k * 30) + 'ms"></i>';
+  }
+  $('#foe-hand-backs').innerHTML = backs;
   var pips = '';
   for (var i = 0; i < 10; i++) pips += '<div class="pip' + (i < s.command.cur ? ' on' : '') + '"></div>';
   $('#cmd-pips').innerHTML = pips;
@@ -185,6 +204,8 @@ function renderBoard(st) {
           var wrap = document.createElement('div');
           wrap.className = 'unit-wrap';
           wrap.dataset.uid = u.uid;
+          // 拖拽攻击的落点解析靠这三个坐标（dropAt → ATTACK 的 to）
+          wrap.dataset.side = side; wrap.dataset.row = row; wrap.dataset.col = String(col);
           // 不能攻击的单位置灰（已攻击过 / 本回合入场 / 被震慑）
           if (side === 'own' && !Core.canAttack(st, 'own', row, col).ok) wrap.classList.add('is-tired');
           var flipped = !!(u.statuses && u.statuses.fan_mian);
@@ -201,6 +222,13 @@ function renderBoard(st) {
             if (sb) sb.addEventListener('click', function (e) {
               e.stopPropagation();
               onUnitSkillClick(row, col, skill);
+            });
+          }
+          if (side === 'own') {
+            wrap.addEventListener('pointerdown', function (e) {
+              if (e.target.closest('.cr-skillbtn')) return;   // 「技」按钮不拖拽
+              if (drag) return;
+              startUnitDrag(e, row, col, wrap);
             });
           }
           wrap.addEventListener('click', function (e) {
@@ -370,6 +398,7 @@ function startDrag(e, index, card, wrap) {
   wrap.classList.add('is-dragging');
 
   drag = {
+    kind: 'card',
     index: index, card: card, wrap: wrap, ghost: ghost,
     dx: e.clientX - rect.left, dy: e.clientY - rect.top,
   };
@@ -380,6 +409,46 @@ function startDrag(e, index, card, wrap) {
   });
   showDetail('拖到战场放置', card.name + '（' + card.cost + ' 费）', '绿色格子为可放置位置');
 
+  bindDragEvents();
+}
+
+/** 攻击拖拽：抓住战场上的单位，拖到敌方人物卡或主将上（与出牌同一套手感） */
+function startUnitDrag(e, row, col, wrap) {
+  if (busy || session.state.winner || session.state.active !== 'own') return;
+  if (e.button !== undefined && e.button !== 0) return;
+
+  var chk = Core.canAttack(session.state, 'own', row, col);
+  var legal = Core.legalTargets(session.state, 'own', row, col);
+  // 不能攻击就不进入拖拽，交给 click 去走"看详情"
+  if (!chk.ok || !legal.targets.length) return;
+  e.preventDefault();
+
+  var rect = wrap.getBoundingClientRect();
+  var ghost = wrap.cloneNode(true);
+  ghost.classList.add('drag-ghost');
+  ghost.style.width = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  document.body.appendChild(ghost);
+  wrap.classList.add('is-dragging');
+
+  drag = {
+    kind: 'unit',
+    row: row, col: col, wrap: wrap, ghost: ghost,
+    dx: e.clientX - rect.left, dy: e.clientY - rect.top,
+  };
+
+  sel = { row: row, col: col };
+  renderLanes(session.state);            // 复用点击选中时的高亮（函数名是 renderLanes）
+  var u = session.state.sides.own.rows[row][col];
+  showDetail('拖到目标发起攻击', u.name + ' ' + u.atk + '/' + u.hp,
+    '可拖到高亮的敌方人物卡或其主将上');
+
+  bindDragEvents();
+}
+
+function bindDragEvents() {
   window.addEventListener('pointermove', onDragMove);
   window.addEventListener('pointerup', onDragEnd);
   window.addEventListener('pointercancel', onDragEnd);
@@ -390,9 +459,16 @@ function onDragMove(e) {
   drag.ghost.style.left = (e.clientX - drag.dx) + 'px';
   drag.ghost.style.top = (e.clientY - drag.dy) + 'px';
 
-  var slot = slotAt(e.clientX, e.clientY);
-  $all('.slot.is-hover').forEach(function (el) { el.classList.remove('is-hover'); });
-  if (slot && slot.classList.contains('is-placeable')) slot.classList.add('is-hover');
+  $all('.slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover').forEach(function (el) {
+    el.classList.remove('is-hover');
+  });
+  var t = dropAt(e.clientX, e.clientY);
+  if (!t) return;
+  if (drag.kind === 'card' && t.kind === 'slot' && t.el.classList.contains('is-placeable')) {
+    t.el.classList.add('is-hover');
+  } else if (drag.kind === 'unit' && (t.kind === 'unit' || t.kind === 'lord')) {
+    if (t.el.classList.contains('is-target')) t.el.classList.add('is-hover');
+  }
 }
 
 function onDragEnd(e) {
@@ -401,33 +477,54 @@ function onDragEnd(e) {
   window.removeEventListener('pointerup', onDragEnd);
   window.removeEventListener('pointercancel', onDragEnd);
 
-  var slot = slotAt(e.clientX, e.clientY);
-  var valid = slot && slot.classList.contains('is-placeable');
+  var t = dropAt(e.clientX, e.clientY);
   var d = drag;
   drag = null;
 
   d.ghost.remove();
   d.wrap.classList.remove('is-dragging');
-  $all('.slot.is-placeable, .slot.is-hover').forEach(function (el) {
+  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover').forEach(function (el) {
     el.classList.remove('is-placeable', 'is-hover');
   });
 
-  if (valid && slot) {
+  if (d.kind === 'card') {
+    if (t && t.kind === 'slot' && t.el.classList.contains('is-placeable')) {
+      doAction({
+        type: 'PLAY_CARD', cardIndex: d.index,
+        row: t.el.dataset.row, col: Number(t.el.dataset.col),
+      });
+    } else {
+      clearMarks();
+      showDetail('取消放置', d.card.name, '拖到绿色格子才能放置');
+    }
+    return;
+  }
+
+  // 攻击拖拽：落点必须是高亮过的合法目标，合法性一律由 Core.legalTargets 判定
+  if (t && t.kind === 'unit' && t.el.classList.contains('is-target')) {
     doAction({
-      type: 'PLAY_CARD', cardIndex: d.index,
-      row: slot.dataset.row, col: Number(slot.dataset.col),
+      type: 'ATTACK', from: { row: d.row, col: d.col },
+      to: { kind: 'unit', row: t.el.dataset.row, col: Number(t.el.dataset.col) },
     });
+  } else if (t && t.kind === 'lord' && t.el.classList.contains('is-target')) {
+    doAction({ type: 'ATTACK', from: { row: d.row, col: d.col }, to: { kind: 'lord' } });
   } else {
     clearMarks();
-    showDetail('取消放置', d.card.name, '拖到绿色格子才能放置');
+    sel = null;
+    showDetail('取消攻击', '', '拖到高亮的敌方人物卡或其主将上才能攻击');
   }
 }
 
-/** 找到坐标下的格子（拖拽幽灵元素设了 pointer-events:none，不会拦截） */
-function slotAt(x, y) {
+/** 落点解析：战场单位 / 主将条 / 格子（拖拽幽灵设了 pointer-events:none，不会拦截） */
+function dropAt(x, y) {
   var el = document.elementFromPoint(x, y);
-  while (el && !el.classList.contains('slot')) el = el.parentElement;
-  return el;
+  for (var n = el; n; n = n.parentElement) {
+    if (!n.classList) continue;
+    if (n.classList.contains('unit-wrap')) return { kind: 'unit', el: n };
+    if (n.classList.contains('lord-bar')) return { kind: 'lord', el: n };
+    if (n.classList.contains('slot')) return { kind: 'slot', el: n };
+  }
+  return null;
 }
 
 /* ============================================================
@@ -677,6 +774,8 @@ function doAction(action) {
    ============================================================ */
 
 var LOG_MAX = 300;
+var lastAttack = null;        // 本次攻击，用于在"没有反击"时说明原因
+var drawnThisAction = false;  // 本次结算抽过牌 → renderAll 后高亮最新手牌
 var SIDE_NAME = { own: '我方', enemy: '敌方' };
 var STATUS_NAME = null;
 
@@ -768,6 +867,8 @@ function logEvents(events) {
 
 function playEvents(events, done) {
   logEvents(events);
+  lastAttack = null;
+  drawnThisAction = false;
   var queue = events.slice();
   (function next() {
     if (!queue.length) { done(); return; }
@@ -775,6 +876,33 @@ function playEvents(events, done) {
     var wait = animate(e);
     if (wait > 0) setTimeout(next, wait); else next();
   })();
+}
+
+/** 读卡面上某个数字（攻/血），用于判断"会不会有反击" */
+function statOf(el, sel) {
+  var n = el && el.querySelector(sel);
+  if (!n) return null;
+  var v = parseInt(String(n.textContent).replace(/[^0-9-]/g, ''), 10);
+  return isNaN(v) ? null : v;
+}
+
+/** 一张卡背从牌堆飞到手牌（起牌的可见反馈） */
+function flyCardBack(fromEl, toEl) {
+  var a = fromEl.getBoundingClientRect();
+  var b = toEl.getBoundingClientRect();
+  var g = document.createElement('div');
+  g.className = 'cr-flying';
+  g.style.cssText = 'width:15px;height:21px;border-radius:2px;'
+    + 'background:linear-gradient(135deg,#5a4a2e 0%,#2a1f12 55%,#3a2c1a 100%);'
+    + 'box-shadow:inset 0 0 0 1px #8a7048;';
+  g.style.left = a.left + 'px';
+  g.style.top = a.top + 'px';
+  document.body.appendChild(g);
+  var dx = (b.left + b.width / 2) - (a.left + a.width / 2);
+  var dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+  void g.offsetWidth;
+  g.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(1.35)';
+  setTimeout(function () { g.remove(); }, 400);
 }
 
 function unitEl(side, row, col) {
@@ -831,6 +959,19 @@ function insertUnitNow(e) {
 
 function animate(e) {
   switch (e.type) {
+    case 'CARD_DRAWN': {
+      // 起牌原先是"日志里多一行"，肉眼几乎察觉不到 —— 现改为
+      // 牌堆闪光 + 一张卡背从牌堆飞向手牌，并记下待高亮的手牌序号。
+      var pile = $(e.side === 'own' ? '#own-deck-pile' : '#foe-deck-pile');
+      var hp2 = $(e.side === 'own' ? '#own-hand-pile' : '#foe-hand-pile');
+      if (pile) {
+        pile.classList.add('is-drawing');
+        setTimeout(function () { pile.classList.remove('is-drawing'); }, 460);
+      }
+      if (pile && hp2) flyCardBack(pile, hp2);
+      if (e.side === 'own') drawnThisAction = true;
+      return 300;
+    }
     case 'CARD_PLAYED': {
       if (e.row === undefined) {
         // 战法 / 事件卡：没有落点，用整块战场闪光表示"技能释放"
@@ -859,13 +1000,25 @@ function animate(e) {
       var from = unitEl(e.side, e.from.row, e.from.col);
       var to = e.to && e.to.kind === 'lord' ? lordEl(e.to.side)
              : e.to ? unitEl(e.to.side, e.to.row, e.to.col) : null;
-      if (from && to) { CR.attack(from, to, null); return 300; }
-      return 0;
+      if (from && to) CR.attack(from, to, null);
+      // 反击是"目标存活才发生"，0 攻目标与一击必杀都不会有反击 ——
+      // 玩家看不到任何数字就以为规则没生效，故主动说明原因。
+      if (from && to && e.to && e.to.kind === 'unit') {
+        var atk = statOf(to, '.cr-stat.atk');
+        var rec = { attackerEl: from, targetEl: to, targetAtk: atk, seen: false, killed: false };
+        lastAttack = rec;
+        setTimeout(function () {
+          if (lastAttack !== rec || rec.seen || rec.killed) return;
+          if (atk === 0) CR.float(from, '无反击', 'is-nerf', '对方 0 攻');
+        }, 760);
+      }
+      return 300;
     }
     case 'DAMAGE': {
       var el = e.target.kind === 'lord' ? lordEl(e.target.side)
              : unitEl(e.target.side, e.target.row, e.target.col);
       var f = damageFlavor(e);
+      if (e.source === '反击' && lastAttack) lastAttack.seen = true;
       if (el) {
         el.classList.add('cr-hit');
         setTimeout(function () { el.classList.remove('cr-hit'); }, 320);
@@ -923,6 +1076,10 @@ function animate(e) {
       if (de) {
         CR.float(de, '✝', 'is-dmg', e.unit ? e.unit.name : '');
         CR.die(de, null);
+        if (lastAttack && lastAttack.targetEl === de) {
+          lastAttack.killed = true;
+          CR.float(lastAttack.attackerEl, '击杀', 'is-buff', '不遭反击');
+        }
         return 520;
       }
       return 0;

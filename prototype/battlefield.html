@@ -270,6 +270,38 @@
   .panel .pips { display: flex; gap: 2px; margin-top: 4px; }
   .panel .pip { flex: 1 1 0; height: 6px; border-radius: 2px; background: #2a231c; box-shadow: inset 0 0 0 1px #3a3229; }
   .panel .pip.on { background: linear-gradient(180deg, #ffe9b0, var(--gold)); box-shadow: 0 0 6px rgba(212,175,106,.55); }
+
+  /* 牌堆：用卡背表示，双方各一库一手 —— 敌方不再是"看不见的张数" */
+  .panel .pile-row { display: flex; align-items: center; gap: 6px; }
+  .panel .pile-row > .label { flex: 0 0 30px; }
+  .panel .pile {
+    position: relative; display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px 2px 4px; border-radius: 4px;
+    background: rgba(12,9,6,.7); border: 1px solid #3d3226;
+  }
+  .panel .pile b { font-size: 11px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .panel .pile .pback {
+    display: block; width: 13px; height: 18px; border-radius: 2px;
+    background: linear-gradient(135deg, #4a3a24 0%, #2a1f12 55%, #3a2c1a 100%);
+    box-shadow: inset 0 0 0 1px #6b5636, inset 0 0 5px rgba(255,200,120,.22);
+  }
+  /* 抽牌时牌堆闪一下，配合飞向手牌的卡背 */
+  .panel .pile.is-drawing { animation: pileDraw .45s ease-out; }
+  @keyframes pileDraw {
+    0% { box-shadow: 0 0 0 0 rgba(255,214,140,.85); border-color: var(--gold-hi); }
+    100% { box-shadow: 0 0 0 12px rgba(255,214,140,0); border-color: #3d3226; }
+  }
+  .foe-hand-backs { display: flex; gap: 2px; margin-top: 6px; min-height: 20px; flex-wrap: wrap; }
+  .foe-hand-backs i {
+    display: block; width: 13px; height: 19px; border-radius: 2px;
+    background: linear-gradient(135deg, #5a2f2f 0%, #33191a 55%, #462424 100%);
+    box-shadow: inset 0 0 0 1px #8a5050;
+    animation: backIn .28s ease-out backwards;
+  }
+  @keyframes backIn {
+    0% { opacity: 0; transform: translateY(-6px) scale(.7); }
+    100% { opacity: 1; transform: none; }
+  }
   .panel .row2 { display: flex; justify-content: space-between; }
   .panel .row2 b { color: var(--ink); font-weight: 700; }
   .panel .btn {
@@ -719,8 +751,30 @@
         <div class="box">
           <div class="row2"><span class="label">回 合</span><b id="turn-num">1</b></div>
           <div class="row2" style="margin-top:4px"><span class="label">当 前</span><b id="turn-side" class="turn-side own">我方回合</b></div>
-          <div class="row2" style="margin-top:4px"><span class="label">牌 库</span><b id="deck-num">25</b></div>
-          <div class="row2" style="margin-top:4px"><span class="label">手 牌</span><b id="hand-num">5</b></div>
+        </div>
+
+        <!-- 双方牌堆：都用卡背表示，敌方不再"看不见" -->
+        <div class="box">
+          <div class="pile-row">
+            <span class="label">我 方</span>
+            <span class="pile" id="own-deck-pile" title="我方牌库">
+              <i class="pback"></i><b id="deck-num">25</b>
+            </span>
+            <span class="pile" id="own-hand-pile" title="我方手牌">
+              <i class="pback"></i><b id="hand-num">5</b>
+            </span>
+          </div>
+          <div class="pile-row" style="margin-top:5px">
+            <span class="label">敌 方</span>
+            <span class="pile" id="foe-deck-pile" title="敌方牌库">
+              <i class="pback"></i><b id="foe-deck-num">25</b>
+            </span>
+            <span class="pile" id="foe-hand-pile" title="敌方手牌">
+              <i class="pback"></i><b id="foe-hand-num">5</b>
+            </span>
+          </div>
+          <!-- 敌方手牌：一张张卡背排开，张数一眼可见 -->
+          <div class="foe-hand-backs" id="foe-hand-backs"></div>
         </div>
         <div class="btn">结束回合</div>
       </div>

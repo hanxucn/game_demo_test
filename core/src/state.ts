@@ -101,6 +101,7 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
     uidSeq: 0,
     rngState: rng.getState(),
     turn: 0,
+    round: 1,
     active: firstSide,
     secondCompensation,
     sides: { own: makeSide('own'), enemy: makeSide('enemy') },

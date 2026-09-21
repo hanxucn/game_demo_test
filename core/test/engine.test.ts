@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { applyAction, startMatch } from '../src/engine.ts';
 import { createMatch, getUnit, makeUnit, setUnit } from '../src/state.ts';
 import { loadTestData, scenario } from './fixtures.ts';
+import { COMMAND } from '../src/constants.ts';
 import type { Action, CardDef, GameEvent } from '../src/types.ts';
 
 const run = (state: ReturnType<typeof scenario>['state'], ctx: ReturnType<typeof scenario>['ctx'], action: Action) =>
@@ -101,7 +102,7 @@ test('破阵：主将护甲优先吸收伤害', () => {
   assert.equal(r.state.sides.enemy.lord.hp, 30 - 3);
 });
 
-test('回合结束：换边、统率 +1、抽牌', () => {
+test('回合结束：换边、抽牌；统率在**完整回合**后双方同步 +1（ADR-061）', () => {
   const data = loadTestData();
   const base = createMatch({
     seed: 7, cards: data.cards, lords: data.lords,
@@ -111,12 +112,24 @@ test('回合结束：换边、统率 +1、抽牌', () => {
   const started = startMatch(base, ctx);
   assert.equal(started.state.turn, 1);
   assert.equal(started.state.active, 'own');
-  assert.equal(started.state.sides.own.command.max, 2);   // 1 → 2
+  assert.equal(started.state.round, 1);
+  // 第 1 个完整回合双方都用起始统率，谁都不额外白拿
+  assert.equal(started.state.sides.own.command.max, COMMAND.START);
+  assert.equal(started.state.sides.enemy.command.max, COMMAND.START);
 
+  // 敌方回合（同一完整回合内）——仍然不增长
   const r = applyAction(started.state, ctx, { type: 'END_TURN' });
   assert.equal(r.state.active, 'enemy');
   assert.equal(r.state.turn, 2);
-  assert.equal(r.state.sides.enemy.command.max, 2);
+  assert.equal(r.state.sides.enemy.command.max, COMMAND.START);
+  assert.equal(r.state.sides.own.command.max, COMMAND.START);
+
+  // 回到先手方 → 完整回合结束，**双方一起** +1
+  const r2 = applyAction(r.state, ctx, { type: 'END_TURN' });
+  assert.equal(r2.state.turn, 3);
+  assert.equal(r2.state.round, 2);
+  assert.equal(r2.state.sides.own.command.max, COMMAND.START + 1);
+  assert.equal(r2.state.sides.enemy.command.max, COMMAND.START + 1);
 });
 
 test('粮尽：牌库为空时抽牌受到递增伤害', () => {
