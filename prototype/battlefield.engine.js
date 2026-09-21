@@ -487,17 +487,22 @@ function onDragEnd(e) {
   var d = drag;
   drag = null;
 
+  // ⚠️ 落点合法性必须在 clearDropHighlights() **之前**判定 ——
+  // 它会把 is-placeable / is-target 一并抹掉，之后再查 classList 永远为假。
+  // 曾因此导致"费用够也放不下去"（出牌 100% 失败）。
+  var dropSlot = (t && t.kind === 'slot' && t.el.classList.contains('is-placeable')) ? t.el : null;
+  var dropUnit = (t && t.kind === 'unit' && t.el.classList.contains('is-target')) ? t.el : null;
+  var dropLord = (t && t.kind === 'lord' && t.el.classList.contains('is-target')) ? t.el : null;
+
   d.ghost.remove();
   d.wrap.classList.remove('is-dragging');
-  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover').forEach(function (el) {
-    el.classList.remove('is-placeable', 'is-hover');
-  });
+  clearDropHighlights();
 
   if (d.kind === 'card') {
-    if (t && t.kind === 'slot' && t.el.classList.contains('is-placeable')) {
+    if (dropSlot) {
       doAction({
         type: 'PLAY_CARD', cardIndex: d.index,
-        row: t.el.dataset.row, col: Number(t.el.dataset.col),
+        row: dropSlot.dataset.row, col: Number(dropSlot.dataset.col),
       });
     } else {
       clearMarks();
@@ -507,18 +512,28 @@ function onDragEnd(e) {
   }
 
   // 攻击拖拽：落点必须是高亮过的合法目标，合法性一律由 Core.legalTargets 判定
-  if (t && t.kind === 'unit' && t.el.classList.contains('is-target')) {
+  if (dropUnit) {
     doAction({
       type: 'ATTACK', from: { row: d.row, col: d.col },
-      to: { kind: 'unit', row: t.el.dataset.row, col: Number(t.el.dataset.col) },
+      to: { kind: 'unit', row: dropUnit.dataset.row, col: Number(dropUnit.dataset.col) },
     });
-  } else if (t && t.kind === 'lord' && t.el.classList.contains('is-target')) {
+  } else if (dropLord) {
     doAction({ type: 'ATTACK', from: { row: d.row, col: d.col }, to: { kind: 'lord' } });
   } else {
     clearMarks();
     sel = null;
     showDetail('取消攻击', '', '拖到高亮的敌方人物卡或其主将上才能攻击');
   }
+}
+
+/**
+ * 清除拖拽留下的高亮。
+ * ⚠️ 调用它会抹掉 is-placeable / is-target —— 任何"这个落点合法吗"的判断
+ * 都必须排在它前面（见 onDragEnd）。这个先后顺序曾经弄反过，代价是出牌完全失效。
+ */
+function clearDropHighlights() {
+  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover')
+    .forEach(function (el) { el.classList.remove('is-placeable', 'is-hover'); });
 }
 
 /** 落点解析：战场单位 / 主将条 / 格子（拖拽幽灵设了 pointer-events:none，不会拦截） */
