@@ -414,21 +414,77 @@
 
 
   /* ============ 开局流程覆盖层（阵营 → 构筑 → 换牌）============ */
+  /* 开局流程：居中的面板式舞台。
+     原先 #setup 是不透明全屏黑底 + 内容贴左上角，第 1 步内容又少，
+     看上去就像"整页全黑、没有 UI"（设计者实机反馈）。 */
   #setup {
-    /* z-index 必须高于 #hud(300)，否则调试面板会盖住开局界面（曾出现"整页全黑"） */
+    /* z-index 必须高于 #hud(300)，否则调试面板会盖住开局界面 */
     position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 500;
     display: none;
-    background: #0b0906; color: var(--ink);
-    flex-direction: column; padding: 10px 14px 12px;
+    background:
+      radial-gradient(120% 90% at 50% -10%, rgba(120,78,36,.42) 0%, transparent 62%),
+      linear-gradient(180deg, #17120c 0%, #0d0a06 58%, #0a0805 100%);
+    color: var(--ink);
+    align-items: center; justify-content: center;
+    padding: 14px;
     font-size: 12px; overflow: auto;
   }
   #setup.show { display: flex; }
   /* 开局流程期间隐藏调试面板与战斗日志 */
   body.is-setup #hud, body.is-setup #log, body.is-setup #detail { display: none !important; }
-  #setup h2 { margin: 0 0 2px; font-size: 15px; color: var(--gold-hi); letter-spacing: .08em; }
-  #setup .steps { display: flex; gap: 10px; margin: 6px 0 10px; font-size: 11px; color: var(--dim); }
+
+  /* 面板：三步共用同一套外框，第 1 步窄、第 2/3 步占满高度以便内层滚动 */
+  .s-panel {
+    width: 100%; max-width: 1120px;
+    display: flex; flex-direction: column; min-height: 0;
+    background: linear-gradient(180deg, rgba(34,26,16,.97) 0%, rgba(18,13,8,.98) 100%);
+    border: 1px solid #5c4a2e; border-radius: 10px;
+    box-shadow: 0 0 0 1px #241b10, 0 20px 56px rgba(0,0,0,.78),
+                inset 0 1px 0 rgba(255,226,170,.09);
+    padding: 16px 20px 18px;
+  }
+  .s-panel.is-narrow { max-width: 560px; }
+  .s-panel.is-tall { height: calc(100vh - 28px); }
+
+  #setup h2 { margin: 0 0 2px; font-size: 17px; color: var(--gold-hi); letter-spacing: .08em;
+              text-shadow: 0 1px 0 #000, 0 0 14px rgba(255,200,110,.28); }
+  #setup .sub { font-size: 11px; color: var(--dim); margin-bottom: 2px; }
+  #setup .steps { display: flex; gap: 10px; margin: 8px 0 12px; font-size: 11px; color: var(--dim); }
   #setup .steps b { color: var(--gold); }
   #setup .steps .on { color: var(--ink); font-weight: 700; }
+
+  /* ---------- 第 1 步：阵营选择卡片 ---------- */
+  #setup .frow { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  #setup .frow > .lab { flex: 0 0 34px; color: var(--dim); font-size: 11px; }
+  #setup .fcard {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
+    padding: 9px 6px 8px;
+    background: linear-gradient(180deg, rgba(52,40,24,.9), rgba(30,22,13,.9));
+    border: 1px solid #54432a; border-radius: 8px;
+    color: var(--ink); cursor: pointer;
+    transition: transform .12s ease-out, box-shadow .12s ease-out, border-color .12s;
+  }
+  #setup .fcard:hover { transform: translateY(-2px); border-color: var(--gold); }
+  #setup .fcard .fname { font-size: 18px; font-weight: 700; line-height: 1.1; }
+  #setup .fcard .flord { font-size: 11px; color: var(--dim); }
+  #setup .fcard .fskill { font-size: 10px; color: var(--gold); letter-spacing: .04em; }
+  #setup .fcard.on {
+    border-color: var(--gold-hi);
+    box-shadow: 0 0 0 1px var(--gold-hi), 0 0 20px rgba(255,200,110,.4), inset 0 0 22px rgba(255,190,90,.16);
+    transform: translateY(-2px);
+  }
+  #setup .fcard.on .fname { color: var(--gold-hi); }
+  /* 阵营主色描边，与战场卡面同一套色 */
+  #setup .fcard.fac-shu.on  { border-color: #6fbf73; box-shadow: 0 0 0 1px #6fbf73, 0 0 20px rgba(111,191,115,.45); }
+  #setup .fcard.fac-wei.on  { border-color: #6fa8d8; box-shadow: 0 0 0 1px #6fa8d8, 0 0 20px rgba(111,168,216,.45); }
+  #setup .fcard.fac-wu.on   { border-color: #d8a06f; box-shadow: 0 0 0 1px #d8a06f, 0 0 20px rgba(216,160,111,.45); }
+
+  #setup .rules {
+    margin: 12px 0 0; padding: 10px 12px;
+    background: rgba(10,7,4,.5); border: 1px solid #3d3020; border-radius: 6px;
+    color: var(--dim); font-size: 11px; line-height: 1.85;
+  }
+  #setup .rules b { color: var(--gold); }
   #setup .body { flex: 1; display: flex; gap: 12px; min-height: 0; }
   #setup .col { display: flex; flex-direction: column; min-height: 0; }
   #setup .col.pool { flex: 1.35; }

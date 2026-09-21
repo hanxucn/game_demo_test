@@ -77,23 +77,44 @@
   /* ---------- 第 1 步：阵营 ---------- */
   function viewFaction() {
     var fs = Core.PLAYABLE_FACTIONS;
+    // 三家的主公都在原始数据包里；data.lords 只有 {own, enemy} 两个占位，
+    // 而这一步恰恰还没选阵营 —— 所以必须读 GameData.heroes。
+    var heroes = (window.GameData && window.GameData.heroes) || [];
+
+    function lordOf(f) {
+      for (var i = 0; i < heroes.length; i++) {
+        if (heroes[i].faction === f && heroes[i].type === 'lord') return heroes[i];
+      }
+      return null;
+    }
     function pick(sel, which) {
       return fs.map(function (f) {
-        return '<button data-set="' + which + '" data-f="' + f + '" class="' + (sel === f ? 'on' : '') + '">'
-          + FAC_NAME[f] + '</button>';
+        var l = lordOf(f);
+        var sk = l && l.skills && l.skills[0];
+        return '<button class="fcard fac-' + f + (sel === f ? ' on' : '') + '"'
+          + ' data-set="' + which + '" data-f="' + f + '">'
+          + '<b class="fname">' + FAC_NAME[f] + '</b>'
+          + '<span class="flord">' + (l ? l.name + ' · ' + l.hp + ' 血' : '') + '</span>'
+          + '<span class="fskill">' + (sk ? sk.name : '') + '</span>'
+          + '</button>';
       }).join('');
     }
-    return '<h2>《酒话三国》· 对局设置</h2>' + steps(0)
-      + '<div style="margin:10px 0 4px">我方阵营：<span class="filters">' + pick(ownFaction, 'own') + '</span></div>'
-      + '<div style="margin:6px 0 4px">敌方阵营：<span class="filters">' + pick(enemyFaction, 'enemy') + '</span></div>'
-      + '<div style="color:var(--dim);margin-top:10px;line-height:1.7">'
+
+    return '<div class="s-panel is-narrow">'
+      + '<h2>《酒话三国》</h2>'
+      + '<div class="sub">选择双方阵营 · 主公由阵营自动任命</div>'
+      + steps(0)
+      + '<div class="frow"><span class="lab">我方</span>' + pick(ownFaction, 'own') + '</div>'
+      + '<div class="frow"><span class="lab">敌方</span>' + pick(enemyFaction, 'enemy') + '</div>'
+      + '<div class="rules">'
       + '· 卡组 30 张，同名上限 2 张<br>'
       + '· 可用卡池 = <b>本方阵营</b> + <b>公共池</b>（中立 + 群雄），群雄不是可选阵营<br>'
       + '· 主公由阵营自动任命，不进卡组<br>'
       + '· 先手由掷点决定，后手第 1 回合多抽 1 张（补偿先手优势）'
       + '</div>'
-      + '<div class="acts" style="margin-topauto;margin-top:16px">'
-      + '<button class="primary" data-act="toDeck">下一步：构筑卡组</button></div>';
+      + '<div class="acts" style="margin-top:16px">'
+      + '<button class="primary" data-act="toDeck">下一步：构筑卡组</button></div>'
+      + '</div>';
   }
 
   /* ---------- 第 2 步：构筑 ---------- */
@@ -178,7 +199,8 @@
       msg += '<div class="ok">✓ 卡组合法（30 张，同名 ≤2）</div>';
     }
 
-    return '<h2>构筑卡组 · ' + FAC_NAME[ownFaction] + ' vs ' + FAC_NAME[enemyFaction] + '</h2>' + steps(1)
+    return '<div class="s-panel is-tall">'
+      + '<h2>构筑卡组 · ' + FAC_NAME[ownFaction] + ' vs ' + FAC_NAME[enemyFaction] + '</h2>' + steps(1)
       + '<div class="body">'
       + '<div class="col pool"><div class="hd"><span class="t">可用卡池</span>'
       + '<span class="filters">' + costBtns + '</span></div>'
@@ -197,7 +219,7 @@
       + '<div class="acts">'
       + '<button data-act="back">← 上一步</button>'
       + '<button class="primary" data-act="toMulligan"' + (chk.ok ? '' : ' disabled') + '>下一步：换牌</button>'
-      + '</div></div></div>';
+      + '</div></div></div></div>';   // acts + col.deck + body + .s-panel
   }
 
   /* ---------- 第 3 步：换牌 ---------- */
@@ -215,7 +237,8 @@
         + '</div>';
     }).join('');
     var n = Object.keys(mulliganOut).length;
-    return '<h2>换牌</h2>' + steps(2)
+    return '<div class="s-panel is-tall">'
+      + '<h2>换牌</h2>' + steps(2)
       + '<div style="color:var(--dim);margin-bottom:8px">'
       + (first ? '你是<b>先手</b>（起手 3 张）' : '你是<b>后手</b>（起手 4 张 + 第 1 回合多抽 1 张）')
       + '　·　点卡牌标记要换掉的，换 N 张补 N 张　·　<b>每局只有一次机会</b>'
@@ -225,6 +248,7 @@
       + '<div class="acts">'
       + '<button data-act="backDeck">← 回构筑</button>'
       + '<button class="primary" data-act="start">开始对局</button>'
+      + '</div>'
       + '</div>';
   }
 
