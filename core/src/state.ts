@@ -100,8 +100,8 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
     seed,
     uidSeq: 0,
     rngState: rng.getState(),
-    turn: 0,
-    round: 1,
+    turn: 1,          // 完整回合数：开局即第 1 个完整回合
+    halfTurn: 0,      // 半回合数：第一次 startTurn 后变 1
     active: firstSide,
     secondCompensation,
     sides: { own: makeSide('own'), enemy: makeSide('enemy') },

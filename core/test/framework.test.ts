@@ -125,7 +125,7 @@ test('后手补偿·多抽 1 张（ADR-053）：后手第 1 回合抽 2 张', ()
     const before = st.sides[second].hand.length;
     const gained = comp === 'extra_draw' ? 2 : 1;
     assert.equal(st.sides[second].hand.length, before, '起手张数不受补偿方式影响');
-    // 模拟进入后手第 1 回合（state.turn 从 1 起，后手回合 turn=2）
+    // 模拟进入后手第 1 回合（后手是该完整回合的第 2 个半回合，故 halfTurn=2）
     void gained;
   }
 });
@@ -458,11 +458,14 @@ test('后手补偿·多抽 1 张：机制确实生效（后手第 1 回合抽 2 
       draws: r.events.filter((e) => e.type === 'CARD_DRAWN').length,
       hand: r.state.sides.enemy.hand.length,
       turn: r.state.turn,
+      halfTurn: r.state.halfTurn,
     };
   };
   const a = run('none'), b = run('extra_draw');
   assert.equal(a.hand0, 4, '后手起手 4 张（两种补偿方式都一样）');
-  assert.equal(a.turn, 2, '后手第 1 回合的 turn 应为 2');
+  // ADR-064：后手第 1 回合仍属**第 1 个完整回合**（它只是第 2 个半回合）
+  assert.equal(a.halfTurn, 2, '后手是该完整回合的第 2 个半回合');
+  assert.equal(a.turn, 1, '后手第 1 回合的 turn 仍是 1');
   assert.equal(a.draws, 1, '无补偿：抽 1 张');
   assert.equal(a.hand, 5);
   assert.equal(b.draws, 2, '多抽补偿：抽 2 张');
@@ -695,7 +698,7 @@ test('技能伤害同样扣血并可致阵亡', async () => {
    战场单位的攻击全链路（设计者要求确认）
    ============================================================ */
 
-test('统率曲线：完整回合 1 双方各 1 → 完整回合 2 双方各 2（ADR-061）', async () => {
+test('回合数与统率同步：双方各行动一次才推进（ADR-061/064）', async () => {
   const { createMatch } = await import('../src/state.ts');
   const d = qun();
   const base = createMatch({
@@ -708,20 +711,20 @@ test('统率曲线：完整回合 1 双方各 1 → 完整回合 2 双方各 2�
 
   // 完整回合 1：双方都是起始统率，谁都不额外白拿
   assert.equal(s.turn, 1);
-  assert.equal(s.round, 1);
+  assert.equal(s.halfTurn, 1);
   assert.equal(s.sides.own.command.max, COMMAND.START);
   assert.equal(s.sides.enemy.command.max, COMMAND.START);
 
-  // 后手方行动时仍属同一完整回合 → 不增长
+  // 后手方开始行动 —— 同一个完整回合，turn 与统率都不动
   s = applyAction(s, ctx, { type: 'END_TURN' }).state;
-  assert.equal(s.turn, 2);
-  assert.equal(s.round, 1);
+  assert.equal(s.halfTurn, 2);
+  assert.equal(s.turn, 1, '后手方还没行动完 → 仍是第 1 回合');
   assert.equal(s.sides.enemy.command.max, COMMAND.START);
 
-  // 回到先手方 = 完整回合结束 → **双方一起** +1
+  // 回到先手方 = 完整回合结束 → turn +1，且**双方**统率一起 +1
   s = applyAction(s, ctx, { type: 'END_TURN' }).state;
-  assert.equal(s.turn, 3);
-  assert.equal(s.round, 2);
+  assert.equal(s.halfTurn, 3);
+  assert.equal(s.turn, 2);
   assert.equal(s.sides.own.command.max, COMMAND.START + 1);
   assert.equal(s.sides.enemy.command.max, COMMAND.START + 1, '双方上限必须一致');
 });

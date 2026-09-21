@@ -121,7 +121,7 @@ test('破阵：主将护甲优先吸收伤害', () => {
   assert.equal(r.state.sides.enemy.lord.hp, 30 - 3);
 });
 
-test('回合结束：换边、抽牌；统率在**完整回合**后双方同步 +1（ADR-061）', () => {
+test('回合结束：换边、抽牌；turn 与统率都在**完整回合**后 +1（ADR-061/064）', () => {
   const data = loadTestData();
   const base = createMatch({
     seed: 7, cards: data.cards, lords: data.lords,
@@ -129,24 +129,25 @@ test('回合结束：换边、抽牌；统率在**完整回合**后双方同步 
   });
   const ctx = { cards: data.cards, lords: data.lords };
   const started = startMatch(base, ctx);
-  assert.equal(started.state.turn, 1);
+  assert.equal(started.state.turn, 1, '开局即第 1 个完整回合');
+  assert.equal(started.state.halfTurn, 1, '先手方是第 1 个半回合');
   assert.equal(started.state.active, 'own');
-  assert.equal(started.state.round, 1);
   // 第 1 个完整回合双方都用起始统率，谁都不额外白拿
   assert.equal(started.state.sides.own.command.max, COMMAND.START);
   assert.equal(started.state.sides.enemy.command.max, COMMAND.START);
 
-  // 敌方回合（同一完整回合内）——仍然不增长
+  // 敌方开始行动 —— 同一个完整回合内，turn 与统率都**不动**
   const r = applyAction(started.state, ctx, { type: 'END_TURN' });
   assert.equal(r.state.active, 'enemy');
-  assert.equal(r.state.turn, 2);
+  assert.equal(r.state.halfTurn, 2);
+  assert.equal(r.state.turn, 1, '双方都还没行动完 → 回合数不变');
   assert.equal(r.state.sides.enemy.command.max, COMMAND.START);
   assert.equal(r.state.sides.own.command.max, COMMAND.START);
 
-  // 回到先手方 → 完整回合结束，**双方一起** +1
+  // 回到先手方 → 完整回合结束，turn 与**双方**统率一起 +1
   const r2 = applyAction(r.state, ctx, { type: 'END_TURN' });
-  assert.equal(r2.state.turn, 3);
-  assert.equal(r2.state.round, 2);
+  assert.equal(r2.state.halfTurn, 3);
+  assert.equal(r2.state.turn, 2, '双方都行动完了 → 进入第 2 个完整回合');
   assert.equal(r2.state.sides.own.command.max, COMMAND.START + 1);
   assert.equal(r2.state.sides.enemy.command.max, COMMAND.START + 1);
 });

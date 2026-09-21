@@ -216,9 +216,14 @@ export interface MatchState {
   seed: number;
   uidSeq: number;
   rngState: number;
+  /**
+   * **完整回合数**（双方各行动一次 = 一个完整回合，ADR-064）。
+   * 只在双方都行动完后 +1 —— 与统率值上限的增长严格同步。
+   * 需要"半回合"粒度时用 halfTurn。
+   */
   turn: number;
-  /** 完整回合数（双方各行动一次 = 一个完整回合，ADR-061）；统率值按它增长 */
-  round: number;
+  /** 半回合数：每有一方开始行动就 +1（先手 = 1，后手 = 2，先手 = 3 …） */
+  halfTurn: number;
   active: Side;
   sides: Record<Side, SideState>;
   winner: Side | 'draw' | null;
@@ -242,8 +247,8 @@ export type Action =
    ============================================================ */
 
 export type GameEvent =
-  | { type: 'TURN_START'; side: Side; turn: number; command: { cur: number; max: number } }
-  | { type: 'TURN_END'; side: Side; turn: number }
+  | { type: 'TURN_START'; side: Side; turn: number; halfTurn: number; command: { cur: number; max: number } }
+  | { type: 'TURN_END'; side: Side; turn: number; halfTurn: number }
   | { type: 'CARD_DRAWN'; side: Side; card: CardDef; deckLeft: number }
   | { type: 'CARD_AUTO_CAST'; side: Side; card: CardDef }
   | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number; to?: 'hand' | 'deck' }

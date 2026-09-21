@@ -485,8 +485,10 @@ var Core = (() => {
       seed,
       uidSeq: 0,
       rngState: rng.getState(),
-      turn: 0,
-      round: 1,
+      turn: 1,
+      // 完整回合数：开局即第 1 个完整回合
+      halfTurn: 0,
+      // 半回合数：第一次 startTurn 后变 1
       active: firstSide,
       secondCompensation,
       sides: { own: makeSide("own"), enemy: makeSide("enemy") },
@@ -1731,12 +1733,11 @@ var Core = (() => {
     return { ok: true, state: next, events };
   }
   function startTurn(state, ctx, events, rng) {
-    state.turn += 1;
+    state.halfTurn += 1;
     const side = state.active;
     const s = state.sides[side];
-    const round = Math.ceil(state.turn / 2);
-    if (round > state.round) {
-      state.round = round;
+    if (state.halfTurn % 2 === 1 && state.halfTurn > 1) {
+      state.turn += 1;
       for (const sd of ["own", "enemy"]) {
         state.sides[sd].command.max = Math.min(COMMAND.MAX, state.sides[sd].command.max + 1);
       }
@@ -1748,9 +1749,9 @@ var Core = (() => {
       ref.unit.attackedThisTurn = 0;
       ref.unit.skillUsesThisTurn = {};
     }
-    events.push({ type: "TURN_START", side, turn: state.turn, command: { ...s.command } });
+    events.push({ type: "TURN_START", side, turn: state.turn, halfTurn: state.halfTurn, command: { ...s.command } });
     drawCard(state, ctx.cards, side, events);
-    if (state.secondCompensation === "extra_draw" && state.turn === 2) {
+    if (state.secondCompensation === "extra_draw" && state.halfTurn === 2) {
       drawCard(state, ctx.cards, side, events);
     }
     for (const ref of allUnits(state, side)) {
@@ -1773,7 +1774,7 @@ var Core = (() => {
     recomputeAuras(state, ctx.cards, rng, events);
     const dropped = discardOverflow(state, side);
     dropped.forEach((c) => events.push({ type: "CARD_PLAYED", side, card: c }));
-    events.push({ type: "TURN_END", side, turn: state.turn });
+    events.push({ type: "TURN_END", side, turn: state.turn, halfTurn: state.halfTurn });
     state.active = other(side);
     startTurn(state, ctx, events, rng);
   }

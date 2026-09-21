@@ -812,7 +812,9 @@ function statusName(id) {
 function describeEvent(e) {
   var who = SIDE_NAME[e.side] || e.side || '';
   switch (e.type) {
-    case 'TURN_START': return { cls: 'turn', text: '—— 第 ' + Math.ceil(e.turn / 2) + ' 回合 · ' + who + '（统率 ' + e.command.cur + '/' + e.command.max + '）——' };
+    // e.turn 现在是**完整回合数**（双方都行动完才 +1，ADR-064），
+    // 不再是半回合计数 —— 原先这里要 Math.ceil(e.turn / 2)，现在直接用。
+    case 'TURN_START': return { cls: 'turn', text: '—— 第 ' + e.turn + ' 回合 · ' + who + '（统率 ' + e.command.cur + '/' + e.command.max + '）——' };
     case 'CARD_DRAWN': return { cls: '', text: who + ' 抽到 <b>' + e.card.name + '</b>（牌库剩 ' + e.deckLeft + '）' };
     case 'CARD_AUTO_CAST': return { cls: 'eff', text: who + ' <b>' + e.card.name + '</b> 抽到时自动释放！' };
     case 'DECK_ADDED': return { cls: 'eff', text: who + ' 牌库加入 ' + e.count + ' 张 <b>' + e.card.name + '</b>' };
