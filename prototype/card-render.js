@@ -81,16 +81,42 @@ window.CardRender = (function () {
     if (!list.length) return '';
     var html = list.map(function (k) {
       var meta = KW[k] || { name: k };
-      var off = (k === 'jia_dun' && row === 'back');   // 架盾仅前军生效
-      return '<i class="' + (off ? 'is-off' : '') + '" title="' + meta.name +
-        (off ? '（仅前军生效，当前位置已失效）' : '') + '">' + meta.name + '</i>';
+      return '<i title="' + meta.name + '">' + meta.name + '</i>';
     }).join('');
     return '<div class="cr-kw">' + html + '</div>';
+  }
+
+  /* ---------- 状态标记（卡头） ---------- */
+  /** opts.statuses = [{ id, name, stacks, turns }]，在名称行右侧显示 */
+  function statusHTML(opts) {
+    var list = opts.statuses || [];
+    if (!list.length) return '';
+    var html = list.map(function (st) {
+      var n = st.stacks > 1 ? st.stacks : '';
+      var t = st.turns != null ? '（剩 ' + st.turns + ' 回合）' : '';
+      return '<i class="cr-st" data-st="' + st.id + '" title="' + st.name + t + '">'
+        + st.name + n + '</i>';
+    }).join('');
+    return '<div class="cr-status">' + html + '</div>';
+  }
+
+  /* ---------- 卡背（翻面，ADR-059） ---------- */
+  function backFace(card, opts) {
+    var el = document.createElement('div');
+    el.className = 'cr-card cr-board cr-flipped';
+    el.dataset.cardId = card.id || '';
+    el.innerHTML = '<div class="cr-back">' +
+      '<div class="cr-back-glyph">酒</div>' +
+      '<div class="cr-back-tag">翻面</div>' +
+      '</div>';
+    return el;
   }
 
   /* ---------- 通用卡面 ---------- */
   function build(card, opts) {
     opts = opts || {};
+    // 翻面单位表现为卡背：不显示攻血与技能，只保留"下回合翻回"的提示
+    if (opts.board && opts.flipped) return backFace(card, opts);
     var el = document.createElement('div');
     var cls = 'cr-card ' + (opts.board ? 'cr-board' : 'cr-hand') + ' ' + factionClass(card);
     if (opts.selected) cls += ' is-selected';
@@ -101,7 +127,14 @@ window.CardRender = (function () {
     var costInline = opts.board ? '' :
       '<b class="cr-costnum">' + (card.cost != null ? card.cost : 0) + '</b>';
     html += '<div class="cr-name">' + costInline + (card.name || '') + '</div>';
+    html += statusHTML(opts);
     html += keywordsHTML(card, opts.row);
+
+    // 主动技可用标记（点它使用）——仅在战场卡上显示
+    if (opts.board && opts.skill) {
+      html += '<div class="cr-skillbtn' + (opts.skillUsable ? '' : ' is-off') + '" title="'
+        + opts.skill + (opts.skillUsable ? '（点击使用）' : '（本回合不可用）') + '">技</div>';
+    }
 
     if (isCharacter(card)) {
       html += '<div class="cr-stat atk">' + (card.atk != null ? card.atk : 0) + '</div>';
@@ -116,6 +149,12 @@ window.CardRender = (function () {
     }
 
     el.innerHTML = html;
+    // 战场卡带上血量快照：播动画时据此逐点扣血，
+    // 免得"飘字已经 -3 了、卡面血量还停在原值"（结算完才 renderAll）。
+    if (opts.board && isCharacter(card)) {
+      el.dataset.hp = String(card.hp != null ? card.hp : 0);
+      el.dataset.maxHp = String(card.maxHp != null ? card.maxHp : (card.hp != null ? card.hp : 0));
+    }
     return el;
   }
 
@@ -220,13 +259,61 @@ window.CardRender = (function () {
     }, 170);
   }
 
-  /** 死亡 */
+  /** 死亡：过曝 → 灰化下沉，并炸开一圈尘光 */
   function die(el, done) {
+    var burst = document.createElement('div');
+    burst.className = 'cr-death-burst';
+    el.style.position = 'relative';
+    el.appendChild(burst);
     el.classList.add('cr-dying');
     setTimeout(function () {
+      burst.remove();
       el.classList.remove('cr-dying');
       if (done) done();
-    }, 400);
+    }, 500);
+  }
+
+  /** 飘字：伤害/治疗/护甲/状态。cls 见 card-render.css 的 .cr-float.is-* */
+  function float(el, text, cls, source) {
+    if (!el) return;
+    var n = document.createElement('div');
+    n.className = 'cr-float ' + (cls || 'is-dmg');
+    n.innerHTML = text + (source ? '<span class="cr-src">' + source + '</span>' : '');
+    el.style.position = 'relative';
+    el.appendChild(n);
+    setTimeout(function () { n.remove(); }, 960);
+  }
+
+  /** 技能释放：目标处爆开光环；wholeBoard=true 时整块战场闪一下（群体技） */
+  function spell(el, color, wholeBoard) {
+    if (wholeBoard) {
+      var c = document.getElementById('canvas');
+      if (c) {
+        c.style.setProperty('--spell-c', color || 'rgba(190,140,255,.5)');
+        c.classList.add('cr-board-spell');
+        setTimeout(function () { c.classList.remove('cr-board-spell'); }, 620);
+      }
+      return;
+    }
+    if (!el) return;
+    var f = document.createElement('div');
+    f.className = 'cr-spell';
+    if (color) f.style.setProperty('--spell-c', color);
+    el.style.position = 'relative';
+    el.appendChild(f);
+    setTimeout(function () { f.remove(); }, 660);
+  }
+
+  /** 卡面血量本地扣减：返回扣减后的值（数据仍以 core 为准，此处只为看得见掉血） */
+  function tickHp(el, delta) {
+    var node = el && (el.querySelector('.cr-stat.hp') || el.querySelector('.cr-hero-hp'));
+    if (!node) return null;
+    var cur = parseInt(String(node.textContent).replace(/[^0-9-]/g, ''), 10);
+    if (isNaN(cur)) return null;
+    var next = Math.max(0, cur + delta);
+    node.textContent = node.classList.contains('cr-hero-hp') ? '♥' + next : String(next);
+    if (delta < 0) node.classList.add('is-hurt');
+    return next;
   }
 
   return {
@@ -237,6 +324,7 @@ window.CardRender = (function () {
     },
     lord: lord,
     flyTo: flyTo, attack: attack, die: die,
+    float: float, spell: spell, tickHp: tickHp,
     hash: hash, glyphOf: glyphOf, factionGlyph: factionGlyph,
     isCharacter: isCharacter, typeLabel: typeLabel,
   };

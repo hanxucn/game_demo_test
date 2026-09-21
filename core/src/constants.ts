@@ -5,15 +5,25 @@
 
 import type { Row } from './types.ts';
 
+/**
+ * 战场：**一行 8 格**（ADR-051）。
+ *
+ * 原设计是 5 列 × 2 排（前后军），现已改为单排——「同列」「穿透」「前后军」概念全部作废。
+ * `back` 这一排在数据模型里保留（值为空、任何迭代都不会读它），
+ * 以免一次性改动过大；后续清理时可整体删除。
+ */
 export const BOARD = {
-  COLS: 5,
-  ROWS: ['front', 'back'] as Row[],
-  MAX_UNITS: 10,
+  COLS: 8,
+  ROWS: ['front'] as Row[],
+  MAX_UNITS: 8,
 };
 
 export const LORD_HP = 30;
 
 export const COMMAND = { START: 1, MAX: 10 };
+
+/** 主公技默认统率消耗（数据未给 cost 时兜底）；ADR-049 起统一 2 */
+export const LORD_SKILL_COST = 2;
 
 export const DECK = {
   SIZE: 30,
@@ -23,23 +33,51 @@ export const DECK = {
   DRAW_PER_TURN: 1,
 };
 
-export const MATCH = { TURN_LIMIT: 40 };
+/**
+ * 对局终止（ADR-054）：**只有主将阵亡一种结束方式，没有回合上限、没有平局**。
+ *
+ * 依据：每回合至少抽 1 张；牌库抽空后触发「粮尽」递增伤害（1、2、3…），
+ * 必然会把某一方主将扣死——所以对局一定会自然收束，不需要人为设上限。
+ */
+export const MATCH = { TURN_LIMIT: Infinity };
 
 /** 关键词表（implemented=false 表示引擎尚未实现，校验器会告警） */
+/**
+ * 关键词表（ADR-054：定义由设计者逐条给出，2026-09-12）
+ *
+ * `implemented: false` 表示**定义已定、引擎尚未实现**——校验器会对使用者告警，
+ * 避免"卡面写了但实际不生效"的静默白板。
+ */
 export const KEYWORDS: Record<string, { name: string; implemented: boolean; note: string }> = {
-  zhong_yi:  { name: '忠义', implemented: true, note: '阵亡时触发卡牌定义的 on_death 效果' },
-  yi_ji:     { name: '遗计', implemented: true, note: '阵亡时抽 1 张牌' },
-  ji_xing:   { name: '疾行', implemented: true, note: '入场当回合即可攻击' },
-  jia_dun:   { name: '架盾', implemented: true, note: '仅前军生效的全局嘲讽' },
-  wu_sheng:  { name: '武圣', implemented: true, note: '免疫一次伤害' },
-  shen_she:  { name: '神射', implemented: true, note: '可攻击任意列的人物卡' },
-  lian_ji:   { name: '连击', implemented: true, note: '每回合可攻击 2 次' },
-  yin_xue:   { name: '饮血', implemented: true, note: '造成伤害时为己方主将回复等量生命' },
-  qi_xi:     { name: '奇袭', implemented: true, note: '不能被指定为攻击目标；攻击后失去' },
-  xian_gong: { name: '先攻', implemented: true, note: '先结算伤害，目标阵亡则不受反击' },
-  jie_zhen:  { name: '结阵', implemented: true, note: '相邻有友方步兵时本次普攻 +1' },
-  wu_shuang: { name: '无双', implemented: true, note: '攻击时不受到反击伤害' },
+  jia_dun:   { name: '架盾', implemented: true,
+               note: '嘲讽：敌方普通攻击必须先打它（ADR-051）' },
+  xian_gong: { name: '先攻', implemented: true,
+               note: '入场当回合即可行动攻击（ADR-055 设计者澄清：这就是它的全部含义，与「疾行」是同一个）' },
+  lian_ji:   { name: '连击', implemented: true,
+               note: '当前回合普通攻击可执行 2 次' },
+  yi_ji:     { name: '遗计', implemented: true,
+               note: '类亡语：阵亡时触发该卡定义的 on_death 逻辑' },
+  yin_xue:   { name: '饮血', implemented: true,
+               note: '对敌人造成的伤害，为该单位自身恢复等量生命（ADR-057 设计者定稿：回自己，不回主将）' },
+  sheng_dun: { name: '圣盾', implemented: true,
+               note: '拥有一个圣盾状态，可免疫一次伤害；伤害被免疫后该状态消耗掉（ADR-057 设计者定稿）' },
+  shen_she:  { name: '神射', implemented: false,
+               note: '对随机敌人造成远程伤害，且不受对方攻击影响（待实现）' },
+  qi_xi:     { name: '奇袭', implemented: false,
+               note: '上场先隐身（不能被选定）；下回合可选择行动攻击，执行过行动后隐身消失（待实现）' },
+  zhong_yi:  { name: '忠义', implemented: false,
+               note: '免疫混乱、离间等状态（待实现。注：原实现误做成"阵亡触发亡语"，已纠正）' },
+  jie_zhen:  { name: '结阵', implemented: false,
+               note: '⚠️ 设计者尚未设计具体机制，先保留名字（当前引擎里的"相邻步兵+1攻"是 AI 旧推定，不可用）' },
 };
+
+/** 已取消的关键词（保留列表以免数据误用） */
+export const RETIRED_KEYWORDS: Record<string, string> = {
+  ji_xing: '疾行 —— 与「先攻」是同一个东西（设计者裁定），已合并，请改用 xian_gong',
+  wu_shuang: '无双 —— 设计者：暂时没有这个状态',
+  wu_sheng: '武圣 —— 设计者：废弃此名（关羽的技能名用「水淹七军」）；其"免疫一次伤害"的机制改名为「圣盾」',
+};
+
 
 /**
  * 归属标签注册表（ADR-029）
@@ -89,10 +127,11 @@ export interface StatusDef {
 export const STATUSES: Record<string, StatusDef> = {
   zhen_fen:   { name: '振奋', kind: 'buff',   numeric: true,  duration: 'permanent', note: '攻击 +N' },
   ji_jiu:     { name: '急救', kind: 'buff',   numeric: true,  duration: 'permanent', note: '回合开始恢复 N 点生命' },
-  jia_dun:    { name: '架盾', kind: 'buff',   numeric: false, duration: 'conditional', note: '仅前军生效' },
-  xian_gong:  { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent', note: '先结算伤害' },
-  qi_xi:      { name: '奇袭', kind: 'buff',   numeric: false, duration: 'until_consumed', note: '不能被指定为目标' },
-  wu_sheng:   { name: '武圣', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
+  jia_dun_status: { name: '架盾', kind: 'buff',   numeric: false, duration: 'conditional', note: '嘲讽（ADR-051）' },
+  xian_gong_status: { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent',
+                note: '入场当回合即可行动攻击（ADR-055）' },
+  qi_xi_status: { name: '奇袭', kind: 'buff',   numeric: false, duration: 'until_consumed', note: '不能被指定为目标' },
+  sheng_dun_status:   { name: '圣盾', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
                 note: '免疫一次伤害' },
   hu_jia:     { name: '护甲', kind: 'buff',   numeric: true,  duration: 'permanent', scope: 'lord', note: '吸收伤害' },
   zhen_she:   { name: '震慑', kind: 'debuff', numeric: false, duration: 'turns', caps: ['block_action'],
@@ -117,8 +156,9 @@ export const STATUSES: Record<string, StatusDef> = {
                 note: '不能使用主动技与触发技（silence）' },
   mian_yi:    { name: '免疫', kind: 'buff',   numeric: false, duration: 'turns', caps: ['immune_debuff', 'untargetable'],
                 note: '免疫负面状态，且不能被指定为目标' },
-  fan_mian:   { name: '翻面', kind: 'debuff', numeric: false, duration: 'conditional', caps: ['block_action', 'untargetable'],
-                note: '翻面期间无法行动也不能被选中，需特定条件翻回正面，下回合才能行动' },
+  fan_mian:   { name: '翻面', kind: 'debuff', numeric: false, duration: 'conditional',
+                caps: ['block_action', 'untargetable'],
+                note: '被翻面：当回合不能行动、不能被指定为目标；自己的下个回合开始时翻回正面（ADR-059）' },
   zhong_du:   { name: '中毒', kind: 'debuff', numeric: true,  duration: 'permanent', note: '回合结束失去 N 生命' },
   xu_ruo:     { name: '虚弱', kind: 'debuff', numeric: true,  duration: 'turns', note: '攻击 −N' },
   duan_liang: { name: '断粮', kind: 'debuff', numeric: true,  duration: 'turns', scope: 'lord', note: '统率上限 −N' },
@@ -144,6 +184,16 @@ export const ACTIONS = [
   'move', 'destroy', 'modify', 'gain_armor', 'gain_command', 'cost_modifier', 'transform', 'random_pick',
   'discard', 'return_to_hand', 'clash', 'flip', 'scry', 'ban_play', 'steal_card', 'survive',
   'extra_attack', 'take_control', 'copy_skill', 'force_attack',
+  'add_to_deck',   // 往牌库随机位置塞 N 张指定卡（ADR-050）
+  'send_to_deck',  // 把牌库里剩下的指定牌全塞给对方（ADR-050）
+  'cycle_to_deck', // 手牌放回牌库随机位置再抽 1 张（ADR-050）
 ] as const;
 
-export const CARD_TYPES = ['troop', 'general', 'strategist', 'event', 'tactic', 'elite', 'special'] as const;
+export const CARD_TYPES = ['troop', 'general', 'strategist', 'event', 'tactic', 'elite', 'special',
+  'lord',     // 主将卡：开局置于主将位，不进卡组（ADR-044）
+  'token',    // 衍生物：只能由效果召唤，不可组入卡组（ADR-044）
+  'status',   // 状态卡：持续性全局效果，置于状态区（ADR-044）
+] as const;
+
+/** 不可组入卡组的类型（由规则或效果放入场） */
+export const NON_DECK_TYPES = ['elite', 'lord', 'token', 'status', 'special'] as const;

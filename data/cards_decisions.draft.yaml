@@ -193,10 +193,16 @@ overrides:
   reason: 设计者答疑（cards_todo）：统率值 = 1
 - photo: 49
   field: name
-  value: 丰年（五谷丰登）
+  value: 五谷丰登
   original: null
-  adr: ADR-027
-  reason: 设计者答疑（cards_todo）：卡名 = 丰年（五谷丰登）
+  adr: ADR-044
+  reason: 设计者答疑（cards_todo）：卡名原文「丰年（五谷丰登）」，因卡面 4 字上限取「五谷丰登」
+- photo: 47
+  field: name
+  value: 十常侍
+  original: null
+  adr: ADR-044
+  reason: 手写卡名「十常侍之乱」超 4 字上限，缩为「十常侍」（事件卡）
 - photo: 50
   field: skill_text
   value: 将战场上己方一张人物卡收回手中。
@@ -1301,6 +1307,60 @@ overrides:
   original: null
   adr: ADR-027
   reason: 设计者答疑：「西凉子弟」完整效果
+- photo: 56
+  field: skill_name
+  value: 白马义从
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案
+- photo: 56
+  field: skill_text
+  value: 召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案：召唤+进化
+- photo: 55
+  field: skill_text
+  value: 召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案：召唤+进化
+- photo: 54
+  field: skill_name
+  value: 陷阵营
+  original: 陷阵破敌
+  adr: ADR-042
+  reason: 设计者新方案：技能名改为「陷阵营」
+- photo: 54
+  field: skill_text
+  value: 召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。
+  original: null
+  adr: ADR-042
+  reason: 设计者新方案：召唤+进化
+- photo: 56
+  field: cost
+  value: 4
+  original: 3
+  adr: ADR-042
+  reason: 设计者：公孙瓒 费用由 3 改为 4
+- photo: 55
+  field: cost
+  value: 4
+  original: 3
+  adr: ADR-042
+  reason: 设计者：马腾 费用由 3 改为 4
+- photo: 54
+  field: cost
+  value: 4
+  original: 3
+  adr: ADR-042
+  reason: 设计者：高顺 费用由 3 改为 4
+- photo: 79
+  field: skill_text
+  value: 可弃掉自己手中一张手牌.恢复指定场上一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.每回合限一次.
+  original: 可弃掉自己手中一张手牌.恢复指定场上对一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.一回合只能最多使用2次.
+  adr: ADR-048
+  reason: 设计者裁定（2026-09）：以数据 frequency=once_per_turn 为准，一回合 1 次。原转录「一回合只能最多使用2次」本身已标注不确定（『能』与『最多』挤在一起、有涂改叠加痕迹），且同页 other 记有「『血量』正上方另有一个小『2』样记号（疑为修改标记）」——该 2 可能本就是修改标记而非次数。同时顺带修正「对一个人物」→「一个人物」（原转录的『对』字本身也标注可能误读）。
 type_overrides:
 - photos:
   - 142
@@ -1325,6 +1385,10 @@ type_overrides:
   - 113
   type: 武将
   why: 设计者答疑：曹昂 1 攻 3 血，定为武将（覆盖 ADR-018 规则的自动判定）
+- photos:
+  - 70
+  type: 武将
+  why: 设计者裁定：袁绍降为普通人物卡（6 费 3/6，每回合召唤弓兵 + 万箭齐发战吼/亡语）
 not_applicable:
 - photo: 52
   fields:
@@ -1482,6 +1546,18 @@ excluded:
   reason: 设计者：草稿，不进 v1
   adr: ADR-028
   note: 转录记录保留，不进卡池
+- photo: 110
+  reason: 设计者：曹操为主公（heroes.yaml），不作为卡牌
+  adr: ADR-049
+  note: 主公数据统一由 data/heroes.yaml 提供（ADR-049）。原转录的技能名手写为〈奸雄〉，早期翻译误记为「护驾」；「选择指定敌方一人物」整行在原稿上已被划掉
+- photo: 122
+  reason: '设计者：袁绍为主公卡（与 #70 重复的两张照片），群雄暂不设主公，移出卡池'
+  adr: ADR-049
+  note: '该卡 12 血、无攻值（主公特征），与 #70 同为主公卡照片'
+- photo: 999
+  reason: 设计者裁定：传国玉玺非本人设计（源自初始提交的 GDD 草案），已删除
+  adr: ADR-053
+  note: 后手补偿改为「后手第 1 回合多抽 1 张」；本卡从卡池移除
 character_merges_note: 原 4 组「同名多版本」合并已全部撤销——设计者答疑揭示转录有误：#60 实为张辽（非张郃）、#74 实为宋宪（非张梁）、#123 诸葛亮位作废。#70/#122 袁绍属 ADR-014 的「主公卡 + 普通卡」双形态，不是重复设计。
 resolved_notes:
 - O-旧1 诸葛亮#123：空城计已独立为计谋牌，#123 移出卡池（设计者答疑）
@@ -1500,25 +1576,12 @@ card_tags:
   - 72
   - 106
   - 111
+  - qun_zhangjiao
   shi_zu:
   - 70
   - 122
 card_tags_note: ADR-029 归属标签。待确认：周仓/张燕是否算黄巾、董卓是否算西凉、士族是否必要
 new_cards:
-- id: qun_zhangjiao
-  name: 张角
-  faction: qun
-  type: strategist
-  cost: 5
-  attack: 1
-  health: 5
-  tags:
-  - huang_jin
-  skill_name: 五雷轰顶
-  skill_text: 每回合结束时释放 5 次随机 1 伤害的雷击，对敌方随机人物。如果雷击击杀敌人则上场一个 1 攻 1 血的黄巾士兵。
-  source: 设计者口述（2026-09-12）
-  open:
-  - 「如果雷击击杀敌人则上场黄巾士兵」是**条件触发**，当前 DSL 无 condition 字段，暂未翻译
 - id: token_huangjin_bing
   name: 黄巾兵
   faction: neutral
@@ -1545,6 +1608,64 @@ new_cards:
   skill_text: ''
   source: 袁绍「威望」召唤的 1/1 衍生物
   open: []
+- id: elite_baima_yicong
+  name: 白马义从
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 1
+  health: 2
+  skill_name: 白马义从
+  skill_text: 每回合对指定任意敌方人物造成 2 点伤害。
+  source: 公孙瓒「白马义从」的进化目标
+  open: []
+  troopKind: archer
+- id: elite_xiliang_tieqi
+  name: 西凉铁骑
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 1
+  skill_name: ''
+  skill_text: ''
+  source: 马腾「西凉铁骑」的进化目标
+  open: []
+  troopKind: infantry
+- id: elite_xianzhen_dun
+  name: 陷阵盾兵
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 2
+  skill_name: ''
+  skill_text: ''
+  source: 高顺「陷阵营」的进化目标
+  open: []
+  troopKind: shield
+- id: tactic_wanjianqifa
+  name: 万箭齐发
+  faction: neutral
+  type: tactic
+  cost: 0
+  open: false
+  skill_name: ''
+  skill_text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+  note: ADR-050 袁绍专属：不进手牌、不可主动打出（cost 0 且仅由 on_draw 触发）
+- id: qun_zhangjiao
+  name: 张角
+  faction: qun
+  type: strategist
+  cost: 5
+  attack: 1
+  health: 5
+  tags:
+  - huang_jin
+  open: false
+  skill_name: 五雷轰顶
+  skill_text: 每回合结束时释放 5 次随机 1 点雷击，目标为敌方随机人物；每次雷击有 50% 概率对其造成震慑；若雷击击杀敌人，则上场一个 1 攻 1 血的黄巾兵。
+  source: 设计者口述（2026-09-12 定稿：5 费 1/5 + 50% 震慑）
 dsl:
   wei_xunyou:
   - id: fen_er_ji_zhi
@@ -1613,12 +1734,25 @@ dsl:
           type: character
         count: 1
         mode: random
+    - action: apply_status
+      status: zhen_she
+      duration: 1
+      chance: 0.5
+      count: 5
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: random
+      note: DSL 建模范式：与 5 次雷击独立结算，聚合概率等价；不可绑同一次伤害
     - action: summon
       unit: token_huangjin_bing
       count: 1
       position: random
       condition:
         event: killed
+    text: 每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。
   shu_shamoke:
   - id: hu_wang
     name: 胡王
@@ -1642,7 +1776,7 @@ dsl:
     trigger: on_play
     effects:
     - action: clash
-      unit: roll
+      clashMode: roll
       target:
         side: enemy
     - action: discard
@@ -1697,14 +1831,10 @@ dsl:
           type: character
         count: all
   _none:
-  - neutral_chuanguo_yuxi
   - neutral_infantry
   - neutral_shieldman
   - qun_caimao
-  - qun_gongsunzan
-  - qun_mateng
   - qun_songxian
-  - shu_chendao
   - shu_dongjue
   - shu_xiangchong
   - shu_zhoucang
@@ -1715,7 +1845,6 @@ dsl:
   - token_shizu_bing
   - wei_caogang
   - wei_caoxiu
-  - wei_caozhang
   - wei_zhangyan
   - wu_liyi
   - wu_quancong
@@ -1828,7 +1957,7 @@ dsl:
     trigger: on_play
     effects:
     - action: scry
-      unit: top
+      from: top
       count: 1
       to: hand
       target:
@@ -2023,7 +2152,7 @@ dsl:
       target:
         source: true
     - action: apply_status
-      status: wu_sheng
+      status: sheng_dun_status
       stacks: 1
       target:
         source: true
@@ -2053,8 +2182,8 @@ dsl:
           type: character
         count: all
   qun_gaoshun:
-  - id: xian_zhen_po_di
-    name: 陷阵破敌
+  - id: xian_zhen_ying
+    name: 陷阵营
     kind: trigger
     trigger: on_play
     effects:
@@ -2062,16 +2191,51 @@ dsl:
       unit: neutral_shieldman
       count: 2
       position: random
+    - action: transform
+      to: elite_xianzhen_dun
+      target:
+        side: ally
+        filter:
+          troopKind: shield
+        count: all
   qun_yuanshao:
-  - id: wei_wang
-    name: 威望
+  - id: yuan_shao_summon
+    name: 四世三公
     kind: trigger
     trigger: turn_start
     effects:
     - action: summon
-      unit: token_shizu_bing
+      unit: neutral_archer
       count: 1
       position: random
+    text: 每回合召唤一个弓兵。
+  - id: yuan_shao_wangjian
+    name: 万箭齐发
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: add_to_deck
+      unit: tactic_wanjianqifa
+      count: 1
+      to: hand
+      target:
+        side: self
+    - action: add_to_deck
+      unit: tactic_wanjianqifa
+      count: 2
+      target:
+        side: self
+    text: 战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。
+  - id: yuan_shao_yidu
+    name: 遗毒
+    kind: trigger
+    trigger: on_death
+    effects:
+    - action: send_to_deck
+      unit: tactic_wanjianqifa
+      target:
+        side: enemy
+    text: 亡语：将未抽到的「万箭齐发」加入敌方牌库。
   qun_yuanshao_lord:
   - id: wei_wang_lord
     name: 威望
@@ -2136,7 +2300,7 @@ dsl:
     trigger: on_play
     effects:
     - action: clash
-      unit: roll
+      clashMode: roll
       target:
         side: enemy
     - action: apply_status
@@ -2157,7 +2321,7 @@ dsl:
     trigger: on_play
     effects:
     - action: scry
-      unit: top
+      from: top
       count: 1
       to: deck_bottom
       target:
@@ -2171,25 +2335,14 @@ dsl:
     - action: apply_status
       status: zhen_she
       duration: 1
-      chance: 0.5
+      chance: 0.75
       target:
         side: enemy
         filter:
           type: character
-          cost_below_source: true
         count: 1
         mode: choose
-    - action: apply_status
-      status: zhen_she
-      duration: 1
-      chance: 1.0
-      target:
-        side: enemy
-        filter:
-          type: character
-          cost_max: 3
-        count: 1
-        mode: choose
+      note: 平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）
   shu_madai:
   - id: xi_liang_zi_di
     name: 西凉子弟
@@ -2358,10 +2511,10 @@ dsl:
       target:
         source: true
   neutral_archer:
-  - id: shen_she_ji
-    name: 神射
+  - id: she_jian
+    name: 射箭
     kind: trigger
-    trigger: turn_start
+    trigger: turn_end
     effects:
     - action: damage
       value: 1
@@ -2369,8 +2522,10 @@ dsl:
         side: enemy
         filter:
           type: character
+          include_lord: true
         count: 1
-        mode: choose
+        mode: random
+    text: 回合结束时，随机对敌方一名人物或主将造成 1 点伤害。
   tactic_caochuanjiejian: []
   shu_liufeng:
   - id: you_yu_bu_jue
@@ -2391,7 +2546,7 @@ dsl:
     trigger: on_death
     effects:
     - action: clash
-      unit: roll
+      clashMode: roll
       target:
         side: enemy
     - action: draw
@@ -2453,7 +2608,7 @@ dsl:
         count: 1
         mode: choose
     - action: scry
-      unit: top
+      from: top
       count: 1
       to: hand
       target:
@@ -2737,6 +2892,69 @@ dsl:
           type: character
         count: 1
         mode: choose
+  elite_baima_yicong:
+  - id: bai_ma_she
+    name: 白马义从
+    kind: trigger
+    trigger: turn_start
+    effects:
+    - action: damage
+      value: 2
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  qun_gongsunzan:
+  - id: bai_ma_yi_cong
+    name: 白马义从
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: neutral_archer
+      count: 1
+      position: random
+      note: 平衡（ADR-047）：白马义从每只 +1/+1 且每回合 2 伤，是三种进化里收益最高的；召唤数 2→1
+    - action: transform
+      to: elite_baima_yicong
+      target:
+        side: ally
+        filter:
+          troopKind: archer
+        count: all
+  qun_mateng:
+  - id: xi_liang_tie_qi
+    name: 西凉铁骑
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: summon
+      unit: neutral_infantry
+      count: 2
+      position: random
+    - action: transform
+      to: elite_xiliang_tieqi
+      target:
+        side: ally
+        filter:
+          troopKind: infantry
+        count: all
+  tactic_wanjianqifa:
+  - id: wan_jian_qi_fa
+    name: 万箭齐发
+    kind: trigger
+    trigger: on_draw
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: all
+    text: 抽到时释放：对所有敌方人物造成 1 点伤害。
 dsl_effects:
   tactic_bishi_ruiqi:
   - action: return_to_hand
@@ -2856,7 +3074,7 @@ dsl_effects:
     value: 3
   tactic_yuqin_guzong:
   - action: clash
-    unit: roll
+    clashMode: roll
     target:
       side: enemy
   - action: return_to_hand
@@ -2900,7 +3118,7 @@ dsl_effects:
       mode: lowest_health
   tactic_mantianguohai:
   - action: scry
-    unit: bottom
+    from: bottom
     count: 2
     to: hand
     target:
@@ -2909,14 +3127,14 @@ dsl_effects:
     value: 2
   tactic_chuqibuyi:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
       side: self
   tactic_chenhuodajie:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
@@ -2982,6 +3200,10 @@ dsl_effects:
       filter:
         type: character
       count: all
+  neutral_chuanguo_yuxi:
+  - action: gain_command
+    value: 1
+    duration: this_turn
 dsl_note: DSL 翻译完成：119/119。其中 95 张有技能/效果、1 张（丁奉）用条件费用规则、23 张为白板或纯关键词卡。全部通过 core 的 verify:dsl 端到端验证。
 dsl_blocked: {}
 card_cost_rules:
@@ -2993,3 +3215,85 @@ card_cost_rules:
           type: character
           health_max: 1
     value: -1
+card_keywords:
+  shu_dongjue:
+  - jia_dun
+  shu_zhoucang:
+  - jia_dun
+  wei_zhangyan:
+  - xian_gong
+  elite_xiliang_tieqi:
+  - xian_gong
+  elite_xianzhen_dun:
+  - jia_dun
+  wei_caogang:
+  - jia_dun
+skill_name_only:
+  shu_chendao:
+    name: 白毦兵
+    note: 手写稿写了技能名，正文区空白，效果待设计
+  wei_caozhang:
+    name: 猛袭
+    note: 手写稿写了技能名，正文区空白，效果待设计
+card_troopkind:
+  neutral_infantry: infantry
+  neutral_archer: archer
+card_stats:
+  wei_guojia:
+    cost: 5
+    reason: 1/4 是 3 费身材；6 费位站不住。光环+抽牌整包 9.4 分 vs 6 费预算 13
+  wei_simayi:
+    cost: 5
+    reason: 1/6 无技能 ≈ 7.3 分；6 费预算 13 差 5.7，降费后再补文案②效果
+  wu_chengpu:
+    cost: 6
+    reason: 4/5 + 顶格单体震慑，属性已占预算 82%，5 费超模 3.3
+  wu_luxun:
+    cost: 6
+    reason: 7 费里最该降费的：AOE 毒+伤害整包仅 7.8 分
+  wu_zhouyu:
+    cost: 6
+    reason: 离间期望收益依赖拼点胜率，7 费偏弱 4.9
+  qun_zuoci:
+    cost: 3
+    health: 3
+    reason: 1/2 三点属性在 4 费任何模型下都站不住；1/3 正是 3 费白板身材
+  wu_zhoutai:
+    health: 5
+    reason: 不屈（50% 免死）已占 2.4 分，3/6 偏厚；收 1 点生命回到容差
+  qun_gongsunzan:
+    reason: 召唤 2→1 见 dsl 修改（sibling summon count）
+  shu_guanyu:
+    cost: 7
+    health: 4
+    reason: 「水淹七军」是全体禁技+全体1伤（AOE 按 3 目标计 = 7.5 分），6 费 6/5 超模 5.5；涨 1 费并收 1 点生命
+  wei_jiaxu:
+    cost: 7
+    reason: 策反(cost≤3 敌将→己方 1 回合)+全体混乱，整包 11.2 分；6 费超模 4.2
+  wei_guohuai:
+    cost: 5
+    reason: 相邻 +2 上限 + 相邻架盾，按 2 个相邻目标计 8.0 分；4 费 2/3 超模 4.0
+  shu_jiangwei:
+    cost: 5
+    reason: 4/5 但技能仅 0.8 分（on_attack +1 攻），6 费偏弱 3.2；降到 5 费
+  wei_caocao_lord:
+    cost: 0
+    reason: '主公卡不进卡组、不消耗统率值，显式补 cost: 0'
+  qun_yuanshao_lord:
+    cost: 0
+    reason: '主公卡不进卡组、不消耗统率值，显式补 cost: 0'
+  token_jixie_shaobing:
+    cost: 0
+    reason: '衍生物由效果召唤、不消耗统率值，显式补 cost: 0'
+  token_jixie_shouwei:
+    cost: 0
+    reason: '衍生物由效果召唤、不消耗统率值，显式补 cost: 0'
+  status_jia_dun:
+    cost: 0
+    reason: '状态卡置于状态区、不消耗统率值，显式补 cost: 0'
+  qun_yuanshao:
+    cost: 6
+    attack: 3
+    health: 6
+    reason: '设计者裁定（2026-09）：袁绍 6 费 3/6，降为普通人物卡（原 #70/#122 两张 12 血无攻值的主公卡已移出卡池）'
+card_stats_note: 平衡调优（ADR-047）：按卡 id 覆盖 cost/attack/health。每条的 reason 记录依据，原值留在 <field>_original。触发命令 cd core && npm run validate；依据 docs/balance-backlog.md 与 docs/gdd/13-balance-data-model.md §7.10。

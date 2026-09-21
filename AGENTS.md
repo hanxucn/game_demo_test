@@ -40,29 +40,37 @@ python3 tools/yaml2json.py && python3 tools/build-data-bundle.py
 cd core && npm run build:browser && cd ..
 open prototype/battlefield.html
 
+# 需要本地服务器时用这个（发 no-store，避免改了 JS 刷新还在跑旧代码）
+bash tools/serve.sh          # → http://127.0.0.1:8099/prototype/battlefield.html
+
 # 引擎（core）
 cd core
-npm test          # 34 个测试：规则 / 引擎 / 回放确定性
+npm test          # 144 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环
 npm run typecheck # tsc --noEmit
-npm run validate  # 卡牌数据校验（10 条规则）
-npm run smoke     # 两个 AI 互打一局 + 回放一致性
+npm run validate  # 卡牌数据校验（结构 + 平衡 + value 块新鲜度）
+npm run verify:dsl  # 逐张跑真实卡牌的 DSL，端到端验证
+npm run smoke     # 两个 AI 互打一局 + 回放一致性（完整开局：掷点/换牌）
 ```
 
-**改数据后必须跑**：
+**改数据后必须跑**（一条命令重建整条数据链，含派生的 `value` 核算块）：
 ```bash
-python3 tools/yaml2json.py && cd core && npm run validate
+bash tools/build-cards.sh          # 八步：决策→归一化→入库→算 value→并回→导出 JSON→重建 bundle
+cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke
 ```
+
+> `data/cards.yaml` 的 `value:` 块是**派生数据**（由 `core/tools/emit-values.ts` 依当前度量算出）。
+> 不要手改；改了效果/数值后重跑 `build-cards.sh`，否则 `npm run validate` 会报"value 核算块已过期"。
 
 ## 命名约定
 
 | 对象 | 前缀 | 示例 |
 |---|---|---|
 | 阵营人物卡 | `shu_` / `wei_` / `wu_` / `qun_` | `shu_guanyu` |
+| 主公（非卡牌，在 `heroes.yaml`） | `shu_` / `wei_` / `wu_` | `shu_liubei` |
 | 中立卡 | `neutral_` | `neutral_infantry` |
 | 事件卡 | `event_` | `event_zainian` |
 | 战法卡 | `tactic_` | `tactic_huogong` |
 | 进化卡 | `elite_` | `elite_hubaqi` |
-| 酒令 | `jiuling_` | `jiuling_wenjiu` |
 | 羁绊 | `bond_` | `bond_taoyuan` |
 | 关键词 | 拼音 snake_case | `jia_dun`（架盾） |
 | 状态 | 拼音 snake_case | `zhen_she`（震慑） |
@@ -73,7 +81,9 @@ python3 tools/yaml2json.py && cd core && npm run validate
 ## 代码规范
 
 - TypeScript strict；`core` 内不允许 `any`
-- `core` 用 Node 原生类型剥离运行：`node --experimental-strip-types`（无需构建步骤）
+- `core` 用 Node 原生类型剥离运行：`node --experimental-strip-types`（无需构建步骤）。
+  **但浏览器原型跑的是 `prototype/core.bundle.js`** —— 改了 `core/src/*.ts` 后必须
+  `cd core && npm run build:browser`，否则页面仍跑旧引擎（症状：改了规则但行为不变）。
 - 随机数**只能**用 `core` 的确定性 RNG（`Rng`），禁止 `Math.random()`
   —— 否则 golden replay 无法复现
 - 结算顺序严格遵循 `docs/gdd/10-skills-statuses.md` §4 的 23 步时机表
@@ -104,7 +114,7 @@ python3 tools/yaml2json.py && cd core && npm run validate
 ## 提交前检查清单
 
 - [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
-- [ ] `cd core && npm test` 全过（34/34）+ `npm run typecheck` + `npm run validate`
+- [ ] `cd core && npm test` 全过（144/144）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（总价值在预算内）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
 - [ ] 若产生新决策，已写入 `docs/gdd/14-open-questions.md` 的 ADR 表

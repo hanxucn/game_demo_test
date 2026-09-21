@@ -9,7 +9,7 @@
 import { BOARD, DECK, STATUSES } from './constants.ts';
 import { createRng } from './rng.ts';
 import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
-import type { CardDef, GameEvent, HandCard, MatchState, Row, Side, Unit } from './types.ts';
+import type { CardDef, GameEvent, HandCard, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
 export type TargetRef =
   | { kind: 'unit'; side: Side; row: Row; col: number }
@@ -23,7 +23,7 @@ export const handRef = (side: Side, index: number): TargetRef => ({ kind: 'hand'
 /** 手牌实际费用 = 卡面费用 + Σ 费用修正（ADR-038），下限 0 */
 export function effectiveCost(hc: HandCard, ruleDelta = 0): number {
   const delta = hc.mods.filter((m) => m.kind === 'cost').reduce((s, m) => s + (m.value ?? 0), 0);
-  return Math.max(0, hc.card.cost + ruleDelta + delta);
+  return Math.max(0, (hc.card.cost ?? 0) + ruleDelta + delta);   // 缺 cost 不该算出 NaN
 }
 
 /** 该手牌是否被禁止上场 */
@@ -74,11 +74,47 @@ export function refAlive(state: MatchState, ref: TargetRef): boolean {
    抽牌 / 粮尽
    ============================================================ */
 
+/**
+ * 「抽到时释放」解析器（ADR-050）。
+ *
+ * 依赖方向是 effects → mutate，所以 mutate 不能直接调 runEffects；
+ * 这里留一个挂载点，由 effects.ts 在模块加载时注册。返回 true = 已自动释放（不进手牌）。
+ */
+export type OnDrawResolver = (
+  state: MatchState, cards: Map<string, CardDef>, side: Side,
+  card: CardDef, events: GameEvent[], rng: ReturnType<typeof createRng>,
+) => boolean;
+
+let onDrawResolver: OnDrawResolver | null = null;
+
+export function registerOnDrawResolver(fn: OnDrawResolver): void {
+  onDrawResolver = fn;
+}
+
+/**
+ * 「亡语」解析器（ADR-050）。
+ *
+ * 原实现只硬编码了 damage / draw 两种动作，其余（send_to_deck、summon、apply_status…）
+ * **静默不生效**——袁绍「遗毒」就是这么被吃掉的。改为统一交给 DSL 解释器。
+ */
+export type OnDeathResolver = (
+  state: MatchState, cards: Map<string, CardDef>, side: Side,
+  unit: Unit, skills: SkillDef[], events: GameEvent[],
+  rng: ReturnType<typeof createRng>,
+) => void;
+
+let onDeathResolver: OnDeathResolver | null = null;
+
+export function registerOnDeathResolver(fn: OnDeathResolver): void {
+  onDeathResolver = fn;
+}
+
 export function drawCard(
   state: MatchState,
   cards: Map<string, CardDef>,
   side: Side,
   events: GameEvent[],
+  rng?: ReturnType<typeof createRng>,
 ): void {
   const s = state.sides[side];
   if (s.deck.length === 0) {
@@ -96,8 +132,20 @@ export function drawCard(
   const id = s.deck.pop() as string;
   const card = cards.get(id);
   if (!card) return;
-  s.hand.push({ card, mods: [] });            // ADR-038：包成手牌实例
   events.push({ type: 'CARD_DRAWN', side, card, deckLeft: s.deck.length });
+
+  // 「抽到时释放」（ADR-050，如「万箭齐发」）：不进手牌，直接结算并进弃牌堆。
+  // rng 未传入时退回由 state.rngState 临时派生——确定可复现，但随机质量略降（见 ADR-050）
+  if (onDrawResolver) {
+    const r = rng ?? createRng(state.rngState);
+    if (onDrawResolver(state, cards, side, card, events, r)) {
+      s.discard.push(card);
+      events.push({ type: 'CARD_AUTO_CAST', side, card });
+      return;
+    }
+  }
+
+  s.hand.push({ card, mods: [] });            // ADR-038：包成手牌实例
   // 手牌上限：超出部分在回合结束时弃置（见 engine.endTurn）
 }
 
@@ -332,20 +380,13 @@ export function killUnit(
   // 遗计：阵亡时抽 1 张
   if (hasKeyword(unit, 'yi_ji')) drawCard(state, cards, side, events);
 
-  // 忠义：触发卡牌自定义的 on_death 效果
+  // 忠义：触发卡牌自定义的 on_death 效果（统一走 DSL，ADR-050）
   const card = cards.get(unit.cardId);
   const deathSkills = (card?.skills ?? []).filter((sk) => sk.trigger === 'on_death');
-  for (const sk of deathSkills) {
-    for (const eff of sk.effects ?? []) {
-      if (eff.action === 'damage') {
-        const foe = other(side);
-        for (const t of allUnits(state, foe)) {
-          dealDamage(state, cards, unitRef(t.side, t.row, t.col), eff.value ?? 0, events, unit.name);
-        }
-      } else if (eff.action === 'draw') {
-        for (let i = 0; i < (eff.value ?? 1); i++) drawCard(state, cards, side, events);
-      }
-    }
+  if (deathSkills.length && onDeathResolver) {
+    // rng 由 state 派生：killUnit 的调用链（伤害结算）里没有现成的 rng。
+    // 与 on_draw 同理，确定可复现；外层 rng 写回时会以自身状态为准（见 ADR-050）
+    onDeathResolver(state, cards, side, unit, deathSkills, events, createRng(state.rngState));
   }
 }
 
@@ -358,7 +399,8 @@ export function checkWinner(state: MatchState, events: GameEvent[]): void {
   const ownDead = state.sides.own.lord.hp <= 0;
   const enemyDead = state.sides.enemy.lord.hp <= 0;
   if (!ownDead && !enemyDead) return;
-  state.winner = ownDead && enemyDead ? 'draw' : ownDead ? 'enemy' : 'own';
+  // ADR-054：无平局。双方同时阵亡的极端情况按「同时判负」处理为敌方胜（不会出现在正常对局）
+  state.winner = ownDead ? 'enemy' : 'own';
   events.push({ type: 'GAME_OVER', winner: state.winner });
 }
 

@@ -31,9 +31,12 @@ export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: stri
   for (const h of bundle.heroes) cards.set(h.id, h);
 
   const findLord = (id: string): LordDef => {
-    const l = bundle.heroes.find((h) => h.id === id);
-    if (!l) throw new Error(`找不到主公：${id}`);
-    return l;
+    const raw = bundle.heroes.find((h) => h.id === id);
+    if (!raw) throw new Error(`找不到主公：${id}`);
+    // 主公技写在 skills[0]（与卡牌同一套 DSL，ADR-049）
+    const sk = raw.skills?.[0];
+    if (!sk) throw new Error(`主公 ${id} 没有主公技（heroes.yaml 的 skills[0]）`);
+    return { ...raw, skill: sk.name, skillDef: sk };
   };
 
   return {
@@ -41,35 +44,4 @@ export function loadData(bundle: DataBundle, lordIds: { own: string; enemy: stri
     lords: { own: findLord(lordIds.own), enemy: findLord(lordIds.enemy) },
     byFaction,
   };
-}
-
-/**
- * 按统率曲线自动组一套 30 张卡组（demo / AI 用）
- * 曲线建议见 docs/gdd/13-balance-data-model.md
- */
-export function autoDeck(data: LoadedData, faction: Faction, seed = 1): string[] {
-  const pool = (data.byFaction.get(faction) ?? []).filter((c) => c.type !== 'elite');
-  const neutral = data.byFaction.get('neutral') ?? [];
-  const all = [...pool, ...neutral].filter((c) => c.type !== 'elite' && c.cost <= 8);
-  if (!all.length) throw new Error(`阵营 ${faction} 没有可用卡牌`);
-
-  const curve: Record<number, number> = { 1: 6, 2: 8, 3: 6, 4: 5, 5: 3, 6: 2 };
-  const deck: string[] = [];
-  const buckets = new Map<number, CardDef[]>();
-  for (const c of all) {
-    const b = buckets.get(c.cost) ?? [];
-    b.push(c);
-    buckets.set(c.cost, b);
-  }
-  let i = 0;
-  for (const [costStr, want] of Object.entries(curve)) {
-    const cost = Number(costStr);
-    const bucket = buckets.get(cost) ?? all;
-    for (let k = 0; k < want; k++) {
-      deck.push(bucket[(i++) % bucket.length]!.id);
-    }
-  }
-  // 补足 / 裁剪到 30 张
-  while (deck.length < 30) deck.push(all[deck.length % all.length]!.id);
-  return deck.slice(0, 30);
 }

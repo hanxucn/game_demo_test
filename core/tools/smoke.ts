@@ -6,17 +6,18 @@
  *   npm run smoke -- --seed 42 --turns 30 --verbose
  *
  * 完成标准（docs/PROJECT_STATE 里的验收项）：
- *   3 张基础兵种 + 传国玉玺跑通"两个 AI 互打一局"，无异常、可复现
+ *   3 张基础兵种跑通"两个 AI 互打一局"，无异常、可复现
  */
 
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { createMatch } from '../src/state.ts';
 import { applyAction, startMatch } from '../src/engine.ts';
 import { chooseAction } from '../src/ai.ts';
-import { loadData, autoDeck } from '../src/loader.ts';
+import { loadData } from '../src/loader.ts';
+import { autoDeck } from '../src/deck.ts';
+import { setupMatch } from '../src/setup.ts';
 import type { Action, EngineContext, GameEvent, MatchState, Side } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -65,26 +66,27 @@ function main(): void {
 
   const cards = loadJson<unknown>('cards.json');
   const heroes = loadJson<unknown>('heroes.json');
-  const bundle = {
-    cards: Array.isArray(cards) ? cards : (cards as { cards: never[] }).cards,
-    heroes,
-  } as Parameters<typeof loadData>[0];
+  const unwrap = <T,>(v: unknown): T[] => (Array.isArray(v) ? v as T[] : ((v as { cards: T[] }).cards ?? []));
+  const data = loadData(
+    { cards: unwrap(cards), heroes: unwrap(heroes) },
+    { own: 'shu_liubei', enemy: 'wei_caocao' },
+  );
 
-  const data = loadData(bundle, { own: 'shu_liubei', enemy: 'wei_caocao' });
-  const base = createMatch({
+  // 完整开局：掷点先手 → 换牌 → 开打（GDD 03 §1）
+  const { state: base, log: setupLog } = setupMatch({
     seed,
     cards: data.cards,
     lords: data.lords,
-    decks: {
-      own: autoDeck(data, 'shu'),
-      enemy: autoDeck(data, 'wei'),
-    },
+    decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
+    mulliganIndices: { own: [], enemy: [] },
   });
   const ctx: EngineContext = { cards: data.cards, lords: data.lords };
   let state: MatchState = startMatch(base, ctx).state;
 
   console.log(`\n《酒话三国》引擎冒烟测试  seed=${seed}`);
   console.log(`主公：${state.sides.own.lord.name} vs ${state.sides.enemy.lord.name}`);
+  console.log(`先手：${state.active === 'own' ? '己方' : '敌方'}`);
+  for (const l of setupLog) console.log(`  · ${l}`);
   console.log(`卡组：${state.sides.own.deck.length + state.sides.own.hand.length} vs ${state.sides.enemy.deck.length + state.sides.enemy.hand.length}\n`);
 
   let actions = 0;
@@ -118,9 +120,13 @@ function main(): void {
   console.log(`结果：${state.winner === null ? '未分胜负（达到回合上限）' : state.winner === 'draw' ? '平局' : state.winner === 'own' ? '我方胜利' : '敌方胜利'}`);
 
   // 回放校验：用同一 seed 重放全部动作，状态必须一致
-  const replayBase = createMatch({
-    seed, cards: data.cards, lords: data.lords,
+  // 用完全相同的开局参数重建（含掷点/酒令/换牌），才能逐动作比对
+  const { state: replayBase } = setupMatch({
+    seed,
+    cards: data.cards,
+    lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
+    mulliganIndices: { own: [], enemy: [] },
   });
   let replay: MatchState = startMatch(replayBase, ctx).state;
   for (const a of log) {

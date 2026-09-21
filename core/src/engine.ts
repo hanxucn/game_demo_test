@@ -1,3 +1,44 @@
+function useLordSkill(
+  state: MatchState, ctx: EngineContext,
+  action: Extract<Action, { type: 'USE_LORD_SKILL' }>,
+  events: GameEvent[], rng: ReturnType<typeof createRng>,
+): boolean {
+  const side = state.active;
+  const lord = state.sides[side].lord;
+  const skill = lord.skillDef;
+  // 主公技一律走数据（ADR-049）：heroes.yaml 的 skills[0]，与卡牌同一套 DSL。
+  // 原先按中文技能名硬编码在 LORD_SKILLS 表里，改技能必须改代码。
+  if (!skill || skill.kind !== 'active') return false;
+
+  // 主公技门控（ADR-040）：被「进言」封锁则不可用；「参谋」提升每回合可用次数
+  if (hasCapOn(lord.statuses, 'block_lord_skill')) return false;
+  if (lord.skillUsedThisTurn && capStacks(lord.statuses, 'extra_lord_skill') <= 0) return false;
+
+  // 费用来自数据（ADR-049：三主公统一 2），不再硬编码 1
+  const cost = skill.cost ?? LORD_SKILL_COST;
+  if (state.sides[side].command.cur < cost) return false;
+
+  const target: TargetRef | undefined = action.target
+    ? action.target.row !== undefined
+      ? unitRef(action.target.side, action.target.row, action.target.col as number)
+      : lordRef(action.target.side)
+    : undefined;
+
+  state.sides[side].command.cur -= cost;
+  // 有「参谋」加成时先消耗加成次数，再消耗基础次数
+  if (capStacks(lord.statuses, 'extra_lord_skill') > 0 && lord.skillUsedThisTurn) {
+    const bonus = Object.entries(lord.statuses ?? {})
+      .find(([id, st]) => st.stacks > 0 && STATUSES[id]?.caps?.includes('extra_lord_skill'));
+    if (bonus) bonus[1].stacks -= 1;
+  } else {
+    lord.skillUsedThisTurn = true;
+  }
+  events.push({ type: 'LORD_SKILL_USED', side, skill: lord.skill });
+  runEffects(state, ctx.cards, skill.effects,
+             { side, chosen: target, handIndex: action.handIndex }, rng, events);
+  return true;
+}
+
 /**
  * 引擎主循环：applyAction
  *
@@ -5,7 +46,7 @@
  * 客户端只消费 events 播放动画；服务器用同一个引擎做权威裁决。
  */
 
-import { COMMAND, MATCH, STATUSES, TIMING } from './constants.ts';
+import { COMMAND, LORD_SKILL_COST, MATCH, STATUSES, TIMING } from './constants.ts';
 import { createRng } from './rng.ts';
 import {
   capStacks,
@@ -15,7 +56,7 @@ import {
   allUnits, cloneState, getUnit, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks,
 } from './state.ts';
 import {
-  canPlayCard, effectiveAttack, legalPlacements, legalTargets,
+  canPlayCard, canUseUnitSkill, effectiveAttack, legalPlacements, legalTargets,
 } from './rules.ts';
 import {
   dealDamage, discardOverflow, drawCard, effectiveCost, expireHandMods, expireMods, expireStatuses,
@@ -81,16 +122,40 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   const side = state.active;
   const s = state.sides[side];
 
-  s.command.max = Math.min(COMMAND.MAX, s.command.max + 1);
+  // 统率值增长（ADR-061，设计者裁定）：双方都行动完才算一个完整回合，
+  // **完整回合结束后双方一起 +1**。早先的写法是在各自回合开始时给自己 +1 ——
+  // 先手方在自己第 1 回合就白拿 1 点（对手还没动过），同一"回合"里双方上限不等。
+  const round = Math.ceil(state.turn / 2);
+  if (round > state.round) {
+    state.round = round;
+    for (const sd of ['own', 'enemy'] as Side[]) {
+      state.sides[sd].command.max = Math.min(COMMAND.MAX, state.sides[sd].command.max + 1);
+    }
+  }
   // 断粮：主公状态「断粮」按层数削减本回合统率上限（ADR-040）
   const duan = lordStatusStacks(s.lord, 'duan_liang');
   s.command.cur = Math.max(0, s.command.max - duan);
   s.lord.skillUsedThisTurn = false;
-  for (const ref of allUnits(state, side)) ref.unit.attackedThisTurn = 0;
+  for (const ref of allUnits(state, side)) {
+    ref.unit.attackedThisTurn = 0;
+    ref.unit.skillUsesThisTurn = {};              // 主动技频率每回合重置（GDD 10 §1.1）
+  }
 
   events.push({ type: 'TURN_START', side, turn: state.turn, command: { ...s.command } });
 
   drawCard(state, ctx.cards, side, events);
+  // 后手补偿（ADR-053）：该方第 1 回合额外抽 1 张
+  if (state.secondCompensation === 'extra_draw' && state.turn === 2) {
+    drawCard(state, ctx.cards, side, events);
+  }
+  // ADR-059：翻面的单位在**自己的回合开始时翻回正面并能行动**
+  // （翻面 = 当回合不能行动 + 不能被指定为目标；下个回合开始即恢复）
+  for (const ref of allUnits(state, side)) {
+    if (ref.unit.statuses.fan_mian) {
+      delete ref.unit.statuses.fan_mian;
+      events.push({ type: 'UNIT_FLIPPED', side, row: ref.row, col: ref.col, to: 'front', unit: ref.unit });
+    }
+  }
   resolveTurnStartStatuses(state, ctx.cards, side, events);
   recomputeAuras(state, ctx.cards, rng, events);                              // 第 3 步 ②光环重算
   runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);   // 第 3 步 ③回合开始技
@@ -108,13 +173,7 @@ function endTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng
   dropped.forEach((c) => events.push({ type: 'CARD_PLAYED', side, card: c }));   // 弃牌也用同一事件，客户端可区分
   events.push({ type: 'TURN_END', side, turn: state.turn });
 
-  if (state.turn >= MATCH.TURN_LIMIT) {
-    const own = state.sides.own.lord.hp;
-    const enemy = state.sides.enemy.lord.hp;
-    state.winner = own === enemy ? 'draw' : own > enemy ? 'own' : 'enemy';
-    events.push({ type: 'GAME_OVER', winner: state.winner });
-    return;
-  }
+  // ADR-054：不设回合上限、不判平局——对局只能由主将阵亡结束（粮尽保证必然收束）
 
   state.active = other(side);
   startTurn(state, ctx, events, rng);
@@ -200,8 +259,6 @@ function attack(
   if (!target) return false;
 
   const dmg = effectiveAttack(state, side, from.row, from.col);
-  const hasWuShuang = hasKeyword(attacker, 'wu_shuang');
-  const hasXianGong = hasKeyword(attacker, 'xian_gong');
   const hasYinXue = hasKeyword(attacker, 'yin_xue');
   const foe = other(side);
 
@@ -212,36 +269,41 @@ function attack(
 
   if (target.kind === 'lord') {
     const dealt = dealDamage(state, ctx.cards, lordRef(foe), dmg, events, attacker.name);
-    if (hasYinXue) healTarget(state, lordRef(side), dealt, events);
+    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
   } else {
     const tRow = target.row as 'front' | 'back';
     const tCol = target.col as number;
     const targetUnit = getUnit(state, foe, tRow, tCol);
-    const retaliate = targetUnit?.atk ?? 0;
+    // 反击力 = 目标的**有效**攻击力（含振奋/虚弱等，与攻击方算法对称，ADR-059）。
+    // 必须在造成伤害**之前**取值：伤害不改变攻击力，但目标可能被打死而离场。
+    const retaliate = effectiveAttack(state, foe, tRow, tCol);
 
     const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name);
-    const targetDied = !getUnit(state, foe, tRow, tCol);
 
     // 时机表第 16 步：受到伤害触发技（on_damaged）
     const hit = getUnit(state, foe, tRow, tCol);
     if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, 'on_damaged', rng, events);
     if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);
 
-    // 反击：无双免疫；先攻若击杀则不反击
-    if (!targetDied && !hasWuShuang && !hasXianGong) {
+    // 反击（ADR-062，设计者裁定）：**同时结算**，与炉石一致。
+    // 只要目标有攻击力，攻击方就吃下这一下 —— **哪怕目标已被打死**。
+    // 目标 0 攻则无伤害；攻击方身上的「圣盾」（immune_damage）会在 dealDamage 里
+    // 消耗一层并免掉本次伤害，这才是唯一的免疫途径。
+    // 「无双」（攻击不受反击）已取消（ADR-054），分支一并移除。
+    if (retaliate > 0) {
       dealDamage(state, ctx.cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? '反击');
       const back = getUnit(state, side, from.row, from.col);
       if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, 'on_damaged', rng, events);
     }
-    if (hasYinXue) healTarget(state, lordRef(side), dealt, events);
+    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
   }
 
   attacker.attackedThisTurn += 1;
 
-  // 奇袭：攻击后失去
+  // 奇袭：攻击后失去隐身（ADR-054 的新定义还要求"上场自动隐身"，尚未实现，见 Q-06-*）
   if (hasKeyword(attacker, 'qi_xi')) {
     attacker.kw = attacker.kw.filter((k) => k !== 'qi_xi');
-    delete attacker.statuses.qi_xi;
+    delete attacker.statuses.qi_xi_status;
     events.push({ type: 'STATUS_EXPIRED', side, row: from.row, col: from.col, status: 'qi_xi' });
   }
 
@@ -258,70 +320,6 @@ function attack(
    技能
    ============================================================ */
 
-/** 主公技内置实现（当数据未提供 skillDef 时按技能名兜底） */
-const LORD_SKILLS: Record<string, (state: MatchState, ctx: EngineContext, side: Side, target: TargetRef | undefined, events: GameEvent[]) => void> = {
-  仁德: (state, ctx, side, target, events) => {
-    if (target) healTarget(state, target, 2, events);
-  },
-  号令: (state, ctx, side, target, events) => {
-    if (target?.kind === 'unit') {
-      const u = getUnit(state, target.side, target.row, target.col);
-      if (u) {
-        u.statuses.zhen_fen = { stacks: (u.statuses.zhen_fen?.stacks ?? 0) + 2 };
-        events.push({ type: 'STATUS_APPLIED', side: target.side, row: target.row, col: target.col, status: 'zhen_fen', stacks: 2 });
-      }
-    }
-  },
-  坐断东南: (state, ctx, side, _t, events) => { gainArmor(state, side, 2, events); },
-  暴虐: (state, ctx, side, _t, events) => {
-    drawCard(state, ctx.cards, side, events);
-    dealDamage(state, ctx.cards, lordRef(side), 1, events, '暴虐');
-  },
-};
-
-function useLordSkill(
-  state: MatchState, ctx: EngineContext,
-  action: Extract<Action, { type: 'USE_LORD_SKILL' }>,
-  events: GameEvent[], rng: ReturnType<typeof createRng>,
-): boolean {
-  const side = state.active;
-  const lord = state.sides[side].lord;
-  // 主公技门控（ADR-040）：被「进言」封锁则不可用；「参谋」提升每回合可用次数
-  if (hasCapOn(lord.statuses, 'block_lord_skill')) return false;
-  if (lord.skillUsedThisTurn && capStacks(lord.statuses, 'extra_lord_skill') <= 0) return false;
-  if (state.sides[side].command.cur < 1) return false;
-
-  const target: TargetRef | undefined = action.target
-    ? action.target.row !== undefined
-      ? unitRef(action.target.side, action.target.row, action.target.col as number)
-      : lordRef(action.target.side)
-    : undefined;
-
-  const impl = lord.skillDef
-    ? null
-    : LORD_SKILLS[lord.skill];
-
-  if (!impl && !lord.skillDef) return false;
-
-  state.sides[side].command.cur -= 1;
-  // 有「参谋」加成时先消耗加成次数，再消耗基础次数
-  if (capStacks(lord.statuses, 'extra_lord_skill') > 0 && lord.skillUsedThisTurn) {
-    const bonus = Object.entries(lord.statuses ?? {})
-      .find(([id, st]) => st.stacks > 0 && STATUSES[id]?.caps?.includes('extra_lord_skill'));
-    if (bonus) bonus[1].stacks -= 1;
-  } else {
-    lord.skillUsedThisTurn = true;
-  }
-  events.push({ type: 'LORD_SKILL_USED', side, skill: lord.skill });
-
-  if (lord.skillDef) {
-    runEffects(state, ctx.cards, lord.skillDef.effects, { side, chosen: target }, rng, events);
-  } else if (impl) {
-    impl(state, ctx, side, target, events);
-  }
-  return true;
-}
-
 function useUnitSkill(
   state: MatchState, ctx: EngineContext,
   action: Extract<Action, { type: 'USE_SKILL' }>,
@@ -330,18 +328,21 @@ function useUnitSkill(
   const side = state.active;
   const u = getUnit(state, side, action.row, action.col);
   if (!u) return false;
-  if (hasCap(u, 'block_action') || hasCap(u, 'block_skill')) return false;   // ADR-034
-  const skill = (u.skills ?? []).find((sk) => sk.kind === 'active');
-  if (!skill) return false;
-  const cost = skill.cost ?? 0;
-  if (state.sides[side].command.cur < cost) return false;
+  // 频率 / 震慑 / 费用共用 rules.ts 的判定（AI 与引擎必须同源）
+  const check = canUseUnitSkill(state, side, action.row, action.col);
+  if (!check.ok) return false;
+  const skill = check.skill!;
 
-  state.sides[side].command.cur -= cost;
+  const key = skill.id || skill.name || '0';
+  u.skillUsesThisTurn[key] = (u.skillUsesThisTurn[key] ?? 0) + 1;
+  if ((skill.frequency ?? 'once_per_turn') === 'once') u.skillsUsedOnce.push(key);
+  state.sides[side].command.cur -= skill.cost ?? 0;
   const target: TargetRef | undefined = action.target
     ? action.target.row !== undefined
       ? unitRef(action.target.side, action.target.row, action.target.col as number)
       : lordRef(action.target.side)
     : undefined;
-  runEffects(state, ctx.cards, skill.effects, { side, source: u, chosen: target }, rng, events);
+  runEffects(state, ctx.cards, skill.effects,
+             { side, source: u, chosen: target, handIndex: action.handIndex }, rng, events);
   return true;
 }

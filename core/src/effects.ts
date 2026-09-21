@@ -11,9 +11,29 @@ import { effectiveCost, handRef, isBanned } from './mutate.ts';
 import type { Rng } from './rng.ts';
 import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchState, Row, Side, TargetSelector, Unit } from './types.ts';
 import {
-  applyStatus, dealDamage, drawCard, gainArmor, healTarget, lordRef, summonUnit, unitRef,
+  applyStatus, dealDamage, drawCard, gainArmor, healTarget, lordRef, registerOnDeathResolver,
+  registerOnDrawResolver,
+  summonUnit, unitRef,
   type TargetRef,
 } from './mutate.ts';
+
+/**
+ * 「抽到时释放」（ADR-050）：带 `trigger: 'on_draw'` 技能的卡被抽到时不进手牌，
+ * 直接结算其效果并进弃牌堆。由 mutate.drawCard 通过挂载点回调。
+ */
+registerOnDrawResolver((state, cards, side, card, events, rng) => {
+  const sk = (card.skills ?? []).find((k) => k.trigger === 'on_draw');
+  if (!sk) return false;
+  runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
+  return true;
+});
+
+/** 亡语解析器：把 on_death 技能交给 DSL 解释器（ADR-050） */
+registerOnDeathResolver((state, cards, side, unit, skills, events, rng) => {
+  for (const sk of skills) {
+    runEffects(state, cards, sk.effects ?? [], { side, source: unit }, rng, events);
+  }
+});
 
 export interface EffectContext {
   side: Side;            // 效果来源方
@@ -25,6 +45,8 @@ export interface EffectContext {
   flags?: string[];
   /** 光环收集模式（ADR-037）：非空时 modify 写入修正层而非直接改数值 */
   auraId?: string;
+  /** discard mode:'choose' 时，指定弃掉手牌的第几张（ADR-049） */
+  handIndex?: number;
 }
 
 /** 目标当前生命（主将/单位通用） */
@@ -65,6 +87,8 @@ const matchesFilter = (
   if (typeof f.health_max === 'number' && u.hp > f.health_max) return false;
   if (f.has_status && !((u.statuses[f.has_status]?.stacks ?? 0) > 0)) return false;
   if (typeof f.cost_max === 'number' && u.cost > f.cost_max) return false;
+  if (typeof f.cost_min === 'number' && u.cost < f.cost_min) return false;
+  if (f.troopKind && u.troopKind !== f.troopKind) return false;   // 兵种过滤（ADR-042）
   if (f.cost_below_source && srcCost !== undefined && u.cost >= srcCost) return false;
   return true;
 };
@@ -359,6 +383,13 @@ export function resolveTargets(
       });
     }
   }
+  // include_lord（ADR-051）：把该方主将也放进候选池，供「随机打敌方任意目标（含主将）」使用
+  if (selector.filter?.include_lord) {
+    for (const s of poolSides) {
+      if (state.sides[s].lord.hp > 0) pool.push(lordRef(s));
+    }
+  }
+
   // 相邻（adjacent_to: self）：只保留与来源单位同列或左右相邻列的单位
   let finalPool = pool;
   if (selector.filter?.adjacent_to === 'self' && ctx.source) {
@@ -485,7 +516,12 @@ export function runEffects(
           : sel === 'self' || sel === 'ally' ? [ctx.side] : [other(ctx.side)];
         for (const side of sides) {
           for (let i = 0; i < n && state.sides[side].hand.length; i++) {
-            const idx = rng.int(state.sides[side].hand.length);
+            // mode: 'choose' → 用 ctx.handIndex 指定的那张（ADR-049）；
+            // 未指定或越界则退回随机，绝不静默失败
+            const want = eff.mode === 'choose' && side === ctx.side ? ctx.handIndex : undefined;
+            const idx = typeof want === 'number' && want >= 0 && want < state.sides[side].hand.length
+              ? want
+              : rng.int(state.sides[side].hand.length);
             const [hc] = state.sides[side].hand.splice(idx, 1);
             if (!hc) continue;
             state.sides[side].discard.push(hc.card);
@@ -493,6 +529,57 @@ export function runEffects(
             events.push({ type: 'CARD_DISCARDED', side, card: hc.card });
           }
         }
+        break;
+      }
+      case 'add_to_deck': {
+        // 往指定方的牌库**随机位置**插入 N 张指定卡（ADR-050，「万箭齐发」）
+        const who: Side = eff.target?.side === 'enemy' ? other(ctx.side) : ctx.side;
+        const def = cards.get(String(eff.unit ?? ''));
+        if (!def) { events.push({ type: 'REJECTED', reason: `add_to_deck 的卡不存在：${eff.unit}` } as never); break; }
+        const n = eff.count ?? 1;
+        // to:'hand' → 直接进手牌（"获得一张"）；默认进牌库随机位置（"加入牌组"）
+        if (eff.to === 'hand') {
+          for (let i = 0; i < n; i++) {
+            state.sides[who].hand.push({ card: def, mods: [] });
+          }
+        } else {
+          for (let i = 0; i < n; i++) {
+            const deck = state.sides[who].deck;
+            deck.splice(rng.int(deck.length + 1), 0, def.id);
+          }
+        }
+        events.push({ type: 'DECK_ADDED', side: who, card: def, count: n, to: eff.to === 'hand' ? 'hand' : 'deck' } as never);
+        break;
+      }
+      case 'send_to_deck': {
+        // 把「自己牌库里剩下的指定牌」全部塞进对方牌库（ADR-050，袁绍亡语）
+        const to: Side = eff.target?.side === 'enemy' ? other(ctx.side) : ctx.side;
+        const cid = String(eff.unit ?? '');
+        const from = state.sides[ctx.side].deck;
+        const moved: string[] = [];
+        for (let i = from.length - 1; i >= 0; i--) {
+          if (from[i] === cid) { from.splice(i, 1); moved.push(cid); }
+        }
+        for (const id of moved) {
+          const deck = state.sides[to].deck;
+          deck.splice(rng.int(deck.length + 1), 0, id);
+        }
+        events.push({ type: 'DECK_SENT', side: to, cardId: cid, count: moved.length });
+        break;
+      }
+      case 'cycle_to_deck': {
+        // 把手牌放回牌库**随机位置**，然后抽 1 张（ADR-050，孙权「坐断东南」置换模式）
+        // 与 discard 的区别：牌回牌库可再抽到，不是永久损失
+        const h = state.sides[ctx.side].hand;
+        const idx = typeof ctx.handIndex === 'number' && ctx.handIndex >= 0 && ctx.handIndex < h.length
+          ? ctx.handIndex : (h.length ? rng.int(h.length) : -1);
+        if (idx < 0) break;
+        const [hc] = h.splice(idx, 1);
+        if (!hc) break;
+        const deck = state.sides[ctx.side].deck;
+        deck.splice(rng.int(deck.length + 1), 0, hc.card.id);
+        events.push({ type: 'CARD_RETURNED_TO_DECK', side: ctx.side, card: hc.card });
+        drawCard(state, cards, ctx.side, events, rng);
         break;
       }
       case 'return_to_hand': {
@@ -515,7 +602,7 @@ export function runEffects(
           ? ctx.side : other(ctx.side);
         const mine = ctx.source?.cost ?? 0;
         const his = topCost(state, foe);
-        const mode = eff.unit ?? 'roll';
+        const mode = eff.clashMode ?? 'roll';
         const a = mode === 'cost' ? mine : rng.int(6) + 1;
         const b = mode === 'cost' ? his : rng.int(6) + 1;
         const win = mode === 'cost' && a !== b ? a > b : a >= b;
@@ -580,6 +667,36 @@ export function runEffects(
           }
           state.sides[ctx.side].hand.push({ card: def, mods: [] });
           events.push({ type: 'CARD_STOLEN', from, to: ctx.side, card: def });
+        }
+        break;
+      }
+      case 'transform': {
+        // 进化（ADR-042）：把目标单位换成另一张卡的定义，保留伤害/状态/攻击次数
+        const toId = String(eff.to ?? '');
+        const toCard = cards.get(toId);
+        if (!toCard) {
+          // 不静默失败：进化目标卡必须存在于卡表（数据错误要能看见）
+          events.push({ type: 'REJECTED', reason: `进化目标卡不存在：${toId}` } as never);
+          break;
+        }
+        for (const t of targets) {
+          if (t.kind !== 'unit') continue;
+          const u = getUnit(state, t.side, t.row, t.col);
+          if (!u) continue;
+          const fromId = u.cardId;
+          const taken = u.maxHp - u.hp;                    // 已受伤害，进化后保留
+          u.cardId = toCard.id;
+          u.name = toCard.name;
+          u.baseAtk = toCard.attack ?? 0;
+          u.baseMaxHp = toCard.health ?? 1;
+          u.kw = [...(toCard.keywords ?? [])];             // 关键词替换
+          u.skills = toCard.skills ? structuredClone(toCard.skills) : undefined;
+          u.troopKind = toCard.troopKind;
+          applyMods(u);
+          u.hp = Math.max(1, u.maxHp - taken);             // 保留伤害（不白送治疗）
+          // 攻击次数不重置：attackedThisTurn 保持原值
+          events.push({ type: 'UNIT_TRANSFORMED', side: t.side, row: t.row, col: t.col,
+                        from: fromId, to: toCard.id, unit: u });
         }
         break;
       }
@@ -658,10 +775,12 @@ export function runEffects(
         break;
       }
       case 'flip': {
-        // 翻面（ADR-034）：施加 fan_mian，直到被条件翻回
+        // 翻面（ADR-059）：当回合不能行动、不能被指定为目标；下个回合开始翻回正面
         for (const t of targets) {
           if (t.kind !== 'unit') continue;
           applyStatus(state, t, 'fan_mian', 1, events);
+          const u = getUnit(state, t.side, t.row, t.col);
+          if (u) events.push({ type: 'UNIT_FLIPPED', side: t.side, row: t.row, col: t.col, to: 'back', unit: u });
         }
         break;
       }
@@ -671,7 +790,7 @@ export function runEffects(
           ? ctx.side : other(ctx.side);
         const deck = state.sides[who].deck;
         const n = eff.count ?? 1;
-        const fromTop = (eff.unit ?? 'top') === 'top';
+        const fromTop = (eff.from ?? 'top') === 'top';
         for (let i = 0; i < n && deck.length; i++) {
           const id = fromTop ? deck.shift()! : deck.pop()!;
           if (eff.to === 'deck_bottom') deck.push(id);
@@ -682,12 +801,21 @@ export function runEffects(
         break;
       }
       case 'apply_status': {
-        const list = targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []);
+        // count > 1 时重复结算，且每次**重新解析目标**（与 damage 同构，ADR-056）。
+        // 张角「五雷轰顶」需要「5 次雷击各 50% 概率震慑」——原先 count 被忽略，
+        // 而估值公式（ADR-046）却已按次数计价，两边不一致，此处补齐。
+        const times = eff.count ?? 1;
         const turns = typeof eff.duration === 'number' ? eff.duration
           : eff.duration === 'this_turn' ? 1 : undefined;
         const srcUid = eff.status_source === 'self' ? ctx.source?.uid : undefined;
-        for (const t of list) {
-          applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+        for (let i = 0; i < times; i++) {
+          const list = i === 0
+            ? (targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []))
+            : (eff.target ? resolveTargets(state, eff.target, ctx, rng)
+                          : (ctx.chosen ? [ctx.chosen] : []));
+          for (const t of list) {
+            applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+          }
         }
         break;
       }
@@ -695,7 +823,7 @@ export function runEffects(
         gainArmor(state, ctx.side, eff.value ?? 1, events);
         break;
       case 'gain_command': {
-        // 本回合临时统率（传国玉玺等）
+        // 本回合临时统率（gain_command）
         const cmd = state.sides[ctx.side].command;
         cmd.cur = Math.min(cmd.max, cmd.cur + (eff.value ?? 1));
         break;

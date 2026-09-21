@@ -1,0 +1,1082 @@
+{
+ "shu_dongjue": {
+  "stats": 4,
+  "keywords": -1,
+  "skills": 0,
+  "total": 3,
+  "budget": 5,
+  "diff": -2,
+  "level": "watch"
+ },
+ "shu_liufeng": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 1.75,
+  "total": 7.75,
+  "budget": 5,
+  "diff": 2.75,
+  "level": "watch"
+ },
+ "shu_xiangchong": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 0,
+  "total": 5,
+  "budget": 5,
+  "diff": 0,
+  "level": "ok"
+ },
+ "shu_chendao": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 0,
+  "total": 4,
+  "budget": 7,
+  "diff": -3,
+  "level": "watch"
+ },
+ "shu_guanping": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 1.4,
+  "total": 7.4,
+  "budget": 7,
+  "diff": 0.4,
+  "level": "ok"
+ },
+ "shu_huangquan": {
+  "stats": 3,
+  "keywords": 0,
+  "skills": 2,
+  "total": 5,
+  "budget": 7,
+  "diff": -2,
+  "level": "watch"
+ },
+ "shu_madai": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 2.1,
+  "total": 8.1,
+  "budget": 7,
+  "diff": 1.1,
+  "level": "ok"
+ },
+ "shu_zhoucang": {
+  "stats": 6,
+  "keywords": -1,
+  "skills": 0,
+  "total": 5,
+  "budget": 7,
+  "diff": -2,
+  "level": "watch"
+ },
+ "shu_guanxing": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 2.38,
+  "total": 10.38,
+  "budget": 9,
+  "diff": 1.38,
+  "level": "ok"
+ },
+ "shu_shamoke": {
+  "stats": 7,
+  "keywords": 0,
+  "skills": 2,
+  "total": 9,
+  "budget": 9,
+  "diff": 0,
+  "level": "ok"
+ },
+ "shu_weiyan": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 0.4,
+  "total": 8.4,
+  "budget": 9,
+  "diff": -0.6,
+  "level": "ok"
+ },
+ "shu_zhangbao": {
+  "stats": 7,
+  "keywords": 0,
+  "skills": 0.8,
+  "total": 7.8,
+  "budget": 9,
+  "diff": -1.2,
+  "level": "ok"
+ },
+ "shu_huangzhong": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 0.7,
+  "total": 8.7,
+  "budget": 11,
+  "diff": -2.3,
+  "level": "watch"
+ },
+ "shu_jiangwei": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 0.8,
+  "total": 9.8,
+  "budget": 11,
+  "diff": -1.2,
+  "level": "ok"
+ },
+ "shu_machao": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 2.8,
+  "total": 11.8,
+  "budget": 11,
+  "diff": 0.8,
+  "level": "ok"
+ },
+ "shu_zhangfei": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 1.05,
+  "total": 10.05,
+  "budget": 11,
+  "diff": -0.95,
+  "level": "ok"
+ },
+ "shu_zhaoyun": {
+  "stats": 10,
+  "keywords": 0,
+  "skills": 2,
+  "total": 12,
+  "budget": 11,
+  "diff": 1,
+  "level": "ok"
+ },
+ "shu_guanyu": {
+  "stats": 10,
+  "keywords": 0,
+  "skills": 7.5,
+  "total": 17.5,
+  "budget": 15,
+  "diff": 2.5,
+  "level": "watch"
+ },
+ "shu_huanghao": {
+  "stats": 3,
+  "keywords": 0,
+  "skills": 1,
+  "total": 4,
+  "budget": 5,
+  "diff": -1,
+  "level": "ok"
+ },
+ "shu_jianyang": {
+  "stats": 3,
+  "keywords": 0,
+  "skills": 1,
+  "total": 4,
+  "budget": 7,
+  "diff": -3,
+  "level": "watch"
+ },
+ "shu_masu": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 6,
+  "total": 10,
+  "budget": 7,
+  "diff": 3,
+  "level": "watch"
+ },
+ "shu_fazheng": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 2,
+  "total": 7,
+  "budget": 9,
+  "diff": -2,
+  "level": "watch"
+ },
+ "shu_mifang": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 1.2,
+  "total": 6.2,
+  "budget": 9,
+  "diff": -2.8,
+  "level": "watch"
+ },
+ "shu_huangyueying": {
+  "stats": 3,
+  "keywords": 0,
+  "skills": 6,
+  "total": 9,
+  "budget": 11,
+  "diff": -2,
+  "level": "watch"
+ },
+ "shu_pangtong": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 7.6,
+  "total": 12.6,
+  "budget": 13,
+  "diff": -0.4,
+  "level": "ok"
+ },
+ "shu_zhugeliang": {
+  "stats": 7,
+  "keywords": 0,
+  "skills": 6.5,
+  "total": 13.5,
+  "budget": 15,
+  "diff": -1.5,
+  "level": "ok"
+ },
+ "neutral_archer": {
+  "stats": 1,
+  "keywords": 0,
+  "skills": 0.35,
+  "total": 1.35,
+  "budget": 3,
+  "diff": -1.65,
+  "level": "watch"
+ },
+ "neutral_infantry": {
+  "stats": 2,
+  "keywords": 0,
+  "skills": 0,
+  "total": 2,
+  "budget": 3,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wei_caogang": {
+  "stats": 4,
+  "keywords": -1,
+  "skills": 0,
+  "total": 3,
+  "budget": 5,
+  "diff": -2,
+  "level": "watch"
+ },
+ "wei_caoxiu": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 0,
+  "total": 5,
+  "budget": 7,
+  "diff": -2,
+  "level": "watch"
+ },
+ "wei_caozhang": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 0,
+  "total": 6,
+  "budget": 7,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wei_zhangyan": {
+  "stats": 5,
+  "keywords": -1,
+  "skills": 0,
+  "total": 4,
+  "budget": 7,
+  "diff": -3,
+  "level": "watch"
+ },
+ "wei_caoren": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 4,
+  "total": 12,
+  "budget": 9,
+  "diff": 3,
+  "level": "watch"
+ },
+ "wei_guohuai": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 8,
+  "total": 13,
+  "budget": 11,
+  "diff": 2,
+  "level": "watch"
+ },
+ "wei_xiahoudun": {
+  "stats": 10,
+  "keywords": 0,
+  "skills": 3,
+  "total": 13,
+  "budget": 11,
+  "diff": 2,
+  "level": "watch"
+ },
+ "wei_xiahouyuan": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 2,
+  "total": 10,
+  "budget": 11,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wei_xuhuang": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 1.4,
+  "total": 10.4,
+  "budget": 11,
+  "diff": -0.6,
+  "level": "ok"
+ },
+ "wei_zhanghe": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 2,
+  "total": 10,
+  "budget": 11,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wei_zhangliao": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 0.56,
+  "total": 9.56,
+  "budget": 11,
+  "diff": -1.44,
+  "level": "ok"
+ },
+ "wei_dianwei": {
+  "stats": 11,
+  "keywords": 0,
+  "skills": 3.5,
+  "total": 14.5,
+  "budget": 13,
+  "diff": 1.5,
+  "level": "ok"
+ },
+ "wei_xuchu": {
+  "stats": 11,
+  "keywords": 0,
+  "skills": 3.2,
+  "total": 14.2,
+  "budget": 13,
+  "diff": 1.2,
+  "level": "ok"
+ },
+ "wei_xunyou": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 2,
+  "total": 7,
+  "budget": 9,
+  "diff": -2,
+  "level": "watch"
+ },
+ "wei_chengyu": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 2.7,
+  "total": 8.7,
+  "budget": 11,
+  "diff": -2.3,
+  "level": "watch"
+ },
+ "wei_guojia": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 4.4,
+  "total": 9.4,
+  "budget": 11,
+  "diff": -1.6,
+  "level": "watch"
+ },
+ "wei_simayi": {
+  "stats": 7,
+  "keywords": 0,
+  "skills": 1.05,
+  "total": 8.05,
+  "budget": 11,
+  "diff": -2.95,
+  "level": "watch"
+ },
+ "wei_xunyu": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 2,
+  "total": 8,
+  "budget": 11,
+  "diff": -3,
+  "level": "watch"
+ },
+ "wei_jiaxu": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 11.2,
+  "total": 17.2,
+  "budget": 15,
+  "diff": 2.2,
+  "level": "watch"
+ },
+ "wu_liyi": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 0,
+  "total": 4,
+  "budget": 5,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wu_songqian": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 0,
+  "total": 5,
+  "budget": 5,
+  "diff": 0,
+  "level": "ok"
+ },
+ "wu_zhuran": {
+  "stats": 4,
+  "keywords": -1,
+  "skills": 0,
+  "total": 3,
+  "budget": 5,
+  "diff": -2,
+  "level": "watch"
+ },
+ "wu_mazhong": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 2.5,
+  "total": 7.5,
+  "budget": 7,
+  "diff": 0.5,
+  "level": "ok"
+ },
+ "wu_quancong": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 0,
+  "total": 5,
+  "budget": 7,
+  "diff": -2,
+  "level": "watch"
+ },
+ "wu_dingfeng": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 0,
+  "total": 8,
+  "budget": 9,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wu_handang": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 1,
+  "total": 9,
+  "budget": 9,
+  "diff": 0,
+  "level": "ok"
+ },
+ "wu_huanggai": {
+  "stats": 7,
+  "keywords": 0,
+  "skills": 2.88,
+  "total": 9.88,
+  "budget": 9,
+  "diff": 0.88,
+  "level": "ok"
+ },
+ "wu_lukang": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 5,
+  "total": 11,
+  "budget": 9,
+  "diff": 2,
+  "level": "watch"
+ },
+ "wu_sunjian": {
+  "stats": 7,
+  "keywords": 0,
+  "skills": 2.46,
+  "total": 9.46,
+  "budget": 9,
+  "diff": 0.46,
+  "level": "ok"
+ },
+ "wu_zhoutai": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 3.8,
+  "total": 11.8,
+  "budget": 9,
+  "diff": 2.8,
+  "level": "watch"
+ },
+ "wu_zhuhuan": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 0.28,
+  "total": 8.28,
+  "budget": 9,
+  "diff": -0.72,
+  "level": "ok"
+ },
+ "wu_ganning": {
+  "stats": 10,
+  "keywords": 0,
+  "skills": 2.1,
+  "total": 12.1,
+  "budget": 11,
+  "diff": 1.1,
+  "level": "ok"
+ },
+ "wu_lingtong": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 2,
+  "total": 11,
+  "budget": 11,
+  "diff": 0,
+  "level": "ok"
+ },
+ "wu_lvmeng": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 5,
+  "total": 13,
+  "budget": 11,
+  "diff": 2,
+  "level": "watch"
+ },
+ "wu_sunce": {
+  "stats": 10,
+  "keywords": 0,
+  "skills": 0,
+  "total": 10,
+  "budget": 11,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wu_chengpu": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 5.32,
+  "total": 14.32,
+  "budget": 13,
+  "diff": 1.32,
+  "level": "ok"
+ },
+ "wu_taishici": {
+  "stats": 11,
+  "keywords": 0,
+  "skills": 1.6,
+  "total": 12.6,
+  "budget": 13,
+  "diff": -0.4,
+  "level": "ok"
+ },
+ "wu_zhugeke": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 2.5,
+  "total": 6.5,
+  "budget": 7,
+  "diff": -0.5,
+  "level": "ok"
+ },
+ "wu_lusu": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 4.8,
+  "total": 9.8,
+  "budget": 9,
+  "diff": 0.8,
+  "level": "ok"
+ },
+ "wu_luxun": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 5.25,
+  "total": 11.25,
+  "budget": 13,
+  "diff": -1.75,
+  "level": "watch"
+ },
+ "wu_zhouyu": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 4.1,
+  "total": 10.1,
+  "budget": 13,
+  "diff": -2.9,
+  "level": "watch"
+ },
+ "qun_caimao": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 0,
+  "total": 4,
+  "budget": 5,
+  "diff": -1,
+  "level": "ok"
+ },
+ "qun_songxian": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 0,
+  "total": 5,
+  "budget": 5,
+  "diff": 0,
+  "level": "ok"
+ },
+ "qun_huangzu": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 1,
+  "total": 6,
+  "budget": 7,
+  "diff": -1,
+  "level": "ok"
+ },
+ "qun_zhangbao": {
+  "stats": 3,
+  "keywords": 0,
+  "skills": 4.2,
+  "total": 7.2,
+  "budget": 7,
+  "diff": 0.2,
+  "level": "ok"
+ },
+ "qun_zhangliang": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 4.2,
+  "total": 8.2,
+  "budget": 7,
+  "diff": 1.2,
+  "level": "ok"
+ },
+ "qun_gaoshun": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 8,
+  "total": 12,
+  "budget": 9,
+  "diff": 3,
+  "level": "watch"
+ },
+ "qun_gongsunzan": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 5.35,
+  "total": 9.35,
+  "budget": 9,
+  "diff": 0.35,
+  "level": "ok"
+ },
+ "qun_huaxiong": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 3.75,
+  "total": 11.75,
+  "budget": 9,
+  "diff": 2.75,
+  "level": "watch"
+ },
+ "qun_mateng": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 6,
+  "total": 10,
+  "budget": 9,
+  "diff": 1,
+  "level": "ok"
+ },
+ "qun_yuanshao": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 6.6,
+  "total": 15.6,
+  "budget": 13,
+  "diff": 2.6,
+  "level": "watch"
+ },
+ "qun_caiwenji": {
+  "stats": 2,
+  "keywords": 0,
+  "skills": 2,
+  "total": 4,
+  "budget": 5,
+  "diff": -1,
+  "level": "ok"
+ },
+ "qun_diaochan": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 5.5,
+  "total": 9.5,
+  "budget": 7,
+  "diff": 2.5,
+  "level": "watch"
+ },
+ "qun_zuoci": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 2.5,
+  "total": 6.5,
+  "budget": 7,
+  "diff": -0.5,
+  "level": "ok"
+ },
+ "qun_chengong": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 2,
+  "total": 7,
+  "budget": 9,
+  "diff": -2,
+  "level": "watch"
+ },
+ "qun_huatuo": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 2.56,
+  "total": 7.56,
+  "budget": 9,
+  "diff": -1.44,
+  "level": "ok"
+ },
+ "qun_tianfeng": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 5,
+  "total": 9,
+  "budget": 9,
+  "diff": 0,
+  "level": "ok"
+ },
+ "qun_zhangjiao": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 7.07,
+  "total": 13.07,
+  "budget": 11,
+  "diff": 2.07,
+  "level": "watch"
+ },
+ "neutral_shieldman": {
+  "stats": 3,
+  "keywords": -1,
+  "skills": 0,
+  "total": 2,
+  "budget": 5,
+  "diff": -3,
+  "level": "watch"
+ },
+ "elite_baima_yicong": {
+  "stats": 3,
+  "keywords": 0,
+  "skills": 0.7,
+  "total": 3.7,
+  "budget": 1,
+  "diff": 2.7,
+  "level": "watch"
+ },
+ "elite_xianzhen_dun": {
+  "stats": 4,
+  "keywords": -1,
+  "skills": 0,
+  "total": 3,
+  "budget": 1,
+  "diff": 2,
+  "level": "watch"
+ },
+ "elite_xiliang_tieqi": {
+  "stats": 3,
+  "keywords": -1,
+  "skills": 0,
+  "total": 2,
+  "budget": 1,
+  "diff": 1,
+  "level": "ok"
+ },
+ "token_huangjin_bing": {
+  "stats": 2,
+  "keywords": 0,
+  "skills": 0,
+  "total": 2,
+  "budget": 1,
+  "diff": 1,
+  "level": "ok"
+ },
+ "token_jixie_shaobing": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 0,
+  "total": 0,
+  "budget": 1,
+  "diff": -1,
+  "level": "ok"
+ },
+ "token_jixie_shouwei": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 0,
+  "total": 0,
+  "budget": 1,
+  "diff": -1,
+  "level": "ok"
+ },
+ "token_shizu_bing": {
+  "stats": 2,
+  "keywords": 0,
+  "skills": 0,
+  "total": 2,
+  "budget": 1,
+  "diff": 1,
+  "level": "ok"
+ },
+ "tactic_wanjianqifa": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 1.2,
+  "total": 1.2,
+  "budget": 1,
+  "diff": 0.2,
+  "level": "ok"
+ },
+ "tactic_bishi_ruiqi": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 2,
+  "total": 2,
+  "budget": 5,
+  "diff": -3,
+  "level": "watch"
+ },
+ "tactic_cuoqi_ruiqi": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 1.4,
+  "total": 1.4,
+  "budget": 5,
+  "diff": -3.6,
+  "level": "off"
+ },
+ "tactic_anduchencang": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 5,
+  "total": 5,
+  "budget": 7,
+  "diff": -2,
+  "level": "watch"
+ },
+ "tactic_bishijixu": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 1,
+  "total": 1,
+  "budget": 7,
+  "diff": -6,
+  "level": "off"
+ },
+ "tactic_gongxinji": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 2.5,
+  "total": 2.5,
+  "budget": 7,
+  "diff": -4.5,
+  "level": "off"
+ },
+ "tactic_huogong": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 1,
+  "total": 1,
+  "budget": 7,
+  "diff": -6,
+  "level": "off"
+ },
+ "tactic_mantianguohai": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 11,
+  "total": 11,
+  "budget": 7,
+  "diff": 4,
+  "level": "off"
+ },
+ "tactic_tuntian": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 6,
+  "total": 6,
+  "budget": 7,
+  "diff": -1,
+  "level": "ok"
+ },
+ "tactic_chuqibuyi": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 2.5,
+  "total": 2.5,
+  "budget": 9,
+  "diff": -6.5,
+  "level": "off"
+ },
+ "tactic_fudichouxin": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 2,
+  "total": 2,
+  "budget": 9,
+  "diff": -7,
+  "level": "off"
+ },
+ "tactic_jijiang": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 3.5,
+  "total": 3.5,
+  "budget": 9,
+  "diff": -5.5,
+  "level": "off"
+ },
+ "tactic_shizhanqunru": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 6,
+  "total": 6,
+  "budget": 9,
+  "diff": -3,
+  "level": "watch"
+ },
+ "tactic_yuqin_guzong": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 3.4,
+  "total": 3.4,
+  "budget": 9,
+  "diff": -5.6,
+  "level": "off"
+ },
+ "tactic_zhuchengjiliang": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 12,
+  "total": 12,
+  "budget": 9,
+  "diff": 3,
+  "level": "watch"
+ },
+ "tactic_chenhuodajie": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 2.5,
+  "total": 2.5,
+  "budget": 11,
+  "diff": -8.5,
+  "level": "off"
+ },
+ "tactic_kongchengji": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 0,
+  "total": 0,
+  "budget": 11,
+  "diff": -11,
+  "level": "off"
+ },
+ "tactic_xiushengyangxi": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 12.6,
+  "total": 12.6,
+  "budget": 11,
+  "diff": 1.6,
+  "level": "watch"
+ },
+ "tactic_caochuanjiejian": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 10,
+  "total": 10,
+  "budget": 13,
+  "diff": -3,
+  "level": "watch"
+ },
+ "event_fengnian": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 12,
+  "total": 12,
+  "budget": 3,
+  "diff": 9,
+  "level": "off"
+ },
+ "event_zainian": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 2,
+  "total": 2,
+  "budget": 3,
+  "diff": -1,
+  "level": "ok"
+ },
+ "event_huangjin": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 6,
+  "total": 6,
+  "budget": 7,
+  "diff": -1,
+  "level": "ok"
+ },
+ "event_nanmanruqin": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 1.5,
+  "total": 1.5,
+  "budget": 7,
+  "diff": -5.5,
+  "level": "off"
+ },
+ "event_shichangshi": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 4,
+  "total": 4,
+  "budget": 7,
+  "diff": -3,
+  "level": "watch"
+ },
+ "event_huoshaoluoyang": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 1.5,
+  "total": 1.5,
+  "budget": 9,
+  "diff": -7.5,
+  "level": "off"
+ },
+ "status_jia_dun": {
+  "stats": 0,
+  "keywords": 0,
+  "skills": 0,
+  "total": 0,
+  "budget": 1,
+  "diff": -1,
+  "level": "ok"
+ }
+}

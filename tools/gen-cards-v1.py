@@ -15,7 +15,7 @@ IDS = {
  148:'tactic_yuqin_guzong',149:'tactic_chuqibuyi',150:'tactic_chenhuodajie',151:'tactic_tuntian',
  152:'tactic_huogong',153:'tactic_fudichouxin',154:'tactic_caochuanjiejian',157:'tactic_mantianguohai',
  158:'tactic_jijiang',159:'tactic_bishijixu',
- 54:'qun_gaoshun',55:'qun_mateng',56:'qun_gongsunzan',57:'qun_quyi',70:'qun_yuanshao',122:'qun_yuanshao_lord',
+ 54:'qun_gaoshun',55:'qun_mateng',56:'qun_gongsunzan',57:'qun_quyi',70:'qun_yuanshao',122:'qun_yuanshao_DUP',
  71:'qun_zhangbao',72:'qun_zhangliang',73:'qun_caimao',74:'qun_songxian',75:'qun_huangzu',
  76:'qun_diaochan',77:'qun_caiwenji',78:'qun_tianfeng',79:'qun_huatuo',80:'qun_chengong',
  81:'qun_zuoci',121:'qun_huaxiong',119:'qun_draft_zhangfei',
@@ -27,7 +27,7 @@ IDS = {
  107:'shu_huangyueying',
  59:'wei_xiahouyuan',60:'wei_zhangliao',61:'wei_chengyu',62:'wei_xunyou',63:'wei_xuhuang',
  64:'wei_xiahoudun',65:'wei_zhanghe',66:'wei_jiaxu',67:'wei_guojia',68:'wei_xuchu',69:'wei_simayi',
- 110:'wei_caocao_lord',111:'wei_zhangyan',112:'wei_caoxiu',113:'wei_caogang',114:'wei_xiahouen',
+ 110:'wei_caocao_EXCLUDED',111:'wei_zhangyan',112:'wei_caoxiu',113:'wei_caogang',114:'wei_xiahouen',
  115:'wei_guohuai',116:'wei_caozhang',117:'wei_caoren',118:'wei_dianwei',120:'wei_xunyu',
  124:'wu_zhouyu',125:'wu_luxun',126:'wu_taishici',127:'wu_sunce',128:'wu_chengpu',129:'wu_lvmeng',
  130:'wu_lingtong',131:'wu_ganning',132:'wu_sunjian',133:'wu_huanggai',134:'wu_handang',
@@ -37,9 +37,19 @@ FAC = {'蜀':'shu','魏':'wei','吴':'wu','群':'qun'}
 TYPE = {'武将':'general','谋臣':'strategist','主公':'lord','计谋卡':'tactic',
         '事件卡':'event','战法卡':'tactic','兵种':'troop','临时卡':'token','属性卡':'status'}
 
-TYPE_FIX = {'qun_yuanshao_lord': 'lord', 'shu_huangquan': 'general'}
+# 注：主公卡（曹操 #110 / 袁绍 #70,#122）已移出卡池——主公数据统一在 data/heroes.yaml（ADR-049）
+TYPE_FIX = {'shu_huangquan': 'general'}
 
 dec = yaml.safe_load(open(ROOT/'data/cards_decisions.draft.yaml', encoding='utf-8'))
+
+# 决策层里的各类补充（供下面的卡片构造使用）
+COST_RULES = dec.get('card_cost_rules') or {}
+CARD_KW = dec.get('card_keywords') or {}
+CARD_TROOPKIND = dec.get('card_troopkind') or {}
+NAME_ONLY = dec.get('skill_name_only') or {}
+# 平衡调优：按卡 id 覆盖 cost/attack/health（值一律来自设计决策，见 docs/balance-backlog.md）
+STATS = dec.get('card_stats') or {}
+DSL_NONE = set((dec.get('dsl') or {}).get('_none') or [])
 PHOTO_TAGS: dict[int, list[str]] = {}
 for tag, photos in (dec.get('card_tags') or {}).items():
     for ph in photos:
@@ -73,7 +83,8 @@ for r in sorted(d['cards'], key=lambda r: int(r['photo'])):
     if r.get('skill_name') or r.get('skill_text'):
         card['skills'] = [{'name': r.get('skill_name') or '', 'text': r.get('skill_text') or '',
                            'dsl': None, 'note': '效果 DSL 待翻译（尚未开始）'}]
-    card['keywords'] = []
+    card['keywords'] = list(CARD_KW.get(cid, []))
+    if CARD_TROOPKIND.get(cid): card['troopKind'] = CARD_TROOPKIND[cid]
     if PHOTO_TAGS.get(ph):
         card['tags'] = PHOTO_TAGS[ph]
     card['memo'] = r.get('memo') or ''
@@ -90,15 +101,12 @@ for c in yaml.safe_load(open(ROOT/'data/characters.draft.yaml', encoding='utf-8'
                 'flavor': c.get('flavor') or '', 'source': {'oral': True},
                 'flags': ['口述录入，数值未经校验']})
 
-# 基础卡：盾兵（设计者答疑给出新数值）、传国玉玺（沿用 cards.yaml）
-out.append({'id':'neutral_shieldman','name':'盾兵','faction':'neutral','type':'troop',
+# 基础卡：盾兵（设计者答疑给出新数值）
+out.append({'id':'neutral_shieldman','name':'盾兵','faction':'neutral','type':'troop','troopKind':'shield',
     'cost':2,'attack':1,'health':2,'skills':[],'keywords':['jia_dun'],
     'memo':'仅前军生效：敌方必须先打掉它才能攻击其他人','flavor':'盾如铁壁，寸步不让。',
     'source':{'oral':True,'note':'设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）'}})
-out.append({'id':'neutral_chuanguo_yuxi','name':'传国玉玺','faction':'neutral','type':'special',
-    'cost':0,'skills':[{'name':'','text':'本回合统率 +1（仅后手获得）','dsl':None,'note':'沿用 cards.yaml'}],
-    'keywords':[],'memo':'0 费，本回合统率 +1（仅后手获得）','flavor':'受命于天，既寿永昌。',
-    'source':{'from':'cards.yaml'}})
+# 传国玉玺已删除（ADR-053：设计者裁定非本人设计；后手补偿改为后手第 1 回合多抽 1 张）
 
 # 设计者新增的卡（非照片来源）
 for nc in dec.get('new_cards') or []:
@@ -108,7 +116,8 @@ for nc in dec.get('new_cards') or []:
     if nc.get('health') is not None: card['health'] = nc['health']
     if nc.get('skill_text'): card['skills'] = [{'name': nc.get('skill_name',''), 'text': nc['skill_text'],
                                                 'dsl': None, 'note': '效果 DSL 待翻译'}]
-    card['keywords'] = []
+    card['keywords'] = list(CARD_KW.get(nc['id'], []))
+    if nc.get('troopKind'): card['troopKind'] = nc['troopKind']
     if nc.get('tags'): card['tags'] = nc['tags']
     card['memo'] = ''; card['flavor'] = ''
     card['source'] = {'new': nc.get('source','设计者新增')}
@@ -118,9 +127,10 @@ for nc in dec.get('new_cards') or []:
 # 合并 DSL 翻译（决策层 dsl / dsl_effects）
 DSL = dec.get('dsl') or {}
 DSL_EFF = dec.get('dsl_effects') or {}
-COST_RULES = dec.get('card_cost_rules') or {}
-DSL_NONE = set(DSL.get('_none') or [])
 for card in out:
+    if card['id'] in NAME_ONLY:
+        card['dsl_status'] = '⚠️ 有技能名、效果待设计（手写稿正文区空白）'
+        continue
     if card['id'] in DSL_NONE:
         card['dsl_status'] = '无技能（白板/关键词卡），无需翻译'
         continue
@@ -136,6 +146,16 @@ for card in out:
         card['effects'] = DSL_EFF[card['id']]
         if card.get('skills'):
             card['skills'][0]['note'] = 'DSL 已翻译（卡级 effects）'
+
+# 平衡调优覆盖（数值调整集中一处，便于复盘与回滚）
+for card in out:
+    ov = STATS.get(card['id'])
+    if not ov:
+        continue
+    for field in ('cost', 'attack', 'health', 'keywords', 'troopKind'):
+        if field in ov:
+            card[f'{field}_original'] = card.get(field)
+            card[field] = ov[field]
 
 doc = {
  'meta': {'version': 'v1', 'status': '初步定稿（待 DSL 翻译与数值校验）',

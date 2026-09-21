@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+  <link rel="icon" href="data:,">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>酒话三国 · 战场原型</title>
@@ -10,12 +11,13 @@
     --canvas-w: 736px;
     --canvas-h: 414px;
     --pad: 2px;
-    --card-w: 47px;        /* 所有卡牌统一尺寸 */
-    --card-h: 66px;
-    --hand-h: 72px;
-    --col-gap: 6px;
+    /* ADR-051：战场改为一行 8 格，卡面相应缩小以塞进 736px 画布 */
+    --card-w: 42px;        /* 所有卡牌统一尺寸 */
+    --card-h: 59px;
+    --hand-h: 66px;        /* 手牌区高度＝卡高 59 + 下方留白 7 */
+    --col-gap: 4px;
     --row-gap: 2px;
-    --board-w: calc(5 * var(--card-w) + 4 * var(--col-gap));
+    --board-w: calc(8 * var(--card-w) + 7 * var(--col-gap));
     --ink: #e9e2d5;
     --dim: #a99e8c;
     --gold: #d4af6a;
@@ -42,7 +44,7 @@
     display: flex;
     flex-direction: column;
     padding: var(--pad);
-    gap: 6px;
+    gap: 4px;
     overflow: hidden;
   }
 
@@ -190,8 +192,7 @@
     position: relative; z-index: 3;
     display: flex; flex-direction: column; gap: var(--row-gap);
   }
-  /* 远端行压暗，用光影而不是变形来表现纵深 */
-  .boards .row[data-side="enemy"][data-row="back"] { filter: brightness(.82) saturate(.9); }
+  /* ADR-051：单排——敌方一行略压暗，用光影区分敌我 */
   .boards .row[data-side="enemy"][data-row="front"] { filter: brightness(.92); }
   .row { display: flex; gap: var(--col-gap); height: var(--card-h); justify-content: center; }
   .slot {
@@ -270,6 +271,38 @@
   .panel .pips { display: flex; gap: 2px; margin-top: 4px; }
   .panel .pip { flex: 1 1 0; height: 6px; border-radius: 2px; background: #2a231c; box-shadow: inset 0 0 0 1px #3a3229; }
   .panel .pip.on { background: linear-gradient(180deg, #ffe9b0, var(--gold)); box-shadow: 0 0 6px rgba(212,175,106,.55); }
+
+  /* 牌堆：用卡背表示，双方各一库一手 —— 敌方不再是"看不见的张数" */
+  .panel .pile-row { display: flex; align-items: center; gap: 6px; }
+  .panel .pile-row > .label { flex: 0 0 30px; }
+  .panel .pile {
+    position: relative; display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px 2px 4px; border-radius: 4px;
+    background: rgba(12,9,6,.7); border: 1px solid #3d3226;
+  }
+  .panel .pile b { font-size: 11px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .panel .pile .pback {
+    display: block; width: 13px; height: 18px; border-radius: 2px;
+    background: linear-gradient(135deg, #4a3a24 0%, #2a1f12 55%, #3a2c1a 100%);
+    box-shadow: inset 0 0 0 1px #6b5636, inset 0 0 5px rgba(255,200,120,.22);
+  }
+  /* 抽牌时牌堆闪一下，配合飞向手牌的卡背 */
+  .panel .pile.is-drawing { animation: pileDraw .45s ease-out; }
+  @keyframes pileDraw {
+    0% { box-shadow: 0 0 0 0 rgba(255,214,140,.85); border-color: var(--gold-hi); }
+    100% { box-shadow: 0 0 0 12px rgba(255,214,140,0); border-color: #3d3226; }
+  }
+  .foe-hand-backs { display: flex; gap: 2px; margin-top: 6px; min-height: 20px; flex-wrap: wrap; }
+  .foe-hand-backs i {
+    display: block; width: 13px; height: 19px; border-radius: 2px;
+    background: linear-gradient(135deg, #5a2f2f 0%, #33191a 55%, #462424 100%);
+    box-shadow: inset 0 0 0 1px #8a5050;
+    animation: backIn .28s ease-out backwards;
+  }
+  @keyframes backIn {
+    0% { opacity: 0; transform: translateY(-6px) scale(.7); }
+    100% { opacity: 1; transform: none; }
+  }
   .panel .row2 { display: flex; justify-content: space-between; }
   .panel .row2 b { color: var(--ink); font-weight: 700; }
   .panel .btn {
@@ -302,13 +335,14 @@
   /* 手牌托盘：与战场做视觉分离 */
   .hand::before {
     content: "";
-    position: absolute; left: -6px; right: -6px; bottom: -4px; top: 2px;
+    position: absolute; left: -6px; right: -6px; bottom: 0; top: 2px;
     background: linear-gradient(180deg, rgba(10,7,5,0) 0%, rgba(10,7,5,.55) 40%, rgba(8,6,4,.8) 100%);
     border-radius: 8px 8px 0 0;
     pointer-events: none;
     z-index: -1;
   }
   .hcard-wrap {
+    position: relative;                 /* 费用提示标签的定位上下文 */
     width: var(--card-w); height: var(--card-h);
     cursor: pointer;
     transform-origin: 50% 118%;
@@ -410,6 +444,166 @@
   #hud .toggle { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
   #hud .warn { color: #ff8f7a; }
   #hud .ok { color: #7fd18a; }
+
+
+  /* ============ 开局流程覆盖层（阵营 → 构筑 → 换牌）============ */
+  /* 开局流程：居中的面板式舞台。
+     原先 #setup 是不透明全屏黑底 + 内容贴左上角，第 1 步内容又少，
+     看上去就像"整页全黑、没有 UI"（设计者实机反馈）。 */
+  #setup {
+    /* z-index 必须高于 #hud(300)，否则调试面板会盖住开局界面 */
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 500;
+    display: none;
+    background:
+      radial-gradient(120% 90% at 50% -10%, rgba(120,78,36,.42) 0%, transparent 62%),
+      linear-gradient(180deg, #17120c 0%, #0d0a06 58%, #0a0805 100%);
+    color: var(--ink);
+    align-items: center; justify-content: center;
+    padding: 14px;
+    font-size: 12px; overflow: auto;
+  }
+  #setup.show { display: flex; }
+  /* 开局流程期间隐藏调试面板与战斗日志 */
+  body.is-setup #hud, body.is-setup #log, body.is-setup #detail { display: none !important; }
+
+  /* 面板：三步共用同一套外框，第 1 步窄、第 2/3 步占满高度以便内层滚动 */
+  .s-panel {
+    width: 100%; max-width: 1120px;
+    display: flex; flex-direction: column; min-height: 0;
+    background: linear-gradient(180deg, rgba(34,26,16,.97) 0%, rgba(18,13,8,.98) 100%);
+    border: 1px solid #5c4a2e; border-radius: 10px;
+    box-shadow: 0 0 0 1px #241b10, 0 20px 56px rgba(0,0,0,.78),
+                inset 0 1px 0 rgba(255,226,170,.09);
+    padding: 16px 20px 18px;
+  }
+  .s-panel.is-narrow { max-width: 560px; }
+  .s-panel.is-tall { height: calc(100vh - 28px); }
+
+  #setup h2 { margin: 0 0 2px; font-size: 17px; color: var(--gold-hi); letter-spacing: .08em;
+              text-shadow: 0 1px 0 #000, 0 0 14px rgba(255,200,110,.28); }
+  #setup .sub { font-size: 11px; color: var(--dim); margin-bottom: 2px; }
+  #setup .steps { display: flex; gap: 10px; margin: 8px 0 12px; font-size: 11px; color: var(--dim); }
+  #setup .steps b { color: var(--gold); }
+  #setup .steps .on { color: var(--ink); font-weight: 700; }
+
+  /* ---------- 第 1 步：阵营选择卡片 ---------- */
+  #setup .frow { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  #setup .frow > .lab { flex: 0 0 34px; color: var(--dim); font-size: 11px; }
+  #setup .fcard {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
+    padding: 9px 6px 8px;
+    background: linear-gradient(180deg, rgba(52,40,24,.9), rgba(30,22,13,.9));
+    border: 1px solid #54432a; border-radius: 8px;
+    color: var(--ink); cursor: pointer;
+    transition: transform .12s ease-out, box-shadow .12s ease-out, border-color .12s;
+  }
+  #setup .fcard:hover { transform: translateY(-2px); border-color: var(--gold); }
+  #setup .fcard .fname { font-size: 18px; font-weight: 700; line-height: 1.1; }
+  #setup .fcard .flord { font-size: 11px; color: var(--dim); }
+  #setup .fcard .fskill { font-size: 10px; color: var(--gold); letter-spacing: .04em; }
+  #setup .fcard.on {
+    border-color: var(--gold-hi);
+    box-shadow: 0 0 0 1px var(--gold-hi), 0 0 20px rgba(255,200,110,.4), inset 0 0 22px rgba(255,190,90,.16);
+    transform: translateY(-2px);
+  }
+  #setup .fcard.on .fname { color: var(--gold-hi); }
+  /* 阵营主色描边，与战场卡面同一套色 */
+  #setup .fcard.fac-shu.on  { border-color: #6fbf73; box-shadow: 0 0 0 1px #6fbf73, 0 0 20px rgba(111,191,115,.45); }
+  #setup .fcard.fac-wei.on  { border-color: #6fa8d8; box-shadow: 0 0 0 1px #6fa8d8, 0 0 20px rgba(111,168,216,.45); }
+  #setup .fcard.fac-wu.on   { border-color: #d8a06f; box-shadow: 0 0 0 1px #d8a06f, 0 0 20px rgba(216,160,111,.45); }
+
+  #setup .rules {
+    margin: 12px 0 0; padding: 10px 12px;
+    background: rgba(10,7,4,.5); border: 1px solid #3d3020; border-radius: 6px;
+    color: var(--dim); font-size: 11px; line-height: 1.85;
+  }
+  #setup .rules b { color: var(--gold); }
+  #setup .body { flex: 1; display: flex; gap: 12px; min-height: 0; }
+  #setup .col { display: flex; flex-direction: column; min-height: 0; }
+  #setup .col.pool { flex: 1.35; }
+  #setup .col.deck { flex: 1; }
+  #setup .hd { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  #setup .hd .t { font-weight: 700; color: var(--gold); }
+  #setup .list { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 4px; }
+  #setup .filters button, #setup .acts button {
+    background: #1c1710; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; font-family: inherit;
+  }
+  #setup .filters button.on { background: var(--gold); color: #201a10; border-color: var(--gold-hi); font-weight: 700; }
+  #setup .acts button:hover, #setup .filters button:hover { filter: brightness(1.25); }
+  #setup .acts button.primary { background: var(--gold); color: #201a10; font-weight: 700; border-color: var(--gold-hi); }
+  #setup .acts button:disabled { opacity: .4; cursor: not-allowed; }
+  /* 卡牌行 */
+  .crow {
+    display: flex; align-items: center; gap: 6px; padding: 3px 5px;
+    border-radius: 4px; cursor: pointer; line-height: 1.25;
+  }
+  .crow:hover { background: #1e1811; }
+  .crow .cst {
+    flex: 0 0 18px; height: 18px; border-radius: 50%; background: #2a2317;
+    color: var(--gold-hi); font-weight: 700; text-align: center; font-size: 11px; line-height: 18px;
+  }
+  .crow .nm { flex: 0 0 62px; font-weight: 700; }
+  .crow .st { flex: 0 0 34px; color: #d9a35a; }
+  .crow .tx { flex: 1; color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crow .n { flex: 0 0 20px; text-align: right; color: var(--gold); font-weight: 700; }
+  .crow.maxed { opacity: .42; }
+  .crow.foe { opacity: .35; cursor: not-allowed; }
+  .crow .kind { flex: 0 0 34px; color: #7f9fc0; font-size: 10px; }
+  /* 曲线 */
+  #setup .curve { display: flex; align-items: flex-end; gap: 3px; height: 46px; margin: 4px 0 6px; }
+  #setup .curve .bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+  #setup .curve .bar i { display: block; width: 100%; background: #4d6b3f; border-radius: 2px 2px 0 0; }
+  #setup .curve .bar.over i { background: #8a5a2b; }
+  #setup .curve .bar b { font-size: 9px; color: var(--dim); margin-top: 2px; }
+  #setup .msg { min-height: 30px; font-size: 11px; margin-top: 6px; }
+  #setup .msg .err { color: #e08a7a; }
+  #setup .msg .warn { color: #d9c07a; }
+  #setup .msg .ok { color: #9fd0a4; }
+  /* 换牌 */
+  #setup .handpick { display: flex; flex-wrap: wrap; gap: 8px; }
+  #setup .pick {
+    width: 96px; border: 1px solid var(--line); border-radius: 6px; padding: 6px;
+    cursor: pointer; background: #15110c;
+  }
+  #setup .pick.out { border-color: #c0705a; background: #2a1712; opacity: .6; }
+  #setup .pick .pn { font-weight: 700; color: var(--gold-hi); }
+  #setup .pick .ps { color: #d9a35a; font-size: 11px; }
+  #setup .pick .pt { color: var(--dim); font-size: 10px; margin-top: 3px; max-height: 46px; overflow: hidden; }
+  #setup .pick .pflag { color: #e08a7a; font-size: 10px; }
+
+  /* ============ 事件日志 ============ */
+  #log {
+    position: fixed; right: 8px; bottom: 8px; width: 300px; max-height: 42vh;
+    background: rgba(10,8,5,.9); border: 1px solid var(--line); border-radius: 6px;
+    font-size: 11px; line-height: 1.45; padding: 5px 7px; overflow-y: auto; z-index: 60;
+    display: none;
+  }
+  #log.show { display: block; }
+  #log .le { border-bottom: 1px dotted #2a2318; padding: 1px 0; color: var(--dim); }
+  #log .le b { color: var(--ink); }
+  #log .le.dmg b { color: #e08a7a; }
+  #log .le.heal b { color: #9fd0a4; }
+  #log .le.turn { color: var(--gold); border-bottom-color: #4a4034; margin-top: 2px; }
+  #log .le.eff b { color: #b9a6e0; }
+  #log .le.lord b { color: var(--gold-hi); }
+  #log .le.death b { color: #e0705a; }
+
+
+  /* ---------- 手牌费用提示（ADR-058） ---------- */
+  .hcard-wrap.is-poor .cr-card { filter: grayscale(.85) brightness(.62); }
+  /* 费用提示放在卡牌**上方**：放下方会溢出手牌区、撑高画布并被裁切 */
+  .hcard-cost {
+    position: absolute; left: 50%; transform: translateX(-50%); top: -12px;
+    font-size: 9px; white-space: nowrap; padding: 0 3px; border-radius: 3px;
+    background: rgba(60,16,10,.92); color: #ffb0a0; border: 1px solid #7a3a2a;
+    pointer-events: none; z-index: 40;
+  }
+  .hcard-cost.ok { background: rgba(14,30,16,.92); color: #9fd0a4; border-color: #3a5a3a; }
+
+  /* ---------- 详情弹窗里的技能块 ---------- */
+  #detail .sk { margin-top: 6px; padding-top: 5px; border-top: 1px dotted #3a3228; }
+  #detail .sk .skname { color: var(--gold-hi); font-size: 12px; }
 
   #detail {
     position: fixed; right: 10px; bottom: 10px; z-index: 300;
@@ -541,11 +735,9 @@
         <div class="lord-bar enemy" id="lord-enemy"></div>
 
         <div class="boards" id="boards">
-          <div class="row" data-side="enemy" data-row="back"></div>
           <div class="row" data-side="enemy" data-row="front"></div>
           <div class="mid"></div>
           <div class="row" data-side="own" data-row="front"></div>
-          <div class="row" data-side="own" data-row="back"></div>
         </div>
 
         <div class="lord-bar own" id="lord-own"></div>
@@ -560,8 +752,30 @@
         <div class="box">
           <div class="row2"><span class="label">回 合</span><b id="turn-num">1</b></div>
           <div class="row2" style="margin-top:4px"><span class="label">当 前</span><b id="turn-side" class="turn-side own">我方回合</b></div>
-          <div class="row2" style="margin-top:4px"><span class="label">牌 库</span><b id="deck-num">25</b></div>
-          <div class="row2" style="margin-top:4px"><span class="label">手 牌</span><b id="hand-num">5</b></div>
+        </div>
+
+        <!-- 双方牌堆：都用卡背表示，敌方不再"看不见" -->
+        <div class="box">
+          <div class="pile-row">
+            <span class="label">我 方</span>
+            <span class="pile" id="own-deck-pile" title="我方牌库">
+              <i class="pback"></i><b id="deck-num">25</b>
+            </span>
+            <span class="pile" id="own-hand-pile" title="我方手牌">
+              <i class="pback"></i><b id="hand-num">5</b>
+            </span>
+          </div>
+          <div class="pile-row" style="margin-top:5px">
+            <span class="label">敌 方</span>
+            <span class="pile" id="foe-deck-pile" title="敌方牌库">
+              <i class="pback"></i><b id="foe-deck-num">25</b>
+            </span>
+            <span class="pile" id="foe-hand-pile" title="敌方手牌">
+              <i class="pback"></i><b id="foe-hand-num">5</b>
+            </span>
+          </div>
+          <!-- 敌方手牌：一张张卡背排开，张数一眼可见 -->
+          <div class="foe-hand-backs" id="foe-hand-backs"></div>
         </div>
         <div class="btn">结束回合</div>
       </div>
@@ -574,11 +788,15 @@
 
 <div id="hud">
   <h3>酒话三国 · 战场原型</h3>
-  <div class="tiny">统一卡牌 56×78 · 三国古战场背景</div>
+  <div class="tiny">一行 8 格 · ADR-051</div>
   <hr>
-  <div class="tiny">点手牌 → 点绿格出牌（飞行动画）</div>
+  <div class="tiny"><b>开局</b>：阵营 → 构筑 30 张 → 换牌</div>
+  <hr>
+  <div class="tiny">点手牌 → 点绿格出牌</div>
   <div class="tiny">点我方单位 → 点高亮目标攻击</div>
-  <div class="tiny">破阵后点敌方主公卡可斩将</div>
+  <div class="tiny">敌方<b>有架盾</b>时只能打盾；否则可直攻主将</div>
+  <div class="tiny">点主公卡 → 发动主公技（2 统率 / 每回合 1 次）</div>
+  <div class="tiny">右下角<b>事件日志</b>可查看每次结算细节</div>
   <hr>
   <div class="row2"><label>卡宽</label>
     <input id="s-cardw" type="range" min="44" max="70" value="56"><span class="val" id="v-cardw">56</span></div>
@@ -592,14 +810,19 @@
     <button id="btn-coords">坐标</button>
     <button id="btn-reset">重开</button>
     <button id="btn-ai">AI 行动</button>
+    <button id="btn-auto" title="我方也交给 AI，整局自动跑（用于验证机制与动画）">双 AI 对打</button>
   </div>
 </div>
 
 <div id="detail"></div>
+<div id="setup"></div>
+<div id="log"></div>
+
 
 <script src="core.bundle.js"></script>
 <script src="data.bundle.js"></script>
 <script src="card-render.js"></script>
+<script src="setup.js"></script>
 <script src="battlefield.engine.js"></script>
 </body>
 </html>

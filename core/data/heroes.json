@@ -3,40 +3,96 @@
     "id": "shu_liubei",
     "name": "刘备",
     "faction": "shu",
-    "type": "special",
+    "type": "lord",
     "cost": 0,
-    "skill": "仁德",
-    "memo": "主公技：为一名友方人物恢复 2 点生命",
+    "hp": 30,
+    "skills": [
+      {
+        "id": "ren_de",
+        "name": "仁德",
+        "kind": "active",
+        "cost": 2,
+        "frequency": "once_per_turn",
+        "effects": [
+          {
+            "action": "heal",
+            "value": 2,
+            "target": {
+              "side": "both",
+              "filter": {
+                "type": "character"
+              },
+              "count": 1,
+              "mode": "choose"
+            }
+          }
+        ],
+        "text": "指定任意一名场上人物恢复 2 点生命（不超过其最大生命；**敌我皆可**）。",
+        "note": "设计者裁定（2026-09）：可指定**任何**人物，不局限于自己/己方——与手写稿 「每回合能对自己或任意将领恢复█点血量」的「任意」一致。仁者无敌，连敌人也救。"
+      }
+    ],
+    "memo": "主公技：为任意一名场上人物恢复 2 点生命（敌我皆可）",
     "flavor": "惟贤惟德，能服于人。"
   },
   {
     "id": "wei_caocao",
     "name": "曹操",
     "faction": "wei",
-    "type": "special",
+    "type": "lord",
     "cost": 0,
-    "skill": "号令",
-    "memo": "主公技：使一名友方人物本回合 +2 攻击",
+    "hp": 30,
+    "skills": [
+      {
+        "id": "jian_xiong",
+        "name": "奸雄",
+        "kind": "active",
+        "cost": 2,
+        "frequency": "once_per_turn",
+        "effects": [
+          {
+            "action": "damage",
+            "value": 2,
+            "target": {
+              "side": "self",
+              "lord": true
+            }
+          },
+          {
+            "action": "draw",
+            "value": 1
+          }
+        ],
+        "text": "对自己主将造成 2 点伤害，抽 1 张牌。",
+        "note": "设计者裁定（2026-09）：自伤 2 点换 1 张牌，且**只能作用于曹操自身**。 与手写稿一致——原稿「选择指定敌方一人物」整行已被划掉； 技能名手写即为〈奸雄〉（早期翻译误记为「护驾」，护驾只是第一个模式的名字）。"
+      }
+    ],
+    "memo": "主公技：自伤 2 换 1 张牌",
     "flavor": "宁教我负天下人，休教天下人负我。"
   },
   {
     "id": "wu_sunquan",
     "name": "孙权",
     "faction": "wu",
-    "type": "special",
+    "type": "lord",
     "cost": 0,
-    "skill": "坐断东南",
-    "memo": "主公技：获得 2 点护甲",
+    "hp": 30,
+    "skills": [
+      {
+        "id": "zuo_duan_dong_nan",
+        "name": "坐断东南",
+        "kind": "active",
+        "cost": 2,
+        "frequency": "once_per_turn",
+        "effects": [
+          {
+            "action": "cycle_to_deck"
+          }
+        ],
+        "text": "选择 1 张手牌放回牌组（**随机位置**），然后从牌组**随机抽** 1 张。",
+        "note": "设计者裁定（2026-09）：置换 = 随机抽一张、手牌回卡组也是随机位置—— 所以它**不是导师牌**（不能定向找关键牌），只是把废牌洗回牌组换一张未知牌。 另一模式「弃 1 张再抽 1 张」与它的差别是：弃掉的牌进弃牌堆（永久失去）， 置换则回到牌组（还能再抽到）。**二选一的选择机制尚未实现**（需模式选择通道，见 Q-08-6）。"
+      }
+    ],
+    "memo": "主公技：1 张手牌洗回牌组随机位置，再随机抽 1 张",
     "flavor": "生子当如孙仲谋。"
-  },
-  {
-    "id": "qun_dongzhuo",
-    "name": "董卓",
-    "faction": "qun",
-    "type": "special",
-    "cost": 0,
-    "skill": "暴虐",
-    "memo": "主公技：抽 1 张牌，并对自己的主将造成 1 点伤害",
-    "flavor": "顺我者昌，逆我者亡。"
   }
 ]

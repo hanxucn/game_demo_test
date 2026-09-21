@@ -1,0 +1,5 @@
+# 生成物：由 tools/ 脚本产出，勿手改、勿提交
+prototype/_probe.html          # tools/make-probe.sh 生成的临时探针页
+prototype/*.bundle.js
+core/data/*.json
+docs/gdd/index.html

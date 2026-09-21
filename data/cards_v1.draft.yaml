@@ -1,7 +1,7 @@
 meta:
   version: v1
   status: 初步定稿（待 DSL 翻译与数值校验）
-  generated: '2026-09-14'
+  generated: '2026-09-21'
   note: 本文件由工具生成，数据源为 cards_photo.draft.yaml + characters.draft.yaml。不要手改。
   skipped:
   - photo: 45
@@ -16,12 +16,18 @@ meta:
   - photo: 92
     name: 刘备
     why: 设计者：刘备为主公，暂时不作为卡牌（ADR-014）
+  - photo: 110
+    name: 曹操
+    why: 设计者：曹操为主公（heroes.yaml），不作为卡牌（ADR-049）
   - photo: 114
     name: 夏侯恩
     why: 设计者：废弃，不放入 v1（ADR-028）
   - photo: 119
     name: 【张?】【飞?】
     why: 设计者：草稿，不进 v1（ADR-028）
+  - photo: 122
+    name: 袁绍
+    why: '设计者：袁绍为主公卡（与 #70 重复的两张照片），群雄暂不设主公，移出卡池（ADR-049）'
   - photo: 123
     name: 诸葛亮
     why: 设计者：空城计已独立为计谋牌，#123 不作为人物（ADR-014）
@@ -30,7 +36,7 @@ meta:
     why: '重抄件，与 #160/#142 重复'
 cards:
 - id: event_shichangshi
-  name: 十常侍之乱
+  name: 十常侍
   faction: neutral
   type: event
   cost: 3
@@ -78,7 +84,7 @@ cards:
     count: 2
     position: random
 - id: event_fengnian
-  name: 丰年（五谷丰登）
+  name: 五谷丰登
   faction: neutral
   type: event
   cost: 1
@@ -160,7 +166,7 @@ cards:
   name: 架盾
   faction: neutral
   type: status
-  cost: null
+  cost: 0
   skills:
   - name: ''
     text: 只能攻击装备此状态的敌人。
@@ -175,6 +181,7 @@ cards:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
+  cost_original: null
 - id: event_zainian
   name: 灾年
   faction: neutral
@@ -204,15 +211,15 @@ cards:
   name: 高顺
   faction: qun
   type: general
-  cost: 3
+  cost: 4
   attack: 2
   health: 2
   skills:
-  - name: 陷阵破敌
-    text: 召唤两个1攻2血的盾兵。
+  - name: 陷阵营
+    text: 召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。
     dsl:
-    - id: xian_zhen_po_di
-      name: 陷阵破敌
+    - id: xian_zhen_ying
+      name: 陷阵营
       kind: trigger
       trigger: on_play
       effects:
@@ -220,6 +227,13 @@ cards:
         unit: neutral_shieldman
         count: 2
         position: random
+      - action: transform
+        to: elite_xianzhen_dun
+        target:
+          side: ally
+          filter:
+            troopKind: shield
+          count: all
     note: DSL 已翻译
   keywords: []
   memo: ''
@@ -232,14 +246,30 @@ cards:
   name: 马腾
   faction: qun
   type: general
-  cost: 3
+  cost: 4
   attack: 2
   health: 2
   skills:
   - name: 西凉铁骑
-    text: ''
-    dsl: null
-    note: 效果 DSL 待翻译（尚未开始）
+    text: 召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。
+    dsl:
+    - id: xi_liang_tie_qi
+      name: 西凉铁骑
+      kind: trigger
+      trigger: on_play
+      effects:
+      - action: summon
+        unit: neutral_infantry
+        count: 2
+        position: random
+      - action: transform
+        to: elite_xiliang_tieqi
+        target:
+          side: ally
+          filter:
+            troopKind: infantry
+          count: all
+    note: DSL 已翻译
   keywords: []
   tags:
   - xi_liang
@@ -250,19 +280,35 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
 - id: qun_gongsunzan
   name: 公孙瓒
   faction: qun
   type: general
-  cost: 3
+  cost: 4
   attack: 2
   health: 2
   skills:
   - name: 白马义从
-    text: ''
-    dsl: null
-    note: 效果 DSL 待翻译（尚未开始）
+    text: 召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。
+    dsl:
+    - id: bai_ma_yi_cong
+      name: 白马义从
+      kind: trigger
+      trigger: on_play
+      effects:
+      - action: summon
+        unit: neutral_archer
+        count: 1
+        position: random
+        note: 平衡（ADR-047）：白马义从每只 +1/+1 且每回合 2 伤，是三种进化里收益最高的；召唤数 2→1
+      - action: transform
+        to: elite_baima_yicong
+        target:
+          side: ally
+          filter:
+            troopKind: archer
+          count: all
+    note: DSL 已翻译
   keywords: []
   memo: ''
   flavor: ''
@@ -271,7 +317,6 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
 - id: shu_chendao
   name: 陈到
   faction: shu
@@ -292,7 +337,7 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
+  dsl_status: ⚠️ 有技能名、效果待设计（手写稿正文区空白）
 - id: wei_xiahouyuan
   name: 夏侯渊
   faction: wei
@@ -560,7 +605,7 @@ cards:
   name: 贾诩
   faction: wei
   type: strategist
-  cost: 6
+  cost: 7
   attack: 1
   health: 5
   skills:
@@ -604,11 +649,12 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: wei_guojia
   name: 郭嘉
   faction: wei
   type: strategist
-  cost: 6
+  cost: 5
   attack: 1
   health: 4
   skills:
@@ -646,6 +692,7 @@ cards:
   flags:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: wei_xuchu
   name: 许褚
   faction: wei
@@ -690,7 +737,7 @@ cards:
   name: 司马懿
   faction: wei
   type: strategist
-  cost: 6
+  cost: 5
   attack: 1
   health: 6
   skills:
@@ -718,26 +765,55 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: qun_yuanshao
   name: 袁绍
   faction: qun
   type: general
-  cost: 5
+  cost: 6
   attack: 3
-  health: 5
+  health: 6
   skills:
   - name: 威望
     text: 每回合可召唤一个 1攻 1血的士族兵
     dsl:
-    - id: wei_wang
-      name: 威望
+    - id: yuan_shao_summon
+      name: 四世三公
       kind: trigger
       trigger: turn_start
       effects:
       - action: summon
-        unit: token_shizu_bing
+        unit: neutral_archer
         count: 1
         position: random
+      text: 每回合召唤一个弓兵。
+    - id: yuan_shao_wangjian
+      name: 万箭齐发
+      kind: trigger
+      trigger: on_play
+      effects:
+      - action: add_to_deck
+        unit: tactic_wanjianqifa
+        count: 1
+        to: hand
+        target:
+          side: self
+      - action: add_to_deck
+        unit: tactic_wanjianqifa
+        count: 2
+        target:
+          side: self
+      text: 战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。
+    - id: yuan_shao_yidu
+      name: 遗毒
+      kind: trigger
+      trigger: on_death
+      effects:
+      - action: send_to_deck
+        unit: tactic_wanjianqifa
+        target:
+          side: enemy
+      text: 亡语：将未抽到的「万箭齐发」加入敌方牌库。
     note: DSL 已翻译
   keywords: []
   tags:
@@ -749,6 +825,9 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 5
+  attack_original: 3
+  health_original: 5
 - id: qun_zhangbao
   name: 张宝
   faction: qun
@@ -905,7 +984,7 @@ cards:
       trigger: on_play
       effects:
       - action: clash
-        unit: roll
+        clashMode: roll
         target:
           side: enemy
       - action: apply_status
@@ -1004,7 +1083,7 @@ cards:
   health: 5
   skills:
   - name: 青囊【?】
-    text: 可弃掉自己手中一张手牌.恢复指定场上对一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.一回合只能最多使用2次.
+    text: 可弃掉自己手中一张手牌.恢复指定场上一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.每回合限一次.
     dsl:
     - id: qing_nang
       name: 青囊
@@ -1079,9 +1158,9 @@ cards:
   name: 左慈
   faction: qun
   type: strategist
-  cost: 4
+  cost: 3
   attack: 1
-  health: 2
+  health: 3
   skills:
   - name: 兼通星纬
     text: 可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。
@@ -1092,7 +1171,7 @@ cards:
       trigger: on_play
       effects:
       - action: scry
-        unit: top
+        from: top
         count: 1
         to: deck_bottom
         target:
@@ -1107,6 +1186,8 @@ cards:
   - 未定稿：health = 2｜未定稿：纸面自带问号，数值待定
   - 转录存疑 5 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 4
+  health_original: 2
 - id: shu_madai
   name: 马岱
   faction: shu
@@ -1160,7 +1241,8 @@ cards:
     text: ''
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - jia_dun
   memo: ''
   flavor: ''
   source:
@@ -1331,7 +1413,7 @@ cards:
   name: 姜维
   faction: shu
   type: general
-  cost: 6
+  cost: 5
   attack: 4
   health: 5
   skills:
@@ -1356,6 +1438,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
 - id: shu_machao
   name: 马超
   faction: shu
@@ -1595,9 +1678,9 @@ cards:
   name: 关羽
   faction: shu
   type: general
-  cost: 6
+  cost: 7
   attack: 6
-  health: 5
+  health: 4
   skills:
   - name: 水淹七军
     text: 使对方所有场上人物技能禁用一回合,并对其造成一点水攻伤害.
@@ -1632,6 +1715,8 @@ cards:
   - 未定稿：skill_name = 水淹七军 / 武圣（备选）｜未定稿：两个候选技能名都保留，一个作备选，设计者未定用哪个
   - 转录存疑 5 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 6
+  health_original: 5
 - id: shu_huanghao
   name: 黄皓
   faction: shu
@@ -1860,7 +1945,7 @@ cards:
           count: 1
           mode: choose
       - action: scry
-        unit: top
+        from: top
         count: 1
         to: hand
         target:
@@ -1886,7 +1971,8 @@ cards:
     text: ''
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - jia_dun
   tags:
   - huang_jin
   memo: ''
@@ -1934,7 +2020,7 @@ cards:
   name: 机械哨兵
   faction: neutral
   type: token
-  cost: null
+  cost: 0
   skills:
   - name: ''
     text: 不能攻击敌方主帅.
@@ -1949,11 +2035,12 @@ cards:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
+  cost_original: null
 - id: token_jixie_shouwei
   name: 机械守卫
   faction: neutral
   type: token
-  cost: null
+  cost: 0
   skills:
   - name: ''
     text: 打开架盾效果. 不能攻击敌方主帅.
@@ -1967,40 +2054,7 @@ cards:
   flags:
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
-- id: wei_caocao_lord
-  name: 曹操
-  faction: wei
-  type: lord
-  cost: null
-  skills:
-  - name: 奸雄
-    text: 每回合开始时，可选择护驾：受到伤害时由指定己方人物承受；或选择指定敌方一人物指定己方一血，抽一张卡牌，伤害-1.
-    dsl:
-    - id: hu_jia
-      name: 护驾
-      kind: active
-      cost: 0
-      frequency: once_per_turn
-      effects:
-      - action: apply_status
-        status: shou_hu
-        status_source: self
-        duration: 1
-        target:
-          side: ally
-          filter:
-            type: character
-          count: 1
-          mode: choose
-    note: DSL 已翻译
-  keywords: []
-  memo: ''
-  flavor: ''
-  source:
-    photo: 110
-  flags:
-  - 转录存疑 3 处（详见 cards_photo.draft.yaml）
-  - 缺 memo
+  cost_original: null
 - id: wei_zhangyan
   name: 张燕
   faction: wei
@@ -2013,7 +2067,8 @@ cards:
     text: 上场时获得先攻
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - xian_gong
   tags:
   - huang_jin
   memo: ''
@@ -2052,7 +2107,8 @@ cards:
     text: 架盾
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
+  keywords:
+  - jia_dun
   memo: ''
   flavor: ''
   source:
@@ -2065,7 +2121,7 @@ cards:
   name: 郭淮
   faction: wei
   type: general
-  cost: 4
+  cost: 5
   attack: 2
   health: 3
   skills:
@@ -2102,6 +2158,7 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 4
 - id: wei_caozhang
   name: 曹彰
   faction: wei
@@ -2122,7 +2179,7 @@ cards:
   flags:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
+  dsl_status: ⚠️ 有技能名、效果待设计（手写稿正文区空白）
 - id: wei_caoren
   name: 曹仁
   faction: wei
@@ -2144,7 +2201,7 @@ cards:
         target:
           source: true
       - action: apply_status
-        status: wu_sheng
+        status: sheng_dun_status
         stacks: 1
         target:
           source: true
@@ -2257,25 +2314,14 @@ cards:
       - action: apply_status
         status: zhen_she
         duration: 1
-        chance: 0.5
+        chance: 0.75
         target:
           side: enemy
           filter:
             type: character
-            cost_below_source: true
           count: 1
           mode: choose
-      - action: apply_status
-        status: zhen_she
-        duration: 1
-        chance: 1.0
-        target:
-          side: enemy
-          filter:
-            type: character
-            cost_max: 3
-          count: 1
-          mode: choose
+        note: 平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）
     note: DSL 已翻译
   keywords: []
   memo: ''
@@ -2285,41 +2331,11 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-- id: qun_yuanshao_lord
-  name: 袁绍
-  faction: qun
-  type: lord
-  cost: null
-  skills:
-  - name: ''
-    text: 主公技：消耗 2 费召唤 1 攻 1 血的袁士家兵
-    dsl:
-    - id: wei_wang_lord
-      name: 威望
-      kind: active
-      cost: 2
-      frequency: once_per_turn
-      effects:
-      - action: summon
-        unit: token_shizu_bing
-        count: 1
-        position: random
-    note: DSL 已翻译
-  keywords: []
-  tags:
-  - shi_zu
-  memo: ''
-  flavor: ''
-  source:
-    photo: 122
-  flags:
-  - 转录存疑 2 处（详见 cards_photo.draft.yaml）
-  - 缺 memo
 - id: wu_zhouyu
   name: 周瑜
   faction: wu
   type: strategist
-  cost: 7
+  cost: 6
   attack: 1
   health: 5
   skills:
@@ -2332,7 +2348,7 @@ cards:
       trigger: on_play
       effects:
       - action: clash
-        unit: roll
+        clashMode: roll
         target:
           side: enemy
       - action: discard
@@ -2359,11 +2375,12 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 7
 - id: wu_luxun
   name: 陆逊
   faction: wu
   type: strategist
-  cost: 7
+  cost: 6
   attack: 1
   health: 5
   skills:
@@ -2400,6 +2417,7 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 7
 - id: wu_taishici
   name: 太史慈
   faction: wu
@@ -2470,7 +2488,7 @@ cards:
   name: 程普
   faction: wu
   type: general
-  cost: 5
+  cost: 6
   attack: 4
   health: 5
   skills:
@@ -2513,6 +2531,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 5
 - id: wu_lvmeng
   name: 吕蒙
   faction: wu
@@ -2634,7 +2653,7 @@ cards:
       trigger: on_death
       effects:
       - action: clash
-        unit: roll
+        clashMode: roll
         target:
           side: enemy
       - action: draw
@@ -2766,7 +2785,7 @@ cards:
   type: general
   cost: 4
   attack: 3
-  health: 6
+  health: 5
   skills:
   - name: 铁血守护
     text: 每回合，若有己方将领被击破时，可选择是否援护一次，该将领受到的伤害由周泰承受。周泰被击败时，有一次机会50%概率存活。
@@ -2805,6 +2824,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  health_original: 6
 - id: wu_zhuhuan
   name: 朱桓
   faction: wu
@@ -2880,7 +2900,7 @@ cards:
       trigger: on_play
       effects:
       - action: scry
-        unit: top
+        from: top
         count: 1
         to: hand
         target:
@@ -2961,10 +2981,10 @@ cards:
   - name: ''
     text: 每回合对指定任意敌方人物造成一点伤害。
     dsl:
-    - id: shen_she_ji
-      name: 神射
+    - id: she_jian
+      name: 射箭
       kind: trigger
-      trigger: turn_start
+      trigger: turn_end
       effects:
       - action: damage
         value: 1
@@ -2972,10 +2992,13 @@ cards:
           side: enemy
           filter:
             type: character
+            include_lord: true
           count: 1
-          mode: choose
+          mode: random
+      text: 回合结束时，随机对敌方一名人物或主将造成 1 点伤害。
     note: DSL 已翻译
   keywords: []
+  troopKind: archer
   memo: ''
   flavor: ''
   source:
@@ -3125,7 +3148,7 @@ cards:
   - 缺 memo
   effects:
   - action: clash
-    unit: roll
+    clashMode: roll
     target:
       side: enemy
   - action: return_to_hand
@@ -3157,7 +3180,7 @@ cards:
   - 缺 memo
   effects:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
@@ -3182,7 +3205,7 @@ cards:
   - 缺 memo
   effects:
   - action: scry
-    unit: top
+    from: top
     count: 1
     to: hand
     target:
@@ -3377,7 +3400,7 @@ cards:
   - 缺 memo
   effects:
   - action: scry
-    unit: bottom
+    from: bottom
     count: 2
     to: hand
     target:
@@ -3448,6 +3471,7 @@ cards:
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
   keywords: []
+  troopKind: infantry
   memo: ''
   flavor: ''
   source:
@@ -3590,6 +3614,7 @@ cards:
   name: 盾兵
   faction: neutral
   type: troop
+  troopKind: shield
   cost: 2
   attack: 1
   health: 2
@@ -3602,63 +3627,6 @@ cards:
     oral: true
     note: 设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）
   dsl_status: 无技能（白板/关键词卡），无需翻译
-- id: neutral_chuanguo_yuxi
-  name: 传国玉玺
-  faction: neutral
-  type: special
-  cost: 0
-  skills:
-  - name: ''
-    text: 本回合统率 +1（仅后手获得）
-    dsl: null
-    note: 沿用 cards.yaml
-  keywords: []
-  memo: 0 费，本回合统率 +1（仅后手获得）
-  flavor: 受命于天，既寿永昌。
-  source:
-    from: cards.yaml
-  dsl_status: 无技能（白板/关键词卡），无需翻译
-- id: qun_zhangjiao
-  name: 张角
-  faction: qun
-  type: strategist
-  cost: 5
-  attack: 1
-  health: 5
-  skills:
-  - name: 五雷轰顶
-    text: 每回合结束时释放 5 次随机 1 伤害的雷击，对敌方随机人物。如果雷击击杀敌人则上场一个 1 攻 1 血的黄巾士兵。
-    dsl:
-    - id: wu_lei_hong_ding
-      name: 五雷轰顶
-      kind: trigger
-      trigger: turn_end
-      effects:
-      - action: damage
-        value: 1
-        count: 5
-        target:
-          side: enemy
-          filter:
-            type: character
-          count: 1
-          mode: random
-      - action: summon
-        unit: token_huangjin_bing
-        count: 1
-        position: random
-        condition:
-          event: killed
-    note: DSL 已翻译
-  keywords: []
-  tags:
-  - huang_jin
-  memo: ''
-  flavor: ''
-  source:
-    new: 设计者口述（2026-09-12）
-  flags:
-  - 「如果雷击击杀敌人则上场黄巾士兵」是**条件触发**，当前 DSL 无 condition 字段，暂未翻译
 - id: token_huangjin_bing
   name: 黄巾兵
   faction: neutral
@@ -3689,3 +3657,142 @@ cards:
   source:
     new: 袁绍「威望」召唤的 1/1 衍生物
   dsl_status: 无技能（白板/关键词卡），无需翻译
+- id: elite_baima_yicong
+  name: 白马义从
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 1
+  health: 2
+  skills:
+  - name: 白马义从
+    text: 每回合对指定任意敌方人物造成 2 点伤害。
+    dsl:
+    - id: bai_ma_she
+      name: 白马义从
+      kind: trigger
+      trigger: turn_start
+      effects:
+      - action: damage
+        value: 2
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: 1
+          mode: choose
+    note: DSL 已翻译
+  keywords: []
+  troopKind: archer
+  memo: ''
+  flavor: ''
+  source:
+    new: 公孙瓒「白马义从」的进化目标
+- id: elite_xiliang_tieqi
+  name: 西凉铁骑
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 1
+  keywords:
+  - xian_gong
+  troopKind: infantry
+  memo: ''
+  flavor: ''
+  source:
+    new: 马腾「西凉铁骑」的进化目标
+- id: elite_xianzhen_dun
+  name: 陷阵盾兵
+  faction: neutral
+  type: elite
+  cost: 0
+  attack: 2
+  health: 2
+  keywords:
+  - jia_dun
+  troopKind: shield
+  memo: ''
+  flavor: ''
+  source:
+    new: 高顺「陷阵营」的进化目标
+- id: tactic_wanjianqifa
+  name: 万箭齐发
+  faction: neutral
+  type: tactic
+  cost: 0
+  skills:
+  - name: ''
+    text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+    dsl:
+    - id: wan_jian_qi_fa
+      name: 万箭齐发
+      kind: trigger
+      trigger: on_draw
+      effects:
+      - action: damage
+        value: 1
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: all
+      text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+    note: DSL 已翻译
+  keywords: []
+  memo: ''
+  flavor: ''
+  source:
+    new: 设计者新增
+- id: qun_zhangjiao
+  name: 张角
+  faction: qun
+  type: strategist
+  cost: 5
+  attack: 1
+  health: 5
+  skills:
+  - name: 五雷轰顶
+    text: 每回合结束时释放 5 次随机 1 点雷击，目标为敌方随机人物；每次雷击有 50% 概率对其造成震慑；若雷击击杀敌人，则上场一个 1 攻 1 血的黄巾兵。
+    dsl:
+    - id: wu_lei_hong_ding
+      name: 五雷轰顶
+      kind: trigger
+      trigger: turn_end
+      effects:
+      - action: damage
+        value: 1
+        count: 5
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: 1
+          mode: random
+      - action: apply_status
+        status: zhen_she
+        duration: 1
+        chance: 0.5
+        count: 5
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: 1
+          mode: random
+        note: DSL 建模范式：与 5 次雷击独立结算，聚合概率等价；不可绑同一次伤害
+      - action: summon
+        unit: token_huangjin_bing
+        count: 1
+        position: random
+        condition:
+          event: killed
+      text: 每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。
+    note: DSL 已翻译
+  keywords: []
+  tags:
+  - huang_jin
+  memo: ''
+  flavor: ''
+  source:
+    new: 设计者口述（2026-09-12 定稿：5 费 1/5 + 50% 震慑）

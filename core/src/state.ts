@@ -10,7 +10,8 @@ import { createRng } from './rng.ts';
 import { BOARD, COMMAND, DECK, LORD_HP } from './constants.ts';
 import { STATUSES, type StatusCap } from './constants.ts';
 import type {
-  CardDef, Faction, LordDef, MatchState, Row, Side, SideState, StatusInstance, Unit,
+  CardDef, Faction, HandCard, LordDef, MatchState, Row, Side, SideState,
+  StatusInstance, Unit,
 } from './types.ts';
 
 export interface CreateMatchOptions {
@@ -18,24 +19,57 @@ export interface CreateMatchOptions {
   lords: Record<Side, LordDef>;
   decks: Record<Side, string[]>;
   cards: Map<string, CardDef>;
+  /** 先手方；缺省 'own'（createMatch 是纯构造器，自己不做随机） */
   firstSide?: Side;
+  /** 按 GDD 03 §1 第④步掷点定先手（用本对局的确定性 Rng）；优先于 firstSide */
+  rollFirst?: boolean;
+  /**
+   * 后手补偿方式（ADR-053）。
+   *   'none'       不补偿
+   *   'extra_draw' 后手第 1 回合多抽 1 张（牌差补偿）
+   */
+  secondCompensation?: SecondCompensation;
 }
 
-/** 新建对局 */
+export type SecondCompensation = 'none' | 'extra_draw';
+
+/** 掷点定先手（GDD 03 §1 第④步）：双方各掷 D6，平局重掷。确定性 Rng */
+export function rollFirstSide(rng: ReturnType<typeof createRng>): { side: Side; own: number; enemy: number } {
+  for (let i = 0; i < 100; i++) {
+    const own = rng.int(6) + 1;
+    const enemy = rng.int(6) + 1;
+    if (own !== enemy) return { side: own > enemy ? 'own' : 'enemy', own, enemy };
+  }
+  return { side: 'own', own: 6, enemy: 1 };   // 理论上不可达；兜底保证确定性
+}
+
+/**
+ * 新建对局（GDD 03 §1 的 ①②④⑤ 步）。
+ *
+ * ③ 换牌不在这里——它是玩家的独立动作，见 core/src/setup.ts 的 mulligan()。
+ * 本函数负责：任命主公 → 洗牌 → 发起手 → 定先手。（后手补偿见 secondCompensation）
+ */
 export function createMatch(opts: CreateMatchOptions): MatchState {
-  const { seed = 1, lords, decks, cards, firstSide = 'own' } = opts;
+  const {
+    seed = 1, lords, decks, cards, secondCompensation = 'extra_draw',
+  } = opts;
   const rng = createRng(seed);
+
+  // 掷点（可选）：只在开局显式要求时消耗 Rng，保证 createMatch 在缺省下是纯构造
+  const firstSide: Side = opts.rollFirst ? rollFirstSide(rng).side : (opts.firstSide ?? 'own');
 
   const makeSide = (side: Side): SideState => {
     const lordCard = lords[side];
     const deck = rng.shuffle([...decks[side]]);
+
     const handSize = side === firstSide ? DECK.HAND_START_FIRST : DECK.HAND_START_SECOND;
-    const hand: CardDef[] = [];
+    const hand: HandCard[] = [];
     for (let i = 0; i < handSize && deck.length; i++) {
       const id = deck.pop() as string;
       const c = cards.get(id);
-      if (c) hand.push(c);
+      if (c) hand.push({ card: c, mods: [] });
     }
+
     return {
       lord: {
         id: lordCard.id,
@@ -49,14 +83,16 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
         skillUsedThisTurn: false,
       },
       rows: {
+        // ADR-051：仅 front 一排参与游戏（8 格）；back 保留为空壳以免大改
         front: new Array<Unit | null>(BOARD.COLS).fill(null),
         back: new Array<Unit | null>(BOARD.COLS).fill(null),
       },
-      hand: hand.map((c) => ({ card: c, mods: [] })),   // ADR-038：包成手牌实例
+      hand,
       deck,
       discard: [],
       command: { cur: COMMAND.START, max: COMMAND.START },
       fatigue: 0,
+      mulliganDone: false,
     };
   };
 
@@ -65,7 +101,9 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
     uidSeq: 0,
     rngState: rng.getState(),
     turn: 0,
+    round: 1,
     active: firstSide,
+    secondCompensation,
     sides: { own: makeSide('own'), enemy: makeSide('enemy') },
     winner: null,
   };
@@ -152,9 +190,9 @@ export function capStacks(
 export const activeStatuses = (u: Unit | null): string[] =>
   Object.entries(u?.statuses ?? {}).filter(([, v]) => v.stacks > 0).map(([k]) => k);
 
-/** 「架盾」生效单位（仅前军） */
+/** 「架盾」生效单位（ADR-051：单排后为纯嘲讽，不再限定前军） */
 export const shieldUnits = (s: MatchState, side: Side): UnitRef[] =>
-  allUnits(s, side).filter(({ row, unit }) => row === 'front' && hasKeyword(unit, 'jia_dun') && unit.hp > 0);
+  allUnits(s, side).filter(({ unit }) => hasKeyword(unit, 'jia_dun') && unit.hp > 0);
 
 export const lordAlive = (s: MatchState, side: Side): boolean => s.sides[side].lord.hp > 0;
 
@@ -192,6 +230,8 @@ export function makeUnit(card: CardDef, turn: number, seq: number): Unit {
     skills: card.skills ? structuredClone(card.skills) : undefined,
     attackedThisTurn: 0,
     enteredTurn: turn,
+    skillUsesThisTurn: {},
+    skillsUsedOnce: [],
   };
 }
 

@@ -15,7 +15,20 @@ export * from './rules.ts';
 export * from './mutate.ts';
 export { resolveTargets, runEffects, type EffectContext } from './effects.ts';
 export { applyAction, startMatch } from './engine.ts';
-export { loadData, autoDeck, type DataBundle, type LoadedData } from './loader.ts';
+export {
+  summarizeMatch, formatSummary,
+  type MatchResult, type MatchSummary, type SideSummary,
+} from './result.ts';
+export {
+  mulligan, setupMatch, startHandSize, handLimit,
+  type MulliganResult, type SetupOptions, type SetupResult,
+} from './setup.ts';
+export { loadData, type DataBundle, type LoadedData } from './loader.ts';
+export {
+  autoDeck, cardPool, validateDeck, isDeckable, isPlayableBy, MAX_COPIES, SUGGESTED_CURVE,
+  PUBLIC_POOL, PLAYABLE_FACTIONS,
+  type DeckCheck, type DeckError, type DeckWarning, type DeckStats,
+} from './deck.ts';
 export { chooseAction, takeTurn } from './ai.ts';
 
 import { createMatch, type CreateMatchOptions } from './state.ts';

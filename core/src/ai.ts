@@ -7,7 +7,8 @@
 
 import { BOARD } from './constants.ts';
 import { allUnits, getUnit, other } from './state.ts';
-import { canAttack, canPlayCard, effectiveAttack, legalPlacements, legalTargets } from './rules.ts';
+import { canAttack, canPlayCard, canUseUnitSkill, effectiveAttack, legalPlacements, legalTargets } from './rules.ts';
+import { isBanned } from './mutate.ts';
 import type { Action, CardDef, EngineContext, MatchState, Row, Side } from './types.ts';
 
 /** 给当前行动方选一个动作；返回 null 表示无牌可出，应结束回合 */
@@ -59,46 +60,78 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
 
   // ④ 用谋臣主动技
   for (const ref of allUnits(state, side)) {
-    const u = ref.unit;
-    const skill = (u.skills ?? []).find((sk) => sk.kind === 'active');
-    if (!skill) continue;
-    if (state.sides[side].command.cur < (skill.cost ?? 0)) continue;
+    if (!canUseUnitSkill(state, side, ref.row, ref.col).ok) continue;
     const target = allUnits(state, foe).sort((a, b) => a.unit.hp - b.unit.hp)[0];
     if (target) {
       return { type: 'USE_SKILL', row: ref.row, col: ref.col, target: { side: foe, row: target.row, col: target.col } };
     }
   }
 
-  // ⑤ 用主公技（仅当有明确收益时）
-  if (!state.sides[side].lord.skillUsedThisTurn && state.sides[side].command.cur >= 1) {
-    const skill = state.sides[side].lord.skill;
-    if (skill === '坐断东南') return { type: 'USE_LORD_SKILL' };
-    if (skill === '仁德') {
-      const wounded = allUnits(state, side).filter((r) => r.unit.hp < r.unit.maxHp)
-        .sort((a, b) => (a.unit.hp - a.unit.maxHp) - (b.unit.hp - b.unit.maxHp))[0];
-      if (wounded) return { type: 'USE_LORD_SKILL', target: { side, row: wounded.row, col: wounded.col } };
-    }
-    if (skill === '号令') {
-      const attacker = allUnits(state, side).filter((r) => canAttack(state, side, r.row, r.col).ok)
-        .sort((a, b) => b.unit.atk - a.unit.atk)[0];
-      if (attacker) return { type: 'USE_LORD_SKILL', target: { side, row: attacker.row, col: attacker.col } };
+  // ⑤ 主公技：**按数据判断**（ADR-049：主公技已从硬编码迁到 heroes.yaml 的 DSL）
+  //
+  // 原先按中文技能名硬编码（坐断东南/仁德/号令），主公技数据化后那些分支全部失效——
+  // 表现为 AI 完全不用曹操「奸雄」，却把孙权「坐断东南」当无脑循环技狂放（每回合净弃 1 抽 1，白烧 2 统率）。
+  const lord = state.sides[side].lord;
+  const lsk = lord.skillDef;
+  if (lsk && !lord.skillUsedThisTurn && state.sides[side].command.cur >= (lsk.cost ?? 2)) {
+    const effs = lsk.effects ?? [];
+    const healEff = effs.find((e) => e.action === 'heal');
+    const selfDmg = effs.find((e) => e.action === 'damage' && e.target?.lord
+      && (e.target?.side === 'self' || e.target?.side === 'ally'));
+    const draws = effs.filter((e) => e.action === 'draw').reduce((a, e) => a + (e.value ?? 1), 0);
+    const selfDiscard = effs.some((e) => e.action === 'discard'
+      && (e.target?.side === 'self' || e.target?.side === 'ally'));
+    const hand = state.sides[side].hand;
+
+    if (healEff) {
+      // 治疗型：只在真有伤兵时用，并优先救最危险的。
+      // 注意仁德 target.side='both'（可指定敌我），AI 只治自己人——给敌人回血是纯亏
+      const wounded = allUnits(state, side)
+        .filter((r) => r.unit.hp < r.unit.maxHp)
+        .sort((a, b) => a.unit.hp - b.unit.hp)[0];
+      if (wounded) {
+        return { type: 'USE_LORD_SKILL', target: { side, row: wounded.row, col: wounded.col } };
+      }
+    } else if (selfDmg) {
+      // 卖血换牌型（奸雄）：留足血量安全垫，且手牌/牌库要吃得下
+      const dmg = selfDmg.value ?? 0;
+      const safe = lord.hp - dmg > 12;                       // 自伤后仍留 >12 血
+      const room = hand.length < 10 && state.sides[side].deck.length > 0;
+      if (safe && room) return { type: 'USE_LORD_SKILL' };
+    } else if (selfDiscard && draws === 0) {
+      // 纯弃牌是亏的，不用
+    } else if (selfDiscard && draws > 0) {
+      // 弃 N 抽 N：净手牌不变，只赚手牌质量。AI 不会评估质量 →
+      // 仅在手里有「明显该换掉」的牌（费用最低）时才用，并指定弃它
+      const worst = hand.map((hc, i) => ({ hc, i })).sort((a, b) => a.hc.card.cost - b.hc.card.cost)[0];
+      const avg = hand.reduce((a, hc) => a + hc.card.cost, 0) / Math.max(1, hand.length);
+      if (worst && hand.length > 3 && worst.hc.card.cost < avg - 0.5
+        && state.sides[side].deck.length > 0) {
+        return { type: 'USE_LORD_SKILL', handIndex: worst.i };
+      }
+    } else {
+      return { type: 'USE_LORD_SKILL' };
     }
   }
 
-  // ⑥ 出牌（能出的最贵的卡）
+  // ⑥ 出牌：先给每张牌定好落点，再用 canPlayCard 做**完整**合法性检查（含费用）
+  const spots = legalPlacements(state, side);
+  const slotFor = (c: CardDef): { row: Row; col: number } | undefined => {
+    if (!isCharacter(c)) return undefined;                 // 非人物卡不占格
+    return spots[0];                                       // ADR-051：单排，无所谓前后军
+  };
+
   const playable = state.sides[side].hand
-    .map((hc, i: number) => ({ c: hc.card, i }))
-    .filter(({ c }) => canPlayCard(state, side, c, { row: 'front', col: 0 }).ok || !isCharacter(c))
+    .map((hc, i: number) => ({ hc, c: hc.card, i }))
+    .filter(({ hc }) => !isBanned(hc))                     // 被 ban（如酒令未解锁）的不出
+    .map((x) => ({ ...x, slot: slotFor(x.c) }))
+    .filter(({ c, slot }) => canPlayCard(state, side, c, slot).ok)
     .sort((a, b) => b.c.cost - a.c.cost);
 
-  for (const { c, i } of playable) {
-    if (!isCharacter(c)) return { type: 'PLAY_CARD', cardIndex: i };
-    const spots = legalPlacements(state, side);
-    if (!spots.length) continue;
-    // 谋臣放后军，其他放前军
-    const wantBack = c.type === 'strategist';
-    const slot = spots.find((s) => (wantBack ? s.row === 'back' : s.row === 'front')) ?? spots[0];
-    return { type: 'PLAY_CARD', cardIndex: i, row: slot.row, col: slot.col };
+  for (const { c, i, slot } of playable) {
+    return slot
+      ? { type: 'PLAY_CARD', cardIndex: i, row: slot.row, col: slot.col }
+      : { type: 'PLAY_CARD', cardIndex: i };
   }
 
   return null;

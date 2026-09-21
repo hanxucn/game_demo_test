@@ -12,7 +12,7 @@ import { BOARD, DECK } from './constants.ts';
 import {
   allUnits, getUnit, hasCap, hasKeyword, other, shieldUnits, statusStacks, unitCount,
 } from './state.ts';
-import type { CardDef, MatchState, Row, Side, Unit } from './types.ts';
+import type { CardDef, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
 export interface Target {
   kind: 'unit' | 'lord';
@@ -35,11 +35,35 @@ export interface Check {
 export const isMelee = (u: Unit): boolean =>
   u.type !== 'strategist' && !hasKeyword(u, 'shen_she');
 
+/**
+ * 能否使用某单位的主动技（GDD 10 §1.1：默认每回合 1 次）。
+ *
+ * 规则放在这里而不是 engine 里，是为了让 **AI 与引擎共用同一判定**——
+ * 否则 AI 会提出引擎必拒的动作（曾导致对局在回合中途直接停摆）。
+ */
+export function canUseUnitSkill(
+  state: MatchState, side: Side, row: Row, col: number,
+): Check & { skill?: SkillDef } {
+  const u = getUnit(state, side, row, col);
+  if (!u) return { ok: false, reason: '该格没有单位' };
+  if (hasCap(u, 'block_action') || hasCap(u, 'block_skill')) return { ok: false, reason: '被禁用技能' };
+  const skill = (u.skills ?? []).find((sk) => sk.kind === 'active');
+  if (!skill) return { ok: false, reason: '没有主动技' };
+  const key = skill.id || skill.name || '0';
+  const freq = skill.frequency ?? 'once_per_turn';
+  if (freq === 'once' && u.skillsUsedOnce.includes(key)) return { ok: false, reason: '本局已用过' };
+  if (freq === 'once_per_turn' && (u.skillUsesThisTurn[key] ?? 0) >= 1) {
+    return { ok: false, reason: '本回合已用过' };
+  }
+  if (state.sides[side].command.cur < (skill.cost ?? 0)) return { ok: false, reason: '统率值不足' };
+  return { ok: true, skill };
+}
+
 /** 能否普通攻击（与目标无关的限制） */
 export function canAttack(state: MatchState, side: Side, row: Row, col: number): Check {
   const u = getUnit(state, side, row, col);
   if (!u) return { ok: false, reason: '该格没有人物卡' };
-  if (u.type === 'strategist') return { ok: false, reason: '谋臣不能普通攻击' };
+  // ADR-051：谋臣也可以普通攻击（默认 1 攻）——原「谋臣不能普攻」已取消
   if (hasCap(u, 'block_action') || hasCap(u, 'block_attack')) {
     return { ok: false, reason: '当前状态无法普通攻击' };
   }
@@ -47,8 +71,9 @@ export function canAttack(state: MatchState, side: Side, row: Row, col: number):
   if (u.attackedThisTurn >= maxAttacks) {
     return { ok: false, reason: `本回合已攻击 ${u.attackedThisTurn} 次` };
   }
-  if (u.enteredTurn === state.turn && !hasKeyword(u, 'ji_xing')) {
-    return { ok: false, reason: '本回合入场，无法攻击（疾行除外）' };
+  // 「先攻」= 入场当回合即可攻击（ADR-054：设计者裁定「疾行 = 先攻」，已合并为同名）
+  if (u.enteredTurn === state.turn && !hasKeyword(u, 'xian_gong')) {
+    return { ok: false, reason: '本回合入场，无法攻击（「先攻」除外）' };
   }
   return { ok: true };
 }
@@ -76,60 +101,36 @@ export function effectiveAttack(state: MatchState, side: Side, row: Row, col: nu
 export function legalTargets(state: MatchState, side: Side, row: Row, col: number): TargetResult {
   const u = getUnit(state, side, row, col);
   if (!u) return { targets: [], why: '空格' };
-  if (u.type === 'strategist') return { targets: [], why: '谋臣不能普通攻击' };
 
   const gate = canAttack(state, side, row, col);
   if (!gate.ok) return { targets: [], why: gate.reason as string };
 
   const foe = other(side);
-  const targets: Target[] = [];
 
-  // 规则 ④：架盾最高优先级（可跨列）
+  // 规则① 架盾＝嘲讽（ADR-051）：敌方存在「架盾」单位时，普通攻击**只能**打它们
   const shields = shieldUnits(state, foe);
   if (shields.length) {
-    shields.forEach((s) => targets.push({ kind: 'unit', side: foe, row: s.row, col: s.col }));
     return {
-      targets,
-      why: `敌方存在「架盾」（列${shields.map((s) => s.col + 1).join('、')}前军）→ 必须先攻击它（可跨列）`,
+      targets: shields.map((sh) => ({ kind: 'unit' as const, side: foe, row: sh.row, col: sh.col })),
+      why: `敌方存在「架盾」${
+        shields.map((sh) => `第${sh.col + 1}格`).join('、')
+      } → 必须先攻击它（嘲讽）`,
     };
   }
 
-  // 弓箭手「神射」：可攻击任意列的人物卡
-  if (hasKeyword(u, 'shen_she')) {
-    for (const r of BOARD.ROWS) {
-      state.sides[foe].rows[r].forEach((x, c) => {
-        if (x && !hasKeyword(x, 'qi_xi')) targets.push({ kind: 'unit', side: foe, row: r, col: c });
-      });
-    }
-    const ownColClear = !state.sides[foe].rows.front[col] && !state.sides[foe].rows.back[col];
-    if (ownColClear) targets.push({ kind: 'lord', side: foe });
-    return {
-      targets,
-      why: '「神射」：可攻击任意列的人物卡' +
-        (ownColClear ? '；本列两排皆空 → 可攻击主将' : '；本列有敌方单位 → 不能攻击主将'),
-    };
-  }
+  // 规则② 无架盾 → 可自由攻击任意敌方人物（翻面/奇袭者不可被指定）
+  const targets: Target[] = allUnits(state, foe)
+    .filter(({ unit }) => unit.hp > 0                    // 已阵亡但尚未移出场的（结算中途）不算
+      && !hasCap(unit, 'untargetable') && !hasKeyword(unit, 'qi_xi'))
+    .map(({ row: r, col: c }) => ({ kind: 'unit' as const, side: foe, row: r, col: c }));
 
-  // 近战：被自己人挡住
-  if (row === 'back' && state.sides[side].rows.front[col]) {
-    return { targets: [], why: '位于后军且同列前方有友方单位 → 被自己人挡住，无法攻击' };
-  }
-
-  // 规则 ①②③：同列 → 前军 → 后军（穿透）→ 主将
-  const front = state.sides[foe].rows.front[col];
-  if (front) {
-    if (hasKeyword(front, 'qi_xi')) return { targets: [], why: '该列敌方前军处于「奇袭」，不能被指定为目标' };
-    targets.push({ kind: 'unit', side: foe, row: 'front', col });
-    return { targets, why: `同列（列${col + 1}）敌方前军有人物卡 → 目标只能是它` };
-  }
-  const back = state.sides[foe].rows.back[col];
-  if (back) {
-    if (hasKeyword(back, 'qi_xi')) return { targets: [], why: '该列敌方后军处于「奇袭」，不能被指定为目标' };
-    targets.push({ kind: 'unit', side: foe, row: 'back', col });
-    return { targets, why: `同列（列${col + 1}）前军为空 → 穿透攻击该列后军` };
-  }
+  // 规则③ 也可以直接攻击主将（ADR-051：取消「必须先清空一列」的破阵限制）
   targets.push({ kind: 'lord', side: foe });
-  return { targets, why: `同列（列${col + 1}）两排皆空 → 可攻击敌方主将（破阵斩将）` };
+
+  return {
+    targets,
+    why: '无敌方架盾 → 可自由选择任意敌方人物，或直接攻击敌方主将',
+  };
 }
 
 /** 可部署的格子 */
@@ -153,7 +154,7 @@ export function canPlayCard(
   costOverride?: number,          // 手牌费用修正后的实际费用（ADR-038）
 ): Check {
   const s = state.sides[side];
-  const cost = costOverride ?? card.cost;
+  const cost = costOverride ?? card.cost ?? 0;
   if (cost > s.command.cur) {
     return { ok: false, reason: `统率值不足（需要 ${cost}，当前 ${s.command.cur}）` };
   }

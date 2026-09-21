@@ -33,6 +33,8 @@ export interface CardEffect {
   value?: number;
   chance?: number;               // 概率 0–1（ADR-033）
   condition?: EffectCondition;   // 条件（ADR-033）
+  clashMode?: 'roll' | 'cost';   // clash 的比法
+  from?: 'top' | 'bottom';       // scry 的取牌端
   status_source?: 'self';        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
   value_from_discarded?: 'cost' | 'health';   // 取「最近被弃牌」的属性作为数值（ADR-040）
   value_from_flag?: string;                   // 取 flags 中 "<name>:N" 的 N 作为数值（ADR-041）        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
@@ -48,7 +50,10 @@ export interface CardEffect {
   count?: number;
   position?: string;
   to?: 'hand' | 'deck_top' | 'deck_bottom' | 'discard' | 'board';   // scry/steal 的落点
+  // transform：进化目标卡 id（写在 to 上，与 scry 的落点区分由 action 决定）
   target?: TargetSelector;
+  /** discard 专用：'choose' 表示由调用方通过 ctx.handIndex 指定弃哪张 */
+  mode?: 'choose' | 'random';
 }
 
 export interface TargetSelector {
@@ -64,10 +69,13 @@ export interface TargetSelector {
     lane?: number;
     row?: Row;
     health_max?: number;
-    cost_max?: number;             // 统帅值上限（绝对）
-    cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADDR-036
+    cost_max?: number;             // 统帅值上限（绝对，含）
+    cost_min?: number;             // 统帅值下限（绝对，含）——与 cost_max 配合可写出互斥分支
+    cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADR-036
+    troopKind?: 'infantry' | 'shield' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
     has_status?: string;
     adjacent_to?: 'self';          // 相邻单位（"相邻的己方人物"）
+    include_lord?: boolean;        // 候选池额外纳入该方主将（ADR-051，弓兵射箭「含主将」）
   };
   count?: number | 'all';
   mode?: 'choose' | 'random' | 'first' | 'lowest_health';
@@ -86,6 +94,8 @@ export interface SkillDef {
   chance?: number;               // 技能级概率（免死等，ADR-039）
   target?: TargetSelector;
   effects?: CardEffect[];
+  /** 卡面技能文案（来自手写卡；仅用于显示与校验，不参与结算） */
+  text?: string;
 }
 
 export interface CardDef {
@@ -170,6 +180,10 @@ export interface Unit {
   skills?: SkillDef[];
   attackedThisTurn: number;
   enteredTurn: number;
+  /** 本回合各主动技已使用次数，key = 技能 id 或下标（GDD 10 §1.1 频率限制） */
+  skillUsesThisTurn: Record<string, number>;
+  /** 本局已用过的「一局一次」技能键 */
+  skillsUsedOnce: string[];
 }
 
 export interface Lord {
@@ -194,6 +208,8 @@ export interface SideState {
   discard: CardDef[];
   command: { cur: number; max: number };
   fatigue: number;
+  /** 本局是否已用过换牌机会（GDD 03 §1 第③步） */
+  mulliganDone: boolean;
 }
 
 export interface MatchState {
@@ -201,9 +217,13 @@ export interface MatchState {
   uidSeq: number;
   rngState: number;
   turn: number;
+  /** 完整回合数（双方各行动一次 = 一个完整回合，ADR-061）；统率值按它增长 */
+  round: number;
   active: Side;
   sides: Record<Side, SideState>;
   winner: Side | 'draw' | null;
+  /** 后手补偿方式（ADR-053） */
+  secondCompensation?: 'none' | 'extra_draw';
 }
 
 /* ============================================================
@@ -213,8 +233,8 @@ export interface MatchState {
 export type Action =
   | { type: 'PLAY_CARD'; cardIndex: number; row?: Row; col?: number }
   | { type: 'ATTACK'; from: { row: Row; col: number }; to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' } }
-  | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number } }
-  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number } }
+  | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }
+  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }
   | { type: 'END_TURN' };
 
 /* ============================================================
@@ -225,6 +245,10 @@ export type GameEvent =
   | { type: 'TURN_START'; side: Side; turn: number; command: { cur: number; max: number } }
   | { type: 'TURN_END'; side: Side; turn: number }
   | { type: 'CARD_DRAWN'; side: Side; card: CardDef; deckLeft: number }
+  | { type: 'CARD_AUTO_CAST'; side: Side; card: CardDef }
+  | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number; to?: 'hand' | 'deck' }
+  | { type: 'DECK_SENT'; side: Side; cardId: string; count: number }
+  | { type: 'CARD_RETURNED_TO_DECK'; side: Side; card: CardDef }
   | { type: 'FATIGUE'; side: Side; amount: number; hp: number }
   | { type: 'CARD_PLAYED'; side: Side; card: CardDef; row?: Row; col?: number; handIndex?: number }
   | { type: 'UNIT_SUMMONED'; side: Side; row: Row; col: number; unit: Unit }
@@ -233,6 +257,7 @@ export type GameEvent =
   | { type: 'HEAL'; target: { kind: 'unit' | 'lord'; side: Side; row?: Row; col?: number }; amount: number; hp: number }
   | { type: 'ARMOR_GAINED'; side: Side; amount: number; armor: number }
   | { type: 'STATUS_APPLIED'; side: Side; row?: Row; col?: number; status: string; stacks: number; turns?: number }
+  | { type: 'UNIT_TRANSFORMED'; side: Side; row: Row; col: number; from: string; to: string; unit: Unit }
   | { type: 'DRAW_BLOCKED'; side: Side }
   | { type: 'EXTRA_ATTACK'; side: Side; row: Row; col: number }
   | { type: 'CONTROL_TAKEN'; from: Side; to: Side; unit: Unit }
@@ -241,6 +266,7 @@ export type GameEvent =
   | { type: 'LORD_STATUS_EXPIRED'; side: Side; status: string }
   | { type: 'DAMAGE_REDIRECTED'; side: Side; row: Row; col: number; to: Side; guardName: string }
   | { type: 'UNIT_SURVIVED'; side: Side; row: Row; col: number; unit: Unit }
+  | { type: 'UNIT_FLIPPED'; side: Side; row: Row; col: number; to: 'front' | 'back'; unit: Unit }
   | { type: 'HAND_MODIFIED'; side: Side; index: number; kind: 'cost' | 'ban'; value?: number; turns?: number }
   | { type: 'CARD_STOLEN'; from: Side; to: Side; card: CardDef }
   | { type: 'CARD_SCRYED'; side: Side; cardId: string; from: 'top' | 'bottom' }

@@ -58,8 +58,8 @@
   duration: until_consumed   # 攻击后失去
   memo: "不能被指定为目标"
 
-- id: wu_sheng_status
-  name: 武圣
+- id: sheng_dun_status
+  name: 圣盾
   kind: buff
   numeric: false
   scope: character
@@ -155,3 +155,76 @@
   duration: conditional # 需特定条件翻回正面
   caps: [block_action, untargetable]
   memo: "翻面期间无法行动也不能被选中；翻回正面后下回合才能行动"
+
+# ---------- 引擎内部标记（ADR-060） ----------
+# 以下 7 个状态由 core 引擎在结算过程中写入/读取，用于表达"这个单位当前处于
+# 某种被规则关注的情形"。它们的**概念**来自手写稿或既有卡牌文案，但**名字是
+# 实现期起的内部标识**，设计者从未逐条命名 —— 故不作为可被卡牌引用的设计状态，
+# 只保证日志与卡面能显示中文。新增卡牌引用它们之前请先找设计者确认。
+
+- id: zhen_wang
+  name: 阵亡
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 20            # 阵亡结算
+  duration: permanent
+  caps: [dead]
+  memo: "引擎内部：阵亡标记（供亡语与结算判定）"
+
+- id: shou_hu
+  name: 守护
+  kind: buff
+  numeric: false
+  scope: character
+  timing: 10            # 伤害结算前：转移判定
+  duration: turns
+  caps: [redirect_damage]
+  memo: "引擎内部：把指向友方主将的伤害转由本单位承担"
+
+- id: duan_chou
+  name: 断抽
+  kind: debuff
+  numeric: false
+  scope: lord
+  timing: 2             # 回合开始：抽牌
+  duration: turns
+  caps: [block_draw]
+  memo: "引擎内部：该方本回合不能抽牌"
+
+- id: jin_yan
+  name: 进言
+  kind: buff
+  numeric: false
+  scope: lord
+  timing: 2             # 回合开始：抽牌
+  duration: turns
+  memo: "引擎内部：该方回合开始额外抽牌"
+
+- id: can_mou
+  name: 参谋
+  kind: buff
+  numeric: false
+  scope: character
+  timing: 9             # 攻击声明
+  duration: turns
+  memo: "引擎内部：本单位可执行谋略类行动"
+
+- id: jue_dou
+  name: 决斗
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 9             # 攻击声明
+  duration: turns
+  caps: [forced_attack]
+  memo: "引擎内部：本单位被强制攻击指定目标"
+
+- id: chou_di
+  name: 仇敌
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 9             # 攻击声明
+  duration: turns
+  memo: "引擎内部：本单位被标记为某人的仇敌"

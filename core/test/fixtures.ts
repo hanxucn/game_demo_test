@@ -33,7 +33,7 @@ export const TEST_CARDS: CardDef[] = [
   },
   {
     id: 'test_assassin', name: '测试刺客', faction: 'qun', type: 'general',
-    cost: 4, attack: 4, health: 3, keywords: ['wu_shuang'],
+    cost: 4, attack: 4, health: 3, keywords: [],   // 「无双」已取消（ADR-054）
     memo: '带无双的测试武将',
   },
   {
@@ -53,17 +53,37 @@ export const TEST_CARDS: CardDef[] = [
   },
   {
     id: 'test_deathrattle', name: '测试忠义', faction: 'shu', type: 'general',
-    cost: 3, attack: 2, health: 2, keywords: ['zhong_yi'],
+    cost: 3, attack: 2, health: 2, keywords: ['yi_ji'],   // 亡语类关键词是「遗计」，「忠义」改为免疫控制
     memo: '阵亡时对全体敌人造成 1 点伤害',
     skills: [{ id: 'lastword', name: '遗志', kind: 'trigger', trigger: 'on_death', effects: [{ action: 'damage', value: 1 }] }],
   },
 ];
 
 export const TEST_HEROES: LordDef[] = [
-  { id: 'shu_liubei', name: '刘备', faction: 'shu', type: 'special', cost: 0, skill: '仁德', memo: '主公技：恢复 2 点生命' },
-  { id: 'wei_caocao', name: '曹操', faction: 'wei', type: 'special', cost: 0, skill: '号令', memo: '主公技：本回合 +2 攻击' },
-  { id: 'wu_sunquan', name: '孙权', faction: 'wu', type: 'special', cost: 0, skill: '坐断东南', memo: '主公技：获得 2 点护甲' },
-  { id: 'qun_dongzhuo', name: '董卓', faction: 'qun', type: 'special', cost: 0, skill: '暴虐', memo: '主公技：抽 1 张并自伤 1' },
+  {
+    id: 'shu_liubei', name: '刘备', faction: 'shu', type: 'lord', cost: 0,
+    skills: [{
+      id: 'ren_de', name: '仁德', kind: 'active', cost: 2, frequency: 'once_per_turn',
+      effects: [{ action: 'heal', value: 2, target: { side: 'both', filter: { type: 'character' }, count: 1, mode: 'choose' } }],
+    }],
+    memo: '主公技：为一名友方人物恢复 2 点生命',
+  },
+  {
+    id: 'wei_caocao', name: '曹操', faction: 'wei', type: 'lord', cost: 0,
+    skills: [{
+      id: 'jian_xiong', name: '奸雄', kind: 'active', cost: 2, frequency: 'once_per_turn',
+      effects: [{ action: 'damage', value: 2, target: { side: 'self', lord: true } }, { action: 'draw', value: 1 }],
+    }],
+    memo: '主公技：自伤 2 换 1 张牌',
+  },
+  {
+    id: 'wu_sunquan', name: '孙权', faction: 'wu', type: 'lord', cost: 0,
+    skills: [{
+      id: 'zuo_duan_dong_nan', name: '坐断东南', kind: 'active', cost: 2, frequency: 'once_per_turn',
+      effects: [{ action: 'cycle_to_deck' }],
+    }],
+    memo: '主公技：弃 1 张手牌再抽 1 张',
+  },
 ];
 
 export function loadTestData(): ReturnType<typeof loadData> {
@@ -71,6 +91,7 @@ export function loadTestData(): ReturnType<typeof loadData> {
 }
 
 export interface Scenario {
+  ownCommand?: number;
   own?: Partial<Record<Row, Array<string | null>>>;
   enemy?: Partial<Record<Row, Array<string | null>>>;
   ownHand?: string[];
@@ -89,12 +110,12 @@ export function scenario(opts: Scenario): { state: MatchState; ctx: EngineContex
   });
   state.turn = 1;
   state.active = 'own';
-  state.sides.own.command = { cur: 10, max: 10 };
+  state.sides.own.command = { cur: opts.ownCommand ?? 10, max: 10 };
   state.sides.enemy.command = { cur: 10, max: 10 };
 
   const place = (side: Side, rows?: Partial<Record<Row, Array<string | null>>>) => {
     if (!rows) return;
-    for (const row of ['front', 'back'] as Row[]) {
+    for (const row of ['front', 'front'] as Row[]) {
       const arr = rows[row];
       if (!arr) continue;
       arr.forEach((id, col) => {

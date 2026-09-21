@@ -50,8 +50,8 @@
     "memo": "不能被指定为目标"
   },
   {
-    "id": "wu_sheng_status",
-    "name": "武圣",
+    "id": "sheng_dun_status",
+    "name": "圣盾",
     "kind": "buff",
     "numeric": false,
     "scope": "character",
@@ -159,5 +159,87 @@
       "untargetable"
     ],
     "memo": "翻面期间无法行动也不能被选中；翻回正面后下回合才能行动"
+  },
+  {
+    "id": "zhen_wang",
+    "name": "阵亡",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 20,
+    "duration": "permanent",
+    "caps": [
+      "dead"
+    ],
+    "memo": "引擎内部：阵亡标记（供亡语与结算判定）"
+  },
+  {
+    "id": "shou_hu",
+    "name": "守护",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 10,
+    "duration": "turns",
+    "caps": [
+      "redirect_damage"
+    ],
+    "memo": "引擎内部：把指向友方主将的伤害转由本单位承担"
+  },
+  {
+    "id": "duan_chou",
+    "name": "断抽",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "lord",
+    "timing": 2,
+    "duration": "turns",
+    "caps": [
+      "block_draw"
+    ],
+    "memo": "引擎内部：该方本回合不能抽牌"
+  },
+  {
+    "id": "jin_yan",
+    "name": "进言",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "lord",
+    "timing": 2,
+    "duration": "turns",
+    "memo": "引擎内部：该方回合开始额外抽牌"
+  },
+  {
+    "id": "can_mou",
+    "name": "参谋",
+    "kind": "buff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 9,
+    "duration": "turns",
+    "memo": "引擎内部：本单位可执行谋略类行动"
+  },
+  {
+    "id": "jue_dou",
+    "name": "决斗",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 9,
+    "duration": "turns",
+    "caps": [
+      "forced_attack"
+    ],
+    "memo": "引擎内部：本单位被强制攻击指定目标"
+  },
+  {
+    "id": "chou_di",
+    "name": "仇敌",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 9,
+    "duration": "turns",
+    "memo": "引擎内部：本单位被标记为某人的仇敌"
   }
 ]
