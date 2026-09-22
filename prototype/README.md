@@ -8,6 +8,9 @@
 |---|---|
 | `battlefield.html` | 战场演示：引擎驱动的完整对局（出牌 / 攻击 / 主公技 / AI 对手） |
 | `battlefield.engine.js` | 渲染 + 动画 + 输入 → Action（**不含任何规则判断**） |
+| `deck-builder.html` | 独立卡组构筑页：收藏卡牌筛选、效果查看、卡组保存/读取（需要 `server/index.mjs`） |
+| `deck-builder.js` | 卡组构筑页 API 调用与交互 |
+| `setup.js` | 战场开局：阵营选择、手动/已保存卡组、换牌 |
 | `card-render.css` / `.js` | 卡面与动画 |
 | `card-gallery.html` | 卡面画廊（1:1 / 2×） |
 | `style-lab.html` | 风格实验室（已定稿，保留对比） |
@@ -27,6 +30,34 @@ python3 tools/build-data-bundle.py
 # 引擎（TS → 浏览器 IIFE 包）
 cd core && npm run build:browser
 ```
+
+## 本地启动
+
+卡组保存和战场载入已保存卡组需要启动完整 Demo 服务：
+
+```powershell
+$node = "C:\Users\86188\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
+& $node server/index.mjs
+```
+
+然后访问：
+
+```text
+http://127.0.0.1:8099/prototype/deck-builder.html
+http://127.0.0.1:8099/prototype/battlefield.html
+```
+
+仅运行 `tools/serve.sh` 只能预览静态页面，不提供卡组 API。
+
+## 当前构筑与对战流程
+
+```text
+卡组构筑页：筛选卡牌 → 查看效果 → 组成 30 张 → 保存到 SQLite
+       ↓
+战场页：选择阵营 → 手动/载入已保存卡组 → 换牌 → 开始对局
+```
+
+当前使用固定 `demo-user`，数据库文件为 `server/game.db`。规则校验仍由 `core/src/deck.ts` 和 `Core.validateDeck()` 负责。
 
 ## 演示能做什么
 

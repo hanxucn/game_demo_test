@@ -640,6 +640,13 @@
   #setup .acts button:hover, #setup .filters button:hover { filter: brightness(1.25); }
   #setup .acts button.primary { background: var(--gold); color: #201a10; font-weight: 700; border-color: var(--gold-hi); }
   #setup .acts button:disabled { opacity: .4; cursor: not-allowed; }
+  #setup .saved-decks { margin: 0 0 12px; padding: 10px 12px; background: rgba(37,27,16,.78); border: 1px solid #6d5a35; border-radius: 6px; }
+  #setup .saved-decks-label { display: block; margin-bottom: 8px; color: var(--gold-hi); font-size: 12px; font-weight: 700; }
+  #setup .saved-deck-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+  #setup .saved-decks button { min-height: 40px; background: #3a2917; color: var(--gold-hi); border: 1px solid #9a7336; border-radius: 5px; padding: 7px 10px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
+  #setup .saved-decks button:hover { border-color: var(--gold-hi); background: #513719; }
+  #setup .saved-decks button.unavailable,
+  #setup .saved-decks button:disabled { color: var(--dim); background: #211d18; border-color: #423c32; opacity: .55; cursor: not-allowed; }
   /* 卡牌行 */
   .crow {
     display: flex; align-items: center; gap: 6px; padding: 3px 5px;
@@ -654,6 +661,9 @@
   .crow .st { flex: 0 0 34px; color: #d9a35a; }
   .crow .tx { flex: 1; color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .crow .n { flex: 0 0 20px; text-align: right; color: var(--gold); font-weight: 700; }
+  .crow .add-card { flex: 0 0 42px; padding: 2px 4px; border: 1px solid #6d5a35; border-radius: 3px; background: #352817; color: var(--gold-hi); font: inherit; font-size: 10px; cursor: pointer; }
+  .crow .add-card:hover { background: #5a4020; }
+  .crow .add-card:disabled { opacity: .42; background: #27231d; color: var(--dim); border-color: #454039; cursor: not-allowed; }
   .crow.maxed { opacity: .42; }
   .crow.foe { opacity: .35; cursor: not-allowed; }
   .crow .kind { flex: 0 0 34px; color: #7f9fc0; font-size: 10px; }
@@ -944,6 +954,7 @@
   <div class="tiny" id="fit-report"></div>
   <div class="tiny" id="size-report"></div>
   <div class="toggle">
+    <a href="deck-builder.html" style="display:inline-block;color:#d5b16a;border:1px solid #6d5a35;border-radius:4px;padding:4px 7px;text-decoration:none">卡组构筑</a>
     <button id="btn-bg">切换背景</button>
     <button id="btn-coords">坐标</button>
     <button id="btn-reset">重开</button>
