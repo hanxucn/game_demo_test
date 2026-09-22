@@ -70,6 +70,7 @@ var Core = (() => {
     expireStatuses: () => expireStatuses,
     findByUid: () => findByUid,
     findGuard: () => findGuard,
+    findLordGuard: () => findLordGuard,
     formatSummary: () => formatSummary,
     gainArmor: () => gainArmor,
     getUnit: () => getUnit,
@@ -100,6 +101,7 @@ var Core = (() => {
     nextUidSeq: () => nextUidSeq,
     openColumns: () => openColumns,
     other: () => other,
+    playTargetPlan: () => playTargetPlan,
     refAlive: () => refAlive,
     refHp: () => refHp,
     registerOnDeathResolver: () => registerOnDeathResolver,
@@ -342,7 +344,17 @@ var Core = (() => {
       numeric: false,
       duration: "turns",
       caps: ["redirect_damage"],
+      guard_scope: "any",
       note: "\u53D7\u5230\u7684\u4F24\u5BB3\u8F6C\u7531\u5B88\u62A4\u8005\u627F\u53D7\uFF08\u63F4\u62A4/\u5206\u62C5/\u62A4\u9A7E\u5171\u7528\uFF09"
+    },
+    hu_zhu: {
+      name: "\u62A4\u4E3B",
+      kind: "buff",
+      numeric: false,
+      duration: "turns",
+      caps: ["redirect_damage"],
+      guard_scope: "lord",
+      note: "\u53EA\u628A**\u8BE5\u65B9\u4E3B\u5E05**\u53D7\u5230\u7684\u4F24\u5BB3\u8F6C\u7ED9\u5B88\u62A4\u8005\uFF08\u7956\u8302\u300C\u66FF\u4E3B\u300D\uFF0CADR-071\uFF09"
     },
     jin_yong: {
       name: "\u7981\u7528",
@@ -427,8 +439,14 @@ var Core = (() => {
     // 往牌库随机位置塞 N 张指定卡（ADR-050）
     "send_to_deck",
     // 把牌库里剩下的指定牌全塞给对方（ADR-050）
-    "cycle_to_deck"
+    "cycle_to_deck",
     // 手牌放回牌库随机位置再抽 1 张（ADR-050）
+    "sacrifice",
+    // 牺牲一个己方单位，把它的 maxHp/hp 写进 flags（ADR-071，程昱）
+    "attack_each",
+    // 挨个发动**真正的普攻**（含反击），自己阵亡即停（ADR-071，张苞）
+    "draw_until"
+    // 一直抽到抽出一张「非某类型」的牌为止（ADR-071，姜维）
   ];
   var RARITIES = ["common", "elite"];
   var CARD_TYPES = [
@@ -597,6 +615,7 @@ var Core = (() => {
       hp: card.health ?? 1,
       maxHp: card.health ?? 1,
       troopKind: card.troopKind,
+      gender: card.gender,
       kw: [...card.keywords ?? []],
       tags: [...card.tags ?? []],
       statuses: {},
@@ -718,7 +737,9 @@ var Core = (() => {
   function findGuard(state, u) {
     for (const [id, inst] of Object.entries(u.statuses)) {
       if (inst.stacks <= 0 || !inst.srcUid) continue;
-      if (!STATUSES[id]?.caps?.includes("redirect_damage")) continue;
+      const def = STATUSES[id];
+      if (!def?.caps?.includes("redirect_damage")) continue;
+      if (def.guard_scope === "lord") continue;
       for (const side of ["own", "enemy"]) {
         for (const row of ["front", "back"]) {
           for (let col = 0; col < BOARD.COLS; col++) {
@@ -726,6 +747,22 @@ var Core = (() => {
             if (g && g.uid === inst.srcUid && g.uid !== u.uid && g.hp > 0) {
               return { side, row, col, unit: g };
             }
+          }
+        }
+      }
+    }
+    return null;
+  }
+  function findLordGuard(state, side) {
+    const lord = state.sides[side].lord;
+    for (const [id, inst] of Object.entries(lord.statuses ?? {})) {
+      if (inst.stacks <= 0 || !inst.srcUid) continue;
+      if (!STATUSES[id]?.caps?.includes("redirect_damage")) continue;
+      for (const s of ["own", "enemy"]) {
+        for (const row of ["front", "back"]) {
+          for (let col = 0; col < BOARD.COLS; col++) {
+            const g = state.sides[s].rows[row][col];
+            if (g && g.uid === inst.srcUid && g.hp > 0) return { side: s, row, col, unit: g };
           }
         }
       }
@@ -785,6 +822,26 @@ var Core = (() => {
     if (amount <= 0 || !refAlive(state, ref)) return 0;
     if (ref.kind === "lord") {
       const lord = state.sides[ref.side].lord;
+      const lguard = findLordGuard(state, ref.side);
+      if (lguard && depth < 3) {
+        events.push({
+          type: "DAMAGE_REDIRECTED",
+          side: ref.side,
+          lord: true,
+          to: lguard.side,
+          guardName: lguard.unit.name
+        });
+        return dealDamage(
+          state,
+          cards,
+          unitRef(lguard.side, lguard.row, lguard.col),
+          amount,
+          events,
+          source,
+          depth + 1,
+          killerRef
+        );
+      }
       let dmg = amount;
       if (lord.armor > 0) {
         const absorbed = Math.min(lord.armor, dmg);
@@ -917,7 +974,7 @@ var Core = (() => {
       if (def?.kind === "debuff" && hasCapOn(lord.statuses, "immune_debuff")) return;
       const prevL = lord.statuses[status];
       const numericL = def?.numeric ?? true;
-      const turnsL = turns !== void 0 ? turns : def?.duration === "permanent" || def?.duration === "until_consumed" ? void 0 : def?.duration === "turns" || def?.duration === "this_turn" ? 1 : void 0;
+      const turnsL = auraId !== void 0 && turns === void 0 ? void 0 : turns !== void 0 ? turns : def?.duration === "permanent" || def?.duration === "until_consumed" ? void 0 : def?.duration === "turns" || def?.duration === "this_turn" ? 1 : void 0;
       lord.statuses[status] = {
         stacks: numericL ? (prevL?.stacks ?? 0) + stacks : Math.max(1, stacks),
         turns: turnsL,
@@ -936,7 +993,7 @@ var Core = (() => {
     const numeric = def?.numeric ?? true;
     const prev = u.statuses[status];
     const nextStacks = numeric ? (prev?.stacks ?? 0) + stacks : Math.max(1, stacks);
-    const nextTurns = turns !== void 0 ? turns : prev?.turns !== void 0 ? Math.max(prev.turns, 1) : def?.duration === "permanent" || def?.duration === "until_consumed" ? void 0 : def?.duration === "turns" || def?.duration === "this_turn" ? 1 : void 0;
+    const nextTurns = auraId !== void 0 && turns === void 0 ? void 0 : turns !== void 0 ? turns : prev?.turns !== void 0 ? Math.max(prev.turns, 1) : def?.duration === "permanent" || def?.duration === "until_consumed" ? void 0 : def?.duration === "turns" || def?.duration === "this_turn" ? 1 : void 0;
     u.statuses[status] = { stacks: nextStacks, turns: nextTurns, srcUid, auraId };
     events.push({ type: "STATUS_APPLIED", side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
   }
@@ -1082,20 +1139,34 @@ var Core = (() => {
       );
     }
   });
+  var pickOf = (ctx, sel) => sel?.pick === 2 ? ctx.chosen2 ?? ctx.chosen : ctx.chosen;
   var hpOf = (s, t) => t.kind === "lord" ? s.sides[t.side].lord.hp : t.kind === "hand" ? 0 : getUnit(s, t.side, t.row, t.col)?.hp ?? 0;
   var sameTarget = (a, b) => a.kind === b.kind && a.side === b.side && (a.kind === "lord" || a.kind === "hand" && b.kind === "hand" && a.index === b.index || a.kind === "unit" && b.kind === "unit" && a.row === b.row && a.col === b.col);
-  var matchesHandFilter = (hc, f) => {
-    if (!f?.type) return true;
-    if (f.type === "character") return ["troop", "general", "strategist"].includes(hc.card.type);
-    return hc.card.type === f.type;
+  var matchesCardType = (t, want) => {
+    if (!want) return true;
+    if (want === "character") return ["troop", "general", "strategist"].includes(t);
+    return t === want;
   };
-  var matchesFilter = (u, f, row, srcCost, srcAtk) => {
+  var matchesHandFilter = (hc, f) => {
     if (!f) return true;
+    if (!matchesCardType(hc.card.type, f.type)) return false;
+    if (f.gender && hc.card.gender !== f.gender) return false;
+    if (f.faction && hc.card.faction !== f.faction) return false;
+    if (typeof f.cost_max === "number" && hc.card.cost > f.cost_max) return false;
+    if (typeof f.cost_min === "number" && hc.card.cost < f.cost_min) return false;
+    if (f.keyword && !(hc.card.keywords ?? []).includes(f.keyword)) return false;
+    if (f.card_id && hc.card.id !== f.card_id) return false;
+    return true;
+  };
+  var matchesFilter = (u, f, row, srcCost, srcAtk, srcUid) => {
+    if (!f) return true;
+    if (f.exclude_source && srcUid !== void 0 && u.uid === srcUid) return false;
     if (f.type) {
       if (f.type === "character") {
         if (!["troop", "general", "strategist"].includes(u.type)) return false;
       } else if (u.type !== f.type) return false;
     }
+    if (f.gender && u.gender !== f.gender) return false;
     if (f.keyword && !u.kw.includes(f.keyword)) return false;
     if (f.tag && !(u.tags ?? []).includes(f.tag)) return false;
     if (f.faction && u.faction !== f.faction) return false;
@@ -1255,6 +1326,28 @@ var Core = (() => {
     }
     return max;
   }
+  function handSides(selector, ctx) {
+    const sideSel = selector.side ?? "enemy";
+    return sideSel === "both" ? ["own", "enemy"] : sideSel === "self" || sideSel === "ally" ? [ctx.side] : [other(ctx.side)];
+  }
+  function narrowByMode(state, pool, selector, rng) {
+    if (selector.mode === "random" && pool.length) {
+      const n2 = selector.count === "all" ? pool.length : selector.count ?? 1;
+      const picked = [];
+      const copy = [...pool];
+      for (let i = 0; i < n2 && copy.length; i++) {
+        picked.push(copy.splice(rng.int(copy.length), 1)[0]);
+      }
+      return picked;
+    }
+    if (selector.count === "all") return pool;
+    const n = selector.count ?? 1;
+    if (selector.mode === "first") return pool.slice(0, n);
+    if (selector.mode === "lowest_health") {
+      return [...pool].sort((a, b) => hpOf(state, a) - hpOf(state, b)).slice(0, n);
+    }
+    return pool.slice(0, n);
+  }
   function resolveTargets(state, selector, ctx, rng) {
     if (selector?.event) {
       const k = selector.event === "killer" ? ctx.killer : ctx.eventVictim;
@@ -1263,26 +1356,28 @@ var Core = (() => {
     }
     if (!selector) return ctx.chosen ? [ctx.chosen] : [];
     if (selector.zone === "hand") {
-      const sideSel2 = selector.side ?? "enemy";
-      const hs = sideSel2 === "both" ? ["own", "enemy"] : sideSel2 === "self" || sideSel2 === "ally" ? [ctx.side] : [other(ctx.side)];
       const out = [];
-      for (const sd of hs) {
+      for (const sd of handSides(selector, ctx)) {
         state.sides[sd].hand.forEach((hc, i) => {
           if (matchesHandFilter(hc, selector.filter)) out.push(handRef(sd, i));
         });
       }
-      const n2 = selector.count === "all" ? out.length : selector.count ?? 1;
-      if (selector.mode === "random") {
-        const copy = [...out], picked = [];
-        for (let i = 0; i < n2 && copy.length; i++) picked.push(copy.splice(rng.int(copy.length), 1)[0]);
-        return picked;
-      }
-      return n2 === out.length ? out : out.slice(0, n2);
+      const pick2 = pickOf(ctx, selector);
+      if (selector.mode !== "random" && pick2 && out.some((t) => sameTarget(t, pick2))) return [pick2];
+      return narrowByMode(state, out, selector, rng);
     }
     if (selector.lord) {
       const sideSel2 = selector.side ?? "enemy";
       const ls = sideSel2 === "both" ? ["own", "enemy"] : sideSel2 === "self" || sideSel2 === "ally" ? [ctx.side] : [other(ctx.side)];
-      return ls.map((x) => lordRef(x));
+      const f = selector.filter;
+      const kept = ls.filter((sd) => {
+        if (!f) return true;
+        const lord = state.sides[sd].lord;
+        if (f.has_status && !((lord.statuses?.[f.has_status]?.stacks ?? 0) > 0)) return false;
+        if (f.faction && lord.faction !== f.faction) return false;
+        return true;
+      });
+      return kept.map((x) => lordRef(x));
     }
     if (selector.source) {
       const src = ctx.source;
@@ -1305,7 +1400,14 @@ var Core = (() => {
           if (!u) return;
           if (hasCap(u, "untargetable")) return;
           if (hasCap(u, "duel_lock") && ctx.source && !hasCap(ctx.source, "duel_lock")) return;
-          if (matchesFilter(u, selector.filter ?? {}, r, ctx.source?.cost, ctx.source?.atk)) pool.push(unitRef(s, r, c));
+          if (matchesFilter(u, selector.filter ?? {}, r, ctx.source?.cost, ctx.source?.atk, ctx.source?.uid)) pool.push(unitRef(s, r, c));
+        });
+      }
+    }
+    if (selector.zone === "both") {
+      for (const sd of poolSides) {
+        state.sides[sd].hand.forEach((hc, i) => {
+          if (matchesHandFilter(hc, selector.filter)) pool.push(handRef(sd, i));
         });
       }
     }
@@ -1320,28 +1422,123 @@ var Core = (() => {
       finalPool = srcCol < 0 ? [] : pool.filter((t) => t.kind === "unit" && Math.abs(t.col - srcCol) <= 1);
     }
     const sel = confused ? { ...selector, mode: "random" } : selector;
-    if (sel.mode === "random" && finalPool.length) {
-      const n2 = sel.count === "all" ? finalPool.length : sel.count ?? 1;
-      const picked = [];
-      const copy = [...finalPool];
-      for (let i = 0; i < n2 && copy.length; i++) {
-        picked.push(copy.splice(rng.int(copy.length), 1)[0]);
+    const pick = pickOf(ctx, sel);
+    if (sel.mode === "choose" && pick && finalPool.some((t) => sameTarget(t, pick))) {
+      return [pick];
+    }
+    return narrowByMode(state, finalPool, sel, rng);
+  }
+  function findPos(state, side, uid) {
+    for (const r of BOARD.ROWS) {
+      const i = state.sides[side].rows[r].findIndex((u) => u?.uid === uid);
+      if (i >= 0) return { row: r, col: i };
+    }
+    return null;
+  }
+  function statusIdsOfKind(state, ref, kind) {
+    const bags = ref.kind === "unit" ? getUnit(state, ref.side, ref.row, ref.col)?.statuses : ref.kind === "lord" ? state.sides[ref.side].lord.statuses : void 0;
+    return Object.entries(bags ?? {}).filter(([id, inst]) => inst.stacks > 0 && STATUSES[id]?.kind === kind).map(([id]) => id);
+  }
+  function runOnAttackPhase(state, cards, attacker, phase, killed, rng, events) {
+    if (attacker.hp <= 0) return;
+    const side = findSide(state, attacker.uid);
+    if (!side) return;
+    for (const sk of (attacker.skills ?? []).filter((x) => x.trigger === TIMING.ON_ATTACK)) {
+      const effs = (sk.effects ?? []).filter((e) => phase === "after" ? e.condition?.event === "killed" : e.condition?.event !== "killed");
+      if (!effs.length) continue;
+      runEffects(
+        state,
+        cards,
+        effs,
+        { side, source: attacker, flags: killed ? ["killed"] : [] },
+        rng,
+        events
+      );
+    }
+  }
+  function resolveAttack(state, cards, side, from, to, events, rng, opts = {}) {
+    const attacker = getUnit(state, side, from.row, from.col);
+    if (!attacker || attacker.hp <= 0) return false;
+    const foe = other(side);
+    events.push({ type: "ATTACK_DECLARED", side, from: { ...from }, to });
+    runOnAttackPhase(state, cards, attacker, "before", false, rng, events);
+    const me = getUnit(state, side, from.row, from.col);
+    if (!me || me.hp <= 0) return false;
+    const dmg = effectiveAttack(state, side, from.row, from.col);
+    const hasYinXue = hasTrait(me, "yin_xue");
+    let killed = false;
+    if (to.kind === "lord") {
+      const dealt = dealDamage(
+        state,
+        cards,
+        lordRef(foe),
+        dmg,
+        events,
+        me.name,
+        0,
+        { side, row: from.row, col: from.col }
+      );
+      killed = state.sides[foe].lord.hp <= 0;
+      if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
+    } else {
+      const tRow = to.row;
+      const tCol = to.col;
+      const targetUnit = getUnit(state, foe, tRow, tCol);
+      const retaliate = effectiveAttack(state, foe, tRow, tCol);
+      const dealt = dealDamage(
+        state,
+        cards,
+        unitRef(foe, tRow, tCol),
+        dmg,
+        events,
+        me.name,
+        0,
+        { side, row: from.row, col: from.col }
+      );
+      const hit = getUnit(state, foe, tRow, tCol);
+      if (hit && hit.hp > 0) runUnitTrigger(state, cards, hit, "on_damaged", rng, events);
+      if (hit) runMarkDamaged(state, cards, hit, dmg, rng, events);
+      if (retaliate > 0) {
+        dealDamage(state, cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? "\u53CD\u51FB");
+        const back = getUnit(state, side, from.row, from.col);
+        if (back && back.hp > 0) runUnitTrigger(state, cards, back, "on_damaged", rng, events);
       }
-      return picked;
+      if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
+      const hitAfter = getUnit(state, foe, tRow, tCol);
+      killed = !hitAfter || hitAfter.hp <= 0;
     }
-    if (sel.count === "all") return finalPool;
-    const n = sel.count ?? 1;
-    if (sel.mode === "first") return finalPool.slice(0, n);
-    if (sel.mode === "lowest_health") {
-      return [...finalPool].sort((a, b) => hpOf(state, a) - hpOf(state, b)).slice(0, n);
+    const after = getUnit(state, side, from.row, from.col);
+    if (after) {
+      if (opts.consumeAttack !== false) after.attackedThisTurn += 1;
+      if (hasTrait(after, "qi_xi")) {
+        after.kw = after.kw.filter((k) => k !== "qi_xi");
+        delete after.statuses.qi_xi_status;
+        events.push({ type: "STATUS_EXPIRED", side, row: from.row, col: from.col, status: "qi_xi" });
+      }
+      if (after.hp <= 0) {
+        killUnit(state, cards, { side, row: from.row, col: from.col, unit: after }, events);
+        recomputeAuras(state, cards, rng, events);
+      }
     }
-    if (ctx.chosen && pool.some((t) => sameTarget(t, ctx.chosen))) {
-      return [ctx.chosen];
+    const survivor = getUnit(state, side, from.row, from.col);
+    if (survivor && survivor.hp > 0) {
+      runOnAttackPhase(state, cards, survivor, "after", killed, rng, events);
     }
-    return pool.slice(0, n);
+    return true;
+  }
+  function effectsOf(sk, modeIndex) {
+    if (sk.modes?.length) {
+      const i = typeof modeIndex === "number" && Number.isInteger(modeIndex) && modeIndex >= 0 && modeIndex < sk.modes.length ? modeIndex : 0;
+      return sk.modes[i].effects ?? [];
+    }
+    return sk.effects ?? [];
   }
   function runEffects(state, cards, effects, ctx, rng, events) {
     if (!effects?.length) return;
+    const chosenFor = (sel) => {
+      const p = pickOf(ctx, sel);
+      return p ? [p] : [];
+    };
     for (const eff of effects) {
       if (typeof eff.chance === "number" && rng.next() >= eff.chance) continue;
       if (!checkCondition(state, eff.condition, ctx, rng)) continue;
@@ -1361,7 +1558,7 @@ var Core = (() => {
         case "damage": {
           const times = eff.count ?? 1;
           for (let i = 0; i < times; i++) {
-            const list = i === 0 ? targets.length ? targets : ctx.chosen ? [ctx.chosen] : [] : eff.target ? resolveTargets(state, eff.target, ctx, rng) : ctx.chosen ? [ctx.chosen] : [];
+            const list = i === 0 ? targets.length ? targets : chosenFor(eff.target) : eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target);
             for (const t of list) {
               const before = hpOf(state, t);
               const victim = t.kind === "unit" ? getUnit(state, t.side, t.row, t.col) : null;
@@ -1377,7 +1574,7 @@ var Core = (() => {
           break;
         }
         case "heal": {
-          const list = targets.length ? targets : ctx.chosen ? [ctx.chosen] : [];
+          const list = targets.length ? targets : chosenFor(eff.target);
           for (const t of list) healTarget(state, t, val, events);
           break;
         }
@@ -1621,14 +1818,17 @@ var Core = (() => {
           const src = ctx.source;
           if (!src) break;
           for (const t of targets) {
-            if (t.kind !== "unit") continue;
-            const u = getUnit(state, t.side, t.row, t.col);
-            const sk = (u?.skills ?? []).find((x) => x.kind === "active") ?? u?.skills?.[0];
-            if (!u || !sk) continue;
+            const unit = t.kind === "unit" ? getUnit(state, t.side, t.row, t.col) : null;
+            const hc = t.kind === "hand" ? state.sides[t.side].hand[t.index] : null;
+            const skills = unit?.skills ?? hc?.card.skills;
+            const ownerName = unit?.name ?? hc?.card.name;
+            if (!skills?.length || !ownerName) continue;
+            const sk = skills.find((x) => x.kind === "active") ?? skills[0];
+            if (!sk) continue;
             src.skills = src.skills ?? [];
             if (!src.skills.some((x) => x.id === sk.id)) {
               src.skills.push(structuredClone(sk));
-              events.push({ type: "SKILL_COPIED", side: ctx.side, from: u.name, skill: sk.name });
+              events.push({ type: "SKILL_COPIED", side: ctx.side, from: ownerName, skill: sk.name });
             }
           }
           break;
@@ -1684,7 +1884,7 @@ var Core = (() => {
           const turns = typeof eff.duration === "number" ? eff.duration : eff.duration === "this_turn" ? 1 : void 0;
           const srcUid = eff.status_source === "self" ? ctx.source?.uid : void 0;
           for (let i = 0; i < times; i++) {
-            const list = i === 0 ? targets.length ? targets : ctx.chosen ? [ctx.chosen] : [] : eff.target ? resolveTargets(state, eff.target, ctx, rng) : ctx.chosen ? [ctx.chosen] : [];
+            const list = i === 0 ? targets.length ? targets : chosenFor(eff.target) : eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target);
             for (const t of list) {
               applyStatus(state, t, eff.status, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
             }
@@ -1694,10 +1894,64 @@ var Core = (() => {
         case "remove_status": {
           const times = eff.count ?? 1;
           for (let i = 0; i < times; i++) {
-            const list = i === 0 ? targets.length ? targets : ctx.chosen ? [ctx.chosen] : [] : eff.target ? resolveTargets(state, eff.target, ctx, rng) : ctx.chosen ? [ctx.chosen] : [];
+            const list = i === 0 ? targets.length ? targets : chosenFor(eff.target) : eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target);
             for (const t of list) {
+              if (eff.remove_kind) {
+                for (const id of statusIdsOfKind(state, t, eff.remove_kind)) {
+                  removeStatus(state, t, id, events, eff.stacks ?? eff.value ?? void 0);
+                }
+                continue;
+              }
               removeStatus(state, t, eff.status, events, eff.stacks ?? eff.value ?? void 0);
             }
+          }
+          break;
+        }
+        case "sacrifice": {
+          for (const t of targets.length ? targets : chosenFor(eff.target)) {
+            if (t.kind !== "unit") continue;
+            const u = getUnit(state, t.side, t.row, t.col);
+            if (!u) continue;
+            ctx.flags = ctx.flags ?? [];
+            ctx.flags.push(`sacrificed_max_hp:${u.maxHp}`, `sacrificed_hp:${u.hp}`);
+            killUnit(state, cards, { side: t.side, row: t.row, col: t.col, unit: u }, events);
+            recomputeAuras(state, cards, rng, events);
+          }
+          break;
+        }
+        case "attack_each": {
+          const src = ctx.source;
+          if (!src) break;
+          const pos = findPos(state, ctx.side, src.uid);
+          if (!pos) break;
+          const queue = targets.filter((t) => t.kind === "unit");
+          for (const t of queue) {
+            if (state.winner) break;
+            const cur = getUnit(state, ctx.side, pos.row, pos.col);
+            if (!cur || cur.hp <= 0) break;
+            if (!getUnit(state, t.side, t.row, t.col)) continue;
+            resolveAttack(
+              state,
+              cards,
+              ctx.side,
+              pos,
+              { kind: "unit", row: t.row, col: t.col },
+              events,
+              rng,
+              { consumeAttack: false }
+            );
+          }
+          break;
+        }
+        case "draw_until": {
+          const stopType = eff.until_not_type ?? "tactic";
+          for (let guard = 0; guard < 60; guard++) {
+            if (state.winner) break;
+            const mark = events.length;
+            drawCard(state, cards, ctx.side, events, rng);
+            const drawn = events.slice(mark).reverse().find((e) => e.type === "CARD_DRAWN");
+            if (!drawn) break;
+            if (!matchesCardType(drawn.card.type, stopType)) break;
           }
           break;
         }
@@ -1710,7 +1964,7 @@ var Core = (() => {
           break;
         }
         case "destroy": {
-          const list = targets.length ? targets : ctx.chosen ? [ctx.chosen] : [];
+          const list = targets.length ? targets : chosenFor(eff.target);
           for (const t of list) {
             if (t.kind === "unit") {
               dealDamage(state, cards, t, 9999, events, "\u6467\u6BC1");
@@ -1719,7 +1973,7 @@ var Core = (() => {
           break;
         }
         case "modify": {
-          const list = targets.length ? targets : ctx.chosen ? [ctx.chosen] : [];
+          const list = targets.length ? targets : chosenFor(eff.target);
           for (const t of list) {
             if (t.kind !== "unit") continue;
             const u = getUnit(state, t.side, t.row, t.col);
@@ -1785,8 +2039,8 @@ var Core = (() => {
     runEffects(
       state,
       ctx.cards,
-      skill.effects,
-      { side, chosen: target, handIndex: action.handIndex },
+      effectsOf(skill, action.modeIndex),
+      { side, chosen: target, handIndex: action.handIndex, modeIndex: action.modeIndex },
       rng,
       events
     );
@@ -1840,6 +2094,59 @@ var Core = (() => {
     }
     next.rngState = rng.getState();
     return { ok: true, state: next, events };
+  }
+  var TYPE_CN = {
+    troop: "\u5175\u79CD",
+    general: "\u6B66\u5C06",
+    strategist: "\u8C0B\u81E3",
+    character: "\u4EBA\u7269",
+    event: "\u4E8B\u4EF6",
+    tactic: "\u7B56\u7565",
+    elite: "\u7CBE\u82F1",
+    token: "\u884D\u751F\u7269"
+  };
+  function choiceLabel(t) {
+    const who = t.lord ? "\u4E3B\u5E05" : t.side === "ally" || t.side === "self" ? "\u5DF1\u65B9" : t.side === "enemy" ? "\u654C\u65B9" : "\u4EFB\u610F";
+    const what = TYPE_CN[t.filter?.type ?? "character"] ?? "\u4EBA\u7269";
+    const gender = t.filter?.gender === "male" ? "\u7537\u6027" : t.filter?.gender === "female" ? "\u5973\u6027" : "";
+    return who + gender + what;
+  }
+  function playTargetPlan(state, side, card, modeIndex) {
+    const plan = { modes: [], choices: [] };
+    const onPlay = (card.skills ?? []).filter((sk) => sk.trigger === "on_play");
+    for (const sk of onPlay) {
+      if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `\u9009\u9879 ${i + 1}`);
+      for (const eff of effectsOf(sk, modeIndex)) collect(eff);
+    }
+    if (!["troop", "general", "strategist"].includes(card.type)) {
+      for (const eff of card.effects ?? []) collect(eff);
+    }
+    return plan;
+    function collect(eff) {
+      const t = eff.target;
+      if (!t || t.mode !== "choose") return;
+      if (t.count === "all" || (t.count ?? 1) !== 1) return;
+      const pick = t.pick === 2 ? 2 : 1;
+      if (plan.choices.some((c) => c.pick === pick)) return;
+      const preview = { uid: "#preview", cost: card.cost, atk: card.attack ?? 0 };
+      const pool = resolveTargets(
+        state,
+        { ...t, count: "all", mode: "first" },
+        { side, source: preview },
+        createRng(state.seed)
+      );
+      const targets = [];
+      for (const r of pool) {
+        if (r.kind === "lord") targets.push({ kind: "lord", side: r.side });
+        else if (r.kind === "unit") targets.push({ kind: "unit", side: r.side, row: r.row, col: r.col });
+      }
+      plan.choices.push({
+        pick,
+        label: choiceLabel(t),
+        targets,
+        includesHand: pool.some((r) => r.kind === "hand")
+      });
+    }
   }
   function startTurn(state, ctx, events, rng) {
     state.halfTurn += 1;
@@ -1908,12 +2215,13 @@ var Core = (() => {
       events.push({ type: "UNIT_SUMMONED", side, row: slot.row, col: slot.col, unit: u });
       const onPlay = (card.skills ?? []).filter((sk) => sk.trigger === "on_play");
       const chosen = action.target ? { kind: "unit", side: action.target.side, row: action.target.row, col: action.target.col } : void 0;
+      const chosen2 = action.target2 ? { kind: "unit", side: action.target2.side, row: action.target2.row, col: action.target2.col } : void 0;
       for (const sk of onPlay) {
         runEffects(
           state,
           ctx.cards,
-          sk.effects,
-          { side, source: u, chosen, chosenRow: slot.row, chosenCol: slot.col },
+          effectsOf(sk, action.modeIndex),
+          { side, source: u, chosen, chosen2, chosenRow: slot.row, chosenCol: slot.col },
           rng,
           events
         );
@@ -1949,50 +2257,16 @@ var Core = (() => {
       target = legal.targets[rng.int(legal.targets.length)];
     }
     if (!target) return false;
-    const dmg = effectiveAttack(state, side, from.row, from.col);
-    const hasYinXue = hasTrait(attacker, "yin_xue");
-    const foe = other(side);
-    events.push({ type: "ATTACK_DECLARED", side, from: { ...from }, to: target });
-    runUnitTrigger(state, ctx.cards, attacker, "on_attack", rng, events);
-    if (target.kind === "lord") {
-      const dealt = dealDamage(state, ctx.cards, lordRef(foe), dmg, events, attacker.name);
-      if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
-    } else {
-      const tRow = target.row;
-      const tCol = target.col;
-      const targetUnit = getUnit(state, foe, tRow, tCol);
-      const retaliate = effectiveAttack(state, foe, tRow, tCol);
-      const dealt = dealDamage(
-        state,
-        ctx.cards,
-        unitRef(foe, tRow, tCol),
-        dmg,
-        events,
-        attacker.name,
-        0,
-        { side, row: from.row, col: from.col }
-      );
-      const hit = getUnit(state, foe, tRow, tCol);
-      if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, "on_damaged", rng, events);
-      if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);
-      if (retaliate > 0) {
-        dealDamage(state, ctx.cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? "\u53CD\u51FB");
-        const back = getUnit(state, side, from.row, from.col);
-        if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, "on_damaged", rng, events);
-      }
-      if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
-    }
-    attacker.attackedThisTurn += 1;
-    if (hasTrait(attacker, "qi_xi")) {
-      attacker.kw = attacker.kw.filter((k) => k !== "qi_xi");
-      delete attacker.statuses.qi_xi_status;
-      events.push({ type: "STATUS_EXPIRED", side, row: from.row, col: from.col, status: "qi_xi" });
-    }
-    const still = getUnit(state, side, from.row, from.col);
-    if (still && still.hp <= 0) {
-      killUnit(state, ctx.cards, { side, row: from.row, col: from.col, unit: still }, events);
-      recomputeAuras(state, ctx.cards, rng, events);
-    }
+    resolveAttack(
+      state,
+      ctx.cards,
+      side,
+      from,
+      target,
+      events,
+      rng,
+      { consumeAttack: true }
+    );
     return true;
   }
   function useUnitSkill(state, ctx, action, events, rng) {
@@ -2010,8 +2284,8 @@ var Core = (() => {
     runEffects(
       state,
       ctx.cards,
-      skill.effects,
-      { side, source: u, chosen: target, handIndex: action.handIndex },
+      effectsOf(skill, action.modeIndex),
+      { side, source: u, chosen: target, handIndex: action.handIndex, modeIndex: action.modeIndex },
       rng,
       events
     );

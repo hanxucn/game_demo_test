@@ -34,13 +34,18 @@ export const isBanned = (hc: HandCard): boolean => hc.mods.some((m) => m.kind ==
  *
  * 遍历其身上的守护状态，取出 srcUid 对应的存活单位。
  * 排除「自我守护」与已阵亡的守护者。
+ *
+ * ADR-071：**跳过 `guard_scope: 'lord'` 的守护状态** —— 那是「护主」
+ * （祖茂「替主」），只拦主帅伤害，不该顺手把单位伤害也接管。
  */
 export function findGuard(
   state: MatchState, u: Unit,
 ): { side: Side; row: Row; col: number; unit: Unit } | null {
   for (const [id, inst] of Object.entries(u.statuses)) {
     if (inst.stacks <= 0 || !inst.srcUid) continue;
-    if (!STATUSES[id]?.caps?.includes('redirect_damage')) continue;
+    const def = STATUSES[id];
+    if (!def?.caps?.includes('redirect_damage')) continue;
+    if (def.guard_scope === 'lord') continue;
     for (const side of ['own', 'enemy'] as Side[]) {
       for (const row of ['front', 'back'] as Row[]) {
         for (let col = 0; col < BOARD.COLS; col++) {
@@ -48,6 +53,32 @@ export function findGuard(
           if (g && g.uid === inst.srcUid && g.uid !== u.uid && g.hp > 0) {
             return { side, row, col, unit: g };
           }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 查找该方主帅的守护者（ADR-071，祖茂「替主」）
+ *
+ * 主帅不是 `Unit`，无法走 `findGuard`。这里反过来扫**主帅身上的守护状态**
+ * （`shou_hu` / `hu_zhu`），用 `srcUid` 找出替他挨打的存活单位。
+ * 守护者的状态由来源技能的光环维持 —— 守护者一死，光环重算时一并消失。
+ */
+export function findLordGuard(
+  state: MatchState, side: Side,
+): { side: Side; row: Row; col: number; unit: Unit } | null {
+  const lord = state.sides[side].lord;
+  for (const [id, inst] of Object.entries(lord.statuses ?? {})) {
+    if (inst.stacks <= 0 || !inst.srcUid) continue;
+    if (!STATUSES[id]?.caps?.includes('redirect_damage')) continue;
+    for (const s of ['own', 'enemy'] as Side[]) {
+      for (const row of ['front', 'back'] as Row[]) {
+        for (let col = 0; col < BOARD.COLS; col++) {
+          const g = state.sides[s].rows[row][col];
+          if (g && g.uid === inst.srcUid && g.hp > 0) return { side: s, row, col, unit: g };
         }
       }
     }
@@ -188,6 +219,15 @@ export function dealDamage(
 
   if (ref.kind === 'lord') {
     const lord = state.sides[ref.side].lord;
+    // 「护主」守护（ADR-071，祖茂「替主」）：主帅的伤害转由守护者承受。
+    // 必须在扣护甲/扣血之前判定 —— 否则主帅已经掉了血，转移就成了补刀。
+    const lguard = findLordGuard(state, ref.side);
+    if (lguard && depth < 3) {
+      events.push({ type: 'DAMAGE_REDIRECTED', side: ref.side, lord: true,
+                    to: lguard.side, guardName: lguard.unit.name });
+      return dealDamage(state, cards, unitRef(lguard.side, lguard.row, lguard.col),
+                        amount, events, source, depth + 1, killerRef);
+    }
     let dmg = amount;
     if (lord.armor > 0) {
       const absorbed = Math.min(lord.armor, dmg);
@@ -376,7 +416,11 @@ export function applyStatus(
     if (def?.kind === 'debuff' && hasCapOn(lord.statuses, 'immune_debuff')) return;
     const prevL = lord.statuses[status];
     const numericL = def?.numeric ?? true;
-    const turnsL = turns !== undefined ? turns
+    // 光环施加的状态（ADR-071）：生命周期由光环决定 —— 每次 recomputeAuras 都先清后加。
+    // 若还按 `duration: 'turns'` 记 1 回合，它会在**自己回合结束**的那一刻被清掉，
+    // 而「护主」要挡的恰恰是**对手回合**的伤害，等于形同虚设。
+    const turnsL = auraId !== undefined && turns === undefined ? undefined
+      : turns !== undefined ? turns
       : def?.duration === 'permanent' || def?.duration === 'until_consumed' ? undefined
       : def?.duration === 'turns' || def?.duration === 'this_turn' ? 1 : undefined;
     lord.statuses[status] = {
@@ -399,8 +443,10 @@ export function applyStatus(
   const numeric = def?.numeric ?? true;
   const prev = u.statuses[status];
   const nextStacks = numeric ? (prev?.stacks ?? 0) + stacks : Math.max(1, stacks);
-  // 持续时间：调用方指定优先；否则按状态定义（permanent → 永久）
-  const nextTurns = turns !== undefined ? turns
+  // 持续时间：调用方指定优先；否则按状态定义（permanent → 永久）。
+  // 光环施加的状态同上：交给光环管生命周期，不吃回合到期（ADR-071）。
+  const nextTurns = auraId !== undefined && turns === undefined ? undefined
+    : turns !== undefined ? turns
     : prev?.turns !== undefined ? Math.max(prev.turns, 1)
     : def?.duration === 'permanent' || def?.duration === 'until_consumed' ? undefined
     : def?.duration === 'turns' || def?.duration === 'this_turn' ? 1

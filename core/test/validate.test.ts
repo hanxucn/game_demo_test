@@ -7,9 +7,14 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 import { validateCards, cardValue, budgetOf } from '../tools/validate.ts';
-import type { CardDef } from '../src/types.ts';
+import type { CardDef, CardEffect } from '../src/types.ts';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** 造一张最小可用的谋臣卡 */
 function strategist(over: Partial<CardDef> = {}): CardDef {
@@ -146,4 +151,93 @@ test('modify 的 attack/health 字段被类型接受', () => {
     effects: [{ action: 'modify', attack: 1, health: 2, target: { side: 'ally', count: 1 } }],
   }));
   assert.deepEqual(errs, [], 'attack/health 应是合法字段');
+});
+
+/* ---------- ADR-073：类型定型 / 空转检测 / 关键词与文案一致 ---------- */
+
+const general = (over: Partial<CardDef> = {}): CardDef => ({
+  id: 'test_wujiang', name: '测试武将', faction: 'shu', type: 'general',
+  cost: 4, attack: 3, health: 3, keywords: [], skills: [], memo: '测试用', ...over,
+});
+
+test('ADR-073：1 攻武将没有显式标注 → 报错（应按 ADR-018 默认成谋臣）', () => {
+  const msgs = errorsOf(general({ attack: 1 }));
+  assert.ok(msgs.some((m) => m.includes('未显式标注')), `应报类型定型错误，实际：${msgs.join('|')}`);
+});
+
+test('ADR-073：显式标注 type_explicit 的 1 攻武将 → 合法（祖茂/曹昂/张宝）', () => {
+  const msgs = errorsOf(general({ attack: 1, type_explicit: true }));
+  assert.deepEqual(msgs.filter((m) => m.includes('未显式标注')), []);
+});
+
+test('ADR-073：0 攻武将同样要先标注，1 攻以上不受约束', () => {
+  assert.ok(errorsOf(general({ attack: 0 })).some((m) => m.includes('未显式标注')));
+  assert.deepEqual(errorsOf(general({ attack: 2 })).filter((m) => m.includes('未显式标注')), []);
+});
+
+test('ADR-073：「拿不到任何数值」的效果 → 警告（空城计就是 damage value: 0）', () => {
+  const noop = general({
+    skills: [{ id: 'noop', name: '空转', kind: 'trigger', trigger: 'on_play',
+      effects: [{ action: 'damage', value: 0, target: { side: 'enemy', lord: true } }] }],
+  });
+  const w = warnsOf(noop);
+  assert.ok(w.some((m) => m.includes('没有任何数值来源')), `应报空转警告，实际：${w.join('|')}`);
+});
+
+test('ADR-073：有动态取值来源的 damage/heal 不算空转', () => {
+  const cases: CardEffect[] = [
+    { action: 'damage', value: 0, value_from_flag: 'sacrificed_hp' },
+    { action: 'heal', value_from: { side: 'ally', count: 'all' } },
+  ];
+  for (const eff of cases) {
+    const c = general({ skills: [{ id: 'x', name: 'x', kind: 'trigger', trigger: 'on_play', effects: [eff] }] });
+    assert.deepEqual(warnsOf(c).filter((m) => m.includes('没有任何数值来源')), [],
+      `${JSON.stringify(eff)} 不应被判为空转`);
+  }
+});
+
+test('ADR-073：modify 一个数值都没给 → 警告', () => {
+  const c = general({
+    skills: [{ id: 'x', name: 'x', kind: 'trigger', trigger: 'on_play',
+      effects: [{ action: 'modify', target: { source: true } }] }],
+  });
+  assert.ok(warnsOf(c).some((m) => m.includes('modify')), '应报 modify 空转警告');
+});
+
+/**
+ * 真实卡池的这道扫描是**新增的回归网**：文案里白纸黑字写了某个关键词，
+ * 卡上却既没有该关键词、也没有施加对应状态的 DSL —— 那就是一张静默的白板。
+ * 用「金名单」而不是断言为空：修一张就删一条，剩下的永远看得见。
+ */
+test('ADR-073：真实卡池里不存在「文案提到关键词但卡上没实现」的静默白板', () => {
+  const KW_CN: Record<string, string> = {
+    先攻: 'xian_gong', 疾行: 'xian_gong', 架盾: 'jia_dun', 奇袭: 'qi_xi',
+    连击: 'lian_ji', 圣盾: 'sheng_dun', 饮血: 'yin_xue', 神射: 'shen_she',
+  };
+  // 「亡语 / 遗计」由 `trigger: 'on_death'` 承载，不靠关键词，故不在此列
+  const cards: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
+  const offenders: string[] = [];
+  for (const c of cards) {
+    const effs = [...(c.effects ?? [])];
+    const texts: string[] = [];
+    for (const s of c.skills ?? []) {
+      texts.push(s.text ?? '');
+      effs.push(...(s.effects ?? []));
+      for (const m of s.modes ?? []) effs.push(...m.effects);
+    }
+    const text = texts.join(' ');
+    if (!text) continue;
+    // 「召唤 / 进化」类卡的关键词文案说的是**被召唤 / 被进化出来的那张卡**
+    // （高顺的盾兵"保留架盾"、马腾的西凉铁骑"获得先攻"、黄月英的机械守卫"带架盾"）——
+    // 关键词挂在 token / elite 卡上，不该要求本卡也有。
+    if (effs.some((e) => e.action === 'summon' || e.action === 'transform')) continue;
+    const kws = new Set(c.keywords ?? []);
+    const applied = new Set(effs.filter((e) => e.action === 'apply_status').map((e) => e.status));
+    for (const [cn, kw] of Object.entries(KW_CN)) {
+      if (!text.includes(cn)) continue;
+      if (kws.has(kw) || applied.has(`${kw}_status`) || applied.has(kw)) continue;
+      offenders.push(`${c.id}（${c.name}）文案提到「${cn}」`);
+    }
+  }
+  assert.deepEqual(offenders, [], `这些卡的文案与实现不一致：\n${offenders.join('\n')}`);
 });

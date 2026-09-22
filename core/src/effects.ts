@@ -5,13 +5,14 @@
  * 卡牌、事件、战法、技能全部通过这套 DSL 表达——**加卡不改代码**。
  */
 
-import { BOARD } from './constants.ts';
-import { allUnits, applyMods, getUnit, hasCap, makeUnit, nextUidSeq, other, setUnit } from './state.ts';
-import { effectiveCost, handRef, isBanned, removeStatus } from './mutate.ts';
+import { BOARD, STATUSES, TIMING } from './constants.ts';
+import { allUnits, applyMods, getUnit, hasCap, hasTrait, makeUnit, nextUidSeq, other, setUnit } from './state.ts';
+import { handRef, removeStatus } from './mutate.ts';
+import { effectiveAttack } from './rules.ts';
 import type { Rng } from './rng.ts';
-import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchState, Row, Side, TargetSelector, Unit } from './types.ts';
+import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchState, Row, Side, SkillDef, TargetSelector, Unit } from './types.ts';
 import {
-  applyStatus, dealDamage, drawCard, gainArmor, healTarget, lordRef, registerOnDeathResolver,
+  applyStatus, dealDamage, drawCard, gainArmor, healTarget, killUnit, lordRef, registerOnDeathResolver,
   registerOnDrawResolver,
   registerOnKillResolver, summonUnit, unitRef,
   type TargetRef,
@@ -52,7 +53,9 @@ registerOnKillResolver((state, cards, killer, victim, events, rng) => {
 export interface EffectContext {
   side: Side;            // 效果来源方
   source?: Unit;         // 来源单位（人物卡的技能）
-  chosen?: TargetRef;    // 玩家选择的目标
+  chosen?: TargetRef;    // 玩家选择的目标（`TargetSelector.pick` 缺省 = 1）
+  /** 玩家的第二个选择（ADR-071，程昱「审时度势」）；`pick: 2` 的选择器读它 */
+  chosen2?: TargetRef;
   chosenRow?: 'front' | 'back';
   /** 本次结算的「被击杀者」（on_kill 用，供亡语/条件引用，ADR-070） */
   eventVictim?: { name: string; side: Side; row: Row; col: number };
@@ -67,7 +70,18 @@ export interface EffectContext {
   auraId?: string;
   /** discard mode:'choose' 时，指定弃掉手牌的第几张（ADR-049） */
   handIndex?: number;
+  /** 抉择分支下标（ADR-071）：未指定/越界一律取 modes[0] */
+  modeIndex?: number;
 }
+
+/**
+ * 按 `TargetSelector.pick` 取对应的玩家选择（ADR-071）。
+ *
+ * 只提供 `action.target` 时，`pick: 2` 会退回第一个选择 ——
+ * 这样 AI、测试与尚未支持多目标的 UI 都不会因为少传一个参数而空转。
+ */
+const pickOf = (ctx: EffectContext, sel?: TargetSelector): TargetRef | undefined =>
+  sel?.pick === 2 ? (ctx.chosen2 ?? ctx.chosen) : ctx.chosen;
 
 /** 目标当前生命（主将/单位通用） */
 const hpOf = (s: MatchState, t: TargetRef): number =>
@@ -83,24 +97,41 @@ const sameTarget = (a: TargetRef, b: TargetRef): boolean =>
     (a.kind === 'unit' && b.kind === 'unit' && a.row === b.row && a.col === b.col)
   );
 
-/** 手牌过滤（ADR-038）：目前只支持按类型筛 */
+/** 卡牌类型是否落在选择器的 `type` 条件里（'character' = 三类人物卡） */
+const matchesCardType = (t: string, want?: string): boolean => {
+  if (!want) return true;
+  if (want === 'character') return ['troop', 'general', 'strategist'].includes(t);
+  return t === want;
+};
+
+/** 手牌过滤（ADR-038）：类型 + 性别（ADR-071） */
 const matchesHandFilter = (
   hc: HandCard, f: NonNullable<TargetSelector['filter']> | undefined,
 ): boolean => {
-  if (!f?.type) return true;
-  if (f.type === 'character') return ['troop', 'general', 'strategist'].includes(hc.card.type);
-  return hc.card.type === f.type;
+  if (!f) return true;
+  if (!matchesCardType(hc.card.type, f.type as string | undefined)) return false;
+  if (f.gender && hc.card.gender !== f.gender) return false;
+  if (f.faction && hc.card.faction !== f.faction) return false;
+  if (typeof f.cost_max === 'number' && hc.card.cost > f.cost_max) return false;
+  if (typeof f.cost_min === 'number' && hc.card.cost < f.cost_min) return false;
+  if (f.keyword && !(hc.card.keywords ?? []).includes(f.keyword)) return false;
+  if (f.card_id && hc.card.id !== f.card_id) return false;
+  return true;
 };
 
 const matchesFilter = (
   u: Unit, f: NonNullable<TargetSelector['filter']>, row: string,
-  srcCost?: number, srcAtk?: number,
+  srcCost?: number, srcAtk?: number, srcUid?: string,
 ): boolean => {
   if (!f) return true;
+  // 排除来源自身（ADR-071）：陆抗「手里或场上友方将领」不该把自己算成目标
+  if (f.exclude_source && srcUid !== undefined && u.uid === srcUid) return false;
   if (f.type) {
     if (f.type === 'character') { if (!['troop', 'general', 'strategist'].includes(u.type)) return false; }
     else if (u.type !== f.type) return false;
   }
+  // 性别（ADR-071，貂蝉「祸国倾城」只认「男性角色」）
+  if (f.gender && u.gender !== f.gender) return false;
   if (f.keyword && !u.kw.includes(f.keyword)) return false;
   if (f.tag && !(u.tags ?? []).includes(f.tag)) return false;
   if (f.faction && u.faction !== f.faction) return false;
@@ -351,6 +382,42 @@ function topCost(state: MatchState, side: Side): number {
   return max;
 }
 
+/** 选择器指向哪些「方」——手牌与场上共用（pick 无关） */
+function handSides(selector: TargetSelector, ctx: EffectContext): Side[] {
+  const sideSel = selector.side ?? 'enemy';
+  return sideSel === 'both' ? ['own', 'enemy']
+    : sideSel === 'self' || sideSel === 'ally' ? [ctx.side] : [other(ctx.side)];
+}
+
+/**
+ * 按 `mode` / `count` 收窄一个已算好的候选池（ADR-033）。
+ *
+ * 抽出来是为了让「手牌」与「场上」两条路径共用同一套选取语义 ——
+ * 原先手牌路径自己写了一份 random/slice，`pick` / `lowest_health` 都享受不到。
+ */
+function narrowByMode(
+  state: MatchState, pool: TargetRef[], selector: TargetSelector, rng: Rng,
+): TargetRef[] {
+  if (selector.mode === 'random' && pool.length) {
+    const n = selector.count === 'all' ? pool.length : (selector.count ?? 1);
+    const picked: TargetRef[] = [];
+    const copy = [...pool];
+    for (let i = 0; i < n && copy.length; i++) {
+      picked.push(copy.splice(rng.int(copy.length), 1)[0] as TargetRef);
+    }
+    return picked;
+  }
+  if (selector.count === 'all') return pool;
+  const n = selector.count ?? 1;
+  if (selector.mode === 'first') return pool.slice(0, n);
+  if (selector.mode === 'lowest_health') {
+    return [...pool].sort((a, b) => hpOf(state, a) - hpOf(state, b)).slice(0, n);
+  }
+  // mode === 'choose' 的「玩家选择」由调用方先行处理（见 resolveTargets），
+  // 走到这里说明没有合法选择（AI / 测试 / UI 未传目标）→ 取前 n 个兜底
+  return pool.slice(0, n);
+}
+
 /** 解析选择器 → 目标列表 */
 export function resolveTargets(
   state: MatchState,
@@ -368,30 +435,33 @@ export function resolveTargets(
 
   // zone: 'hand' —— 作用于手牌而非场上（ADR-038）
   if (selector.zone === 'hand') {
-    const sideSel = selector.side ?? 'enemy';
-    const hs: Side[] = sideSel === 'both' ? ['own', 'enemy']
-      : sideSel === 'self' || sideSel === 'ally' ? [ctx.side] : [other(ctx.side)];
     const out: TargetRef[] = [];
-    for (const sd of hs) {
+    for (const sd of handSides(selector, ctx)) {
       state.sides[sd].hand.forEach((hc, i) => {
         if (matchesHandFilter(hc, selector.filter)) out.push(handRef(sd, i));
       });
     }
-    const n = selector.count === 'all' ? out.length : (selector.count ?? 1);
-    if (selector.mode === 'random') {
-      const copy = [...out], picked: TargetRef[] = [];
-      for (let i = 0; i < n && copy.length; i++) picked.push(copy.splice(rng.int(copy.length), 1)[0]!);
-      return picked;
-    }
-    return n === out.length ? out : out.slice(0, n);
+    const pick = pickOf(ctx, selector);
+    if (selector.mode !== 'random' && pick && out.some((t) => sameTarget(t, pick))) return [pick];
+    return narrowByMode(state, out, selector, rng);
   }
 
   // lord: true —— 目标为该方主帅（ADR-036）
+  // ADR-071：支持 `filter.has_status` —— 祖茂「替主」的光环靠它做到**幂等**
+  // （主帅已经有「护主」时不再重复施加，否则每次光环重算都会刷一条事件）。
   if (selector.lord) {
     const sideSel = selector.side ?? 'enemy';
     const ls: Side[] = sideSel === 'both' ? ['own', 'enemy']
       : sideSel === 'self' || sideSel === 'ally' ? [ctx.side] : [other(ctx.side)];
-    return ls.map((x) => lordRef(x));
+    const f = selector.filter;
+    const kept = ls.filter((sd) => {
+      if (!f) return true;
+      const lord = state.sides[sd].lord;
+      if (f.has_status && !((lord.statuses?.[f.has_status]?.stacks ?? 0) > 0)) return false;
+      if (f.faction && lord.faction !== f.faction) return false;
+      return true;
+    });
+    return kept.map((x) => lordRef(x));
   }
 
   // source: true —— 只解析「来源单位自身」
@@ -425,7 +495,16 @@ export function resolveTargets(
         if (hasCap(u, 'untargetable')) return;          // 免疫/翻面：不能被指定为目标
         // 单挑锁定（ADR-041）：决斗中的单位不被第三方选中
         if (hasCap(u, 'duel_lock') && ctx.source && !hasCap(ctx.source, 'duel_lock')) return;
-        if (matchesFilter(u, selector.filter ?? {}, r, ctx.source?.cost, ctx.source?.atk)) pool.push(unitRef(s, r, c));
+        if (matchesFilter(u, selector.filter ?? {}, r, ctx.source?.cost, ctx.source?.atk, ctx.source?.uid)) pool.push(unitRef(s, r, c));
+      });
+    }
+  }
+  // zone: 'both'（ADR-071，陆抗「手里或场上」）：把该方手牌也并入候选池。
+  // adjacent_to 用不到手牌（恒为 panel 外），末尾的相邻过滤会把它们自然剔掉。
+  if (selector.zone === 'both') {
+    for (const sd of poolSides) {
+      state.sides[sd].hand.forEach((hc, i) => {
+        if (matchesHandFilter(hc, selector.filter)) pool.push(handRef(sd, i));
       });
     }
   }
@@ -445,28 +524,182 @@ export function resolveTargets(
   }
 
   const sel: TargetSelector = confused ? { ...selector, mode: 'random' } : selector;
+  const pick = pickOf(ctx, sel);
 
-  if (sel.mode === 'random' && finalPool.length) {
-    const n = sel.count === 'all' ? finalPool.length : (sel.count ?? 1);
-    const picked: TargetRef[] = [];
-    const copy = [...finalPool];
-    for (let i = 0; i < n && copy.length; i++) {
-      picked.push(copy.splice(rng.int(copy.length), 1)[0] as TargetRef);
+  if (sel.mode === 'choose' && pick && finalPool.some((t) => sameTarget(t, pick))) {
+    return [pick];
+  }
+  return narrowByMode(state, finalPool, sel, rng);
+}
+
+/** 定位某单位在战场上的位置（连环普攻需要来源坐标） */
+function findPos(state: MatchState, side: Side, uid: string): { row: Row; col: number } | null {
+  for (const r of BOARD.ROWS) {
+    const i = state.sides[side].rows[r].findIndex((u) => u?.uid === uid);
+    if (i >= 0) return { row: r, col: i };
+  }
+  return null;
+}
+
+/** 目标身上的某类状态 id 列表（驱散用，ADR-071） */
+function statusIdsOfKind(
+  state: MatchState, ref: TargetRef, kind: 'buff' | 'debuff',
+): string[] {
+  const bags = ref.kind === 'unit'
+    ? getUnit(state, ref.side, ref.row, ref.col)?.statuses
+    : ref.kind === 'lord' ? state.sides[ref.side].lord.statuses : undefined;
+  return Object.entries(bags ?? {})
+    .filter(([id, inst]) => inst.stacks > 0 && STATUSES[id]?.kind === kind)
+    .map(([id]) => id);
+}
+
+/**
+ * 攻击时触发技（时机表 8½，ADR-036 / ADR-071 / ADR-072）
+ *
+ * **必须拆成两趟**，因为 `condition.event === 'killed'` 的真假只有伤害结算完才知道：
+ *
+ * · `before` —— 伤害**之前**跑「非击杀条件」的效果。
+ *   姜维「文武双全」/魏延「桀骜不驯」的「攻击时攻击力 +1」必须赶在算攻击力之前，
+ *   否则这一下吃不到加成（ADR-071）。
+ * · `after`  —— 伤害**之后**，且**确实击杀了**目标时，才跑「击杀条件」的效果。
+ *   张辽「冲锋陷阵」的溢出伤害、关兴「额外行动」写的都是 `condition: {event: killed}`；
+ *   原先统一排在伤害之前 → 条件**永远为假**、技能等于白板（ADR-072 修）。
+ *
+ * 按**效果**而不是按技能拆分：同一个技能里可以既有 buff 又有击杀奖励。
+ */
+export function runOnAttackPhase(
+  state: MatchState,
+  cards: Map<string, CardDef>,
+  attacker: Unit,
+  phase: 'before' | 'after',
+  killed: boolean,
+  rng: Rng,
+  events: GameEvent[],
+): void {
+  if (attacker.hp <= 0) return;
+  const side = findSide(state, attacker.uid);
+  if (!side) return;
+  for (const sk of (attacker.skills ?? []).filter((x) => x.trigger === TIMING.ON_ATTACK)) {
+    const effs = (sk.effects ?? []).filter((e) =>
+      phase === 'after'
+        ? e.condition?.event === 'killed'
+        : e.condition?.event !== 'killed');
+    if (!effs.length) continue;
+    runEffects(state, cards, effs,
+      { side, source: attacker, flags: killed ? ['killed'] : [] }, rng, events);
+  }
+}
+
+/**
+ * 一次**普通攻击**的完整结算（ADR-071）
+ *
+ * 原先这段逻辑整体躺在 `engine.ts` 的 `attack()` 里，只有 `ATTACK` 动作能走。
+ * 张苞「父子将风」（战吼时挨个对攻<自己的敌方人物发动普攻，直到自己阵亡）
+ * 需要**同一条**路径 —— 复制一份必然导致反击 / 圣盾 / 饮血 / 奇袭 / 触发技
+ * 各写各的并逐渐漂移，所以抽到这里由 engine 与 DSL 的 `attack_each` 共用。
+ *
+ * 调用方负责合法性判定（`legalTargets`）与目标选择；本函数只管结算。
+ *
+ * @param opts.consumeAttack 是否计入「本回合已攻击次数」。ATTACK 动作为 true；
+ *        `attack_each`（战吼发动的一串普攻）为 false —— 它不占用该单位本回合的攻击机会。
+ */
+export function resolveAttack(
+  state: MatchState,
+  cards: Map<string, CardDef>,
+  side: Side,
+  from: { row: Row; col: number },
+  to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' },
+  events: GameEvent[],
+  rng: Rng,
+  opts: { consumeAttack?: boolean } = {},
+): boolean {
+  const attacker = getUnit(state, side, from.row, from.col);
+  if (!attacker || attacker.hp <= 0) return false;
+  const foe = other(side);
+
+  events.push({ type: 'ATTACK_DECLARED', side, from: { ...from }, to });
+
+  // 时机表 8½-before：攻击时触发技里**非击杀条件**的部分（ADR-036 / ADR-071）
+  //
+  // ⚠️ 必须排在**算攻击力之前**：姜维「文武双全」与魏延「桀骜不驯」写的是
+  // 「攻击时攻击力 +1」。原先触发技排在伤害结算之后，于是这一下吃不到加成，
+  // 加成从**下一次**攻击才开始生效（还没写 duration 时会永久累积）。
+  // 带 `condition: {event: killed}` 的效果**不在这里**跑 —— 见 8½-after。
+  runOnAttackPhase(state, cards, attacker, 'before', false, rng, events);
+
+  // 触发技可能把攻击者自己弄死（如张苞连环普攻途中被反击带走）
+  const me = getUnit(state, side, from.row, from.col);
+  if (!me || me.hp <= 0) return false;
+
+  const dmg = effectiveAttack(state, side, from.row, from.col);
+  const hasYinXue = hasTrait(me, 'yin_xue');
+
+  // 本次普攻有没有**击杀**目标 —— 8½-after 的击杀奖励据此判定（ADR-072）
+  let killed = false;
+
+  if (to.kind === 'lord') {
+    const dealt = dealDamage(state, cards, lordRef(foe), dmg, events, me.name, 0,
+      { side, row: from.row, col: from.col });
+    killed = state.sides[foe].lord.hp <= 0;
+    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
+  } else {
+    const tRow = to.row;
+    const tCol = to.col;
+    const targetUnit = getUnit(state, foe, tRow, tCol);
+    // 反击力 = 目标的**有效**攻击力（含振奋/虚弱等，与攻击方算法对称，ADR-059）。
+    // 必须在造成伤害**之前**取值：伤害不改变攻击力，但目标可能被打死而离场。
+    const retaliate = effectiveAttack(state, foe, tRow, tCol);
+
+    const dealt = dealDamage(state, cards, unitRef(foe, tRow, tCol), dmg, events, me.name, 0,
+      { side, row: from.row, col: from.col });
+
+    // 时机表第 16 步：受到伤害触发技（on_damaged）
+    const hit = getUnit(state, foe, tRow, tCol);
+    if (hit && hit.hp > 0) runUnitTrigger(state, cards, hit, 'on_damaged', rng, events);
+    if (hit) runMarkDamaged(state, cards, hit, dmg, rng, events);
+
+    // 反击（ADR-062，设计者裁定）：**同时结算**，与炉石一致。
+    // 只要目标有攻击力，攻击方就吃下这一下 —— **哪怕目标已被打死**。
+    // 目标 0 攻则无伤害；攻击方身上的「圣盾」（immune_damage）会在 dealDamage 里
+    // 消耗一层并免掉本次伤害，这才是唯一的免疫途径。
+    if (retaliate > 0) {
+      dealDamage(state, cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? '反击');
+      const back = getUnit(state, side, from.row, from.col);
+      if (back && back.hp > 0) runUnitTrigger(state, cards, back, 'on_damaged', rng, events);
     }
-    return picked;
+    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
+    // 目标死了就已被 killUnit 移出战场；免死（survive）留下的 1 血算"没死"
+    const hitAfter = getUnit(state, foe, tRow, tCol);
+    killed = !hitAfter || hitAfter.hp <= 0;
   }
 
-  if (sel.count === 'all') return finalPool;
-  const n = sel.count ?? 1;
-  if (sel.mode === 'first') return finalPool.slice(0, n);
-  if (sel.mode === 'lowest_health') {
-    return [...finalPool].sort((a, b) => hpOf(state, a) - hpOf(state, b)).slice(0, n);
+  const after = getUnit(state, side, from.row, from.col);
+  if (after) {
+    if (opts.consumeAttack !== false) after.attackedThisTurn += 1;
+
+    // 奇袭：攻击后失去隐身（ADR-054 的新定义还要求"上场自动隐身"，尚未实现，见 Q-06-*）
+    if (hasTrait(after, 'qi_xi')) {
+      after.kw = after.kw.filter((k) => k !== 'qi_xi');
+      delete after.statuses.qi_xi_status;
+      events.push({ type: 'STATUS_EXPIRED', side, row: from.row, col: from.col, status: 'qi_xi' });
+    }
+
+    // 攻击者自身可能已阵亡
+    if (after.hp <= 0) {
+      killUnit(state, cards, { side, row: from.row, col: from.col, unit: after }, events);
+      recomputeAuras(state, cards, rng, events);   // 第 19 步：死亡后光环重算
+    }
   }
-  // mode === 'choose'：若调用方给了 chosen 且它在合法池内，就用它；否则取前 n 个（供 AI 使用）
-  if (ctx.chosen && pool.some((t) => sameTarget(t, ctx.chosen as TargetRef))) {
-    return [ctx.chosen];
+
+  // 时机表 8½-after：击杀奖励（ADR-072）。位置有两个硬约束：
+  // ① 必须在**整个伤害交换之后** —— 攻击者若已被反击打死，就不该再拿到击杀奖励；
+  // ② 必须在本回合攻击次数 `+1` 的**记账之后** —— 否则关兴「额外行动」刚把次数清零，
+  //    立刻又被这次攻击的记账加回去，额外行动等于白给（这条被测试抓到过）。
+  const survivor = getUnit(state, side, from.row, from.col);
+  if (survivor && survivor.hp > 0) {
+    runOnAttackPhase(state, cards, survivor, 'after', killed, rng, events);
   }
-  return pool.slice(0, n);
+  return true;
 }
 
 /** 执行效果列表 */
@@ -483,7 +716,23 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<string> = new Set([
   'discard', 'return_to_hand', 'clash', 'flip', 'scry', 'ban_play', 'steal_card', 'survive',
   'extra_attack', 'take_control', 'copy_skill', 'force_attack',
   'add_to_deck', 'send_to_deck', 'cycle_to_deck',
+  'sacrifice', 'attack_each', 'draw_until',
 ]);
+
+/**
+ * 抉择分支的取值（ADR-071）
+ *
+ * 有 `modes` 时以 `modeIndex` 为准；缺省 / 越界 / 非整数一律取 `modes[0]`，
+ * 保证 AI、测试与尚未接入分支选择的 UI 都能跑。
+ */
+export function effectsOf(sk: SkillDef, modeIndex?: number): CardEffect[] {
+  if (sk.modes?.length) {
+    const i = typeof modeIndex === 'number' && Number.isInteger(modeIndex)
+      && modeIndex >= 0 && modeIndex < sk.modes.length ? modeIndex : 0;
+    return sk.modes[i]!.effects ?? [];
+  }
+  return sk.effects ?? [];
+}
 
 export function runEffects(
   state: MatchState,
@@ -494,6 +743,12 @@ export function runEffects(
   events: GameEvent[],
 ): void {
   if (!effects?.length) return;
+
+  /** 该效果「没有解析出目标」时的兜底：取 pick 对应的玩家选择（ADR-071） */
+  const chosenFor = (sel?: TargetSelector): TargetRef[] => {
+    const p = pickOf(ctx, sel);
+    return p ? [p] : [];
+  };
 
   for (const eff of effects) {
     // 概率：掷一次骰子，不中则跳过（ADR-033）
@@ -525,9 +780,8 @@ export function runEffects(
         const times = eff.count ?? 1;
         for (let i = 0; i < times; i++) {
           const list = i === 0
-            ? (targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []))
-            : (eff.target ? resolveTargets(state, eff.target, ctx, rng)
-                          : (ctx.chosen ? [ctx.chosen] : []));
+            ? (targets.length ? targets : chosenFor(eff.target))
+            : (eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target));
           for (const t of list) {
             const before = hpOf(state, t);
             const victim = t.kind === 'unit' ? getUnit(state, t.side, t.row, t.col) : null;
@@ -546,7 +800,7 @@ export function runEffects(
         break;
       }
       case 'heal': {
-        const list = targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []);
+        const list = targets.length ? targets : chosenFor(eff.target);
         for (const t of list) healTarget(state, t, val, events);
         break;
       }
@@ -805,17 +1059,22 @@ export function runEffects(
       }
       case 'copy_skill': {
         // 复制技能（ADR-041）：把目标单位的一个技能复制给来源单位
+        // ADR-071：目标也可以是**手牌**（陆抗「谦冲如常」写的是「手里或场上友方将领」）——
+        // 手牌不是 Unit，技能挂在 `card.skills` 上，取值路径不同。
         const src = ctx.source;
         if (!src) break;
         for (const t of targets) {
-          if (t.kind !== 'unit') continue;
-          const u = getUnit(state, t.side, t.row, t.col);
-          const sk = (u?.skills ?? []).find((x) => x.kind === 'active') ?? u?.skills?.[0];
-          if (!u || !sk) continue;
+          const unit = t.kind === 'unit' ? getUnit(state, t.side, t.row, t.col) : null;
+          const hc = t.kind === 'hand' ? state.sides[t.side].hand[t.index] : null;
+          const skills = unit?.skills ?? hc?.card.skills;
+          const ownerName = unit?.name ?? hc?.card.name;
+          if (!skills?.length || !ownerName) continue;
+          const sk = skills.find((x) => x.kind === 'active') ?? skills[0];
+          if (!sk) continue;
           src.skills = src.skills ?? [];
           if (!src.skills.some((x) => x.id === sk.id)) {
             src.skills.push(structuredClone(sk));
-            events.push({ type: 'SKILL_COPIED', side: ctx.side, from: u.name, skill: sk.name });
+            events.push({ type: 'SKILL_COPIED', side: ctx.side, from: ownerName, skill: sk.name });
           }
         }
         break;
@@ -871,9 +1130,8 @@ export function runEffects(
         const srcUid = eff.status_source === 'self' ? ctx.source?.uid : undefined;
         for (let i = 0; i < times; i++) {
           const list = i === 0
-            ? (targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []))
-            : (eff.target ? resolveTargets(state, eff.target, ctx, rng)
-                          : (ctx.chosen ? [ctx.chosen] : []));
+            ? (targets.length ? targets : chosenFor(eff.target))
+            : (eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target));
           for (const t of list) {
             applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
           }
@@ -886,12 +1144,72 @@ export function runEffects(
         const times = eff.count ?? 1;
         for (let i = 0; i < times; i++) {
           const list = i === 0
-            ? (targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []))
-            : (eff.target ? resolveTargets(state, eff.target, ctx, rng)
-                          : (ctx.chosen ? [ctx.chosen] : []));
+            ? (targets.length ? targets : chosenFor(eff.target))
+            : (eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target));
           for (const t of list) {
+            // 按**类别**批量驱散（ADR-071，华佗「青囊」的「清除其负面效果状态」）。
+            // 只认具体状态 id 时得把 debuff 逐个列出来，漏一个就漏清一个。
+            if (eff.remove_kind) {
+              for (const id of statusIdsOfKind(state, t, eff.remove_kind)) {
+                removeStatus(state, t, id, events, eff.stacks ?? eff.value ?? undefined);
+              }
+              continue;
+            }
             removeStatus(state, t, eff.status as string, events, eff.stacks ?? eff.value ?? undefined);
           }
+        }
+        break;
+      }
+      case 'sacrifice': {
+        // 牺牲己方单位并**记录它的血量**（ADR-071，程昱「审时度势」）：
+        // 后续效果用既有的 `value_from_flag` 取用 —— flagVal 的优先级高于固定值，
+        // 所以此刻写进 ctx.flags 就够，不必再给 DSL 加新的取值通道。
+        //   sacrificed_max_hp —— 卡面写的「血量最大值」（治疗量）
+        //   sacrificed_hp     —— 牺牲时的**当前**血量（伤害量；受过伤则更小）
+        for (const t of (targets.length ? targets : chosenFor(eff.target))) {
+          if (t.kind !== 'unit') continue;
+          const u = getUnit(state, t.side, t.row, t.col);
+          if (!u) continue;
+          ctx.flags = ctx.flags ?? [];
+          ctx.flags.push(`sacrificed_max_hp:${u.maxHp}`, `sacrificed_hp:${u.hp}`);
+          killUnit(state, cards, { side: t.side, row: t.row, col: t.col, unit: u }, events);
+          recomputeAuras(state, cards, rng, events);      // 第 19 步：死亡后光环重算
+        }
+        break;
+      }
+      case 'attack_each': {
+        // 挨个发动**真正的普通攻击**（ADR-071，张苞「父子将风」）：
+        // 目标集由技能自己的选择器给出（"攻 < 自己的敌方人物"），
+        // 每次结算走 resolveAttack —— 反击、圣盾、饮血、奇袭全部与普攻一致。
+        // 自己阵亡即停止，后续目标一点伤害都不吃。
+        const src = ctx.source;
+        if (!src) break;
+        const pos = findPos(state, ctx.side, src.uid);
+        if (!pos) break;
+        const queue = targets.filter((t) => t.kind === 'unit');
+        for (const t of queue) {
+          if (state.winner) break;
+          const cur = getUnit(state, ctx.side, pos.row, pos.col);
+          if (!cur || cur.hp <= 0) break;                       // 自己阵亡 → 立刻停手
+          if (!getUnit(state, t.side, t.row, t.col)) continue;  // 目标已被前一次攻击带走
+          resolveAttack(state, cards, ctx.side, pos,
+            { kind: 'unit', row: t.row, col: t.col }, events, rng, { consumeAttack: false });
+        }
+        break;
+      }
+      case 'draw_until': {
+        // 一直抽，直到抽出一张**不是** `until_not_type` 的牌（ADR-071，姜维「文武双全」）。
+        // 牌库耗尽时 drawCard 会走「粮尽」且**不发 CARD_DRAWN** → 循环自然结束（与粮尽交互正确）；
+        // 「断抽」同理（只发 DRAW_BLOCKED）。上限只是防呆，正常永远走不到。
+        const stopType = eff.until_not_type ?? 'tactic';
+        for (let guard = 0; guard < 60; guard++) {
+          if (state.winner) break;
+          const mark = events.length;
+          drawCard(state, cards, ctx.side, events, rng);
+          const drawn = events.slice(mark).reverse()
+            .find((e): e is Extract<GameEvent, { type: 'CARD_DRAWN' }> => e.type === 'CARD_DRAWN');
+          if (!drawn) break;                                        // 粮尽 / 断抽
+          if (!matchesCardType(drawn.card.type, stopType)) break;    // 抽到非该类牌 → 停
         }
         break;
       }
@@ -905,7 +1223,7 @@ export function runEffects(
         break;
       }
       case 'destroy': {
-        const list = targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []);
+        const list = targets.length ? targets : chosenFor(eff.target);
         for (const t of list) {
           if (t.kind === 'unit') {
             dealDamage(state, cards, t, 9999, events, '摧毁');
@@ -914,7 +1232,7 @@ export function runEffects(
         break;
       }
       case 'modify': {
-        const list = targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []);
+        const list = targets.length ? targets : chosenFor(eff.target);
         for (const t of list) {
           if (t.kind !== 'unit') continue;
           const u = getUnit(state, t.side, t.row, t.col);

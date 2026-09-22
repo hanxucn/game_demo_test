@@ -1,7 +1,7 @@
 meta:
   version: v1
   status: 初步定稿（待 DSL 翻译与数值校验）
-  generated: '2026-09-22'
+  generated: '2026-09-23'
   note: 本文件由工具生成，数据源为 cards_photo.draft.yaml + characters.draft.yaml。不要手改。
   skipped:
   - photo: 45
@@ -46,7 +46,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 指定一方下回合主帅统率上限 −2
   flavor: ''
   source:
     photo: 47
@@ -71,7 +72,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 打出者立刻多两个 1/1 黄巾兵
   flavor: ''
   source:
     photo: 48
@@ -94,7 +96,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 双方各抽 2 张
   flavor: ''
   source:
     photo: 49
@@ -119,7 +122,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 把己方一张人物牌收回手里
   flavor: ''
   source:
     photo: 50
@@ -145,7 +149,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 指定敌人攻击 −2 一回合（最低 0）
   flavor: ''
   source:
     photo: 51
@@ -173,7 +178,8 @@ cards:
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 状态卡：装备者只能攻击带此状态的敌人
   flavor: ''
   source:
     photo: 52
@@ -193,7 +199,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 全体停止抽牌一回合（含技能与计策引发的抽牌）
   flavor: ''
   source:
     photo: 53
@@ -236,7 +243,8 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 召唤 2 个盾兵，并把全场盾兵进化成陷阵盾兵
   flavor: ''
   source:
     photo: 54
@@ -271,9 +279,10 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
+  gender: male
   tags:
   - xi_liang
-  memo: ''
+  memo: 召唤 2 个步兵，并把全场步兵进化成西凉铁骑
   flavor: ''
   source:
     photo: 55
@@ -310,7 +319,8 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 召唤 2 个弓兵，并把全场弓兵进化成白马义从
   flavor: ''
   source:
     photo: 56
@@ -330,7 +340,8 @@ cards:
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
   keywords: []
-  memo: ''
+  gender: male
+  memo: 3 费 2/2，技能「白毦兵」效果待设计
   flavor: ''
   source:
     photo: 58
@@ -366,7 +377,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 第一回合先攻，行动后隐身一回合
   flavor: ''
   source:
     photo: 59
@@ -398,8 +410,10 @@ cards:
           count: 1
           mode: first
     note: DSL 已翻译
-  keywords: []
-  memo: ''
+  keywords:
+  - xian_gong
+  gender: male
+  memo: 先攻；斩杀后溢出伤害转打敌方主将
   flavor: ''
   source:
     photo: 60
@@ -421,31 +435,36 @@ cards:
       name: 审时度势
       kind: trigger
       trigger: on_play
+      text: 战吼：牺牲一名己方人物（由你指定），将其**血量最大值**恢复给指定人物（第二个指定目标），并对随机一名敌人造成牺牲者**当前血量**的伤害。
       effects:
-      - action: discard
-        count: 1
-        target:
-          side: self
-          zone: hand
-      - action: heal
-        value_from_discarded: health
+      - action: sacrifice
         target:
           side: ally
           filter:
             type: character
           count: 1
           mode: choose
+      - action: heal
+        value_from_flag: sacrificed_max_hp
+        target:
+          side: ally
+          filter:
+            type: character
+          count: 1
+          mode: choose
+          pick: 2
       - action: damage
-        value_from_discarded: health
+        value_from_flag: sacrificed_hp
         target:
           side: enemy
           filter:
             type: character
           count: 1
-          mode: choose
+          mode: random
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 牺牲己方一名人物，按它的血量回血又造伤
   flavor: ''
   source:
     photo: 61
@@ -479,7 +498,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 战吼封住敌方两名人物技能一回合
   flavor: ''
   source:
     photo: 62
@@ -527,7 +547,8 @@ cards:
             value: 0
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 打低统率 +1 攻，打高统率 +1 血
   flavor: ''
   source:
     photo: 63
@@ -566,7 +587,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 非满血挨打就 +1 攻；满血被击杀半数概率留 1 血
   flavor: ''
   source:
     photo: 64
@@ -599,7 +621,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 上场让一名人物 −2 攻或 −2 血
   flavor: ''
   source:
     photo: 65
@@ -647,7 +670,8 @@ cards:
               cost_max: 3
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 把 3 费以下的敌将拐过来用一回合
   flavor: ''
   source:
     photo: 66
@@ -690,7 +714,8 @@ cards:
           type: tactic
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 己方策略牌 −1 费；每打一张策略牌抽 1
   flavor: ''
   source:
     photo: 67
@@ -731,7 +756,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 指定一名敌将单挑，分出胜负前谁也碰不到他们（一局一次）
   flavor: ''
   source:
     photo: 68
@@ -763,7 +789,8 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 不动就全场 1 伤；动过手就拆对手牌库一张
   flavor: ''
   source:
     photo: 69
@@ -818,9 +845,10 @@ cards:
           side: enemy
     note: DSL 已翻译
   keywords: []
+  gender: male
   tags:
   - shi_zu
-  memo: ''
+  memo: 每回合送弓兵；战吼塞万箭齐发，亡语全塞给对手
   flavor: ''
   source:
     photo: 70
@@ -858,15 +886,18 @@ cards:
               tag: huang_jin
     note: DSL 已翻译
   keywords: []
+  gender: male
   tags:
   - huang_jin
-  memo: ''
+  memo: 与张梁同场召 2 个黄巾兵，三兄弟齐全翻倍
   flavor: ''
   source:
     photo: 71
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  type_original: general
+  type_explicit: true
 - id: qun_zhangliang
   name: 张梁
   faction: qun
@@ -895,9 +926,10 @@ cards:
               tag: huang_jin
     note: DSL 已翻译
   keywords: []
+  gender: male
   tags:
   - huang_jin
-  memo: ''
+  memo: 与张宝同场召 2 个黄巾兵，三兄弟齐全翻倍
   flavor: ''
   source:
     photo: 72
@@ -912,7 +944,8 @@ cards:
   attack: 2
   health: 2
   keywords: []
-  memo: ''
+  gender: male
+  memo: 战吼点名 1 点水伤
   flavor: ''
   source:
     photo: 73
@@ -947,7 +980,8 @@ cards:
   health: 3
   keywords:
   - qi_xi
-  memo: ''
+  gender: male
+  memo: 上场隐身，出手后现形
   flavor: ''
   source:
     photo: 74
@@ -978,7 +1012,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 挨打没死就回 1 血，极耐消耗
   flavor: ''
   source:
     photo: 75
@@ -1002,6 +1037,7 @@ cards:
       name: 祸国倾城
       kind: trigger
       trigger: on_play
+      text: 战吼：与对手拼点，胜则指定一名敌方**男性**角色，使其直到下个自己回合开始无法行动。
       effects:
       - action: clash
         clashMode: roll
@@ -1016,11 +1052,13 @@ cards:
           side: enemy
           filter:
             type: character
+            gender: male
           count: 1
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: female
+  memo: 拼点赢就迷住一名敌方男性角色一回合
   flavor: ''
   source:
     photo: 76
@@ -1055,7 +1093,8 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: female
+  memo: 让一张武将牌和一个人物各少 1 费
   flavor: ''
   source:
     photo: 77
@@ -1088,7 +1127,8 @@ cards:
         value: 1
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 封住己方主公技一回合，换 1 张牌（策略牌免费）
   flavor: ''
   source:
     photo: 78
@@ -1126,7 +1166,7 @@ cards:
           count: 1
           mode: choose
       - action: remove_status
-        status: zhen_she
+        remove_kind: debuff
         target:
           side: ally
           filter:
@@ -1135,7 +1175,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 弃 1 张牌，按它的统率回血并清掉全部负面
   flavor: ''
   source:
     photo: 79
@@ -1184,7 +1225,8 @@ cards:
           chosen_side: ally
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 指定一人：敌人被禁锢，友军的伤害由陈宫扛
   flavor: ''
   source:
     photo: 80
@@ -1216,7 +1258,8 @@ cards:
           side: enemy
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 看对手手牌并踢一张进牌库；阵亡回自己牌库底
   flavor: ''
   source:
     photo: 81
@@ -1259,9 +1302,10 @@ cards:
     note: DSL 已翻译
   keywords:
   - xian_gong
+  gender: male
   tags:
   - xi_liang
-  memo: ''
+  memo: 先攻；西凉全家的 +1/+1 旗手
   flavor: ''
   source:
     photo: 82
@@ -1282,7 +1326,8 @@ cards:
     note: 效果 DSL 待翻译（尚未开始）
   keywords:
   - jia_dun
-  memo: ''
+  gender: male
+  memo: 2 费带架盾的矮墙，替后排挡刀
   flavor: ''
   source:
     photo: 83
@@ -1293,13 +1338,14 @@ cards:
 - id: shu_xiangchong
   name: 向宠
   faction: shu
-  type: general
+  type: strategist
   cost: 2
   attack: 1
   health: 4
   keywords:
   - jia_dun
-  memo: ''
+  gender: male
+  memo: 2 费最厚的架盾
   flavor: ''
   source:
     photo: 84
@@ -1309,12 +1355,12 @@ cards:
   dsl_status: 无技能（白板/关键词卡），无需翻译
   attack_original: 2
   health_original: 3
+  type_original: general
 - id: shu_huangquan
   name: 黄权
   faction: shu
-  type: general
+  type: strategist
   cost: 3
-  attack: null
   health: 3
   skills:
   - name: 劝谏
@@ -1332,13 +1378,17 @@ cards:
           lord: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 半数概率让己方主帅一回合能放两次主公技
   flavor: ''
   source:
     photo: 85
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  attack_original: null
+  attack: 0
+  type_original: ''
 - id: shu_liufeng
   name: 刘封
   faction: shu
@@ -1363,7 +1413,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 一半概率整回合发呆 —— 便宜但会掉链子
   flavor: ''
   source:
     photo: 86
@@ -1411,7 +1462,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 敌方有低费人时可先攻；斩杀低费者半数概率再动一次
   flavor: ''
   source:
     photo: 87
@@ -1432,19 +1484,20 @@ cards:
     - id: fu_zi_jiang_feng
       name: 父子将风
       kind: trigger
-      trigger: on_attack
+      trigger: on_play
+      text: 战吼：挨个对攻击力低于自己的敌方人物发动普通攻击（含正常反击），直到自己阵亡。
       effects:
-      - action: damage
-        value: 1
+      - action: attack_each
         target:
           side: enemy
           filter:
             type: character
-            adjacent_to: self
+            attack_below_source: true
           count: all
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 战吼连打所有攻低于自己的敌人，直到自己倒下
   flavor: ''
   source:
     photo: 88
@@ -1466,15 +1519,29 @@ cards:
       name: 文武双全
       kind: trigger
       trigger: on_attack
+      text: 普通攻击时攻击力 +1。
       effects:
       - action: modify
         attack: 1
+        duration: this_turn
         target:
           source: true
+    - id: wen_wu_shuang_quan_draw
+      name: 文武双全（策略）
+      kind: trigger
+      trigger: on_card_played
+      text: 使用策略牌时，抽牌直到抽到非策略牌为止。
+      target:
+        filter:
+          type: tactic
+      effects:
+      - action: draw_until
+        until_not_type: tactic
     note: DSL 已翻译
   keywords: []
   rarity: elite
-  memo: ''
+  gender: male
+  memo: 普攻 +1；打出策略牌就一路抽到非策略牌
   flavor: ''
   source:
     photo: 89
@@ -1509,10 +1576,12 @@ cards:
           turn_max: 1
           victim_type: general
     note: DSL 已翻译
-  keywords: []
+  keywords:
+  - xian_gong
+  gender: male
   tags:
   - xi_liang
-  memo: ''
+  memo: 先攻；首回合斩武将可封住敌方主公技
   flavor: ''
   source:
     photo: 90
@@ -1561,7 +1630,8 @@ cards:
           count: 1
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 关羽在场才 +1/+1；阵亡把圣盾交给关羽
   flavor: ''
   source:
     photo: 91
@@ -1604,7 +1674,8 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 战吼削弱并烫伤所有攻低于自己的敌人
   flavor: ''
   source:
     photo: 93
@@ -1628,15 +1699,30 @@ cards:
       name: 桀骜不驯
       kind: trigger
       trigger: on_attack
+      text: 攻击时有一半概率攻击力 +1（本回合）。
       effects:
       - action: modify
         attack: 1
+        duration: this_turn
+        chance: 0.5
+        target:
+          source: true
+    - id: jie_ao_bu_xun_hurt
+      name: 桀骜不驯（受创）
+      kind: trigger
+      trigger: on_damaged
+      text: 受到伤害时有一半概率攻击力 +1（本回合）。
+      effects:
+      - action: modify
+        attack: 1
+        duration: this_turn
         chance: 0.5
         target:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 攻击或挨打都有一半概率 +1 攻
   flavor: ''
   source:
     photo: 94
@@ -1666,7 +1752,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 第一个回合免疫一切伤害，敢直接冲脸
   flavor: ''
   source:
     photo: 95
@@ -1700,7 +1787,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 每回合免费点名 2 点，专治高价值目标
   flavor: ''
   source:
     photo: 96
@@ -1736,9 +1824,10 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
+  gender: male
   tags:
   - man_zu
-  memo: ''
+  memo: 蛮族越多自己越大
   flavor: ''
   source:
     photo: 97
@@ -1779,7 +1868,8 @@ cards:
     note: DSL 已翻译
   keywords: []
   rarity: elite
-  memo: ''
+  gender: male
+  memo: 全体禁技外加全体 1 伤，一锤定音的精英
   flavor: ''
   source:
     photo: 98
@@ -1812,7 +1902,8 @@ cards:
           side: enemy
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 自削己方一点统率，换对手随机一张手牌被封锁
   flavor: ''
   source:
     photo: 99
@@ -1859,7 +1950,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 标记一名仇敌，仇敌挨打就给指定友军回血
   flavor: ''
   source:
     photo: 100
@@ -1892,7 +1984,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 战吼二选一：回 3 血或抽 2 张
   flavor: ''
   source:
     photo: 101
@@ -1912,7 +2005,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: male
+  memo: 抽 2 再随机弃 2，纯换手牌质量
   flavor: ''
   source:
     photo: 102
@@ -1939,7 +2033,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: male
+  memo: 劝降同统率的敌将，半数概率收回自己手里
   flavor: ''
   source:
     photo: 103
@@ -1986,7 +2081,8 @@ cards:
         value: 2
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 在场时己方非人物牌统率 −2；阵亡送己方 2 张牌
   flavor: ''
   source:
     photo: 104
@@ -2037,7 +2133,8 @@ cards:
             value: 0
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 调牌库顶三张再抽 1；空手时免疫伤害
   flavor: ''
   source:
     photo: 105
@@ -2058,9 +2155,10 @@ cards:
     note: 效果 DSL 待翻译（尚未开始）
   keywords:
   - jia_dun
+  gender: male
   tags:
   - huang_jin
-  memo: ''
+  memo: 身板够厚的架盾，跟着关羽扛线
   flavor: ''
   source:
     photo: 106
@@ -2094,7 +2192,8 @@ cards:
         position: random
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: female
+  memo: 一次召唤两个机械兵，一个架盾一个不能打主将
   flavor: ''
   source:
     photo: 107
@@ -2107,13 +2206,16 @@ cards:
   faction: neutral
   type: token
   cost: 0
+  attack: 2
+  health: 1
   skills:
   - name: ''
     text: 不能攻击敌方主帅.
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
   keywords: []
-  memo: ''
+  gender: male
+  memo: 黄月英召唤的 2/1，不能打主将
   flavor: ''
   source:
     photo: 108
@@ -2127,13 +2229,17 @@ cards:
   faction: neutral
   type: token
   cost: 0
+  attack: 1
+  health: 2
   skills:
   - name: ''
     text: 打开架盾效果. 不能攻击敌方主帅.
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
-  keywords: []
-  memo: ''
+  keywords:
+  - jia_dun
+  gender: male
+  memo: 黄月英召唤的 1/2 架盾，不能打主将
   flavor: ''
   source:
     photo: 109
@@ -2155,9 +2261,10 @@ cards:
     note: 效果 DSL 待翻译（尚未开始）
   keywords:
   - xian_gong
+  gender: male
   tags:
   - huang_jin
-  memo: ''
+  memo: 上场即可攻击的快攻件
   flavor: ''
   source:
     photo: 111
@@ -2173,7 +2280,8 @@ cards:
   attack: 2
   health: 3
   keywords: []
-  memo: ''
+  gender: male
+  memo: 3 费 2/3 白板，靠身材吃饭
   flavor: ''
   source:
     photo: 112
@@ -2195,7 +2303,8 @@ cards:
     note: 效果 DSL 待翻译（尚未开始）
   keywords:
   - jia_dun
-  memo: ''
+  gender: male
+  memo: 1 攻 3 血还带架盾，纯肉盾
   flavor: ''
   source:
     photo: 113
@@ -2203,6 +2312,8 @@ cards:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
+  type_original: general
+  type_explicit: true
 - id: wei_guohuai
   name: 郭淮
   faction: wei
@@ -2239,7 +2350,8 @@ cards:
     note: DSL 已翻译
   keywords: []
   rarity: elite
-  memo: ''
+  gender: male
+  memo: 战吼让相邻友军 +2 上限并架盾，逼你摆位
   flavor: ''
   source:
     photo: 115
@@ -2258,17 +2370,34 @@ cards:
   skills:
   - name: 猛袭
     text: ''
-    dsl: null
-    note: 效果 DSL 待翻译（尚未开始）
+    dsl:
+    - id: meng_xi
+      name: 猛袭
+      kind: trigger
+      trigger: on_play
+      text: 战吼：选择一项 —— ① 抽 1 张牌；② 本回合攻击力 +1。
+      modes:
+      - name: 蓄势（抽 1 张牌）
+        effects:
+        - action: draw
+          value: 1
+      - name: 奋击（本回合攻击 +1）
+        effects:
+        - action: modify
+          attack: 1
+          duration: this_turn
+          target:
+            source: true
+    note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 战吼二选一：抽 1 张，或本回合 +1 攻
   flavor: ''
   source:
     photo: 116
   flags:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: ⚠️ 有技能名、效果待设计（手写稿正文区空白）
 - id: wei_caoren
   name: 曹仁
   faction: wei
@@ -2296,7 +2425,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 第一回合免一次伤害，第二回合转为架盾
   flavor: ''
   source:
     photo: 117
@@ -2346,7 +2476,8 @@ cards:
             value: 1
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 己方只剩他一人时 +1/+2 并架盾
   flavor: ''
   source:
     photo: 118
@@ -2377,7 +2508,8 @@ cards:
           side: self
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 主帅统率上限永久 +2，本回合人物牌再 −1 费
   flavor: ''
   source:
     photo: 120
@@ -2419,7 +2551,8 @@ cards:
           event: killer
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 每次击杀 +1/+1；亡语把这份成长送给击杀者
   flavor: ''
   source:
     photo: 121
@@ -2475,7 +2608,8 @@ cards:
     note: DSL 已翻译
   keywords: []
   rarity: elite
-  memo: ''
+  gender: male
+  memo: 拼点赢就弃对手手牌，并按该牌统率打其主将
   flavor: ''
   source:
     photo: 124
@@ -2517,7 +2651,8 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 每回合全场 1 点火伤，被灼烧的敌人再吃 +1
   flavor: ''
   source:
     photo: 125
@@ -2548,7 +2683,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: −2 攻换一回合打两次
   flavor: ''
   source:
     photo: 126
@@ -2584,7 +2720,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 按己方人物数对指定敌人造成等量伤害
   flavor: ''
   source:
     photo: 127
@@ -2631,7 +2768,8 @@ cards:
           mode: random
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 上场震慑一名敌人；攻击时给随机友军回 1 血
   flavor: ''
   source:
     photo: 128
@@ -2667,7 +2805,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 把自己和一名友军翻面，之后回合再翻回来行动
   flavor: ''
   source:
     photo: 129
@@ -2702,8 +2841,10 @@ cards:
           count: 1
           mode: random
     note: DSL 已翻译
-  keywords: []
-  memo: ''
+  keywords:
+  - xian_gong
+  gender: male
+  memo: 先攻；攻击时半数概率震慑目标
   flavor: ''
   source:
     photo: 130
@@ -2735,8 +2876,10 @@ cards:
             type: character
           count: all
     note: DSL 已翻译
-  keywords: []
-  memo: ''
+  keywords:
+  - xian_gong
+  gender: male
+  memo: 第一回合先攻，并让全场敌人 −1 攻一回合
   flavor: ''
   source:
     photo: 131
@@ -2769,7 +2912,8 @@ cards:
           event: clash_won
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 阵亡拼点，赢了让一张手牌免费下场
   flavor: ''
   source:
     photo: 132
@@ -2813,7 +2957,8 @@ cards:
           event: none
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 自掉 1 血换敌人半数概率混乱，混乱成功再抽 1
   flavor: ''
   source:
     photo: 133
@@ -2846,7 +2991,8 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 上场那回合点名 2 点伤害
   flavor: ''
   source:
     photo: 134
@@ -2872,13 +3018,16 @@ cards:
       - action: copy_skill
         target:
           side: ally
+          zone: both
           filter:
             type: character
+            exclude_source: true
           count: 1
           mode: choose
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 复制手里或场上友方将领的一个技能
   flavor: ''
   source:
     photo: 135
@@ -2924,7 +3073,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 替友将挨打；被击败时半数概率留 1 血
   flavor: ''
   source:
     photo: 136
@@ -2954,7 +3104,8 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 受伤后每回合自回 1 血，越拖越难死
   flavor: ''
   source:
     photo: 137
@@ -2974,7 +3125,8 @@ cards:
     dsl: null
     note: 效果 DSL 待翻译（尚未开始）
   keywords: []
-  memo: ''
+  gender: male
+  memo: 己方有 1 血残兵时自己少 1 费
   flavor: ''
   source:
     photo: 138
@@ -3014,7 +3166,8 @@ cards:
           side: enemy
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 偷看对手牌库顶一张；再牺牲一人还能看其手牌
   flavor: ''
   source:
     photo: 139
@@ -3032,7 +3185,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 半数概率让一名敌将下回合无法行动
   flavor: ''
   source:
     photo: 140
@@ -3062,7 +3216,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 召唤两个 1/1 盾兵并抽 2 张
   flavor: ''
   source:
     photo: 141
@@ -3106,7 +3261,8 @@ cards:
     note: DSL 已翻译
   keywords: []
   troopKind: archer
-  memo: ''
+  gender: male
+  memo: 0 攻，但每回合结束白嫖 1 点伤害
   flavor: ''
   source:
     photo: 142
@@ -3124,7 +3280,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 让一张人物牌直接翻面，翻回来时算重新上场
   flavor: ''
   source:
     photo: 144
@@ -3157,7 +3314,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 己方场上无人时，对手一回合打不了主帅
   flavor: ''
   source:
     photo: 145
@@ -3189,7 +3347,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 封印敌方全场谋臣的技能一回合
   flavor: ''
   source:
     photo: 146
@@ -3217,7 +3376,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 歇一回合，全体（含主帅）回血并抽 3 张
   flavor: ''
   source:
     photo: 147
@@ -3246,7 +3406,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 斩杀敌人后拼点，赢了把那张人物收进手里
   flavor: ''
   source:
     photo: 148
@@ -3278,7 +3439,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 翻牌库顶一张：非人物牌可立刻用，人物牌直接上场
   flavor: ''
   source:
     photo: 149
@@ -3303,7 +3465,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 混乱中的敌人会打自己人，顺便抽对手一张牌
   flavor: ''
   source:
     photo: 150
@@ -3311,6 +3474,17 @@ cards:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   effects:
+  - action: force_attack
+    condition:
+      exists:
+        side: enemy
+        filter:
+          has_status: hun_luan
+    target:
+      side: enemy
+      filter:
+        has_status: hun_luan
+      count: all
   - action: scry
     from: top
     count: 1
@@ -3328,7 +3502,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 简单粗暴抽 2 张
   flavor: ''
   source:
     photo: 151
@@ -3348,7 +3523,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 点名 1 点，半数概率再追加 2 点火伤
   flavor: ''
   source:
     photo: 152
@@ -3383,7 +3559,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 直接对敌方主帅打 4 点
   flavor: ''
   source:
     photo: 153
@@ -3407,7 +3584,8 @@ cards:
     dsl: []
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 让两名敌人去打我方最肉的单位，敌将阵亡就抽 2
   flavor: ''
   source:
     photo: 154
@@ -3442,7 +3620,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 敌方全体 1 点火伤持续 2 回合，代价是弃 1 张手牌
   flavor: ''
   source:
     photo: 155
@@ -3472,7 +3651,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 双方全体各吃 1 点，连主公一起
   flavor: ''
   source:
     photo: 156
@@ -3498,7 +3678,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 手牌两张塞回牌库底，再从顶上抽两张
   flavor: ''
   source:
     photo: 157
@@ -3525,7 +3706,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 从对手手里抢一张，是人物就强制上场
   flavor: ''
   source:
     photo: 158
@@ -3549,7 +3731,8 @@ cards:
     dsl: null
     note: DSL 已翻译（卡级 effects）
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 打敌方最残血的角色 2 点
   flavor: ''
   source:
     photo: 159
@@ -3579,7 +3762,8 @@ cards:
     note: 效果 DSL 待翻译（尚未开始）
   keywords: []
   troopKind: infantry
-  memo: ''
+  gender: male
+  memo: 1 费 1/1 的填线兵
   flavor: ''
   source:
     photo: 160
@@ -3600,6 +3784,7 @@ cards:
   flavor: ''
   source:
     oral: true
+  gender: male
   flags:
   - 口述录入，数值未经校验
   dsl_status: 无技能（白板/关键词卡），无需翻译
@@ -3617,6 +3802,7 @@ cards:
   flavor: ''
   source:
     oral: true
+  gender: male
   flags:
   - 口述录入，数值未经校验
   dsl_status: 无技能（白板/关键词卡），无需翻译
@@ -3633,6 +3819,7 @@ cards:
   flavor: ''
   source:
     oral: true
+  gender: male
   flags:
   - 口述录入，数值未经校验
   dsl_status: 无技能（白板/关键词卡），无需翻译
@@ -3668,6 +3855,7 @@ cards:
   flavor: ''
   source:
     oral: true
+  gender: male
   flags:
   - 口述录入，数值未经校验
 - id: wu_liyi
@@ -3683,6 +3871,7 @@ cards:
   flavor: ''
   source:
     oral: true
+  gender: male
   flags:
   - 口述录入，数值未经校验
   dsl_status: 无技能（白板/关键词卡），无需翻译
@@ -3715,25 +3904,65 @@ cards:
   flavor: ''
   source:
     oral: true
+  gender: male
   flags:
   - 口述录入，数值未经校验
 - id: neutral_shieldman
   name: 盾兵
   faction: neutral
   type: troop
-  troopKind: shield
   cost: 1
   attack: 1
   health: 2
-  skills: []
   keywords:
   - jia_dun
+  gender: male
+  troopKind: shield
   memo: 架盾：敌方必须先打掉它才能攻击其他人
   flavor: 盾如铁壁，寸步不让。
   source:
-    oral: true
-    note: ADR-065：基础兵统一 1 费；同名上限 3 张
+    new: ADR-065（设计者裁定）：步兵 / 弓射手 / 盾兵三张基础兵统一 1 费、同名上限 3 张； ADR-073 把数值从 tools/gen-cards-v1.py 的硬编码迁到这里（铁律 1：卡牌数值不进代码）
   dsl_status: 无技能（白板/关键词卡），无需翻译
+- id: wu_zumao
+  name: 祖茂
+  faction: wu
+  type: general
+  cost: 2
+  attack: 1
+  health: 3
+  skills:
+  - name: 替主
+    text: 光环：己方主帅受到伤害时，改由祖茂承受。
+    dsl:
+    - id: ti_zhu
+      name: 替主
+      kind: aura
+      text: 己方主帅受到伤害时，改由祖茂承受。
+      effects:
+      - action: apply_status
+        status: hu_zhu
+        status_source: self
+        condition:
+          count:
+            selector:
+              side: ally
+              lord: true
+              filter:
+                has_status: hu_zhu
+            op: ==
+            value: 0
+        target:
+          side: ally
+          lord: true
+    note: DSL 已翻译
+  keywords: []
+  gender: male
+  memo: 主帅的肉盾 —— 伤害全由祖茂扛，他倒下保护就没了
+  flavor: ''
+  source:
+    new: ADR-068 设计者定稿数值 2 费 1/3（ADR-071 一度改成 2/2，ADR-072 按设计者 2026-09-23 答复改回 1/3）；1 攻仍**显式**定为武将，见 card_type.wu_zumao
+  type_original: general
+  type_explicit: true
 - id: qun_dongzhuo
   name: 董卓
   faction: qun
@@ -3760,7 +3989,8 @@ cards:
           lord: true
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 抽 1 张，但要自己主公吃 2 点
   flavor: ''
   source:
     new: 设计者 2026-09 定稿新建（确认：伤害对象是自己主公）
@@ -3785,7 +4015,8 @@ cards:
         value: 1
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: male
+  memo: 阵亡时给己方补 1 张牌
   flavor: ''
   source:
     new: 设计者 2026-09 定稿新建
@@ -3797,9 +4028,10 @@ cards:
   attack: 1
   health: 1
   keywords: []
+  gender: male
   tags:
   - huang_jin
-  memo: ''
+  memo: 黄巾系召唤的 1/1 衍生物
   flavor: ''
   source:
     new: 张角/张宝/张梁/黄巾起义 召唤的 1/1 衍生物
@@ -3812,9 +4044,10 @@ cards:
   attack: 1
   health: 1
   keywords: []
+  gender: male
   tags:
   - shi_zu
-  memo: ''
+  memo: 袁绍召唤的 1/1 衍生物
   flavor: ''
   source:
     new: 袁绍「威望」召唤的 1/1 衍生物
@@ -3845,8 +4078,9 @@ cards:
           mode: choose
     note: DSL 已翻译
   keywords: []
+  gender: male
   troopKind: archer
-  memo: ''
+  memo: 公孙瓒的进化体：每回合点 2 点伤害
   flavor: ''
   source:
     new: 公孙瓒「白马义从」的进化目标
@@ -3859,8 +4093,9 @@ cards:
   health: 1
   keywords:
   - xian_gong
+  gender: male
   troopKind: infantry
-  memo: ''
+  memo: 马腾的进化体：2/1 带先攻
   flavor: ''
   source:
     new: 马腾「西凉铁骑」的进化目标
@@ -3873,8 +4108,9 @@ cards:
   health: 2
   keywords:
   - jia_dun
+  gender: male
   troopKind: shield
-  memo: ''
+  memo: 高顺的进化体：2/2 仍带架盾
   flavor: ''
   source:
     new: 高顺「陷阵营」的进化目标
@@ -3902,7 +4138,8 @@ cards:
       text: 抽到时释放：对所有敌方人物造成 1 点伤害。
     note: DSL 已翻译
   keywords: []
-  memo: ''
+  gender: unknown
+  memo: 抽到时自动释放：敌方全体 1 伤（袁绍专属）
   flavor: ''
   source:
     new: 设计者新增
@@ -3952,9 +4189,10 @@ cards:
       text: 每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。
     note: DSL 已翻译
   keywords: []
+  gender: male
   tags:
   - huang_jin
-  memo: ''
+  memo: 回合结束 5 道雷，半数震慑，雷死敌人就召黄巾兵
   flavor: ''
   source:
     new: 设计者口述（2026-09-12 定稿：5 费 1/5 + 50% 震慑）

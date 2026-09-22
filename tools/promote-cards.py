@@ -30,9 +30,12 @@ SRC = ROOT / "data" / "cards_v1.draft.yaml"
 DST = ROOT / "data" / "cards.yaml"
 
 # 只保留这些正式字段（草稿专用字段一律丢弃）
+# ⚠️ 新字段不加进这里会被**静默丢弃**（`rarity` 就丢过，ADR-068；`gender` 见 ADR-071）
 KEEP = ("id", "name", "faction", "type", "cost", "attack", "health",
         "troopKind", "keywords", "tags", "memo", "flavor", "cost_rule",
     "rarity",   # ADR-068：精英卡允许强于同费预算
+    "gender",   # ADR-071：性别（貂蝉「祸国倾城」只认男性）
+    "type_explicit",  # ADR-072：1 攻武将是否由设计者显式裁定（校验器据此报 error）
 )
 
 FACTION_ORDER = {"shu": 0, "wei": 1, "wu": 2, "qun": 3, "neutral": 4}

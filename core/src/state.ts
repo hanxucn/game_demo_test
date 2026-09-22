@@ -242,6 +242,7 @@ export function makeUnit(card: CardDef, turn: number, seq: number): Unit {
     hp: card.health ?? 1,
     maxHp: card.health ?? 1,
     troopKind: card.troopKind,
+    gender: card.gender,
     kw: [...(card.keywords ?? [])],
     tags: [...(card.tags ?? [])],
     statuses: {},

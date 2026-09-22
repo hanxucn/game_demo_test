@@ -128,6 +128,13 @@ export interface StatusDef {
   scope?: 'character' | 'lord';
   note: string;
   caps?: StatusCap[];    // 能力列表：引擎据此判定行为
+  /**
+   * 守护范围（ADR-071）：只有这个状态挂在**谁**身上、以及它拦截**谁**的伤害。
+   *   · 'any'（默认）—— `shou_hu`：被守护者受到的伤害都转给 srcUid（陈宫「忠烈」）
+   *   · 'lord'        —— `hu_zhu`：只有**该方主帅**受到的伤害才转给 srcUid（祖茂「替主」）
+   * 见 `mutate.findGuard` / `mutate.findLordGuard`。
+   */
+  guard_scope?: 'any' | 'lord';
 }
 
 export const STATUSES: Record<string, StatusDef> = {
@@ -157,7 +164,11 @@ export const STATUSES: Record<string, StatusDef> = {
   can_mou:    { name: '参谋', kind: 'buff',   numeric: true,  duration: 'permanent', scope: 'lord',
                 caps: ['extra_lord_skill'], note: '该方主帅每回合主公技次数 +N' },
   shou_hu:    { name: '守护', kind: 'buff',   numeric: false, duration: 'turns', caps: ['redirect_damage'],
+                guard_scope: 'any',
                 note: '受到的伤害转由守护者承受（援护/分担/护驾共用）' },
+  hu_zhu:     { name: '护主', kind: 'buff',   numeric: false, duration: 'turns', caps: ['redirect_damage'],
+                guard_scope: 'lord',
+                note: '只把**该方主帅**受到的伤害转给守护者（祖茂「替主」，ADR-071）' },
   jin_yong:   { name: '禁用', kind: 'debuff', numeric: false, duration: 'turns', caps: ['block_skill'],
                 note: '不能使用主动技与触发技（silence）' },
   jin_gu:     { name: '禁锢', kind: 'debuff', numeric: false, duration: 'turns',
@@ -197,6 +208,9 @@ export const ACTIONS = [
   'add_to_deck',   // 往牌库随机位置塞 N 张指定卡（ADR-050）
   'send_to_deck',  // 把牌库里剩下的指定牌全塞给对方（ADR-050）
   'cycle_to_deck', // 手牌放回牌库随机位置再抽 1 张（ADR-050）
+  'sacrifice',     // 牺牲一个己方单位，把它的 maxHp/hp 写进 flags（ADR-071，程昱）
+  'attack_each',   // 挨个发动**真正的普攻**（含反击），自己阵亡即停（ADR-071，张苞）
+  'draw_until',    // 一直抽到抽出一张「非某类型」的牌为止（ADR-071，姜维）
 ] as const;
 
 /** 稀有度（ADR-068）：普通 / 精英。精英卡允许强于同费预算 */

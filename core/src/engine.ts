@@ -34,8 +34,9 @@ function useLordSkill(
     lord.skillUsedThisTurn = true;
   }
   events.push({ type: 'LORD_SKILL_USED', side, skill: lord.skill });
-  runEffects(state, ctx.cards, skill.effects,
-             { side, chosen: target, handIndex: action.handIndex }, rng, events);
+  // 抉择（ADR-071）：主公技同样支持 modes
+  runEffects(state, ctx.cards, effectsOf(skill, action.modeIndex),
+             { side, chosen: target, handIndex: action.handIndex, modeIndex: action.modeIndex }, rng, events);
   return true;
 }
 
@@ -50,22 +51,25 @@ import { COMMAND, LORD_SKILL_COST, MATCH, STATUSES, TIMING } from './constants.t
 import { createRng } from './rng.ts';
 import {
   capStacks,
-  hasCap,
   hasCapOn,
   lordStatusStacks,
-  allUnits, cloneState, getUnit, hasKeyword, hasTrait, makeUnit, nextUidSeq, other, setUnit, statusStacks,
+  allUnits, cloneState, getUnit, makeUnit, nextUidSeq, other, setUnit, statusStacks,
 } from './state.ts';
 import {
-  canPlayCard, canUseUnitSkill, effectiveAttack, legalPlacements, legalTargets,
+  canPlayCard, canUseUnitSkill, legalTargets,
 } from './rules.ts';
 import {
-  dealDamage, discardOverflow, drawCard, effectiveCost, expireHandMods, expireMods, expireStatuses,
-  gainArmor, healTarget, isBanned, killUnit, lordRef,
+  discardOverflow, drawCard, effectiveCost, expireHandMods, expireMods, expireStatuses,
+  gainArmor, isBanned, lordRef,
   resolveTurnEndStatuses, resolveTurnStartStatuses, unitRef, type TargetRef,
 } from './mutate.ts';
-import { costRuleDelta, recomputeAuras, runCardPlayedTriggers, runEffects, runMarkDamaged, runTriggerSkills, runUnitTrigger } from './effects.ts';
+import {
+  costRuleDelta, effectsOf, recomputeAuras, resolveAttack, resolveTargets,
+  runCardPlayedTriggers, runEffects, runTriggerSkills,
+} from './effects.ts';
 import type {
-  Action, ApplyResult, CardDef, EngineContext, GameEvent, MatchState, Side, Unit,
+  Action, ApplyResult, CardDef, CardEffect, EngineContext, GameEvent, MatchState, Row, Side,
+  TargetSelector, Unit,
 } from './types.ts';
 
 /** 开局：创建对局后调用一次，进入第一回合 */
@@ -111,6 +115,89 @@ export function applyAction(state: MatchState, ctx: EngineContext, action: Actio
 
   next.rngState = rng.getState();
   return { ok: true, state: next, events };
+}
+
+/* ============================================================
+   出牌前的「要选什么」—— 判定下沉到 core，UI 不自己判断（BACKLOG §3）
+   ============================================================ */
+
+/** 一个需要玩家做的选择（写进 `PLAY_CARD.target` / `target2`） */
+export interface PlayTargetChoice {
+  /** 1 → `action.target`；2 → `action.target2`（ADR-071） */
+  pick: 1 | 2;
+  label: string;
+  /** 合法目标（场上 / 主将）。手牌类目标不在此列 —— UI 表达不了，交给引擎兜底 */
+  targets: Array<{ kind: 'unit' | 'lord'; side: Side; row?: Row; col?: number }>;
+  /** 候选池里还含手牌（`zone: 'both'`）→ UI 选不到，引擎会用兜底目标 */
+  includesHand: boolean;
+}
+
+export interface PlayTargetPlan {
+  /** 抉择分支名（`modes`）：长度 > 1 时 UI 要先让玩家选一项，其下标即 `modeIndex` */
+  modes: string[];
+  /** 需要依次询问的选择；空 = 直接打出 */
+  choices: PlayTargetChoice[];
+}
+
+const TYPE_CN: Record<string, string> = {
+  troop: '兵种', general: '武将', strategist: '谋臣', character: '人物',
+  event: '事件', tactic: '策略', elite: '精英', token: '衍生物',
+};
+
+function choiceLabel(t: TargetSelector): string {
+  const who = t.lord ? '主帅'
+    : (t.side === 'ally' || t.side === 'self' ? '己方' : t.side === 'enemy' ? '敌方' : '任意');
+  const what = TYPE_CN[t.filter?.type ?? 'character'] ?? '人物';
+  const gender = t.filter?.gender === 'male' ? '男性' : t.filter?.gender === 'female' ? '女性' : '';
+  return who + gender + what;
+}
+
+/**
+ * 这张牌打出前需要玩家选什么（战吼 / 卡级效果里的 `mode: 'choose'` 选择器）。
+ *
+ * 与 `canUseUnitSkill` 同样的思路：**判定放在 core**，原型 / 客户端 / AI 共用，
+ * 免得 UI 各写一份"要不要选目标"的猜测（BACKLOG §3 明确要求）。
+ *
+ * 注意两点：
+ *  · `modes` 需要玩家先选分支；`modeIndex` 缺省时按 `modes[0]` 枚举；
+ *  · 枚举用的"来源单位"是**尚未入场**的卡的替身（只有 cost/atk），
+ *    所以 `adjacent_to` 这类依赖站位的过滤会得到空集（当前没有战吼这样写）。
+ */
+export function playTargetPlan(
+  state: MatchState, side: Side, card: CardDef, modeIndex?: number,
+): PlayTargetPlan {
+  const plan: PlayTargetPlan = { modes: [], choices: [] };
+  const onPlay = (card.skills ?? []).filter((sk) => sk.trigger === 'on_play');
+  for (const sk of onPlay) {
+    if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `选项 ${i + 1}`);
+    for (const eff of effectsOf(sk, modeIndex)) collect(eff);
+  }
+  // 非人物卡的卡级效果同样可能带 mode:'choose'（如指定一方）
+  if (!['troop', 'general', 'strategist'].includes(card.type)) {
+    for (const eff of card.effects ?? []) collect(eff);
+  }
+  return plan;
+
+  function collect(eff: CardEffect): void {
+    const t = eff.target;
+    if (!t || t.mode !== 'choose') return;
+    if (t.count === 'all' || (t.count ?? 1) !== 1) return;
+    const pick: 1 | 2 = t.pick === 2 ? 2 : 1;
+    if (plan.choices.some((c) => c.pick === pick)) return;   // 同一个选择只问一次
+    // 用 `count:'all'` 拿**整个候选池**（而不是 resolveTargets 的"取前 N 个"）
+    const preview = { uid: '#preview', cost: card.cost, atk: card.attack ?? 0 } as Unit;
+    const pool = resolveTargets(state, { ...t, count: 'all', mode: 'first' },
+      { side, source: preview }, createRng(state.seed));
+    const targets: PlayTargetChoice['targets'] = [];
+    for (const r of pool) {
+      if (r.kind === 'lord') targets.push({ kind: 'lord', side: r.side });
+      else if (r.kind === 'unit') targets.push({ kind: 'unit', side: r.side, row: r.row, col: r.col });
+    }
+    plan.choices.push({
+      pick, label: choiceLabel(t), targets,
+      includesHand: pool.some((r) => r.kind === 'hand'),
+    });
+  }
 }
 
 /* ============================================================
@@ -219,9 +306,14 @@ function playCard(
     const chosen = action.target
       ? ({ kind: 'unit', side: action.target.side, row: action.target.row, col: action.target.col } as const)
       : undefined;
+    // 第二选择（ADR-071，程昱「审时度势」：牺牲谁 + 恢复谁）
+    const chosen2 = action.target2
+      ? ({ kind: 'unit', side: action.target2.side, row: action.target2.row, col: action.target2.col } as const)
+      : undefined;
     for (const sk of onPlay) {
-      runEffects(state, ctx.cards, sk.effects,
-        { side, source: u, chosen, chosenRow: slot.row, chosenCol: slot.col }, rng, events);
+      // 抉择（ADR-071）：给了 modes 就按 modeIndex 挑分支，否则用 effects
+      runEffects(state, ctx.cards, effectsOf(sk, action.modeIndex),
+        { side, source: u, chosen, chosen2, chosenRow: slot.row, chosenCol: slot.col }, rng, events);
     }
     if (card.effects?.length) {
       runEffects(state, ctx.cards, card.effects, { side, source: u }, rng, events);
@@ -272,62 +364,11 @@ function attack(
   }
   if (!target) return false;
 
-  const dmg = effectiveAttack(state, side, from.row, from.col);
-  const hasYinXue = hasTrait(attacker, 'yin_xue');
-  const foe = other(side);
-
-  events.push({ type: 'ATTACK_DECLARED', side, from: { ...from }, to: target });
-
-  // 时机表第 8 步后：攻击时触发技（on_attack，ADR-036）
-  runUnitTrigger(state, ctx.cards, attacker, 'on_attack', rng, events);
-
-  if (target.kind === 'lord') {
-    const dealt = dealDamage(state, ctx.cards, lordRef(foe), dmg, events, attacker.name);
-    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
-  } else {
-    const tRow = target.row as 'front' | 'back';
-    const tCol = target.col as number;
-    const targetUnit = getUnit(state, foe, tRow, tCol);
-    // 反击力 = 目标的**有效**攻击力（含振奋/虚弱等，与攻击方算法对称，ADR-059）。
-    // 必须在造成伤害**之前**取值：伤害不改变攻击力，但目标可能被打死而离场。
-    const retaliate = effectiveAttack(state, foe, tRow, tCol);
-
-    const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name, 0,
-      { side, row: from.row, col: from.col });
-
-    // 时机表第 16 步：受到伤害触发技（on_damaged）
-    const hit = getUnit(state, foe, tRow, tCol);
-    if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, 'on_damaged', rng, events);
-    if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);
-
-    // 反击（ADR-062，设计者裁定）：**同时结算**，与炉石一致。
-    // 只要目标有攻击力，攻击方就吃下这一下 —— **哪怕目标已被打死**。
-    // 目标 0 攻则无伤害；攻击方身上的「圣盾」（immune_damage）会在 dealDamage 里
-    // 消耗一层并免掉本次伤害，这才是唯一的免疫途径。
-    // 「无双」（攻击不受反击）已取消（ADR-054），分支一并移除。
-    if (retaliate > 0) {
-      dealDamage(state, ctx.cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? '反击');
-      const back = getUnit(state, side, from.row, from.col);
-      if (back && back.hp > 0) runUnitTrigger(state, ctx.cards, back, 'on_damaged', rng, events);
-    }
-    if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
-  }
-
-  attacker.attackedThisTurn += 1;
-
-  // 奇袭：攻击后失去隐身（ADR-054 的新定义还要求"上场自动隐身"，尚未实现，见 Q-06-*）
-  if (hasTrait(attacker, 'qi_xi')) {
-    attacker.kw = attacker.kw.filter((k) => k !== 'qi_xi');
-    delete attacker.statuses.qi_xi_status;
-    events.push({ type: 'STATUS_EXPIRED', side, row: from.row, col: from.col, status: 'qi_xi' });
-  }
-
-  // 攻击者自身可能已阵亡
-  const still = getUnit(state, side, from.row, from.col);
-  if (still && still.hp <= 0) {
-    killUnit(state, ctx.cards, { side, row: from.row, col: from.col, unit: still }, events);
-    recomputeAuras(state, ctx.cards, rng, events);   // 第 19 步：死亡后光环重算
-  }
+  // 结算整体交给 effects.resolveAttack —— 与 DSL 的 `attack_each`（张苞）共用同一条
+  // 路径，反击/圣盾/饮血/奇袭/触发技不可能出现两份实现（ADR-071）
+  resolveAttack(state, ctx.cards, side, from,
+    target as { kind: 'unit'; row: Row; col: number } | { kind: 'lord' },
+    events, rng, { consumeAttack: true });
   return true;
 }
 
@@ -357,7 +398,8 @@ function useUnitSkill(
       ? unitRef(action.target.side, action.target.row, action.target.col as number)
       : lordRef(action.target.side)
     : undefined;
-  runEffects(state, ctx.cards, skill.effects,
-             { side, source: u, chosen: target, handIndex: action.handIndex }, rng, events);
+  // 抉择（ADR-071）：主动技同样支持 modes
+  runEffects(state, ctx.cards, effectsOf(skill, action.modeIndex),
+             { side, source: u, chosen: target, handIndex: action.handIndex, modeIndex: action.modeIndex }, rng, events);
   return true;
 }

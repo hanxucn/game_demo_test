@@ -38,7 +38,10 @@ TYPE = {'武将':'general','谋臣':'strategist','主公':'lord','计谋卡':'ta
         '事件卡':'event','战法卡':'tactic','兵种':'troop','临时卡':'token','属性卡':'status'}
 
 # 注：主公卡（曹操 #110 / 袁绍 #70,#122）已移出卡池——主公数据统一在 data/heroes.yaml（ADR-049）
-TYPE_FIX = {'shu_huangquan': 'general'}
+# ⚠️ 这里**不再放**任何按 id 的类型硬编码（ADR-072）：原先 `{'shu_huangquan': 'general'}`
+#    把一个「照片稿缺攻击力、类型判不出」的谋臣写死成武将，后来也没人回头看。
+#    规则判不出的个例一律写进 data/cards_decisions.draft.yaml 的 `card_type` 段。
+TYPE_FIX: dict[str, str] = {}
 
 dec = yaml.safe_load(open(ROOT/'data/cards_decisions.draft.yaml', encoding='utf-8'))
 
@@ -47,9 +50,26 @@ COST_RULES = dec.get('card_cost_rules') or {}
 CARD_KW = dec.get('card_keywords') or {}
 CARD_TROOPKIND = dec.get('card_troopkind') or {}
 CARD_RARITY = dec.get('card_rarity') or {}   # ADR-068：精英卡允许强于同费预算
+# ADR-071：性别。口径 —— **场上有攻血的单位默认男性**（含兵种/衍生物，它们也是"角色"），
+# 女性角色在 card_gender 段显式登记；非单位卡（战法/事件/状态）记 unknown，不参与性别选择。
+# 之所以不在卡面上逐张写 gender：123 张里只有 3 位女性，逐张写反而更容易写错。
+# ⚠️ 若把兵种记成 unknown，貂蝉「祸国倾城」在纯基础兵的对局里会**完全空转** ——
+#    这是实现时踩到的（见 ADR-071）。
+CARD_GENDER = dec.get('card_gender') or {}
+NON_UNIT_TYPES = {'tactic', 'event', 'status', 'special', 'lord'}
+
+
+def gender_of(cid: str, typ: str) -> str:
+    if cid in CARD_GENDER:
+        return CARD_GENDER[cid]
+    return 'unknown' if typ in NON_UNIT_TYPES else 'male'
 NAME_ONLY = dec.get('skill_name_only') or {}
 # 平衡调优：按卡 id 覆盖 cost/attack/health（值一律来自设计决策，见 docs/balance-backlog.md）
 STATS = dec.get('card_stats') or {}
+# ADR-072：按卡 id 覆盖**最终**类型（ADR-018 是在照片稿攻击力上推的，数值改过就失效）
+CARD_TYPE = dec.get('card_type') or {}
+# ADR-073：memo 统一补齐（照片稿的 memo 栏本就是空的，115 张缺）
+CARD_MEMO = dec.get('card_memo') or {}
 DSL_NONE = set((dec.get('dsl') or {}).get('_none') or [])
 PHOTO_TAGS: dict[int, list[str]] = {}
 for tag, photos in (dec.get('card_tags') or {}).items():
@@ -79,14 +99,19 @@ for r in sorted(d['cards'], key=lambda r: int(r['photo'])):
     if not (r.get('memo')): flags.append('缺 memo')
     card = {'id': cid, 'name': r.get('name') or r.get('card_type'), 'faction': FAC.get(r.get('faction') or '', 'neutral'),
             'type': typ, 'cost': r.get('cost')}
-    if typ in ('general','strategist','troop'):
-        card['attack'] = r.get('attack'); card['health'] = r.get('health')
+    # 攻击/生命：**照片稿里有就带上**，不按"推出来的类型"决定 ——
+    # 原先写成 `if typ in ('general','strategist','troop')`，于是类型判不出的卡
+    # （如黄权 #85 缺攻击力 → type_proposed 是「（待攻击力）」）连**生命值一起丢了**，
+    # 卡牌价值随之算成 0（ADR-072 修）。
+    if r.get('attack') is not None: card['attack'] = r['attack']
+    if r.get('health') is not None: card['health'] = r['health']
     if r.get('skill_name') or r.get('skill_text'):
         card['skills'] = [{'name': r.get('skill_name') or '', 'text': r.get('skill_text') or '',
                            'dsl': None, 'note': '效果 DSL 待翻译（尚未开始）'}]
     card['keywords'] = list(CARD_KW.get(cid, []))
     if CARD_TROOPKIND.get(cid): card['troopKind'] = CARD_TROOPKIND[cid]
     if CARD_RARITY.get(cid) and CARD_RARITY[cid] != 'common': card['rarity'] = CARD_RARITY[cid]
+    card['gender'] = gender_of(cid, typ)          # ADR-071
     if PHOTO_TAGS.get(ph):
         card['tags'] = PHOTO_TAGS[ph]
     card['memo'] = r.get('memo') or ''
@@ -101,18 +126,13 @@ for c in yaml.safe_load(open(ROOT/'data/characters.draft.yaml', encoding='utf-8'
                 'cost': c['cost'], 'attack': c.get('attack'), 'health': c.get('health'),
                 'skills': [], 'keywords': c.get('keywords') or [], 'memo': c.get('memo') or '',
                 'flavor': c.get('flavor') or '', 'source': {'oral': True},
+                'gender': gender_of(c['id'], c['type']),
                 'flags': ['口述录入，数值未经校验']})
 
-# 基础卡：盾兵
-# ADR-065（设计者 2026-09 最新裁定）：步兵 / 弓射手 / 盾兵三张基础兵统一 **1 费**，
-# 同名上限 3 张（上限规则见 core/src/deck.ts 的 maxCopiesOf，按 type='troop' 判定）。
-# 此前按更早的一次答疑定的是 2 费，已被本次裁定取代。
-# TODO(数据层): 三张基础兵目前仍硬编码在本脚本里，违反「卡牌数值不进代码」；
-#   后续应迁到 data/cards_decisions.draft.yaml 的 new_cards 段落。
-out.append({'id':'neutral_shieldman','name':'盾兵','faction':'neutral','type':'troop','troopKind':'shield',
-    'cost':1,'attack':1,'health':2,'skills':[],'keywords':['jia_dun'],
-    'memo':'架盾：敌方必须先打掉它才能攻击其他人','flavor':'盾如铁壁，寸步不让。',
-    'source':{'oral':True,'note':'ADR-065：基础兵统一 1 费；同名上限 3 张'}})
+# 基础兵（步兵 / 弓射手 / 盾兵）全部来自 data/：
+#   步兵 / 弓射手 —— 照片稿 #160 / #142；
+#   盾兵        —— cards_decisions.draft.yaml 的 new_cards 段（ADR-073 从本脚本迁出）
+# 三张统一 1 费、同名上限 3 张（上限见 core/src/deck.ts 的 maxCopiesOf，按 type='troop' 判定）。
 # 传国玉玺已删除（ADR-053：设计者裁定非本人设计；后手补偿改为后手第 1 回合多抽 1 张）
 
 # 设计者新增的卡（非照片来源）
@@ -124,9 +144,11 @@ for nc in dec.get('new_cards') or []:
     if nc.get('skill_text'): card['skills'] = [{'name': nc.get('skill_name',''), 'text': nc['skill_text'],
                                                 'dsl': None, 'note': '效果 DSL 待翻译'}]
     card['keywords'] = list(CARD_KW.get(nc['id'], []))
+    card['gender'] = gender_of(nc['id'], nc['type'])   # ADR-071
     if nc.get('troopKind'): card['troopKind'] = nc['troopKind']
     if nc.get('tags'): card['tags'] = nc['tags']
-    card['memo'] = ''; card['flavor'] = ''
+    card['memo'] = nc.get('memo') or ''       # 每张卡都必须有 memo（AGENTS 命名约定）
+    card['flavor'] = nc.get('flavor') or ''
     card['source'] = {'new': nc.get('source','设计者新增')}
     if nc.get('open'): card['flags'] = list(nc['open'])
     out.append(card)
@@ -163,6 +185,22 @@ for card in out:
         if field in ov:
             card[f'{field}_original'] = card.get(field)
             card[field] = ov[field]
+
+# memo 覆盖（ADR-073）：照片稿的 memo 栏基本没写，统一由 card_memo 段补齐
+for card in out:
+    if card['id'] in CARD_MEMO:
+        card['memo'] = CARD_MEMO[card['id']]
+
+# 类型定型覆盖（ADR-072）：必须排在数值覆盖**之后** —— 它要看的正是改完的最终攻击力
+for card in out:
+    ov = CARD_TYPE.get(card['id'])
+    if not ov:
+        continue
+    if ov.get('type'):
+        card['type_original'] = card.get('type')
+        card['type'] = ov['type']
+    if ov.get('explicit'):
+        card['type_explicit'] = True
 
 doc = {
  'meta': {'version': 'v1', 'status': '初步定稿（待 DSL 翻译与数值校验）',

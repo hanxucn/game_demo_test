@@ -180,7 +180,19 @@
   timing: 10            # 伤害结算前：转移判定
   duration: turns
   caps: [redirect_damage]
-  memo: "引擎内部：把指向友方主将的伤害转由本单位承担"
+  guard_scope: any
+  memo: "把**被守护单位**受到的伤害转由本单位承担（陈宫「忠烈」）"
+
+- id: hu_zhu
+  name: 护主
+  kind: buff
+  numeric: false
+  scope: lord
+  timing: 10            # 伤害结算前：转移判定
+  duration: turns
+  caps: [redirect_damage]
+  guard_scope: lord
+  memo: "只把该方**主帅**受到的伤害转由本单位承担（祖茂「替主」，ADR-071）"
 
 - id: duan_chou
   name: 断抽

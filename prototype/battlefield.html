@@ -429,6 +429,24 @@
   .hcard-wrap { touch-action: none; }
   .hcard-wrap.is-dragging { opacity: .25; }
   /* ---------- 悬浮技能弹窗 ---------- */
+  /* 抉择分支选择器（ADR-071 曹彰「猛袭」）。
+     必须是 <body> 直属节点：放进 #canvas 会被 transform: scale() 二次缩放（踩过的坑） */
+  #play-modes {
+    position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%);
+    z-index: 620; min-width: 190px; padding: 12px 14px;
+    background: linear-gradient(180deg, #241c12 0%, #14100a 100%);
+    border: 1px solid var(--gold); border-radius: 8px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, .7);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  #play-modes h4 { margin: 0 0 4px; font-size: 12.5px; color: var(--gold-hi); text-align: center; }
+  #play-modes button {
+    font: inherit; font-size: 12px; padding: 7px 10px; cursor: pointer;
+    color: #f6ecd8; background: #2e2415; border: 1px solid #6b5730; border-radius: 5px;
+  }
+  #play-modes button:hover { background: #46361d; border-color: var(--gold); }
+  #play-modes button.is-cancel { color: var(--dim); background: transparent; border-color: #3a3228; }
+
   #card-tip {
     position: fixed; z-index: 620;   /* 高于拖拽幽灵(500)与箭头(480) */
     display: none;

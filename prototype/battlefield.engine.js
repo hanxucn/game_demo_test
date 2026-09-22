@@ -28,6 +28,11 @@ var session = null;      // { state, ctx }
 var sel = null;          // 已选中的我方单位 { row, col }
 var drag = null;         // 拖拽中的卡牌
 var pendingSkill = null; // 等待选择目标的主公技
+/**
+ * 等待「战吼 / 卡级效果」选目标的出牌（BACKLOG §3）。
+ * 形状：{ cardIndex, row, col, modeIndex, plan, idx, picks: {1: t, 2: t} }
+ */
+var pendingPlay = null;
 var busy = false;
 
 var $ = function (s) { return document.querySelector(s); };
@@ -347,7 +352,7 @@ function renderHand(st) {
       if (onHandPick(i)) return;
       if (isCharacter(c)) { showCardDetail(c); return; }  // 人物卡点击 = 看详情
       if (!playable) { showCardDetail(c); return; }       // 打不出 → 看详情
-      doAction({ type: 'PLAY_CARD', cardIndex: i });      // 非人物卡：点击仍可释放（保留）
+      beginPlay(i);                                        // 非人物卡：点击仍可释放（保留）
     });
     hand.appendChild(wrap);
   });
@@ -582,14 +587,14 @@ function onDragEnd(e) {
   if (d.kind === 'card') {
     if (d.isUnit && dropSlot) {
       dragHandledAt = Date.now();
-      doAction({
-        type: 'PLAY_CARD', cardIndex: d.index,
-        row: dropSlot.dataset.row, col: Number(dropSlot.dataset.col),
-      });
+      clearMarks();
+      // 战吼可能需要玩家选目标 → 交给 Core.playTargetPlan 判定（BACKLOG §3）
+      beginPlay(d.index, dropSlot.dataset.row, Number(dropSlot.dataset.col));
     } else if (!d.isUnit && dropBoard) {
       // 战法 / 事件卡：落到战场即释放（没有 row/col）
       dragHandledAt = Date.now();
-      doAction({ type: 'PLAY_CARD', cardIndex: d.index });
+      clearMarks();
+      beginPlay(d.index);
     } else {
       clearMarks();
       showDetail('取消打出', d.card.name,
@@ -713,6 +718,166 @@ function clearMarks() {
   if (session) renderLanes(session.state);
 }
 
+/* ============================================================
+   出牌前的选目标（BACKLOG §3）
+   ------------------------------------------------------------
+   要不要选、有几个选择、可选谁 —— **全部由 Core.playTargetPlan 判定**，
+   这里只负责把结果画出来、把点击收回来。UI 不做任何规则判断。
+   ============================================================ */
+
+/** 落点是不是当前这一步想要的合法目标 */
+function playChoiceHit(choice, side, row, col) {
+  if (!choice) return false;
+  return choice.targets.some(function (t) {
+    if (t.side !== side) return false;
+    if (t.kind === 'lord') return row === undefined || row === null;
+    return t.row === row && t.col === col;
+  });
+}
+
+function highlightPlayChoice() {
+  var pp = pendingPlay;
+  if (!pp) return;
+  var choice = pp.plan.choices[pp.idx];
+  if (!choice) return;
+  clearMarks();
+  choice.targets.forEach(function (t) {
+    if (t.kind === 'lord') {
+      var le = lordEl(t.side);
+      if (le) le.classList.add('is-target');
+      return;
+    }
+    var el = document.querySelector('.slot[data-side="' + t.side + '"][data-row="' + t.row +
+      '"][data-col="' + t.col + '"] .unit-wrap');
+    if (el) el.classList.add('is-target');
+  });
+  var hc = session.state.sides.own.hand[pp.cardIndex];
+  var name = hc ? hc.card.name : '这张牌';
+  var total = pp.plan.choices.length;
+  var step = total > 1 ? '（第 ' + (pp.idx + 1) + '/' + total + ' 个选择）' : '';
+  var extra = choice.includesHand ? '　—— 也可以不选，交给引擎从手牌里取' : '';
+  if (!choice.targets.length) {
+    // 没有场上目标（如陆抗只剩手牌路径）→ 直接打出，由引擎兜底
+    finishPlay();
+    return;
+  }
+  showDetail('选择目标' + step, name + '：请选择' + choice.label,
+    '点击高亮的' + choice.label + '（点空白处取消）' + extra);
+}
+
+/** 进入待选状态；需要时可以带一个「先选分支」的结果 */
+function beginPlay(cardIndex, row, col, modeIndex) {
+  var hc = session.state.sides.own.hand[cardIndex];
+  if (!hc) return;
+  var plan = Core.playTargetPlan(session.state, 'own', hc.card, modeIndex);
+
+  // 抉择：先让玩家点一个分支（见 showModePicker）
+  if (plan.modes.length > 1 && modeIndex === undefined) {
+    showModePicker(hc.card, plan.modes, function (mi) { beginPlay(cardIndex, row, col, mi); });
+    return;
+  }
+
+  var choices = plan.choices.filter(function (c) { return c.targets.length; });
+  if (!choices.length) {
+    // 不需要选（或只剩手牌路径）→ 直接打出
+    doAction({ type: 'PLAY_CARD', cardIndex: cardIndex, row: row, col: col, modeIndex: modeIndex });
+    return;
+  }
+  pendingPlay = {
+    cardIndex: cardIndex, row: row, col: col, modeIndex: modeIndex,
+    plan: plan, idx: 0, picks: {},
+  };
+  // 让 idx 指向第一个真的有目标的 choice
+  while (pendingPlay.idx < plan.choices.length && !plan.choices[pendingPlay.idx].targets.length) {
+    pendingPlay.idx++;
+  }
+  highlightPlayChoice();
+  startPlayArrow();
+}
+
+/** 收集到本次选择后，推进到下一个；都齐了就出牌 */
+function recordPlayPick(side, row, col) {
+  var pp = pendingPlay;
+  if (!pp) return false;
+  var choice = pp.plan.choices[pp.idx];
+  if (!choice || !playChoiceHit(choice, side, row, col)) return false;
+  pp.picks[choice.pick] = { side: side, row: row, col: col };
+  pp.idx++;
+  while (pp.idx < pp.plan.choices.length && !pp.plan.choices[pp.idx].targets.length) pp.idx++;
+  if (pp.idx >= pp.plan.choices.length) { finishPlay(); return true; }
+  highlightPlayChoice();
+  return true;
+}
+
+function finishPlay() {
+  var pp = pendingPlay;
+  pendingPlay = null;
+  stopPlayArrow();
+  if (!pp) return;
+  var action = { type: 'PLAY_CARD', cardIndex: pp.cardIndex, row: pp.row, col: pp.col };
+  if (pp.modeIndex !== undefined) action.modeIndex = pp.modeIndex;
+  if (pp.picks[1]) action.target = pp.picks[1];
+  if (pp.picks[2]) action.target2 = pp.picks[2];
+  doAction(action);
+}
+
+function cancelPlay() {
+  pendingPlay = null;
+  stopPlayArrow();
+  clearMarks();
+}
+
+/* ---------- 待选期间的指向箭头（与攻击同一手感）---------- */
+function onPlayPointerMove(e) {
+  if (!pendingPlay) return;
+  var hc = document.querySelector('.hcard-wrap[data-card-index="' + pendingPlay.cardIndex + '"]');
+  if (!hc) return;
+  var t = dropAt(e.clientX, e.clientY);
+  var ok = false;
+  var choice = pendingPlay.plan.choices[pendingPlay.idx];
+  if (t && choice) {
+    if (t.kind === 'unit') {
+      ok = playChoiceHit(choice, t.el.parentElement.dataset.side,
+        t.el.parentElement.dataset.row, Number(t.el.parentElement.dataset.col));
+    } else if (t.kind === 'lord') {
+      // 主公条没有 dataset.side，id 是 lord-<side>
+      ok = playChoiceHit(choice, String(t.el.id || '').replace('lord-', ''), undefined, undefined);
+    }
+  }
+  arrowTo(hc, e.clientX, e.clientY, ok);
+}
+function startPlayArrow() { window.addEventListener('pointermove', onPlayPointerMove); }
+function stopPlayArrow() { window.removeEventListener('pointermove', onPlayPointerMove); arrowHide(); }
+
+/* ---------- 抉择分支选择器（曹彰「猛袭」）---------- */
+function showModePicker(card, modes, onPick) {
+  var old = document.getElementById('play-modes');
+  if (old) old.remove();
+  // 必须是 <body> 直属节点：放进 #canvas 会被 transform: scale() 二次缩放（踩过的坑）
+  var box = document.createElement('div');
+  box.id = 'play-modes';
+  box.innerHTML = '<h4>' + card.name + '：选择一项</h4>';
+  modes.forEach(function (name, i) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = name;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      box.remove();
+      onPick(i);
+    });
+    box.appendChild(btn);
+  });
+  var cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'is-cancel';
+  cancel.textContent = '取消';
+  cancel.addEventListener('click', function (e) { e.stopPropagation(); box.remove(); });
+  box.appendChild(cancel);
+  document.body.appendChild(box);
+  showDetail('选择技能分支', card.name, '点上面的按钮选择①或②');
+}
+
 function showDetail(title, sub, why) {
   var d = $('#detail');
   d.innerHTML = '<h4>' + title + '</h4>' +
@@ -723,6 +888,7 @@ function showDetail(title, sub, why) {
 
 function onSlotClick() {
   if (busy) return;
+  if (pendingPlay) { cancelPlay(); return; }   // 点空白 = 放弃这次出牌
   clearMarks();
   sel = null;
   pendingSkill = null;
@@ -773,6 +939,9 @@ function onHandPick(index) {
 
 function onUnitClick(side, row, col, ev) {
   if (busy || session.state.winner) return;
+
+  // ⓪ 出牌待选目标（战吼 / 卡级效果，BACKLOG §3）—— 优先级最高
+  if (pendingPlay && recordPlayPick(side, row, col)) return;
 
   // ① 主公技等待选目标（ADR-051：仁德可指定敌我任何人，故不再限定 side==='own'）
   if (pendingSkill && pendingSkill.targets) {
@@ -844,6 +1013,8 @@ function onUnitClick(side, row, col, ev) {
 
 function onLordClick(side, bar) {
   if (busy || session.state.winner) return;
+  // 出牌待选目标可能是主将（如「随机打含主将」类选择器）
+  if (pendingPlay && recordPlayPick(side, undefined, undefined)) return;
   if (sel && sel.kind === 'unit' && side === 'enemy' && bar.classList.contains('is-target')) {
     doAction({ type: 'ATTACK', from: { row: sel.row, col: sel.col }, to: { kind: 'lord' } });
     return;
@@ -936,6 +1107,8 @@ function doAction(action) {
   session = { state: res.state, ctx: session.ctx };
   busy = true;
   arrowHide();                 // 动作已生效 → 指向箭头随选中一起收起
+  pendingPlay = null;
+  stopPlayArrow();
   clearMarks();
   sel = null; pendingSkill = null;
   playEvents(res.events, function () {
