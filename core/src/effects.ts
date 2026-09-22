@@ -13,7 +13,7 @@ import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchSt
 import {
   applyStatus, dealDamage, drawCard, gainArmor, healTarget, lordRef, registerOnDeathResolver,
   registerOnDrawResolver,
-  summonUnit, unitRef,
+  registerOnKillResolver, summonUnit, unitRef,
   type TargetRef,
 } from './mutate.ts';
 
@@ -29,9 +29,23 @@ registerOnDrawResolver((state, cards, side, card, events, rng) => {
 });
 
 /** 亡语解析器：把 on_death 技能交给 DSL 解释器（ADR-050） */
-registerOnDeathResolver((state, cards, side, unit, skills, events, rng) => {
+registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) => {
   for (const sk of skills) {
-    runEffects(state, cards, sk.effects ?? [], { side, source: unit }, rng, events);
+    runEffects(state, cards, sk.effects ?? [],
+      { side, source: unit, killer: killer ?? undefined }, rng, events);
+  }
+});
+
+// 「击杀时」挂载点（ADR-070）：华雄「威震四方」每次击杀 +1/+1
+registerOnKillResolver((state, cards, killer, victim, events, rng) => {
+  const k = getUnit(state, killer.side, killer.row, killer.col);
+  if (!k || k.hp <= 0) return;
+  const card = cards.get(k.cardId);
+  const killSkills = (card?.skills ?? []).filter((sk) => sk.trigger === 'on_kill');
+  for (const sk of killSkills) {
+    runEffects(state, cards, sk.effects ?? [],
+      { side: killer.side, source: k, eventVictim: victim, victimType: victim.type } as EffectContext,
+      rng, events);
   }
 });
 
@@ -40,6 +54,12 @@ export interface EffectContext {
   source?: Unit;         // 来源单位（人物卡的技能）
   chosen?: TargetRef;    // 玩家选择的目标
   chosenRow?: 'front' | 'back';
+  /** 本次结算的「被击杀者」（on_kill 用，供亡语/条件引用，ADR-070） */
+  eventVictim?: { name: string; side: Side; row: Row; col: number };
+  /** 本次结算的「击杀者」（亡语要指向它时用，ADR-070） */
+  killer?: { side: Side; row: Row; col: number };
+  /** 本次被击杀者的类型（victim_type 条件用） */
+  victimType?: string;
   chosenCol?: number;
   /** 本次结算中发生的事件标记（killed / clash_won…），供条件判定读取（ADR-033） */
   flags?: string[];
@@ -124,6 +144,14 @@ function checkCondition(
   }
   if (cond.event) return (ctx.flags ?? []).includes(cond.event);
   // 按「所选目标属于哪一方」分支：ctx 的 side 是施法方，chosen.side 是目标方
+  if (typeof cond.turn_max === 'number' && state.turn > cond.turn_max) return false;
+  if (cond.victim_type) {
+    const v = ctx.eventVictim;
+    if (!v) return false;
+    // eventVictim 只带了 name/side/坐标，类型需要从场上或阵亡前记录里取；
+    // 由 ctx 传入 victimType（见 mutate.killUnit 的 on_kill 调用）
+    if ((ctx as { victimType?: string }).victimType !== cond.victim_type) return false;
+  }
   if (cond.chosen_side) {
     const t = ctx.chosen;
     if (!t) return false;
@@ -330,6 +358,12 @@ export function resolveTargets(
   ctx: EffectContext,
   rng: Rng,
 ): TargetRef[] {
+  // 「本次事件的另一方单位」：华雄亡语要指向击杀者（ADR-070）
+  if (selector?.event) {
+    const k = selector.event === 'killer' ? ctx.killer : ctx.eventVictim;
+    if (!k) return [];
+    return [{ kind: 'unit' as const, side: k.side, row: k.row, col: k.col }];
+  }
   if (!selector) return ctx.chosen ? [ctx.chosen] : [];
 
   // zone: 'hand' —— 作用于手牌而非场上（ADR-038）

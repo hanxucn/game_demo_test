@@ -26,6 +26,10 @@ export interface EffectCondition {
   event?: 'killed' | 'clash_won' | 'clash_lost';             // 本次结算中的事件
   /** 所选目标属于哪一方（陈宫「忠烈」：选敌将 vs 选友将走不同分支，ADR-069） */
   chosen_side?: 'ally' | 'enemy';
+  /** 完整回合数上限（马超「首回合击杀」= turn_max:1，ADR-070） */
+  turn_max?: number;
+  /** 本次被击杀者的卡牌类型（马超只认「武将」，ADR-070） */
+  victim_type?: 'troop' | 'general' | 'strategist';
 }
 
 export type CompareOp = '>=' | '<=' | '==' | '>' | '<' | '!=';
@@ -62,6 +66,8 @@ export interface TargetSelector {
   side?: 'ally' | 'enemy' | 'both' | 'self';
   zone?: 'board' | 'hand';       // 作用区域，默认 board（ADR-038）
   source?: boolean;              // true = 只选「来源单位自身」（ADR-033）
+  /** 本次事件里的另一方单位（华雄亡语：使**击杀者**获得 +1/+1，ADR-070） */
+  event?: 'killer' | 'victim';
   lord?: boolean;                // true = 选该方主帅（ADR-036）
   filter?: {
     type?: CardType | 'character';

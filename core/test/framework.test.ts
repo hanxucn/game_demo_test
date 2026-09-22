@@ -239,19 +239,19 @@ test('结束：主将阵亡 → reason「主将阵亡」且摘要含双方数据
    ⑥ 卡数据正确性回归（docs/balance-backlog.md 报告的问题）
    ============================================================ */
 
-test('回归·华雄「威震四方」：只震慑一名目标，不再双次结算', () => {
+// 华雄的技能已按设计者 2026-09 定稿改为「威震四方」（击杀 +1/+1 + 亡语给击杀者 +1/+1），
+// 原先那条「只震慑一名目标」的回归断言对应的是一版已被取代的设计，故一并替换。
+test('回归·华雄「威震四方」：技能为击杀成长 + 亡语给击杀者，且不再有旧的震慑分支', () => {
   const hx = data.cards.get('qun_huaxiong');
   assert.ok(hx, '华雄应存在于卡表');
+  const triggers = (hx.skills ?? []).map((sk) => sk.trigger);
+  assert.ok(triggers.includes('on_kill'), '应有 on_kill 触发（击杀时 +1/+1）');
+  assert.ok(triggers.includes('on_death'), '应有 on_death 触发（亡语给击杀者 +1/+1）');
   const effs = (hx.skills ?? []).flatMap((sk) => sk.effects ?? []);
-  // ADR-047：原文「指定一名敌人物」，原先两条分支会各选一个目标各震慑一次（低价目标被双重结算）
-  assert.equal(effs.length, 1, `应合并为单条震慑，实际 ${effs.length} 条`);
-  const e = effs[0]!;
-  assert.equal(e.action, 'apply_status');
-  assert.equal(e.status, 'zhen_she');
-  assert.equal(e.target?.count, 1, '只作用于一个目标');
-  assert.equal(e.target?.filter?.cost_min, undefined, '不应再有互斥的 cost 分支');
-  assert.equal(e.target?.filter?.cost_below_source, undefined, '不应再有互斥的 cost 分支');
-  assert.equal(e.chance, 0.75, '概率按「低于华雄必中 / 否则半概率」的期望值折算');
+  assert.ok(!effs.some((e) => e.action === 'apply_status' && e.status === 'zhen_she'),
+    '不应再有旧设计的震慑分支');
+  const death = (hx.skills ?? []).find((sk) => sk.trigger === 'on_death')!;
+  assert.equal(death.effects?.[0]?.target?.event, 'killer', '亡语应指向击杀者');
 });
 
 test('主动技频率：0 费主动技每回合只能用 1 次（GDD 10 §1.1）', () => {
@@ -700,6 +700,78 @@ test('技能伤害同样扣血并可致阵亡', async () => {
   assert.equal(gu(s, 'enemy', 'front', 0), null, '超量伤害应致阵亡并移出');
 });
 
+
+/* ============================================================
+   on_kill 与击杀者引用（ADR-070）
+   ============================================================ */
+
+test('华雄「威震四方」：击杀时 +1/+1；亡语给击杀者 +1/+1', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { dealDamage, unitRef } = await import('../src/mutate.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctxData = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctxData).state;
+
+  // 我方华雄 3/3 打敌方一个 1/1
+  const hx = makeUnit(d.cards.get('qun_huaxiong')!, 0, 860);
+  setUnit(s, 'own', 'front', 0, hx);
+  const foe = makeUnit(d.cards.get('neutral_infantry')!, 0, 861);
+  foe.hp = 1; foe.maxHp = 1; foe.baseMaxHp = 1;
+  setUnit(s, 'enemy', 'front', 3, foe);
+
+  const before = { atk: hx.atk, hp: hx.hp };
+  const evs: import('../src/types.ts').GameEvent[] = [];
+  // 2 点伤害打死 1 血目标，killerRef 指向华雄
+  dealDamage(s, d.cards, unitRef('enemy', 'front', 3), 2, evs, '华雄', 0, { side: 'own', row: 'front', col: 0 });
+
+  const hx2 = gu(s, 'own', 'front', 0)!;
+  assert.equal(gu(s, 'enemy', 'front', 3), null, '目标应阵亡');
+  assert.equal(hx2.atk, before.atk + 1, '击杀后攻击 +1');
+  assert.equal(hx2.hp, before.hp + 1, '击杀后生命 +1');
+  assert.ok(evs.some((e) => e.type === 'UNIT_DIED' && e.side === 'enemy'));
+
+  // 再打死一个 → 华雄应变成 +2/+2；同时验证**亡语给击杀者**：
+  // 让敌方华雄被我方单位击杀，我方单位应 +1/+1
+  const base2 = createMatch({ seed: 2, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const s2 = startMatch(base2, ctxData).state;
+  const foeHx = makeUnit(d.cards.get('qun_huaxiong')!, 0, 862);
+  foeHx.hp = 1; foeHx.maxHp = 1; foeHx.baseMaxHp = 1;
+  setUnit(s2, 'enemy', 'front', 0, foeHx);
+  const mine = makeUnit(d.cards.get('neutral_infantry')!, 0, 863);
+  setUnit(s2, 'own', 'front', 0, mine);
+  const a0 = mine.atk, h0 = mine.hp;
+  const evs2: import('../src/types.ts').GameEvent[] = [];
+  dealDamage(s2, d.cards, unitRef('enemy', 'front', 0), 5, evs2, '步兵', 0, { side: 'own', row: 'front', col: 0 });
+  const mine2 = gu(s2, 'own', 'front', 0)!;
+  assert.equal(mine2.atk, a0 + 1, '击杀者的攻击应 +1（华雄亡语）');
+  assert.equal(mine2.hp, h0 + 1, '击杀者的生命应 +1（华雄亡语）');
+});
+
+test('马超「铁骑突袭」：仅首回合、仅击杀武将才禁敌方主公技', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { dealDamage, unitRef } = await import('../src/mutate.ts');
+  const d = qun();
+  const ctxData = { cards: d.cards, lords: d.lords };
+
+  const kill = (opts: { turn: number; victimId: string }) => {
+    const base = createMatch({ seed: 3, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+    const s = startMatch(base, ctxData).state;
+    s.turn = opts.turn;
+    const mc = makeUnit(d.cards.get('shu_machao')!, 0, 870);
+    setUnit(s, 'own', 'front', 0, mc);
+    const v = makeUnit(d.cards.get(opts.victimId)!, 0, 871);
+    v.hp = 1; v.maxHp = 1; v.baseMaxHp = 1;
+    setUnit(s, 'enemy', 'front', 1, v);
+    dealDamage(s, d.cards, unitRef('enemy', 'front', 1), 9, [], '马超', 0, { side: 'own', row: 'front', col: 0 });
+    return s.sides.enemy.lord.statuses?.jin_yong;
+  };
+
+  assert.ok(kill({ turn: 1, victimId: 'shu_zhangfei' }), '首回合击杀武将 → 敌主帅应被禁用主公技');
+  assert.equal(kill({ turn: 2, victimId: 'shu_zhangfei' }), undefined, '非首回合不应触发');
+  assert.equal(kill({ turn: 1, victimId: 'shu_zhugeliang' }), undefined,
+    '击杀谋臣（诸葛亮 1/6，攻击 ≤1 → 谋臣）不该触发 —— 文案只认「武将」');
+});
 
 /* ============================================================
    驱散 remove_status（ADR-066）

@@ -186,6 +186,7 @@ export const TIMING = {
   ON_CARD_PLAYED: 'on_card_played',
   ON_MARK_DAMAGED: 'on_mark_damaged',
   ON_MARK_DEATH: 'on_mark_death',
+  ON_KILL: 'on_kill',          // 击杀者视角：每次击杀时（ADR-070）
 } as const;
 
 export const ACTIONS = [

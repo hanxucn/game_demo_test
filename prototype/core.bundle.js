@@ -104,6 +104,7 @@ var Core = (() => {
     refHp: () => refHp,
     registerOnDeathResolver: () => registerOnDeathResolver,
     registerOnDrawResolver: () => registerOnDrawResolver,
+    registerOnKillResolver: () => registerOnKillResolver,
     removeStatus: () => removeStatus,
     resolveTargets: () => resolveTargets,
     resolveTurnEndStatuses: () => resolveTurnEndStatuses,
@@ -391,7 +392,9 @@ var Core = (() => {
     ON_LETHAL: "on_lethal",
     ON_CARD_PLAYED: "on_card_played",
     ON_MARK_DAMAGED: "on_mark_damaged",
-    ON_MARK_DEATH: "on_mark_death"
+    ON_MARK_DEATH: "on_mark_death",
+    ON_KILL: "on_kill"
+    // 击杀者视角：每次击杀时（ADR-070）
   };
   var ACTIONS = [
     "damage",
@@ -745,6 +748,10 @@ var Core = (() => {
     onDrawResolver = fn;
   }
   var onDeathResolver = null;
+  var onKillResolver = null;
+  function registerOnKillResolver(fn) {
+    onKillResolver = fn;
+  }
   function registerOnDeathResolver(fn) {
     onDeathResolver = fn;
   }
@@ -774,7 +781,7 @@ var Core = (() => {
     }
     s.hand.push({ card, mods: [] });
   }
-  function dealDamage(state, cards, ref, amount, events, source, depth = 0) {
+  function dealDamage(state, cards, ref, amount, events, source, depth = 0, killerRef) {
     if (amount <= 0 || !refAlive(state, ref)) return 0;
     if (ref.kind === "lord") {
       const lord = state.sides[ref.side].lord;
@@ -812,7 +819,8 @@ var Core = (() => {
         amount,
         events,
         source,
-        depth + 1
+        depth + 1,
+        killerRef
       );
     }
     if (hasCap(u, "immune_damage")) {
@@ -825,7 +833,7 @@ var Core = (() => {
     u.hp -= amount;
     events.push({ type: "DAMAGE", target: ref, amount, source });
     if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return amount;
-    if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events);
+    if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
     return amount;
   }
   function tryLethalSave(state, u, ref, events) {
@@ -941,7 +949,7 @@ var Core = (() => {
     events.push({ type: "UNIT_SUMMONED", side, row, col, unit: u });
     return u;
   }
-  function killUnit(state, cards, ref, events) {
+  function killUnit(state, cards, ref, events, killer) {
     const { side, row, col, unit } = ref;
     if (!getUnit(state, side, row, col)) return;
     setUnit(state, side, row, col, null);
@@ -950,7 +958,10 @@ var Core = (() => {
     const card = cards.get(unit.cardId);
     const deathSkills = (card?.skills ?? []).filter((sk) => sk.trigger === "on_death");
     if (deathSkills.length && onDeathResolver) {
-      onDeathResolver(state, cards, side, unit, deathSkills, events, createRng(state.rngState));
+      onDeathResolver(state, cards, side, unit, deathSkills, events, createRng(state.rngState), killer);
+    }
+    if (killer && onKillResolver) {
+      onKillResolver(state, cards, killer, { name: unit.name, side, row, col, type: unit.type }, events, createRng(state.rngState));
     }
   }
   function checkWinner(state, events) {
@@ -1043,9 +1054,32 @@ var Core = (() => {
     runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
     return true;
   });
-  registerOnDeathResolver((state, cards, side, unit, skills, events, rng) => {
+  registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) => {
     for (const sk of skills) {
-      runEffects(state, cards, sk.effects ?? [], { side, source: unit }, rng, events);
+      runEffects(
+        state,
+        cards,
+        sk.effects ?? [],
+        { side, source: unit, killer: killer ?? void 0 },
+        rng,
+        events
+      );
+    }
+  });
+  registerOnKillResolver((state, cards, killer, victim, events, rng) => {
+    const k = getUnit(state, killer.side, killer.row, killer.col);
+    if (!k || k.hp <= 0) return;
+    const card = cards.get(k.cardId);
+    const killSkills = (card?.skills ?? []).filter((sk) => sk.trigger === "on_kill");
+    for (const sk of killSkills) {
+      runEffects(
+        state,
+        cards,
+        sk.effects ?? [],
+        { side: killer.side, source: k, eventVictim: victim, victimType: victim.type },
+        rng,
+        events
+      );
     }
   });
   var hpOf = (s, t) => t.kind === "lord" ? s.sides[t.side].lord.hp : t.kind === "hand" ? 0 : getUnit(s, t.side, t.row, t.col)?.hp ?? 0;
@@ -1092,6 +1126,12 @@ var Core = (() => {
       return cmp(l, cond.count_vs.op, r);
     }
     if (cond.event) return (ctx.flags ?? []).includes(cond.event);
+    if (typeof cond.turn_max === "number" && state.turn > cond.turn_max) return false;
+    if (cond.victim_type) {
+      const v = ctx.eventVictim;
+      if (!v) return false;
+      if (ctx.victimType !== cond.victim_type) return false;
+    }
     if (cond.chosen_side) {
       const t = ctx.chosen;
       if (!t) return false;
@@ -1216,6 +1256,11 @@ var Core = (() => {
     return max;
   }
   function resolveTargets(state, selector, ctx, rng) {
+    if (selector?.event) {
+      const k = selector.event === "killer" ? ctx.killer : ctx.eventVictim;
+      if (!k) return [];
+      return [{ kind: "unit", side: k.side, row: k.row, col: k.col }];
+    }
     if (!selector) return ctx.chosen ? [ctx.chosen] : [];
     if (selector.zone === "hand") {
       const sideSel2 = selector.side ?? "enemy";
@@ -1917,7 +1962,16 @@ var Core = (() => {
       const tCol = target.col;
       const targetUnit = getUnit(state, foe, tRow, tCol);
       const retaliate = effectiveAttack(state, foe, tRow, tCol);
-      const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name);
+      const dealt = dealDamage(
+        state,
+        ctx.cards,
+        unitRef(foe, tRow, tCol),
+        dmg,
+        events,
+        attacker.name,
+        0,
+        { side, row: from.row, col: from.col }
+      );
       const hit = getUnit(state, foe, tRow, tCol);
       if (hit && hit.hp > 0) runUnitTrigger(state, ctx.cards, hit, "on_damaged", rng, events);
       if (hit) runMarkDamaged(state, ctx.cards, hit, dmg, rng, events);

@@ -9,7 +9,7 @@
 import { BOARD, DECK, STATUSES } from './constants.ts';
 import { createRng } from './rng.ts';
 import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
-import type { CardDef, GameEvent, HandCard, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
+import type { CardDef, CardType, GameEvent, HandCard, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
 export type TargetRef =
   | { kind: 'unit'; side: Side; row: Row; col: number }
@@ -101,9 +101,25 @@ export type OnDeathResolver = (
   state: MatchState, cards: Map<string, CardDef>, side: Side,
   unit: Unit, skills: SkillDef[], events: GameEvent[],
   rng: ReturnType<typeof createRng>,
+  /** 击杀者（华雄「亡语：击杀华雄的角色获得 +1/+1」需要它，ADR-070） */
+  killer?: { side: Side; row: Row; col: number } | null,
 ) => void;
 
 let onDeathResolver: OnDeathResolver | null = null;
+
+/** 「击杀时」解算器（ADR-070）：由 effects.ts 注册，避免 mutate ↔ effects 循环依赖 */
+export type OnKillResolver = (
+  state: MatchState, cards: Map<string, CardDef>,
+  killer: { side: Side; row: Row; col: number },
+  victim: { name: string; side: Side; row: Row; col: number; type: CardType },
+  events: GameEvent[], rng: ReturnType<typeof createRng>,
+) => void;
+
+let onKillResolver: OnKillResolver | null = null;
+
+export function registerOnKillResolver(fn: OnKillResolver): void {
+  onKillResolver = fn;
+}
 
 export function registerOnDeathResolver(fn: OnDeathResolver): void {
   onDeathResolver = fn;
@@ -165,6 +181,8 @@ export function dealDamage(
   events: GameEvent[],
   source: string,
   depth = 0,
+  /** 造成伤害的单位（用于把「击杀者」传给 killUnit → on_kill，ADR-070） */
+  killerRef?: { side: Side; row: Row; col: number } | null,
 ): number {
   if (amount <= 0 || !refAlive(state, ref)) return 0;
 
@@ -195,7 +213,7 @@ export function dealDamage(
     events.push({ type: 'DAMAGE_REDIRECTED', side: ref.side, row: ref.row, col: ref.col,
                   to: guard.side, guardName: guard.unit.name });
     return dealDamage(state, cards, unitRef(guard.side, guard.row, guard.col),
-                      amount, events, source, depth + 1);
+                      amount, events, source, depth + 1, killerRef);
   }
 
   // 免疫伤害（武圣等，能力驱动 ADR-034）：消耗后失效
@@ -213,7 +231,7 @@ export function dealDamage(
   // 免死判定（ADR-039）：致命伤害时按 on_lethal 技能掷骰，成功则以 1 血存活
   if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return amount;
 
-  if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events);
+  if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
   return amount;
 }
 
@@ -421,6 +439,8 @@ export function killUnit(
   cards: Map<string, CardDef>,
   ref: UnitRefFull,
   events: GameEvent[],
+  /** 击杀者（谁把它打死的）。供 on_kill 触发技与「亡语给击杀者加成」用（ADR-070） */
+  killer?: { side: Side; row: Row; col: number } | null,
 ): void {
   const { side, row, col, unit } = ref;
   if (!getUnit(state, side, row, col)) return;
@@ -437,7 +457,14 @@ export function killUnit(
   if (deathSkills.length && onDeathResolver) {
     // rng 由 state 派生：killUnit 的调用链（伤害结算）里没有现成的 rng。
     // 与 on_draw 同理，确定可复现；外层 rng 写回时会以自身状态为准（见 ADR-050）
-    onDeathResolver(state, cards, side, unit, deathSkills, events, createRng(state.rngState));
+    onDeathResolver(state, cards, side, unit, deathSkills, events, createRng(state.rngState), killer);
+  }
+
+  // on_kill（ADR-070）：击杀者的「每次击杀时」触发技。
+  // 华雄「威震四方」靠它每次击杀获得 +1/+1。
+  // 走挂载点而不是直接 import runEffects —— 否则 mutate ↔ effects 形成循环依赖。
+  if (killer && onKillResolver) {
+    onKillResolver(state, cards, killer, { name: unit.name, side, row, col, type: unit.type }, events, createRng(state.rngState));
   }
 }
 

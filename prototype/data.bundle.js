@@ -583,23 +583,23 @@ window.GameData = {
           "id": "tie_qi_tu_xi",
           "name": "铁骑突袭",
           "kind": "trigger",
-          "trigger": "on_attack",
+          "trigger": "on_kill",
+          "text": "先攻；首回合击杀敌方武将后，敌主帅下回合无法发动主公技。",
           "effects": [
             {
               "action": "apply_status",
-              "status": "zhen_she",
+              "status": "jin_yong",
               "duration": 1,
-              "condition": {
-                "event": "killed"
-              },
               "target": {
                 "side": "enemy",
-                "count": 1,
-                "mode": "first"
+                "lord": true
+              },
+              "condition": {
+                "turn_max": 1,
+                "victim_type": "general"
               }
             }
-          ],
-          "text": "马超获得先攻状态,如果第一回合斩杀一名敌方武将,则对方主帅下一回合内无法行动."
+          ]
         }
       ],
       "memo": "",
@@ -607,11 +607,11 @@ window.GameData = {
       "value": {
         "stats": 10,
         "keywords": 0,
-        "skills": 2.8,
-        "total": 12.8,
+        "skills": 1.12,
+        "total": 11.12,
         "budget": 11,
-        "diff": 1.8,
-        "level": "watch"
+        "diff": 0.12,
+        "level": "ok"
       }
     },
     {
@@ -3337,25 +3337,35 @@ window.GameData = {
           "id": "wei_zhen_si_fang",
           "name": "威震四方",
           "kind": "trigger",
-          "trigger": "on_play",
+          "trigger": "on_kill",
+          "text": "每次击杀时获得 +1 攻 / +1 血。",
           "effects": [
             {
-              "action": "apply_status",
-              "status": "zhen_she",
-              "duration": 1,
-              "chance": 0.75,
+              "action": "modify",
+              "attack": 1,
+              "health": 1,
               "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              },
-              "note": "平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）"
+                "source": true
+              }
             }
-          ],
-          "text": "指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%."
+          ]
+        },
+        {
+          "id": "yi_ji_wei_zhen",
+          "name": "遗计·威震四方",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "亡语：击杀华雄的角色获得 +1 攻 / +1 血。",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "health": 1,
+              "target": {
+                "event": "killer"
+              }
+            }
+          ]
         }
       ],
       "memo": "",
@@ -3363,10 +3373,10 @@ window.GameData = {
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 3.75,
-        "total": 9.75,
+        "skills": 2.8,
+        "total": 8.8,
         "budget": 7,
-        "diff": 2.75,
+        "diff": 1.8,
         "level": "watch"
       }
     },

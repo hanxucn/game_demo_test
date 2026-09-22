@@ -292,7 +292,8 @@ function attack(
     // 必须在造成伤害**之前**取值：伤害不改变攻击力，但目标可能被打死而离场。
     const retaliate = effectiveAttack(state, foe, tRow, tCol);
 
-    const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name);
+    const dealt = dealDamage(state, ctx.cards, unitRef(foe, tRow, tCol), dmg, events, attacker.name, 0,
+      { side, row: from.row, col: from.col });
 
     // 时机表第 16 步：受到伤害触发技（on_damaged）
     const hit = getUnit(state, foe, tRow, tCol);

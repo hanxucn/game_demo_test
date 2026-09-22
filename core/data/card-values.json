@@ -119,11 +119,11 @@
  "shu_machao": {
   "stats": 10,
   "keywords": 0,
-  "skills": 2.8,
-  "total": 12.8,
+  "skills": 1.12,
+  "total": 11.12,
   "budget": 11,
-  "diff": 1.8,
-  "level": "watch"
+  "diff": 0.12,
+  "level": "ok"
  },
  "shu_zhangfei": {
   "stats": 10,
@@ -659,10 +659,10 @@
  "qun_huaxiong": {
   "stats": 6,
   "keywords": 0,
-  "skills": 3.75,
-  "total": 9.75,
+  "skills": 2.8,
+  "total": 8.8,
   "budget": 7,
-  "diff": 2.75,
+  "diff": 1.8,
   "level": "watch"
  },
  "qun_zhangbao": {
