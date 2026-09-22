@@ -5667,18 +5667,6 @@ window.GameData = {
       "definition": "免疫混乱、离间等状态。",
       "memo": "不吃控制",
       "open": "待实现。⚠️ 原引擎误把「忠义」做成\"阵亡触发亡语\"，已纠正——亡语是「遗计」"
-    },
-    {
-      "id": "jie_zhen",
-      "name": "结阵",
-      "type": "buff",
-      "grants": [],
-      "stackable": false,
-      "value": 0,
-      "implemented": false,
-      "definition": "⚠️ 设计者尚未设计具体机制，先保留名字，后续再定。",
-      "memo": "（待设计）",
-      "open": "引擎里现存的\"相邻有友方步兵时 +1 攻\"是 AI 旧推定，**不可用**（Q-06-3）"
     }
   ]
 };

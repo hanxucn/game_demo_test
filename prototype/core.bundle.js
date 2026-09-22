@@ -78,6 +78,7 @@ var Core = (() => {
     hasCap: () => hasCap,
     hasCapOn: () => hasCapOn,
     hasKeyword: () => hasKeyword,
+    hasTrait: () => hasTrait,
     hashSeed: () => hashSeed,
     healTarget: () => healTarget,
     isBanned: () => isBanned,
@@ -102,6 +103,7 @@ var Core = (() => {
     refHp: () => refHp,
     registerOnDeathResolver: () => registerOnDeathResolver,
     registerOnDrawResolver: () => registerOnDrawResolver,
+    removeStatus: () => removeStatus,
     resolveTargets: () => resolveTargets,
     resolveTurnEndStatuses: () => resolveTurnEndStatuses,
     resolveTurnStartStatuses: () => resolveTurnStartStatuses,
@@ -230,17 +232,13 @@ var Core = (() => {
       name: "\u5FE0\u4E49",
       implemented: false,
       note: '\u514D\u75AB\u6DF7\u4E71\u3001\u79BB\u95F4\u7B49\u72B6\u6001\uFF08\u5F85\u5B9E\u73B0\u3002\u6CE8\uFF1A\u539F\u5B9E\u73B0\u8BEF\u505A\u6210"\u9635\u4EA1\u89E6\u53D1\u4EA1\u8BED"\uFF0C\u5DF2\u7EA0\u6B63\uFF09'
-    },
-    jie_zhen: {
-      name: "\u7ED3\u9635",
-      implemented: false,
-      note: '\u26A0\uFE0F \u8BBE\u8BA1\u8005\u5C1A\u672A\u8BBE\u8BA1\u5177\u4F53\u673A\u5236\uFF0C\u5148\u4FDD\u7559\u540D\u5B57\uFF08\u5F53\u524D\u5F15\u64CE\u91CC\u7684"\u76F8\u90BB\u6B65\u5175+1\u653B"\u662F AI \u65E7\u63A8\u5B9A\uFF0C\u4E0D\u53EF\u7528\uFF09'
     }
   };
   var RETIRED_KEYWORDS = {
     ji_xing: "\u75BE\u884C \u2014\u2014 \u4E0E\u300C\u5148\u653B\u300D\u662F\u540C\u4E00\u4E2A\u4E1C\u897F\uFF08\u8BBE\u8BA1\u8005\u88C1\u5B9A\uFF09\uFF0C\u5DF2\u5408\u5E76\uFF0C\u8BF7\u6539\u7528 xian_gong",
     wu_shuang: "\u65E0\u53CC \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u6682\u65F6\u6CA1\u6709\u8FD9\u4E2A\u72B6\u6001",
-    wu_sheng: '\u6B66\u5723 \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u5E9F\u5F03\u6B64\u540D\uFF08\u5173\u7FBD\u7684\u6280\u80FD\u540D\u7528\u300C\u6C34\u6DF9\u4E03\u519B\u300D\uFF09\uFF1B\u5176"\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"\u7684\u673A\u5236\u6539\u540D\u4E3A\u300C\u5723\u76FE\u300D'
+    wu_sheng: '\u6B66\u5723 \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u5E9F\u5F03\u6B64\u540D\uFF08\u5173\u7FBD\u7684\u6280\u80FD\u540D\u7528\u300C\u6C34\u6DF9\u4E03\u519B\u300D\uFF09\uFF1B\u5176"\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"\u7684\u673A\u5236\u6539\u540D\u4E3A\u300C\u5723\u76FE\u300D',
+    jie_zhen: '\u7ED3\u9635 \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u79FB\u9664\u8BE5\u6548\u679C\uFF08\u5F15\u64CE\u91CC"\u76F8\u90BB\u6709\u53CB\u65B9\u6B65\u5175\u65F6 +1 \u653B"\u662F AI \u81EA\u5DF1\u63A8\u7684\uFF0C\u4ECE\u672A\u88AB\u8BBE\u8BA1\uFF09'
   };
   var TAGS = {
     xi_liang: { name: "\u897F\u51C9", note: "\u897F\u51C9\u51FA\u8EAB\uFF1A\u9A6C\u817E\u3001\u9A6C\u8D85\u3001\u9A6C\u5CB1" },
@@ -537,6 +535,12 @@ var Core = (() => {
   var statusStacks = (u, id) => u?.statuses[id]?.stacks ?? 0;
   var lordStatusStacks = (l, id) => l?.statuses?.[id]?.stacks ?? 0;
   var statusTurns = (u, id) => u?.statuses[id]?.turns;
+  function hasTrait(u, keyword) {
+    if (!u) return false;
+    if (u.kw.includes(keyword)) return true;
+    const st = u.statuses[`${keyword}_status`];
+    return !!st && st.stacks > 0;
+  }
   function hasCap(u, cap) {
     if (!u) return false;
     return hasCapOn(u.statuses, cap);
@@ -556,7 +560,7 @@ var Core = (() => {
     return n;
   }
   var activeStatuses = (u) => Object.entries(u?.statuses ?? {}).filter(([, v]) => v.stacks > 0).map(([k]) => k);
-  var shieldUnits = (s, side) => allUnits(s, side).filter(({ unit }) => hasKeyword(unit, "jia_dun") && unit.hp > 0);
+  var shieldUnits = (s, side) => allUnits(s, side).filter(({ unit }) => hasTrait(unit, "jia_dun") && unit.hp > 0);
   var lordAlive = (s, side) => s.sides[side].lord.hp > 0;
   function openColumns(s, side) {
     const out = [];
@@ -605,7 +609,7 @@ var Core = (() => {
   }
 
   // src/rules.ts
-  var isMelee = (u) => u.type !== "strategist" && !hasKeyword(u, "shen_she");
+  var isMelee = (u) => u.type !== "strategist" && !hasTrait(u, "shen_she");
   function canUseUnitSkill(state, side, row, col) {
     const u = getUnit(state, side, row, col);
     if (!u) return { ok: false, reason: "\u8BE5\u683C\u6CA1\u6709\u5355\u4F4D" };
@@ -627,11 +631,11 @@ var Core = (() => {
     if (hasCap(u, "block_action") || hasCap(u, "block_attack")) {
       return { ok: false, reason: "\u5F53\u524D\u72B6\u6001\u65E0\u6CD5\u666E\u901A\u653B\u51FB" };
     }
-    const maxAttacks = hasKeyword(u, "lian_ji") ? 2 : 1;
+    const maxAttacks = hasTrait(u, "lian_ji") ? 2 : 1;
     if (u.attackedThisTurn >= maxAttacks) {
       return { ok: false, reason: `\u672C\u56DE\u5408\u5DF2\u653B\u51FB ${u.attackedThisTurn} \u6B21` };
     }
-    if (u.enteredTurn === state.turn && !hasKeyword(u, "xian_gong")) {
+    if (u.enteredTurn === state.turn && !hasTrait(u, "xian_gong")) {
       return { ok: false, reason: "\u672C\u56DE\u5408\u5165\u573A\uFF0C\u65E0\u6CD5\u653B\u51FB\uFF08\u300C\u5148\u653B\u300D\u9664\u5916\uFF09" };
     }
     return { ok: true };
@@ -642,13 +646,6 @@ var Core = (() => {
     let atk = u.atk;
     atk += statusStacks(u, "zhen_fen");
     atk -= statusStacks(u, "xu_ruo");
-    if (hasKeyword(u, "jie_zhen")) {
-      const cols = [col - 1, col, col + 1];
-      const hasAllyInfantry = allUnits(state, side).some(
-        ({ row: r, col: c, unit }) => unit.uid !== u.uid && unit.troopKind === "infantry" && cols.includes(c) && (r === "front" || r === "back")
-      );
-      if (hasAllyInfantry) atk += 1;
-    }
     return Math.max(0, atk);
   }
   function legalTargets(state, side, row, col) {
@@ -664,7 +661,7 @@ var Core = (() => {
         why: `\u654C\u65B9\u5B58\u5728\u300C\u67B6\u76FE\u300D${shields.map((sh) => `\u7B2C${sh.col + 1}\u683C`).join("\u3001")} \u2192 \u5FC5\u987B\u5148\u653B\u51FB\u5B83\uFF08\u5632\u8BBD\uFF09`
       };
     }
-    const targets = allUnits(state, foe).filter(({ unit }) => unit.hp > 0 && !hasCap(unit, "untargetable") && !hasKeyword(unit, "qi_xi")).map(({ row: r, col: c }) => ({ kind: "unit", side: foe, row: r, col: c }));
+    const targets = allUnits(state, foe).filter(({ unit }) => unit.hp > 0 && !hasCap(unit, "untargetable") && !hasTrait(unit, "qi_xi")).map(({ row: r, col: c }) => ({ kind: "unit", side: foe, row: r, col: c }));
     targets.push({ kind: "lord", side: foe });
     return {
       targets,
@@ -864,6 +861,35 @@ var Core = (() => {
     lord.armor += amount;
     events.push({ type: "ARMOR_GAINED", side, amount, armor: lord.armor });
   }
+  function removeStatus(state, ref, status, events, stacks) {
+    if (ref.kind === "hand") return 0;
+    if (ref.kind === "lord") {
+      const lord = state.sides[ref.side].lord;
+      const inst2 = lord.statuses?.[status];
+      if (!inst2) return 0;
+      const removed2 = stacks === void 0 ? inst2.stacks : Math.min(stacks, inst2.stacks);
+      if (stacks === void 0 || removed2 >= inst2.stacks) {
+        delete lord.statuses[status];
+        events.push({ type: "LORD_STATUS_EXPIRED", side: ref.side, status });
+      } else {
+        inst2.stacks -= removed2;
+      }
+      return removed2;
+    }
+    const u = getUnit(state, ref.side, ref.row, ref.col);
+    if (!u) return 0;
+    const inst = u.statuses[status];
+    if (!inst) return 0;
+    const removed = stacks === void 0 ? inst.stacks : Math.min(stacks, inst.stacks);
+    if (stacks === void 0 || removed >= inst.stacks) {
+      delete u.statuses[status];
+      u.kw = u.kw.filter((k) => k !== status);
+      events.push({ type: "STATUS_EXPIRED", side: ref.side, row: ref.row, col: ref.col, status });
+    } else {
+      inst.stacks -= removed;
+    }
+    return removed;
+  }
   function applyStatus(state, ref, status, stacks, events, turns, srcUid, auraId) {
     if (ref.kind === "hand") return;
     const def = STATUSES[status];
@@ -910,7 +936,7 @@ var Core = (() => {
     if (!getUnit(state, side, row, col)) return;
     setUnit(state, side, row, col, null);
     events.push({ type: "UNIT_DIED", side, row, col, unit });
-    if (hasKeyword(unit, "yi_ji")) drawCard(state, cards, side, events);
+    if (hasTrait(unit, "yi_ji")) drawCard(state, cards, side, events);
     const card = cards.get(unit.cardId);
     const deathSkills = (card?.skills ?? []).filter((sk) => sk.trigger === "on_death");
     if (deathSkills.length && onDeathResolver) {
@@ -1602,6 +1628,16 @@ var Core = (() => {
           }
           break;
         }
+        case "remove_status": {
+          const times = eff.count ?? 1;
+          for (let i = 0; i < times; i++) {
+            const list = i === 0 ? targets.length ? targets : ctx.chosen ? [ctx.chosen] : [] : eff.target ? resolveTargets(state, eff.target, ctx, rng) : ctx.chosen ? [ctx.chosen] : [];
+            for (const t of list) {
+              removeStatus(state, t, eff.status, events, eff.stacks ?? eff.value ?? void 0);
+            }
+          }
+          break;
+        }
         case "gain_armor":
           gainArmor(state, ctx.side, eff.value ?? 1, events);
           break;
@@ -1840,7 +1876,7 @@ var Core = (() => {
     }
     if (!target) return false;
     const dmg = effectiveAttack(state, side, from.row, from.col);
-    const hasYinXue = hasKeyword(attacker, "yin_xue");
+    const hasYinXue = hasTrait(attacker, "yin_xue");
     const foe = other(side);
     events.push({ type: "ATTACK_DECLARED", side, from: { ...from }, to: target });
     runUnitTrigger(state, ctx.cards, attacker, "on_attack", rng, events);
@@ -1864,7 +1900,7 @@ var Core = (() => {
       if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
     }
     attacker.attackedThisTurn += 1;
-    if (hasKeyword(attacker, "qi_xi")) {
+    if (hasTrait(attacker, "qi_xi")) {
       attacker.kw = attacker.kw.filter((k) => k !== "qi_xi");
       delete attacker.statuses.qi_xi_status;
       events.push({ type: "STATUS_EXPIRED", side, row: from.row, col: from.col, status: "qi_xi" });

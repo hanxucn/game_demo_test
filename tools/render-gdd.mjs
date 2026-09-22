@@ -179,6 +179,7 @@ function renderMarkdown(md) {
     }
 
     // 段落
+    const before = i;
     const buf = [];
     while (
       i < lines.length &&
@@ -189,6 +190,14 @@ function renderMarkdown(md) {
       i++;
     }
     if (buf.length) out.push(`<p>${buf.join('<br>')}</p>`);
+    else if (i === before) {
+      // 兜底：这一行被 isBlockStart 认为是块起始，却没有任何分支接手
+      // （典型是被删表头后遗留的孤立 `|` 行）。若不强制前进，
+      // 下面的 while 会原地打转、整个构建**静默挂死**且毫无提示。
+      console.warn(`⚠ render-gdd: 无法解析的行，按纯文本处理（${i + 1} 行）：${line.slice(0, 60)}`);
+      out.push(`<p>${inline(line)}</p>`);
+      i++;
+    }
   }
 
   return out.join('\n');
