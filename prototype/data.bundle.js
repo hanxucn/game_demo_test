@@ -136,7 +136,7 @@ window.GameData = {
           "id": "yong_wu",
           "name": "勇武",
           "kind": "aura",
-          "text": "当关羽在场时,获得中攻击+1,血量+1",
+          "text": "关羽在场时，自身 +1 攻 / +1 血。",
           "effects": [
             {
               "action": "modify",
@@ -161,7 +161,7 @@ window.GameData = {
           "name": "遗计·圣盾",
           "kind": "trigger",
           "trigger": "on_death",
-          "text": "当关羽在场时,获得中攻击+1,血量+1",
+          "text": "亡语：使关羽获得圣盾。",
           "effects": [
             {
               "action": "apply_status",
@@ -537,7 +537,7 @@ window.GameData = {
           "name": "百步穿杨",
           "kind": "active",
           "frequency": "once_per_turn",
-          "text": "每回合开始时，对指定敌方人物造成 2 点伤害。",
+          "text": "自己每回合行动时对指定敌方人物造成 2 点伤害。",
           "effects": [
             {
               "action": "damage",
@@ -629,7 +629,7 @@ window.GameData = {
           "name": "咆哮",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "每回合对所有敌方人物卡造成 1 点伤害",
+          "text": "战吼：所有攻击力低于张飞的敌军（不含主公）本回合攻击力 −1，并受到 1 点伤害。",
           "effects": [
             {
               "action": "modify",
@@ -1152,7 +1152,7 @@ window.GameData = {
           "name": "运筹帷幄",
           "kind": "active",
           "frequency": "once_per_turn",
-          "text": "上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。",
+          "text": "一回合一次：查看牌库最上面三张牌，并按指定顺序放回。己方抽一张牌。",
           "effects": [
             {
               "action": "scry",
@@ -1173,7 +1173,7 @@ window.GameData = {
           "id": "kong_cheng_ji",
           "name": "空城之计",
           "kind": "aura",
-          "text": "上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。",
+          "text": "己方手牌为 0 时，诸葛亮获得免疫伤害效果。",
           "effects": [
             {
               "action": "apply_status",
@@ -1238,7 +1238,7 @@ window.GameData = {
               }
             }
           ],
-          "text": "每回合对指定任意敌方人物造成一点伤害。"
+          "text": "回合结束时，随机对敌方一名人物或主将造成 1 点伤害。"
         }
       ],
       "memo": "",
@@ -1494,7 +1494,7 @@ window.GameData = {
           "name": "据守",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。",
+          "text": "战吼：为与郭淮相邻的己方人物 +2 生命上限，并使其获得架盾。",
           "effects": [
             {
               "action": "modify",
@@ -1606,7 +1606,7 @@ window.GameData = {
           "name": "迅疾突袭",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "第一回合获得先攻，然后第一回合能行动结束后获得一回合隐身效果（无法被选中攻击），下回合失效。",
+          "text": "第一回合获得先攻，行动结束后获得一回合隐身（无法被选中攻击），下回合失效。",
           "effects": [
             {
               "action": "apply_status",
@@ -3158,7 +3158,7 @@ window.GameData = {
           "name": "离间",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "上场时对指定一名敌方人物进行离间，双方拼点数大小：如果大于对方则使其丢弃一张卡牌；如果小于对方则此敌方卡回到对方手牌中。",
+          "text": "拼点：大于对方则使其丢弃一张牌，并对其主公造成等同于该牌统帅值的伤害；小于对方则使场上随机一名敌方人物回到对方手牌。",
           "effects": [
             {
               "action": "clash",
@@ -3226,15 +3226,38 @@ window.GameData = {
       "attack": 2,
       "health": 2,
       "keywords": [],
+      "skills": [
+        {
+          "id": "shui_gong",
+          "name": "水攻",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：对指定一名敌人造成 1 点水伤。",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ]
+        }
+      ],
       "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
         "keywords": 0,
-        "skills": 0,
-        "total": 4,
+        "skills": 0.5,
+        "total": 4.5,
         "budget": 5,
-        "diff": -1,
+        "diff": -0.5,
         "level": "ok"
       }
     },
@@ -3276,7 +3299,7 @@ window.GameData = {
           "name": "顽强",
           "kind": "trigger",
           "trigger": "on_damaged",
-          "text": "上场时第一回合时对指定敌人造成2点伤害",
+          "text": "每次受到攻击没有阵亡时，恢复 1 点生命。",
           "effects": [
             {
               "action": "heal",
@@ -3613,7 +3636,7 @@ window.GameData = {
           "name": "暴虐",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "战吼：抽 1 张牌，并对**自己主公**造成 2 点伤害。",
+          "text": "战吼：抽 1 张牌，并对主公造成 2 点伤害。",
           "effects": [
             {
               "action": "draw",
@@ -3660,7 +3683,7 @@ window.GameData = {
           "name": "威望",
           "kind": "trigger",
           "trigger": "turn_start",
-          "text": "每回合可召唤一个 1攻 1血的士族兵",
+          "text": "每回合召唤一个弓兵。",
           "effects": [
             {
               "action": "summon",
@@ -3675,7 +3698,7 @@ window.GameData = {
           "name": "万箭齐发之令",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "每回合可召唤一个 1攻 1血的士族兵",
+          "text": "战吼：获得一张万箭齐发，并将两张万箭齐发加入牌组。",
           "effects": [
             {
               "action": "add_to_deck",
@@ -3696,7 +3719,7 @@ window.GameData = {
           "name": "遗计·万箭齐发",
           "kind": "trigger",
           "trigger": "on_death",
-          "text": "每回合可召唤一个 1攻 1血的士族兵",
+          "text": "遗计：将未抽到的万箭齐发加入敌方牌库。",
           "effects": [
             {
               "action": "send_to_deck",
@@ -3817,25 +3840,46 @@ window.GameData = {
       "keywords": [],
       "skills": [
         {
-          "id": "zhong_lie_zhi_zhi",
-          "name": "忠烈之志",
-          "kind": "aura",
+          "id": "zhong_lie",
+          "name": "忠烈",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：选择一名武将，使其直到下个自己回合开始时获得——若为敌军，无法攻击和使用技能；若为友军，其受到的伤害由陈宫承担。",
           "effects": [
             {
               "action": "apply_status",
-              "status": "shou_hu",
-              "status_source": "self",
+              "status": "jin_gu",
+              "duration": 1,
               "target": {
-                "side": "ally",
+                "side": "both",
                 "filter": {
                   "type": "character"
                 },
                 "count": 1,
                 "mode": "choose"
+              },
+              "condition": {
+                "chosen_side": "enemy"
+              }
+            },
+            {
+              "action": "apply_status",
+              "status": "shou_hu",
+              "duration": 1,
+              "status_source": "self",
+              "target": {
+                "side": "both",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              },
+              "condition": {
+                "chosen_side": "ally"
               }
             }
-          ],
-          "text": "上场时指定为一名友方单位分担伤害;当指定的友方单位血减少为一血时其他溢出伤害由陈宫承担有效到陈宫为0血."
+          ]
         }
       ],
       "memo": "",
@@ -3843,10 +3887,10 @@ window.GameData = {
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 2,
-        "total": 8,
+        "skills": 2.8,
+        "total": 8.8,
         "budget": 9,
-        "diff": -1,
+        "diff": -0.2,
         "level": "ok"
       }
     },
@@ -4073,7 +4117,7 @@ window.GameData = {
               }
             }
           ],
-          "text": "每回合结束时释放 5 次随机 1 点雷击，目标为敌方随机人物；每次雷击有 50% 概率对其造成震慑；若雷击击杀敌人，则上场一个 1 攻 1 血的黄巾兵。"
+          "text": "每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。"
         }
       ],
       "memo": "",
@@ -5702,6 +5746,20 @@ window.GameData = {
       "timing": 9,
       "duration": "turns",
       "memo": "引擎内部：本单位被标记为某人的仇敌"
+    },
+    {
+      "id": "jin_gu",
+      "name": "禁锢",
+      "kind": "debuff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 5,
+      "duration": "turns",
+      "caps": [
+        "block_attack",
+        "block_skill"
+      ],
+      "memo": "不能普通攻击，也不能使用主动技（陈宫「忠烈」对敌军的效果）"
     }
   ],
   "keywords": [

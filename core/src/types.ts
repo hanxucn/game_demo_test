@@ -24,6 +24,8 @@ export interface EffectCondition {
   count?: { selector: TargetSelector; op: CompareOp; value: number };   // 数量与定值比
   count_vs?: { left: TargetSelector; right: TargetSelector; op: CompareOp };  // 两集合互比
   event?: 'killed' | 'clash_won' | 'clash_lost';             // 本次结算中的事件
+  /** 所选目标属于哪一方（陈宫「忠烈」：选敌将 vs 选友将走不同分支，ADR-069） */
+  chosen_side?: 'ally' | 'enemy';
 }
 
 export type CompareOp = '>=' | '<=' | '==' | '>' | '<' | '!=';
@@ -244,7 +246,9 @@ export interface MatchState {
    ============================================================ */
 
 export type Action =
-  | { type: 'PLAY_CARD'; cardIndex: number; row?: Row; col?: number }
+  | { type: 'PLAY_CARD'; cardIndex: number; row?: Row; col?: number;
+      /** 战吼（on_play）需要玩家选目标时，在此带上所选目标（ADR-069） */
+      target?: { side: Side; row: Row; col: number } }
   | { type: 'ATTACK'; from: { row: Row; col: number }; to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' } }
   | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }
   | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }

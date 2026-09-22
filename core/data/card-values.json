@@ -632,10 +632,10 @@
  "qun_caimao": {
   "stats": 4,
   "keywords": 0,
-  "skills": 0,
-  "total": 4,
+  "skills": 0.5,
+  "total": 4.5,
   "budget": 5,
-  "diff": -1,
+  "diff": -0.5,
   "level": "ok"
  },
  "qun_songxian": {
@@ -749,10 +749,10 @@
  "qun_chengong": {
   "stats": 6,
   "keywords": 0,
-  "skills": 2,
-  "total": 8,
+  "skills": 2.8,
+  "total": 8.8,
   "budget": 9,
-  "diff": -1,
+  "diff": -0.2,
   "level": "ok"
  },
  "qun_huatuo": {

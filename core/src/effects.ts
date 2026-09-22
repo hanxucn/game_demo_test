@@ -123,6 +123,13 @@ function checkCondition(
     return cmp(l, cond.count_vs.op, r);
   }
   if (cond.event) return (ctx.flags ?? []).includes(cond.event);
+  // 按「所选目标属于哪一方」分支：ctx 的 side 是施法方，chosen.side 是目标方
+  if (cond.chosen_side) {
+    const t = ctx.chosen;
+    if (!t) return false;
+    const targetSide = t.side;
+    return cond.chosen_side === 'ally' ? targetSide === ctx.side : targetSide !== ctx.side;
+  }
   return true;
 }
 

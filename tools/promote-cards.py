@@ -59,7 +59,11 @@ def normalize(card: dict) -> dict:
         if dsl:
             for d in dsl:
                 entry = dict(d)
-                if sk.get("text"):
+                # 文案优先级：DSL 条目自带的 text > 卡面原文。
+                # 原先无条件用卡面原文覆盖，有两个后果：
+                #   ① 设计者更新后的文案（写在 DSL 里）永远显示不出来；
+                #   ② **一张卡有多个技能时，每条都显示同一段卡面原文**（袁绍 3 条全一样）。
+                if not entry.get("text") and sk.get("text"):
                     entry["text"] = sk["text"]
                 skills_out.append(entry)
         elif sk.get("name") or sk.get("text"):

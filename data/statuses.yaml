@@ -228,3 +228,15 @@
   timing: 9             # 攻击声明
   duration: turns
   memo: "引擎内部：本单位被标记为某人的仇敌"
+
+# ---------- ADR-069 新增 ----------
+
+- id: jin_gu
+  name: 禁锢
+  kind: debuff
+  numeric: false
+  scope: character
+  timing: 5             # 回合开始：行动判定
+  duration: turns
+  caps: [block_attack, block_skill]
+  memo: "不能普通攻击，也不能使用主动技（陈宫「忠烈」对敌军的效果）"

@@ -351,6 +351,14 @@ var Core = (() => {
       caps: ["block_skill"],
       note: "\u4E0D\u80FD\u4F7F\u7528\u4E3B\u52A8\u6280\u4E0E\u89E6\u53D1\u6280\uFF08silence\uFF09"
     },
+    jin_gu: {
+      name: "\u7981\u9522",
+      kind: "debuff",
+      numeric: false,
+      duration: "turns",
+      caps: ["block_attack", "block_skill"],
+      note: "\u4E0D\u80FD\u666E\u653B\u4E5F\u4E0D\u80FD\u7528\u4E3B\u52A8\u6280\uFF08\u9648\u5BAB\u300C\u5FE0\u70C8\u300D\u5BF9\u654C\u519B\u5206\u652F\uFF0CADR-069\uFF09"
+    },
     mian_yi: {
       name: "\u514D\u75AB",
       kind: "buff",
@@ -1084,6 +1092,12 @@ var Core = (() => {
       return cmp(l, cond.count_vs.op, r);
     }
     if (cond.event) return (ctx.flags ?? []).includes(cond.event);
+    if (cond.chosen_side) {
+      const t = ctx.chosen;
+      if (!t) return false;
+      const targetSide = t.side;
+      return cond.chosen_side === "ally" ? targetSide === ctx.side : targetSide !== ctx.side;
+    }
     return true;
   }
   function runTriggerSkills(state, cards, side, trigger, rng, events) {
@@ -1848,8 +1862,16 @@ var Core = (() => {
       setUnit(state, side, slot.row, slot.col, u);
       events.push({ type: "UNIT_SUMMONED", side, row: slot.row, col: slot.col, unit: u });
       const onPlay = (card.skills ?? []).filter((sk) => sk.trigger === "on_play");
+      const chosen = action.target ? { kind: "unit", side: action.target.side, row: action.target.row, col: action.target.col } : void 0;
       for (const sk of onPlay) {
-        runEffects(state, ctx.cards, sk.effects, { side, source: u, chosenRow: slot.row, chosenCol: slot.col }, rng, events);
+        runEffects(
+          state,
+          ctx.cards,
+          sk.effects,
+          { side, source: u, chosen, chosenRow: slot.row, chosenCol: slot.col },
+          rng,
+          events
+        );
       }
       if (card.effects?.length) {
         runEffects(state, ctx.cards, card.effects, { side, source: u }, rng, events);
@@ -1858,7 +1880,10 @@ var Core = (() => {
       runCardPlayedTriggers(state, ctx.cards, card, rng, events);
       recomputeAuras(state, ctx.cards, rng, events);
     } else {
-      runEffects(state, ctx.cards, card.effects, { side }, rng, events);
+      runEffects(state, ctx.cards, card.effects, {
+        side,
+        chosen: action.target ? { kind: "unit", side: action.target.side, row: action.target.row, col: action.target.col } : void 0
+      }, rng, events);
       s.discard.push(card);
       runCardPlayedTriggers(state, ctx.cards, card, rng, events);
       recomputeAuras(state, ctx.cards, rng, events);

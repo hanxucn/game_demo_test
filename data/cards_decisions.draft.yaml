@@ -1832,7 +1832,6 @@ dsl:
   _none:
   - neutral_infantry
   - neutral_shieldman
-  - qun_caimao
   - qun_songxian
   - shu_dongjue
   - shu_xiangchong
@@ -2465,19 +2464,36 @@ dsl:
           type: character
         count: all
   qun_chengong:
-  - id: zhong_lie_zhi_zhi
-    name: 忠烈之志
-    kind: aura
+  - id: zhong_lie
+    name: 忠烈
+    kind: trigger
+    trigger: on_play
+    text: 战吼：选择一名武将，使其直到下个自己回合开始时获得——若为敌军，无法攻击和使用技能；若为友军，其受到的伤害由陈宫承担。
     effects:
     - action: apply_status
-      status: shou_hu
-      status_source: self
+      status: jin_gu
+      duration: 1
       target:
-        side: ally
+        side: both
         filter:
           type: character
         count: 1
         mode: choose
+      condition:
+        chosen_side: enemy      # 选到的是敌军 → 禁攻禁技
+    - action: apply_status
+      status: shou_hu
+      duration: 1
+      status_source: self       # 记下陈宫为守护者 → 伤害转由陈宫承担
+      target:
+        side: both
+        filter:
+          type: character
+        count: 1
+        mode: choose
+      condition:
+        chosen_side: ally       # 选到的是友军 → 陈宫替其承伤
+
   wu_zhoutai:
   - id: tie_xue_shou_hu
     name: 铁血守护

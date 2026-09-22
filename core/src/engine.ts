@@ -214,8 +214,14 @@ function playCard(
     events.push({ type: 'UNIT_SUMMONED', side, row: slot.row, col: slot.col, unit: u });
     // 入场效果（战吼）
     const onPlay = (card.skills ?? []).filter((sk) => sk.trigger === 'on_play');
+    // 战吼需要选目标时（如陈宫「忠烈」、蔡瑁「水攻」），把玩家选的目标作为 chosen 传入。
+    // 此前完全没传 → mode:'choose' 只能退回"取第一个合法目标"，玩家无法真正选择。
+    const chosen = action.target
+      ? ({ kind: 'unit', side: action.target.side, row: action.target.row, col: action.target.col } as const)
+      : undefined;
     for (const sk of onPlay) {
-      runEffects(state, ctx.cards, sk.effects, { side, source: u, chosenRow: slot.row, chosenCol: slot.col }, rng, events);
+      runEffects(state, ctx.cards, sk.effects,
+        { side, source: u, chosen, chosenRow: slot.row, chosenCol: slot.col }, rng, events);
     }
     if (card.effects?.length) {
       runEffects(state, ctx.cards, card.effects, { side, source: u }, rng, events);
@@ -226,7 +232,12 @@ function playCard(
     recomputeAuras(state, ctx.cards, rng, events);
   } else {
     // 非人物卡：直接执行效果
-    runEffects(state, ctx.cards, card.effects, { side }, rng, events);
+    runEffects(state, ctx.cards, card.effects, {
+      side,
+      chosen: action.target
+        ? ({ kind: 'unit', side: action.target.side, row: action.target.row, col: action.target.col } as const)
+        : undefined,
+    }, rng, events);
     s.discard.push(card);
     runCardPlayedTriggers(state, ctx.cards, card, rng, events);   // ADR-041
     recomputeAuras(state, ctx.cards, rng, events);

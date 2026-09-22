@@ -919,7 +919,25 @@ cards:
   flags:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
-  dsl_status: 无技能（白板/关键词卡），无需翻译
+  skills:
+  - name: ''
+    text: ''
+    dsl:
+    - id: shui_gong
+      name: 水攻
+      kind: trigger
+      trigger: on_play
+      text: 战吼：对指定一名敌人造成 1 点水伤。
+      effects:
+      - action: damage
+        value: 1
+        target:
+          side: enemy
+          filter:
+            type: character
+          count: 1
+          mode: choose
+    note: DSL 已翻译
 - id: qun_songxian
   name: 宋宪
   faction: qun
@@ -1135,19 +1153,35 @@ cards:
   - name: 忠烈之志
     text: 上场时指定为一名友方单位分担伤害;当指定的友方单位血减少为一血时其他溢出伤害由陈宫承担有效到陈宫为0血.
     dsl:
-    - id: zhong_lie_zhi_zhi
-      name: 忠烈之志
-      kind: aura
+    - id: zhong_lie
+      name: 忠烈
+      kind: trigger
+      trigger: on_play
+      text: 战吼：选择一名武将，使其直到下个自己回合开始时获得——若为敌军，无法攻击和使用技能；若为友军，其受到的伤害由陈宫承担。
       effects:
       - action: apply_status
-        status: shou_hu
-        status_source: self
+        status: jin_gu
+        duration: 1
         target:
-          side: ally
+          side: both
           filter:
             type: character
           count: 1
           mode: choose
+        condition:
+          chosen_side: enemy
+      - action: apply_status
+        status: shou_hu
+        duration: 1
+        status_source: self
+        target:
+          side: both
+          filter:
+            type: character
+          count: 1
+          mode: choose
+        condition:
+          chosen_side: ally
     note: DSL 已翻译
   keywords: []
   memo: ''
