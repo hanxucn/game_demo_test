@@ -86,6 +86,21 @@ window.CardRender = (function () {
     return '<div class="cr-kw">' + html + '</div>';
   }
 
+  /** 卡面技能摘要：优先「技能名 + 文案」，无技能则退回记忆点 */
+  function skillBrief(card) {
+    var sk = (card.skills || [])[0];
+    if (sk && (sk.name || sk.text)) {
+      return '<b>' + (sk.name || '技能') + '</b>' + (sk.text ? '　' + sk.text : '');
+    }
+    return card.memo || '';
+  }
+
+  /** 战场卡只放得下一个技能名 */
+  function skillName(card) {
+    var sk = (card.skills || [])[0];
+    return sk && sk.name ? sk.name : '';
+  }
+
   /* ---------- 状态标记（卡头） ---------- */
   /** opts.statuses = [{ id, name, stacks, turns }]，在名称行右侧显示 */
   function statusHTML(opts) {
@@ -142,10 +157,21 @@ window.CardRender = (function () {
         (card.hp != null ? card.hp : 0) + '</div>';
     }
 
-    if (!opts.board) {
-      // 56×78 的卡面放不下可读的描述文字 → 描述改由悬浮/点击的详情面板展示
+    if (opts.board) {
+      // 战场卡只有 42×59：全文放不下，先把**技能名**摆出来（血攻圆圈上方那条），
+      // 完整文案走悬浮详情面板（见 battlefield.engine.js 的 hover 绑定）。
+      if (isCharacter(card)) {
+        var sn = skillName(card);
+        if (sn) html += '<div class="cr-skillname">' + sn + '</div>';
+      }
+    } else {
+      // 手牌 56×78：显示技能名 + 文案（原先进来时 opts.desc 从没被传过，
+      // 所以这段描述一直没渲染出来 —— 设计者反馈"看不到技能描述"）
       if (!isCharacter(card)) html += '<div class="cr-type">' + typeLabel(card) + '</div>';
-      if (opts.desc && card.memo) html += '<div class="cr-desc">' + card.memo + '</div>';
+      if (opts.desc) {
+        var brief = skillBrief(card);
+        if (brief) html += '<div class="cr-desc">' + brief + '</div>';
+      }
     }
 
     el.innerHTML = html;

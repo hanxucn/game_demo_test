@@ -80,6 +80,9 @@ function viewCard(c) {
   return {
     id: c.id, name: c.name, type: c.type, faction: c.faction, cost: c.cost,
     atk: c.attack || 0, hp: c.health || 0, kw: c.keywords || [],
+    // skills / keywords 必须带上：详情面板靠它们显示技能全文与关键词释义，
+    // 原先这里丢了 skills，于是「点手牌看详情」永远没有技能那一段。
+    skills: c.skills, keywords: c.keywords,
     memo: c.memo, troopKind: c.troopKind, art: c.art,
   };
 }
@@ -95,7 +98,8 @@ function newGame() {
     onStart: function (cfg) {
       session = {
         state: cfg.baseState,
-        ctx: { cards: data.cards, lords: data.lords },
+        // 用 setup 按所选阵营算出的 cards/lords；全局 data 里的主公是占位（写死刘备/曹操）
+        ctx: { cards: cfg.cards || data.cards, lords: cfg.lords || data.lords },
         meta: { ownFaction: cfg.ownFaction, enemyFaction: cfg.enemyFaction },
       };
       sel = null; drag = null; pendingSkill = null; busy = false;
@@ -132,7 +136,11 @@ function renderLords(st) {
   ['enemy', 'own'].forEach(function (side) {
     var l = st.sides[side].lord;
     var bar = document.getElementById('lord-' + side);
-    var canUse = side === 'own' && st.active === 'own' && !l.skillUsedThisTurn && st.sides.own.command.cur >= 1;
+    // 主公技消耗从 skillDef.cost 读（ADR-049：三主公统一 2 费）——
+    // 原先这里写死 1，界面上显示的「1」也是硬编码，与实际的 2 费对不上。
+    var skillCost = (l.skillDef && l.skillDef.cost != null) ? l.skillDef.cost : 2;
+    var canUse = side === 'own' && st.active === 'own' && !l.skillUsedThisTurn
+              && st.sides.own.command.cur >= skillCost;
     bar.className = 'lord-bar ' + side;
     bar.innerHTML =
       '<span class="lb-portrait f-' + (l.faction || 'neutral') + '">' + (l.name || '').charAt(0) + '</span>' +
@@ -141,7 +149,7 @@ function renderLords(st) {
       (l.armor ? '<span class="lb-armor">◈' + l.armor + '</span>' : '') +
       (l.skill
         ? '<span class="lb-skill' + (canUse ? '' : ' is-disabled') + '" title="主公技：' + l.skill +
-          '（消耗 1 统率 / 每回合 1 次）">' + l.skill + '<i>1</i></span>'
+          '（消耗 ' + skillCost + ' 统率 / 每回合 1 次）">' + l.skill + '<i>' + skillCost + '</i></span>'
         : '');
 
     var skillEl = bar.querySelector('.lb-skill');
@@ -237,9 +245,16 @@ function renderBoard(st) {
               startUnitDrag(e, row, col, wrap);
             });
           }
+          // 悬停即看技能全文：战场卡只有 42×59，读技能只能靠详情面板
+          wrap.addEventListener('pointerenter', function () {
+            if (busy || drag) return;
+            showCardDetail(u);
+          });
           wrap.addEventListener('click', function (e) {
             e.stopPropagation();
-            onUnitClick(side, row, col);
+            // 点选已在 onDragEnd 里处理（见那里的注释）——这里只作兜底，避免重复
+            if (Date.now() - tapHandledAt < 300) return;
+            onUnitClick(side, row, col, e);
           });
           slot.appendChild(wrap);
         } else {
@@ -296,7 +311,7 @@ function renderHand(st) {
     var cost = c.cost != null ? c.cost : 0;
     var affordable = cmd >= cost;
     var playable = myTurn && affordable;
-    wrap.appendChild(CR.big(viewCard(c)));
+    wrap.appendChild(CR.big(viewCard(c), { desc: true }));   // desc: 卡面显示技能名+文案
     if (!affordable) {
       wrap.classList.add('is-poor');
       var tag = document.createElement('div');
@@ -310,24 +325,30 @@ function renderHand(st) {
       wrap.appendChild(tag2);
     }
 
-    if (isCharacter(c)) {
-      // 人物卡：按住拖到战场；单击看详情
-      wrap.addEventListener('pointerdown', function (e) { startDrag(e, i, c, wrap); });
-      wrap.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (busy || st.winner || st.active !== 'own') return;
-        if (onHandPick(i)) return;
-        showCardDetail(c);
-      });
-    } else {
-      wrap.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (busy || st.winner || st.active !== 'own') return;
-        if (onHandPick(i)) return;
-        if (!playable) { showCardDetail(c); return; }   // 打不出 → 改看详情
-        doAction({ type: 'PLAY_CARD', cardIndex: i });
-      });
-    }
+    // 悬停 → 贴卡弹出技能详情（卡面太小放不下全文，详情面板又在右下角太远）
+    wrap.addEventListener('pointerenter', function () {
+      if (busy || drag) return;
+      showCardTip(viewCard(c), wrap);
+    });
+    wrap.addEventListener('pointerleave', hideCardTip);
+
+    // 两类卡都能"抓起来打出去"：
+    //   人物卡 → 拖到绿色格子
+    //   战法/事件卡 → 拖到战场任意处松手即释放（原先只能点击，设计师要求改成打出去）
+    wrap.addEventListener('pointerdown', function (e) {
+      hideCardTip();
+      startDrag(e, i, c, wrap);
+    });
+
+    wrap.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (busy || st.winner || st.active !== 'own') return;
+      if (Date.now() - dragHandledAt < 300) return;      // 拖拽已在 pointerup 处理
+      if (onHandPick(i)) return;
+      if (isCharacter(c)) { showCardDetail(c); return; }  // 人物卡点击 = 看详情
+      if (!playable) { showCardDetail(c); return; }       // 打不出 → 看详情
+      doAction({ type: 'PLAY_CARD', cardIndex: i });      // 非人物卡：点击仍可释放（保留）
+    });
     hand.appendChild(wrap);
   });
 }
@@ -354,8 +375,8 @@ var TRIGGER_NAME = {
 };
 
 /** 弹出卡牌详情：费用/攻血、关键词释义、每个技能的完整文案 */
-function showCardDetail(c) {
-  var el = $('#detail');
+/** 卡牌详情 HTML（详情面板与悬浮弹窗共用同一份内容） */
+function cardDetailHTML(c) {
   var rows = [];
   rows.push('<h4>' + c.name + '　<span class="sub">' + (c.cost != null ? c.cost + ' 费' : '') +
     (c.attack != null ? '　' + c.attack + '/' + c.health : '') +
@@ -370,13 +391,54 @@ function showCardDetail(c) {
     if (!sk.name && !sk.text) return;
     rows.push('<div class="sk"><b class="skname">' + (sk.name || '（无名技能）') + '</b>'
       + (sk.kind ? '<span class="sub">　' + (sk.kind === 'active' ? '主动技'
-        : sk.kind === 'aura' ? '光环' : '触发技')
+        : sk.kind === 'aura' ? '光环技' : '触发技')
         + (sk.trigger ? '·' + (TRIGGER_NAME[sk.trigger] || sk.trigger) : '') + '</span>' : '')
       + '<div class="why">' + (sk.text || '（无文案）') + '</div></div>');
   });
   if (c.memo) rows.push('<div class="sub" style="margin-top:6px">记忆点：' + c.memo + '</div>');
-  el.innerHTML = rows.join('');
+  return rows.join('');
+}
+
+function showCardDetail(c) {
+  var el = $('#detail');
+  el.innerHTML = cardDetailHTML(c);
   el.classList.add('show');
+}
+
+/* ---------- 悬浮技能弹窗 ----------
+   手牌只有 56×78、战场卡 42×59，全文塞不进卡面；
+   详情面板又在右下角、离卡很远。设计师要求"Hover 弹出技能详情"，
+   所以做一个贴着卡出现的气泡，内容与详情面板同源。 */
+var tipEl = null;
+
+function ensureTip() {
+  if (tipEl) return tipEl;
+  tipEl = document.createElement('div');
+  tipEl.id = 'card-tip';
+  document.body.appendChild(tipEl);
+  return tipEl;
+}
+
+function showCardTip(c, anchorEl) {
+  if (!anchorEl || drag) { hideCardTip(); return; }
+  var el = ensureTip();
+  el.innerHTML = cardDetailHTML(c);
+  el.classList.add('show');
+
+  var a = anchorEl.getBoundingClientRect();
+  var w = el.offsetWidth, h = el.offsetHeight;
+  // 手牌在底部 → 气泡放上方；战场单位在中间 → 优先放右侧
+  var left = a.left + a.width / 2 - w / 2;
+  var top = a.top - h - 10;
+  if (top < 8) { top = a.bottom + 10; left = a.right + 10; }
+  left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+  top = Math.max(8, Math.min(top, window.innerHeight - h - 8));
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+}
+
+function hideCardTip() {
+  if (tipEl) tipEl.classList.remove('show');
 }
 
 var TYPE_LABEL = {
@@ -403,17 +465,27 @@ function startDrag(e, index, card, wrap) {
   document.body.appendChild(ghost);
   wrap.classList.add('is-dragging');
 
+  var isUnit = isCharacter(card);
   drag = {
     kind: 'card',
+    isUnit: isUnit,
     index: index, card: card, wrap: wrap, ghost: ghost,
     dx: e.clientX - rect.left, dy: e.clientY - rect.top,
+    sx: e.clientX, sy: e.clientY,
   };
 
-  Core.legalPlacements(session.state, 'own').forEach(function (s) {
-    var el = document.querySelector('.slot[data-side="own"][data-row="' + s.row + '"][data-col="' + s.col + '"]');
-    if (el) el.classList.add('is-placeable');
-  });
-  showDetail('拖到战场放置', card.name + '（' + card.cost + ' 费）', '绿色格子为可放置位置');
+  if (isUnit) {
+    Core.legalPlacements(session.state, 'own').forEach(function (s) {
+      var el = document.querySelector('.slot[data-side="own"][data-row="' + s.row + '"][data-col="' + s.col + '"]');
+      if (el) el.classList.add('is-placeable');
+    });
+    showDetail('拖到战场放置', card.name + '（' + card.cost + ' 费）', '绿色格子为可放置位置');
+  } else {
+    // 战法 / 事件卡没有落点：把整块战场当作投放区
+    var boards = $('#boards') || document.querySelector('.arena-inner');
+    if (boards) boards.classList.add('is-spell-target');
+    showDetail('拖到战场释放', card.name + '（' + card.cost + ' 费）', '拉到战场任意处松手即释放');
+  }
 
   bindDragEvents();
 }
@@ -443,10 +515,12 @@ function startUnitDrag(e, row, col, wrap) {
     kind: 'unit',
     row: row, col: col, wrap: wrap, ghost: ghost,
     dx: e.clientX - rect.left, dy: e.clientY - rect.top,
+    sx: e.clientX, sy: e.clientY,        // 起点：用于区分「点选」和「拖拽」
   };
 
   sel = { row: row, col: col };
   renderLanes(session.state);            // 复用点击选中时的高亮（函数名是 renderLanes）
+  arrowTo(wrap, e.clientX, e.clientY, false);   // 立刻出现指向箭头
   var u = session.state.sides.own.rows[row][col];
   showDetail('拖到目标发起攻击', u.name + ' ' + u.atk + '/' + u.hp,
     '可拖到高亮的敌方人物卡或其主将上');
@@ -469,12 +543,17 @@ function onDragMove(e) {
     el.classList.remove('is-hover');
   });
   var t = dropAt(e.clientX, e.clientY);
-  if (!t) return;
-  if (drag.kind === 'card' && t.kind === 'slot' && t.el.classList.contains('is-placeable')) {
-    t.el.classList.add('is-hover');
-  } else if (drag.kind === 'unit' && (t.kind === 'unit' || t.kind === 'lord')) {
-    if (t.el.classList.contains('is-target')) t.el.classList.add('is-hover');
+  if (t) {
+    if (drag.kind === 'card' && drag.isUnit && t.kind === 'slot' && t.el.classList.contains('is-placeable')) {
+      t.el.classList.add('is-hover');
+    } else if (drag.kind === 'card' && !drag.isUnit && t.kind === 'board') {
+      t.el.classList.add('is-hover');
+    } else if (drag.kind === 'unit' && (t.kind === 'unit' || t.kind === 'lord')) {
+      if (t.el.classList.contains('is-target')) t.el.classList.add('is-hover');
+    }
   }
+  // 攻击拖拽全程跟着一条指向箭头，命中合法目标变绿
+  if (drag.kind === 'unit') arrowTo(drag.wrap, e.clientX, e.clientY, dropIsValid(e.clientX, e.clientY));
 }
 
 function onDragEnd(e) {
@@ -491,22 +570,30 @@ function onDragEnd(e) {
   // 它会把 is-placeable / is-target 一并抹掉，之后再查 classList 永远为假。
   // 曾因此导致"费用够也放不下去"（出牌 100% 失败）。
   var dropSlot = (t && t.kind === 'slot' && t.el.classList.contains('is-placeable')) ? t.el : null;
+  var dropBoard = (t && t.kind === 'board') ? t.el : null;
   var dropUnit = (t && t.kind === 'unit' && t.el.classList.contains('is-target')) ? t.el : null;
   var dropLord = (t && t.kind === 'lord' && t.el.classList.contains('is-target')) ? t.el : null;
 
   d.ghost.remove();
   d.wrap.classList.remove('is-dragging');
+  arrowHide();
   clearDropHighlights();
 
   if (d.kind === 'card') {
-    if (dropSlot) {
+    if (d.isUnit && dropSlot) {
+      dragHandledAt = Date.now();
       doAction({
         type: 'PLAY_CARD', cardIndex: d.index,
         row: dropSlot.dataset.row, col: Number(dropSlot.dataset.col),
       });
+    } else if (!d.isUnit && dropBoard) {
+      // 战法 / 事件卡：落到战场即释放（没有 row/col）
+      dragHandledAt = Date.now();
+      doAction({ type: 'PLAY_CARD', cardIndex: d.index });
     } else {
       clearMarks();
-      showDetail('取消放置', d.card.name, '拖到绿色格子才能放置');
+      showDetail('取消打出', d.card.name,
+        d.isUnit ? '拖到绿色格子才能放置' : '拖到战场区域松手才能释放');
     }
     return;
   }
@@ -519,11 +606,72 @@ function onDragEnd(e) {
     });
   } else if (dropLord) {
     doAction({ type: 'ATTACK', from: { row: d.row, col: d.col }, to: { kind: 'lord' } });
+  } else if (d.kind === 'unit' && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) < 8) {
+    // 原地松手 = 点选该单位。
+    // 不能靠 click 事件：startUnitDrag 里的 preventDefault() 会抑制浏览器的
+    // 兼容鼠标事件，真实点击时 click 根本不触发 —— 结果「点了单位没反应」。
+    // （合成 click 却能触发，所以只测合成事件会漏掉这个 bug。）
+    tapHandledAt = Date.now();
+    onUnitClick('own', d.row, d.col, e);
   } else {
     clearMarks();
     sel = null;
     showDetail('取消攻击', '', '拖到高亮的敌方人物卡或其主将上才能攻击');
   }
+}
+
+/* ---------- 指向箭头（ADR-065）----------
+   抓住单位准备攻击时，从攻击者画一条弧线指向光标；落在合法目标上变绿。
+   用视口坐标（指针事件给的就是视口坐标），所以 SVG 层是 position:fixed。 */
+var arrowShown = false;
+var tapHandledAt = 0;
+var dragHandledAt = 0;   // 上一次拖拽已处理的时间戳（避免随后的 click 重复触发）   // 上一次「点选」被 onDragEnd 处理的时间戳
+
+function arrowEl() { return document.getElementById('arrow-layer'); }
+function arrowPathEl() { return document.getElementById('arrow-path'); }
+
+/** 箭头起点 = 单位卡中心 */
+function arrowOrigin(el) {
+  var r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+/** 显示/更新箭头；ok=true 时变绿（命中合法目标） */
+function arrowTo(fromEl, x, y, ok) {
+  var layer = arrowEl(), path = arrowPathEl();
+  if (!layer || !path || !fromEl) return;
+  var o = arrowOrigin(fromEl);
+  // 轻微上拱的二次曲线，比直线更接近炉石的"指向感"
+  var mx = (o.x + x) / 2;
+  var my = Math.min(o.y, y) - Math.abs(x - o.x) * 0.18 - 14;
+  path.setAttribute('d', 'M' + o.x + ',' + o.y + ' Q' + mx + ',' + my + ' ' + x + ',' + y);
+  path.setAttribute('marker-end', ok ? 'url(#arrow-head-ok)' : 'url(#arrow-head)');
+  layer.classList.toggle('is-valid', !!ok);
+  layer.classList.add('show');
+  arrowShown = true;
+}
+
+function arrowHide() {
+  if (!arrowShown) return;
+  var layer = arrowEl();
+  if (layer) layer.classList.remove('show', 'is-valid');
+  arrowShown = false;
+}
+
+/** 光标下是不是一个"合法"落点（用于决定箭头颜色） */
+function dropIsValid(x, y) {
+  var t = dropAt(x, y);
+  if (!t) return false;
+  if (drag && drag.kind === 'unit') {
+    return (t.kind === 'unit' || t.kind === 'lord') && t.el.classList.contains('is-target');
+  }
+  if (drag && drag.kind === 'card') {
+    return t.kind === 'slot' && t.el.classList.contains('is-placeable');
+  }
+  if (sel && sel.kind === 'unit') {
+    return (t.kind === 'unit' || t.kind === 'lord') && t.el.classList.contains('is-target');
+  }
+  return false;
 }
 
 /**
@@ -532,20 +680,24 @@ function onDragEnd(e) {
  * 都必须排在它前面（见 onDragEnd）。这个先后顺序曾经弄反过，代价是出牌完全失效。
  */
 function clearDropHighlights() {
-  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover')
-    .forEach(function (el) { el.classList.remove('is-placeable', 'is-hover'); });
+  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover, .is-spell-target')
+    .forEach(function (el) { el.classList.remove('is-placeable', 'is-hover', 'is-spell-target'); });
 }
 
 /** 落点解析：战场单位 / 主将条 / 格子（拖拽幽灵设了 pointer-events:none，不会拦截） */
 function dropAt(x, y) {
   var el = document.elementFromPoint(x, y);
+  var board = null;
   for (var n = el; n; n = n.parentElement) {
     if (!n.classList) continue;
     if (n.classList.contains('unit-wrap')) return { kind: 'unit', el: n };
     if (n.classList.contains('lord-bar')) return { kind: 'lord', el: n };
     if (n.classList.contains('slot')) return { kind: 'slot', el: n };
+    // 战场区（法术卡的投放区）——要等走完整条链再决定，
+    // 否则会盖住上面的 unit/lord/slot 判定
+    if (!board && (n.id === 'boards' || n.classList.contains('arena-inner'))) board = n;
   }
-  return null;
+  return board ? { kind: 'board', el: board } : null;
 }
 
 /* ============================================================
@@ -619,7 +771,7 @@ function onHandPick(index) {
   return true;
 }
 
-function onUnitClick(side, row, col) {
+function onUnitClick(side, row, col, ev) {
   if (busy || session.state.winner) return;
 
   // ① 主公技等待选目标（ADR-051：仁德可指定敌我任何人，故不再限定 side==='own'）
@@ -682,6 +834,12 @@ function onUnitClick(side, row, col) {
   var u = st.sides.own.rows[row][col];
   if (!res.targets.length) showDetail('无法攻击', u.name, res.why);
   else showDetail('选择攻击目标', u.name + '（攻击力 ' + Core.effectiveAttack(st, 'own', row, col) + '）', res.why);
+
+  // 选中即出箭头（指向点击处），不必等鼠标再动一下 ——
+  // 否则"选完了却看不到箭头"，会以为功能没生效。
+  if (wrap && ev && ev.clientX != null) {
+    arrowTo(wrap, ev.clientX, ev.clientY, dropIsValid(ev.clientX, ev.clientY));
+  }
 }
 
 function onLordClick(side, bar) {
@@ -777,6 +935,7 @@ function doAction(action) {
   }
   session = { state: res.state, ctx: session.ctx };
   busy = true;
+  arrowHide();                 // 动作已生效 → 指向箭头随选中一起收起
   clearMarks();
   sel = null; pendingSkill = null;
   playEvents(res.events, function () {
@@ -1117,6 +1276,7 @@ function animate(e) {
     }
     case 'TURN_START': {
       banner('第 ' + e.turn + ' 回合', e.side === 'own' ? '我方' : '敌方');
+      timerReset();                      // 新回合 → 倒计时归位
       return 320;
     }
     case 'LORD_SKILL_USED': {
@@ -1153,6 +1313,59 @@ function banner(title, sub) {
 }
 
 /* ============================================================
+   回合倒计时（ADR-065）
+   每方回合 1 分钟，到点自动结束该方回合。秒数取自 core 的
+   MATCH.TURN_SECONDS —— 规则常量不放原型里。
+   ============================================================ */
+
+var turnSeconds = (Core.MATCH && Core.MATCH.TURN_SECONDS) || 60;
+var turnLeft = turnSeconds;
+var turnTimerId = null;
+
+function timerReset() {
+  turnLeft = turnSeconds;
+  renderTimer();
+}
+
+function renderTimer() {
+  var n = document.getElementById('turn-timer');
+  var bar = document.getElementById('turn-timer-bar');
+  if (!n) return;
+  n.textContent = String(turnLeft);
+  var low = turnLeft <= 10;
+  n.classList.toggle('is-low', low);
+  if (bar) {
+    bar.style.transform = 'scaleX(' + (turnLeft / turnSeconds) + ')';
+    bar.classList.toggle('is-low', low);
+  }
+}
+
+function timerTick() {
+  // 结算动画播放中不扣时间，避免"看着动画就被判超时"
+  if (busy || !session || session.state.winner) return;
+  turnLeft -= 1;
+  if (turnLeft <= 0) {
+    turnLeft = 0;
+    renderTimer();
+    autoEndTurn();
+    return;
+  }
+  renderTimer();
+}
+
+/** 到点自动结束当前行动方的回合 */
+function autoEndTurn() {
+  if (busy || !session || session.state.winner) return;
+  if (session.state.active === 'own') {
+    showDetail('超时', '本回合时间到', '已自动结束回合');
+    doAction({ type: 'END_TURN' });
+  } else {
+    // 敌方回合超时（AI 正常不会慢到这个程度）——直接替它结束
+    runAiTurn(true);
+  }
+}
+
+/* ============================================================
    AI 对手
    ============================================================ */
 
@@ -1165,9 +1378,10 @@ function shouldAuto() {
   return session.state.active === 'enemy' || AUTO_BOTH;
 }
 
-function runAiTurn() {
+function runAiTurn(forceEnd) {
   if (busy || session.state.winner || !shouldAuto()) return;
-  var action = Core.chooseAction(session.state, session.ctx) || { type: 'END_TURN' };
+  var action = forceEnd ? { type: 'END_TURN' }
+    : (Core.chooseAction(session.state, session.ctx) || { type: 'END_TURN' });
   var res = Core.applyAction(session.state, session.ctx, action);
   if (!res.ok) {
     var end = Core.applyAction(session.state, session.ctx, { type: 'END_TURN' });
@@ -1239,11 +1453,26 @@ $('#btn-auto').addEventListener('click', function () {
 });
 document.addEventListener('click', function () {
   if (busy || drag) return;
+  arrowHide();
   clearMarks();
   sel = null;
   pendingSkill = null;
 });
+
+// 点击选中单位后（非拖拽），箭头跟着光标走，命中合法目标变绿
+window.addEventListener('pointermove', function (e) {
+  if (drag) return;                       // 拖拽路径已在 onDragMove 里处理
+  if (!sel || sel.kind !== 'unit') { arrowHide(); return; }
+  var wrap = document.querySelector('.slot[data-side="own"][data-row="' + sel.row +
+    '"][data-col="' + sel.col + '"] .unit-wrap');
+  if (!wrap) { arrowHide(); return; }
+  arrowTo(wrap, e.clientX, e.clientY, dropIsValid(e.clientX, e.clientY));
+});
 window.addEventListener('resize', reportSizes);
+
+// 倒计时：每方回合 1 分钟（ADR-065）
+timerReset();
+turnTimerId = setInterval(timerTick, 1000);
 
 if (location.search.indexOf('clean') >= 0) {
   document.getElementById('hud').style.display = 'none';
