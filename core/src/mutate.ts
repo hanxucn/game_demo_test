@@ -8,7 +8,7 @@
 
 import { BOARD, DECK, STATUSES } from './constants.ts';
 import { createRng } from './rng.ts';
-import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
+import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
 import type { CardDef, GameEvent, HandCard, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
 export type TargetRef =
@@ -287,6 +287,57 @@ export function gainArmor(state: MatchState, side: Side, amount: number, events:
    状态
    ============================================================ */
 
+/**
+ * 移除状态（驱散，ADR-066）
+ *
+ * 与 applyStatus 对称：`stacks` 省略时移除**全部层数**；给了就只扣那么多层，
+ * 扣到 0 才真正删除。只在「状态彻底消失」时发 STATUS_EXPIRED ——
+ * 部分削减也发的话客户端会误判成"状态没了"。
+ *
+ * 返回实际移除了几层，便于调用方/测试核对。
+ */
+export function removeStatus(
+  state: MatchState,
+  ref: TargetRef,
+  status: string,
+  events: GameEvent[],
+  stacks?: number,
+): number {
+  if (ref.kind === 'hand') return 0;
+
+  if (ref.kind === 'lord') {
+    const lord = state.sides[ref.side].lord;
+    const inst = lord.statuses?.[status];
+    if (!inst) return 0;
+    const removed = stacks === undefined ? inst.stacks : Math.min(stacks, inst.stacks);
+    if (stacks === undefined || removed >= inst.stacks) {
+      delete lord.statuses![status];
+      // 主公没有 row/col，用专用事件（STATUS_EXPIRED 要求坐标）
+      events.push({ type: 'LORD_STATUS_EXPIRED', side: ref.side, status });
+    } else {
+      inst.stacks -= removed;
+    }
+    return removed;
+  }
+
+  const u = getUnit(state, ref.side, ref.row, ref.col);
+  if (!u) return 0;
+  const inst = u.statuses[status];
+  if (!inst) return 0;
+
+  const removed = stacks === undefined ? inst.stacks : Math.min(stacks, inst.stacks);
+  if (stacks === undefined || removed >= inst.stacks) {
+    delete u.statuses[status];
+    // 关键词携带的状态（架盾/圣盾/先攻）同时要把关键词去掉，
+    // 否则会出现"状态没了但关键词还在"的幽灵效果。
+    u.kw = u.kw.filter((k) => k !== status);
+    events.push({ type: 'STATUS_EXPIRED', side: ref.side, row: ref.row, col: ref.col, status });
+  } else {
+    inst.stacks -= removed;
+  }
+  return removed;
+}
+
 export function applyStatus(
   state: MatchState,
   ref: TargetRef,
@@ -378,7 +429,7 @@ export function killUnit(
   events.push({ type: 'UNIT_DIED', side, row, col, unit });
 
   // 遗计：阵亡时抽 1 张
-  if (hasKeyword(unit, 'yi_ji')) drawCard(state, cards, side, events);
+  if (hasTrait(unit, 'yi_ji')) drawCard(state, cards, side, events);
 
   // 忠义：触发卡牌自定义的 on_death 效果（统一走 DSL，ADR-050）
   const card = cards.get(unit.cardId);

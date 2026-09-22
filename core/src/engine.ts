@@ -53,7 +53,7 @@ import {
   hasCap,
   hasCapOn,
   lordStatusStacks,
-  allUnits, cloneState, getUnit, hasKeyword, makeUnit, nextUidSeq, other, setUnit, statusStacks,
+  allUnits, cloneState, getUnit, hasKeyword, hasTrait, makeUnit, nextUidSeq, other, setUnit, statusStacks,
 } from './state.ts';
 import {
   canPlayCard, canUseUnitSkill, effectiveAttack, legalPlacements, legalTargets,
@@ -262,7 +262,7 @@ function attack(
   if (!target) return false;
 
   const dmg = effectiveAttack(state, side, from.row, from.col);
-  const hasYinXue = hasKeyword(attacker, 'yin_xue');
+  const hasYinXue = hasTrait(attacker, 'yin_xue');
   const foe = other(side);
 
   events.push({ type: 'ATTACK_DECLARED', side, from: { ...from }, to: target });
@@ -304,7 +304,7 @@ function attack(
   attacker.attackedThisTurn += 1;
 
   // 奇袭：攻击后失去隐身（ADR-054 的新定义还要求"上场自动隐身"，尚未实现，见 Q-06-*）
-  if (hasKeyword(attacker, 'qi_xi')) {
+  if (hasTrait(attacker, 'qi_xi')) {
     attacker.kw = attacker.kw.filter((k) => k !== 'qi_xi');
     delete attacker.statuses.qi_xi_status;
     events.push({ type: 'STATUS_EXPIRED', side, row: from.row, col: from.col, status: 'qi_xi' });

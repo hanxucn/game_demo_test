@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES, TAGS } from '../src/constants.ts';
+import { IMPLEMENTED_ACTIONS } from '../src/effects.ts';
 import type { CardDef, CardEffect, SkillDef, TargetSelector } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -31,7 +32,6 @@ const KEYWORD_VALUE: Record<string, number> = {
   shen_she: -1,    // 神射（待实现）
   qi_xi: -1,       // 奇袭（待实现）
   zhong_yi: -1,    // 忠义：免疫混乱/离间（待实现）
-  jie_zhen: 0,     // ⚠️ 设计者尚未设计，暂不计价
 };
 
 
@@ -324,6 +324,39 @@ export function validateCards(cards: CardDef[]): Issue[] {
         add('error', c.id, `${where} 有文案「${text.slice(0, 20)}…」但无任何效果`);
       }
     }
+  }
+
+  // ⑦quater 动作是否真的实现了
+  //
+  // `ACTIONS` 只是**注册表**（DSL 里允许出现的名字），不等于引擎实现了它。
+  // 两者不一致时，用该动作的卡会**静默空转**：文案在、事件不发、什么都没发生。
+  // 华佗「青囊」的 remove_status 就这样空转了整整一轮才被发现（ADR-066）。
+  // 这里逐卡核对，并直接报 error —— 空转的卡等同于坏卡，不该混进测试局。
+  const NOT_IMPLEMENTED = [...ACTIONS].filter((a) => !IMPLEMENTED_ACTIONS.has(a));
+  const collectActions = (list: CardEffect[] | undefined, out: string[]): void => {
+    for (const eff of list ?? []) {
+      if (eff.action) out.push(eff.action);
+      // 条件里也可能嵌效果（condition / value_from 等）
+      for (const v of Object.values(eff as unknown as Record<string, unknown>)) {
+        if (Array.isArray(v)) collectActions(v as CardEffect[], out);
+        else if (v && typeof v === 'object' && 'action' in (v as object)) collectActions([v as CardEffect], out);
+      }
+    }
+  };
+  for (const c of cards) {
+    const used: string[] = [];
+    for (const sk of c.skills ?? []) collectActions(sk.effects as CardEffect[], used);
+    collectActions(c.effects as CardEffect[], used);
+    for (const a of new Set(used)) {
+      if (!ACTIONS.includes(a as (typeof ACTIONS)[number])) {
+        add('error', c.id, `使用了未注册的动作「${a}」`);
+      } else if (!IMPLEMENTED_ACTIONS.has(a)) {
+        add('error', c.id, `动作「${a}」已在 ACTIONS 注册但引擎未实现 —— 该卡会静默空转`);
+      }
+    }
+  }
+  if (NOT_IMPLEMENTED.length) {
+    add('warn', '-', `引擎未实现的动作（无卡使用则可以接受，但不要在新卡里用）：${NOT_IMPLEMENTED.join('、')}`);
   }
 
   // ⑥bis value 块新鲜度：data/cards.yaml 的 value 是派生数据，必须与实时计算一致

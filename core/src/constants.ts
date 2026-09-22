@@ -74,8 +74,6 @@ export const KEYWORDS: Record<string, { name: string; implemented: boolean; note
                note: '上场先隐身（不能被选定）；下回合可选择行动攻击，执行过行动后隐身消失（待实现）' },
   zhong_yi:  { name: '忠义', implemented: false,
                note: '免疫混乱、离间等状态（待实现。注：原实现误做成"阵亡触发亡语"，已纠正）' },
-  jie_zhen:  { name: '结阵', implemented: false,
-               note: '⚠️ 设计者尚未设计具体机制，先保留名字（当前引擎里的"相邻步兵+1攻"是 AI 旧推定，不可用）' },
 };
 
 /** 已取消的关键词（保留列表以免数据误用） */
@@ -83,6 +81,7 @@ export const RETIRED_KEYWORDS: Record<string, string> = {
   ji_xing: '疾行 —— 与「先攻」是同一个东西（设计者裁定），已合并，请改用 xian_gong',
   wu_shuang: '无双 —— 设计者：暂时没有这个状态',
   wu_sheng: '武圣 —— 设计者：废弃此名（关羽的技能名用「水淹七军」）；其"免疫一次伤害"的机制改名为「圣盾」',
+  jie_zhen: '结阵 —— 设计者：移除该效果（引擎里"相邻有友方步兵时 +1 攻"是 AI 自己推的，从未被设计）',
 };
 
 

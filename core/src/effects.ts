@@ -7,7 +7,7 @@
 
 import { BOARD } from './constants.ts';
 import { allUnits, applyMods, getUnit, hasCap, makeUnit, nextUidSeq, other, setUnit } from './state.ts';
-import { effectiveCost, handRef, isBanned } from './mutate.ts';
+import { effectiveCost, handRef, isBanned, removeStatus } from './mutate.ts';
 import type { Rng } from './rng.ts';
 import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchState, Row, Side, TargetSelector, Unit } from './types.ts';
 import {
@@ -424,6 +424,21 @@ export function resolveTargets(
 }
 
 /** 执行效果列表 */
+/**
+ * 已在 `runEffects` 里实现的动作（ADR-066）。
+ *
+ * `ACTIONS` 是**注册表**（DSL 允许出现的名字），不等于**已实现**。
+ * 两者不一致时，用该动作的卡会静默空转 —— 华佗「青囊」的 remove_status
+ * 就这样空转了整整一轮。校验器现在拿它逐卡核对，杜绝再犯。
+ */
+export const IMPLEMENTED_ACTIONS: ReadonlySet<string> = new Set([
+  'damage', 'heal', 'draw', 'summon', 'apply_status', 'remove_status',
+  'destroy', 'modify', 'gain_armor', 'gain_command', 'cost_modifier', 'transform',
+  'discard', 'return_to_hand', 'clash', 'flip', 'scry', 'ban_play', 'steal_card', 'survive',
+  'extra_attack', 'take_control', 'copy_skill', 'force_attack',
+  'add_to_deck', 'send_to_deck', 'cycle_to_deck',
+]);
+
 export function runEffects(
   state: MatchState,
   cards: Map<string, CardDef>,
@@ -815,6 +830,21 @@ export function runEffects(
                           : (ctx.chosen ? [ctx.chosen] : []));
           for (const t of list) {
             applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+          }
+        }
+        break;
+      }
+      case 'remove_status': {
+        // 驱散（ADR-066）：与 apply_status 同构 —— count 次结算，每次重新解析目标。
+        // 省略 value/stacks = 移除该状态的全部层数（华佗「青囊」即此用法）。
+        const times = eff.count ?? 1;
+        for (let i = 0; i < times; i++) {
+          const list = i === 0
+            ? (targets.length ? targets : (ctx.chosen ? [ctx.chosen] : []))
+            : (eff.target ? resolveTargets(state, eff.target, ctx, rng)
+                          : (ctx.chosen ? [ctx.chosen] : []));
+          for (const t of list) {
+            removeStatus(state, t, eff.status as string, events, eff.stacks ?? eff.value ?? undefined);
           }
         }
         break;

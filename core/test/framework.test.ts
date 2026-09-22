@@ -512,9 +512,12 @@ test('ADR-054：关键词表——疾行已合并入先攻，无双已取消', a
   assert.ok(!KEYWORDS.wu_shuang, '无双不应再是关键词（已取消）');
   assert.ok(RETIRED_KEYWORDS.ji_xing.includes('先攻'), '疾行应指向先攻');
   // 定义已给出但引擎未实现的关键词，必须显式标 false，避免"卡面写了却不生效"
-  for (const k of ['shen_she', 'qi_xi', 'zhong_yi', 'jie_zhen']) {
+  for (const k of ['shen_she', 'qi_xi', 'zhong_yi']) {
     assert.equal(KEYWORDS[k]!.implemented, false, `${k} 应标为未实现`);
   }
+  // ADR-067：「结阵」整个移除（引擎里那套是 AI 自己推的，设计者从未设计、0 卡使用）
+  assert.ok(!KEYWORDS.jie_zhen, '结阵不应再是关键词');
+  assert.ok(RETIRED_KEYWORDS.jie_zhen, '结阵应记入已取消');
   // 忠义的定义已从"亡语"纠正为"免疫控制"
   assert.ok(KEYWORDS.zhong_yi!.note.includes('免疫'), '忠义应为免疫控制类');
   // ADR-057：武圣废弃 → 圣盾（免疫一次伤害）；饮血已实现（回自身）
@@ -694,6 +697,113 @@ test('技能伤害同样扣血并可致阵亡', async () => {
   assert.equal(gu(s, 'enemy', 'front', 0), null, '超量伤害应致阵亡并移出');
 });
 
+
+/* ============================================================
+   驱散 remove_status（ADR-066）
+   ============================================================ */
+
+test('remove_status：移除全部层数并发 STATUS_EXPIRED；关键词状态一并摘掉', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { runEffects } = await import('../src/effects.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctxData = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctxData).state;
+
+  const u = makeUnit(d.cards.get('neutral_infantry')!, 0, 870);
+  u.statuses.zhen_she = { stacks: 3 };
+  u.kw.push('jia_dun');
+  u.statuses.jia_dun_status = { stacks: 1 };
+  s.sides.own.rows.front[1] = u;
+
+  const events: import('../src/types.ts').GameEvent[] = [];
+  const rng = createRng(3);
+  // 移除「震慑」全部层数
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'zhen_she' } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 1 } } as never, rng, events);
+
+  assert.equal(gu(s, 'own', 'front', 1)!.statuses.zhen_she, undefined, '震慑应被清掉');
+  assert.ok(events.some((e) => e.type === 'STATUS_EXPIRED' && e.status === 'zhen_she'),
+    '应发 STATUS_EXPIRED');
+
+  // 移除通过效果施加的「架盾」状态（如典韦「古之恶来」）：
+  // 只清状态，**不动卡面上的固有关键词** —— 那是卡的属性，不是可驱散的效果。
+  const u3 = makeUnit(d.cards.get('neutral_shieldman')!, 0, 872);   // 自带 jia_dun 关键词
+  u3.statuses.jia_dun_status = { stacks: 1 };
+  s.sides.own.rows.front[3] = u3;
+  const events2: import('../src/types.ts').GameEvent[] = [];
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'jia_dun_status' } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 3 } } as never, rng, events2);
+  assert.equal(gu(s, 'own', 'front', 3)!.statuses.jia_dun_status, undefined, '状态应被移除');
+  assert.ok(gu(s, 'own', 'front', 3)!.kw.includes('jia_dun'),
+    '卡面固有「架盾」关键词不应被驱散');
+
+  // 部分移除：只扣指定层数，未扣完不发 STATUS_EXPIRED
+  const u2 = makeUnit(d.cards.get('neutral_infantry')!, 0, 871);
+  u2.statuses.zhen_she = { stacks: 3 };
+  s.sides.own.rows.front[2] = u2;
+  const events3: import('../src/types.ts').GameEvent[] = [];
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'zhen_she', stacks: 1 } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 2 } } as never, rng, events3);
+  assert.equal(gu(s, 'own', 'front', 2)!.statuses.zhen_she.stacks, 2, '只扣 1 层');
+  assert.ok(!events3.some((e) => e.type === 'STATUS_EXPIRED'), '未清空不应发 EXPIRED');
+
+  // 目标身上没有该状态 → 空操作，不报错
+  const events4: import('../src/types.ts').GameEvent[] = [];
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'hun_luan' } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 2 } } as never, rng, events4);
+  assert.equal(events4.length, 0);
+});
+
+test('动作守卫：ACTIONS 里注册但未实现的，必须显式登记（防「静默空转」）', async () => {
+  const { ACTIONS } = await import('../src/constants.ts');
+  const { IMPLEMENTED_ACTIONS } = await import('../src/effects.ts');
+  const missing = [...ACTIONS].filter((a) => !IMPLEMENTED_ACTIONS.has(a)).sort();
+  // 已知尚未实现：move（换位）、random_pick（随机取牌）；当前无卡使用。
+  // 若实现了就把它们加进 IMPLEMENTED_ACTIONS 并更新这里。
+  assert.deepEqual(missing, ['move', 'random_pick'],
+    `ACTIONS 与已实现集合不一致：${missing.join('、')} —— 用了它们的卡会静默空转`);
+});
+
+test('关键词的两套载体等价：状态形式的「架盾/先攻/奇袭」必须与关键词同样生效（ADR-066）', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { canAttack, legalTargets } = await import('../src/rules.ts');
+  const { shieldUnits, hasTrait } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctxData = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctxData).state;
+
+  // 一张**没有**任何关键词的白板，只靠状态获得能力
+  const g = makeUnit(d.cards.get('neutral_infantry')!, 0, 880);
+  g.kw = [];
+  g.statuses.jia_dun_status = { stacks: 1 };
+  s.sides.enemy.rows.front[0] = g;
+
+  assert.equal(hasTrait(g, 'jia_dun'), true, '状态形式的架盾应被 hasTrait 认到');
+  assert.equal(shieldUnits(s, 'enemy').length, 1, '架盾（状态形式）应产生嘲讽');
+  // 我方打手
+  const a = makeUnit(d.cards.get('neutral_infantry')!, 0, 881);
+  s.sides.own.rows.front[1] = a;
+  const t = legalTargets(s, 'own', 'front', 1);
+  assert.deepEqual(t.targets.map((x: { col?: number }) => x.col), [0],
+    '有架盾时只能打架盾单位');
+
+  // 状态形式的先攻：入场当回合即可攻击
+  const f = makeUnit(d.cards.get('neutral_infantry')!, s.turn, 882);
+  f.kw = [];
+  f.statuses.xian_gong_status = { stacks: 1 };
+  s.sides.own.rows.front[2] = f;
+  assert.equal(canAttack(s, 'own', 'front', 2).ok, true, '状态形式的先攻应当回合可攻击');
+
+  // 状态形式的奇袭：不可被指定为目标
+  const q = makeUnit(d.cards.get('neutral_infantry')!, 0, 883);
+  q.kw = [];
+  q.statuses.qi_xi_status = { stacks: 1 };
+  s.sides.enemy.rows.front[3] = q;
+  const t2 = legalTargets(s, 'own', 'front', 1);
+  assert.ok(!t2.targets.some((x: { col?: number }) => x.col === 3), '奇袭（状态形式）不应可被指定');
+});
 
 /* ============================================================
    同名上限（ADR-065）
