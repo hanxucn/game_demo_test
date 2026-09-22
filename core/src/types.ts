@@ -72,6 +72,8 @@ export interface TargetSelector {
     cost_max?: number;             // 统帅值上限（绝对，含）
     cost_min?: number;             // 统帅值下限（绝对，含）——与 cost_max 配合可写出互斥分支
     cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADR-036
+    attack_below_source?: boolean; // 攻击力低于来源单位（张飞「咆哮」）ADR-069
+    card_id?: string;              // 指定具体卡（关平亡语指定「关羽」）ADR-069
     troopKind?: 'infantry' | 'shield' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
     has_status?: string;
     adjacent_to?: 'self';          // 相邻单位（"相邻的己方人物"）

@@ -1047,7 +1047,7 @@ var Core = (() => {
     if (f.type === "character") return ["troop", "general", "strategist"].includes(hc.card.type);
     return hc.card.type === f.type;
   };
-  var matchesFilter = (u, f, row, srcCost) => {
+  var matchesFilter = (u, f, row, srcCost, srcAtk) => {
     if (!f) return true;
     if (f.type) {
       if (f.type === "character") {
@@ -1064,6 +1064,8 @@ var Core = (() => {
     if (typeof f.cost_min === "number" && u.cost < f.cost_min) return false;
     if (f.troopKind && u.troopKind !== f.troopKind) return false;
     if (f.cost_below_source && srcCost !== void 0 && u.cost >= srcCost) return false;
+    if (f.attack_below_source && srcAtk !== void 0 && u.atk >= srcAtk) return false;
+    if (f.card_id && u.cardId !== f.card_id) return false;
     return true;
   };
   var cmp = (a, op, b) => op === ">=" ? a >= b : op === "<=" ? a <= b : op === "==" ? a === b : op === ">" ? a > b : op === "<" ? a < b : op === "!=" ? a !== b : false;
@@ -1244,7 +1246,7 @@ var Core = (() => {
           if (!u) return;
           if (hasCap(u, "untargetable")) return;
           if (hasCap(u, "duel_lock") && ctx.source && !hasCap(ctx.source, "duel_lock")) return;
-          if (matchesFilter(u, selector.filter ?? {}, r, ctx.source?.cost)) pool.push(unitRef(s, r, c));
+          if (matchesFilter(u, selector.filter ?? {}, r, ctx.source?.cost, ctx.source?.atk)) pool.push(unitRef(s, r, c));
         });
       }
     }

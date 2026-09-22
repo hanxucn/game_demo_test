@@ -455,7 +455,15 @@
       "name": "迅疾突袭",
       "kind": "trigger",
       "trigger": "on_play",
+      "text": "第一回合获得先攻，行动结束后获得一回合隐身（无法被选中攻击），下回合失效。",
       "effects": [
+       {
+        "action": "apply_status",
+        "status": "xian_gong_status",
+        "target": {
+         "source": true
+        }
+       },
        {
         "action": "apply_status",
         "status": "qi_xi_status",
@@ -1081,10 +1089,11 @@
     "text": "每回合可召唤一个 1攻 1血的士族兵",
     "dsl": [
      {
-      "id": "yuan_shao_summon",
-      "name": "四世三公",
+      "id": "wei_wang",
+      "name": "威望",
       "kind": "trigger",
       "trigger": "turn_start",
+      "text": "每回合召唤一个弓兵。",
       "effects": [
        {
         "action": "summon",
@@ -1092,40 +1101,35 @@
         "count": 1,
         "position": "random"
        }
-      ],
-      "text": "每回合召唤一个弓兵。"
+      ]
      },
      {
-      "id": "yuan_shao_wangjian",
-      "name": "万箭齐发",
+      "id": "jian_xiong_zhi_ming",
+      "name": "万箭齐发之令",
       "kind": "trigger",
       "trigger": "on_play",
+      "text": "战吼：获得一张万箭齐发，并将两张万箭齐发加入牌组。",
       "effects": [
        {
         "action": "add_to_deck",
         "unit": "tactic_wanjianqifa",
         "count": 1,
-        "to": "hand",
-        "target": {
-         "side": "self"
-        }
+        "to": "hand"
        },
        {
         "action": "add_to_deck",
         "unit": "tactic_wanjianqifa",
         "count": 2,
-        "target": {
-         "side": "self"
-        }
+        "to": "deck"
        }
-      ],
-      "text": "战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。"
+      ]
      },
      {
-      "id": "yuan_shao_yidu",
-      "name": "遗毒",
+      "id": "yi_ji_wan_jian",
+      "name": "遗计·万箭齐发",
       "kind": "trigger",
       "trigger": "on_death",
+      "text": "遗计：将未抽到的万箭齐发加入敌方牌库。",
       "effects": [
        {
         "action": "send_to_deck",
@@ -1134,8 +1138,7 @@
          "side": "enemy"
         }
        }
-      ],
-      "text": "亡语：将未抽到的「万箭齐发」加入敌方牌库。"
+      ]
      }
     ],
     "note": "DSL 已翻译"
@@ -1294,7 +1297,9 @@
   "cost": 2,
   "attack": 2,
   "health": 3,
-  "keywords": [],
+  "keywords": [
+   "qi_xi"
+  ],
   "memo": "",
   "flavor": "",
   "source": {
@@ -1320,21 +1325,17 @@
     "text": "上场时第一回合时对指定敌人造成2点伤害",
     "dsl": [
      {
-      "id": "shan_she",
-      "name": "善射",
+      "id": "wan_qiang",
+      "name": "顽强",
       "kind": "trigger",
-      "trigger": "on_play",
+      "trigger": "on_damaged",
+      "text": "每次受到攻击没有阵亡时，恢复 1 点生命。",
       "effects": [
        {
-        "action": "damage",
-        "value": 2,
+        "action": "heal",
+        "value": 1,
         "target": {
-         "side": "enemy",
-         "filter": {
-          "type": "character"
-         },
-         "count": 1,
-         "mode": "choose"
+         "source": true
         }
        }
       ]
@@ -1726,7 +1727,9 @@
     "note": "DSL 已翻译"
    }
   ],
-  "keywords": [],
+  "keywords": [
+   "xian_gong"
+  ],
   "tags": [
    "xi_liang"
   ],
@@ -1778,7 +1781,9 @@
   "cost": 2,
   "attack": 1,
   "health": 4,
-  "keywords": [],
+  "keywords": [
+   "jia_dun"
+  ],
   "memo": "",
   "flavor": "",
   "source": {
@@ -2113,10 +2118,10 @@
     "text": "当关羽在场时,获得中攻击+1,血量+1",
     "dsl": [
      {
-      "id": "jiang_men_hu_zi",
-      "name": "将门虎子",
-      "kind": "trigger",
-      "trigger": "on_play",
+      "id": "yong_wu",
+      "name": "勇武",
+      "kind": "aura",
+      "text": "关羽在场时，自身 +1 攻 / +1 血。",
       "effects": [
        {
         "action": "modify",
@@ -2127,12 +2132,31 @@
         },
         "condition": {
          "exists": {
-          "side": "ally",
+          "side": "both",
           "filter": {
-           "type": "character",
-           "cost_max": 6
+           "card_id": "shu_guanyu"
           }
          }
+        }
+       }
+      ]
+     },
+     {
+      "id": "yi_ji_sheng_dun",
+      "name": "遗计·圣盾",
+      "kind": "trigger",
+      "trigger": "on_death",
+      "text": "亡语：使关羽获得圣盾。",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "sheng_dun_status",
+        "target": {
+         "side": "both",
+         "filter": {
+          "card_id": "shu_guanyu"
+         },
+         "count": 1
         }
        }
       ]
@@ -2169,15 +2193,30 @@
       "id": "pao_xiao",
       "name": "咆哮",
       "kind": "trigger",
-      "trigger": "turn_start",
+      "trigger": "on_play",
+      "text": "战吼：所有攻击力低于张飞的敌军（不含主公）本回合攻击力 −1，并受到 1 点伤害。",
       "effects": [
+       {
+        "action": "modify",
+        "attack": -1,
+        "duration": "this_turn",
+        "target": {
+         "side": "enemy",
+         "filter": {
+          "type": "character",
+          "attack_below_source": true
+         },
+         "count": "all"
+        }
+       },
        {
         "action": "damage",
         "value": 1,
         "target": {
          "side": "enemy",
          "filter": {
-          "type": "character"
+          "type": "character",
+          "attack_below_source": true
          },
          "count": "all"
         }
@@ -2305,8 +2344,9 @@
      {
       "id": "bai_bu_chuan_yang",
       "name": "百步穿杨",
-      "kind": "trigger",
-      "trigger": "turn_start",
+      "kind": "active",
+      "frequency": "once_per_turn",
+      "text": "自己每回合行动时对指定敌方人物造成 2 点伤害。",
       "effects": [
        {
         "action": "damage",
@@ -2773,26 +2813,46 @@
      {
       "id": "yun_chou_wei_wo",
       "name": "运筹帷幄",
-      "kind": "trigger",
-      "trigger": "on_play",
+      "kind": "active",
+      "frequency": "once_per_turn",
+      "text": "一回合一次：查看牌库最上面三张牌，并按指定顺序放回。己方抽一张牌。",
       "effects": [
        {
-        "action": "ban_play",
-        "duration": 1,
+        "action": "scry",
+        "count": 3,
+        "from": "top",
+        "to": "deck_top",
         "target": {
-         "side": "enemy",
-         "zone": "hand",
-         "count": 1,
-         "mode": "choose"
+         "side": "ally"
         }
        },
        {
-        "action": "scry",
-        "from": "top",
-        "count": 1,
-        "to": "hand",
+        "action": "draw",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "id": "kong_cheng_ji",
+      "name": "空城之计",
+      "kind": "aura",
+      "text": "己方手牌为 0 时，诸葛亮获得免疫伤害效果。",
+      "effects": [
+       {
+        "action": "apply_status",
+        "status": "sheng_dun_status",
         "target": {
-         "side": "self"
+         "source": true
+        },
+        "condition": {
+         "count": {
+          "selector": {
+           "side": "ally",
+           "zone": "hand"
+          },
+          "op": "==",
+          "value": 0
+         }
         }
        }
       ]
@@ -3048,6 +3108,7 @@
       "name": "据守",
       "kind": "trigger",
       "trigger": "on_play",
+      "text": "战吼：为与郭淮相邻的己方人物 +2 生命上限，并使其获得架盾。",
       "effects": [
        {
         "action": "modify",
@@ -3366,6 +3427,7 @@
       "name": "离间",
       "kind": "trigger",
       "trigger": "on_play",
+      "text": "拼点：大于对方则使其丢弃一张牌，并对其主公造成等同于该牌统帅值的伤害；小于对方则使场上随机一名敌方人物回到对方手牌。",
       "effects": [
        {
         "action": "clash",
@@ -3385,6 +3447,17 @@
         }
        },
        {
+        "action": "damage",
+        "value_from_discarded": "cost",
+        "target": {
+         "side": "enemy",
+         "lord": true
+        },
+        "condition": {
+         "event": "clash_won"
+        }
+       },
+       {
         "action": "return_to_hand",
         "condition": {
          "event": "clash_lost"
@@ -3395,7 +3468,7 @@
           "type": "character"
          },
          "count": 1,
-         "mode": "lowest_health"
+         "mode": "random"
         }
        }
       ]
@@ -5224,6 +5297,88 @@
    "note": "ADR-065：基础兵统一 1 费；同名上限 3 张"
   },
   "dsl_status": "无技能（白板/关键词卡），无需翻译"
+ },
+ {
+  "id": "qun_dongzhuo",
+  "name": "董卓",
+  "faction": "qun",
+  "type": "general",
+  "cost": 5,
+  "attack": 3,
+  "health": 6,
+  "skills": [
+   {
+    "name": "暴虐",
+    "text": "战吼：抽 1 张牌，并对**自己主公**造成 2 点伤害。",
+    "dsl": [
+     {
+      "id": "bao_nue",
+      "name": "暴虐",
+      "kind": "trigger",
+      "trigger": "on_play",
+      "text": "战吼：抽 1 张牌，并对主公造成 2 点伤害。",
+      "effects": [
+       {
+        "action": "draw",
+        "value": 1
+       },
+       {
+        "action": "damage",
+        "value": 2,
+        "target": {
+         "side": "ally",
+         "lord": true
+        }
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "new": "设计者 2026-09 定稿新建（确认：伤害对象是自己主公）"
+  }
+ },
+ {
+  "id": "wei_xiahouen",
+  "name": "夏侯恩",
+  "faction": "wei",
+  "type": "general",
+  "cost": 3,
+  "attack": 2,
+  "health": 3,
+  "skills": [
+   {
+    "name": "剑侍",
+    "text": "阵亡时，己方抽一张牌。",
+    "dsl": [
+     {
+      "id": "jian_shi",
+      "name": "剑侍",
+      "kind": "trigger",
+      "trigger": "on_death",
+      "text": "阵亡时，己方抽一张牌。",
+      "effects": [
+       {
+        "action": "draw",
+        "value": 1
+       }
+      ]
+     }
+    ],
+    "note": "DSL 已翻译"
+   }
+  ],
+  "keywords": [],
+  "memo": "",
+  "flavor": "",
+  "source": {
+   "new": "设计者 2026-09 定稿新建"
+  }
  },
  {
   "id": "token_huangjin_bing",

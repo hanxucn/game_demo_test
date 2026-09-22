@@ -79,16 +79,18 @@ window.GameData = {
       "cost": 2,
       "attack": 1,
       "health": 4,
-      "keywords": [],
+      "keywords": [
+        "jia_dun"
+      ],
       "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 0,
-        "total": 5,
+        "total": 4,
         "budget": 5,
-        "diff": 0,
+        "diff": -1,
         "level": "ok"
       }
     },
@@ -131,10 +133,10 @@ window.GameData = {
       "keywords": [],
       "skills": [
         {
-          "id": "jiang_men_hu_zi",
-          "name": "将门虎子",
-          "kind": "trigger",
-          "trigger": "on_play",
+          "id": "yong_wu",
+          "name": "勇武",
+          "kind": "aura",
+          "text": "当关羽在场时,获得中攻击+1,血量+1",
           "effects": [
             {
               "action": "modify",
@@ -145,16 +147,34 @@ window.GameData = {
               },
               "condition": {
                 "exists": {
-                  "side": "ally",
+                  "side": "both",
                   "filter": {
-                    "type": "character",
-                    "cost_max": 6
+                    "card_id": "shu_guanyu"
                   }
                 }
               }
             }
-          ],
-          "text": "当关羽在场时,获得中攻击+1,血量+1"
+          ]
+        },
+        {
+          "id": "yi_ji_sheng_dun",
+          "name": "遗计·圣盾",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "当关羽在场时,获得中攻击+1,血量+1",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "sheng_dun_status",
+              "target": {
+                "side": "both",
+                "filter": {
+                  "card_id": "shu_guanyu"
+                },
+                "count": 1
+              }
+            }
+          ]
         }
       ],
       "memo": "",
@@ -162,11 +182,11 @@ window.GameData = {
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 1.4,
-        "total": 7.4,
+        "skills": 2.6,
+        "total": 8.6,
         "budget": 7,
-        "diff": 0.4,
-        "level": "ok"
+        "diff": 1.6,
+        "level": "watch"
       }
     },
     {
@@ -216,10 +236,12 @@ window.GameData = {
       "cost": 3,
       "attack": 3,
       "health": 3,
+      "keywords": [
+        "xian_gong"
+      ],
       "tags": [
         "xi_liang"
       ],
-      "keywords": [],
       "skills": [
         {
           "id": "xi_liang_zi_di",
@@ -256,11 +278,11 @@ window.GameData = {
       "flavor": "",
       "value": {
         "stats": 6,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 2.1,
-        "total": 8.1,
+        "total": 7.1,
         "budget": 7,
-        "diff": 1.1,
+        "diff": 0.1,
         "level": "ok"
       }
     },
@@ -513,8 +535,9 @@ window.GameData = {
         {
           "id": "bai_bu_chuan_yang",
           "name": "百步穿杨",
-          "kind": "trigger",
-          "trigger": "turn_start",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "text": "每回合开始时，对指定敌方人物造成 2 点伤害。",
           "effects": [
             {
               "action": "damage",
@@ -528,8 +551,7 @@ window.GameData = {
                 "mode": "choose"
               }
             }
-          ],
-          "text": "每回合开始时，对指定敌方人物造成 2 点伤害。"
+          ]
         }
       ],
       "memo": "",
@@ -537,10 +559,10 @@ window.GameData = {
       "value": {
         "stats": 8,
         "keywords": 0,
-        "skills": 0.7,
-        "total": 8.7,
+        "skills": 0.8,
+        "total": 8.8,
         "budget": 11,
-        "diff": -2.3,
+        "diff": -2.2,
         "level": "watch"
       }
     },
@@ -606,21 +628,35 @@ window.GameData = {
           "id": "pao_xiao",
           "name": "咆哮",
           "kind": "trigger",
-          "trigger": "turn_start",
+          "trigger": "on_play",
+          "text": "每回合对所有敌方人物卡造成 1 点伤害",
           "effects": [
+            {
+              "action": "modify",
+              "attack": -1,
+              "duration": "this_turn",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "attack_below_source": true
+                },
+                "count": "all"
+              }
+            },
             {
               "action": "damage",
               "value": 1,
               "target": {
                 "side": "enemy",
                 "filter": {
-                  "type": "character"
+                  "type": "character",
+                  "attack_below_source": true
                 },
                 "count": "all"
               }
             }
-          ],
-          "text": "每回合对所有敌方人物卡造成 1 点伤害"
+          ]
         }
       ],
       "memo": "",
@@ -628,11 +664,11 @@ window.GameData = {
       "value": {
         "stats": 10,
         "keywords": 0,
-        "skills": 1.05,
-        "total": 11.05,
+        "skills": 3.6,
+        "total": 13.6,
         "budget": 11,
-        "diff": 0.05,
-        "level": "ok"
+        "diff": 2.6,
+        "level": "watch"
       }
     },
     {
@@ -1114,30 +1150,49 @@ window.GameData = {
         {
           "id": "yun_chou_wei_wo",
           "name": "运筹帷幄",
-          "kind": "trigger",
-          "trigger": "on_play",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "text": "上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。",
           "effects": [
             {
-              "action": "ban_play",
-              "duration": 1,
+              "action": "scry",
+              "count": 3,
+              "from": "top",
+              "to": "deck_top",
               "target": {
-                "side": "enemy",
-                "zone": "hand",
-                "count": 1,
-                "mode": "choose"
+                "side": "ally"
               }
             },
             {
-              "action": "scry",
-              "from": "top",
-              "count": 1,
-              "to": "hand",
+              "action": "draw",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": "kong_cheng_ji",
+          "name": "空城之计",
+          "kind": "aura",
+          "text": "上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "sheng_dun_status",
               "target": {
-                "side": "self"
+                "source": true
+              },
+              "condition": {
+                "count": {
+                  "selector": {
+                    "side": "ally",
+                    "zone": "hand"
+                  },
+                  "op": "==",
+                  "value": 0
+                }
               }
             }
-          ],
-          "text": "上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。"
+          ]
         }
       ],
       "memo": "",
@@ -1145,11 +1200,11 @@ window.GameData = {
       "value": {
         "stats": 7,
         "keywords": 0,
-        "skills": 6.5,
-        "total": 13.5,
+        "skills": 9.8,
+        "total": 16.8,
         "budget": 15,
-        "diff": -1.5,
-        "level": "ok"
+        "diff": 1.8,
+        "level": "watch"
       }
     },
     {
@@ -1308,6 +1363,42 @@ window.GameData = {
       }
     },
     {
+      "id": "wei_xiahouen",
+      "name": "夏侯恩",
+      "faction": "wei",
+      "type": "general",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "jian_shi",
+          "name": "剑侍",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "阵亡时，己方抽一张牌。",
+          "effects": [
+            {
+              "action": "draw",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 1.8,
+        "total": 6.8,
+        "budget": 7,
+        "diff": -0.2,
+        "level": "ok"
+      }
+    },
+    {
       "id": "wei_zhangyan",
       "name": "张燕",
       "faction": "wei",
@@ -1403,6 +1494,7 @@ window.GameData = {
           "name": "据守",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。",
           "effects": [
             {
               "action": "modify",
@@ -1428,8 +1520,7 @@ window.GameData = {
                 "count": "all"
               }
             }
-          ],
-          "text": "上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。"
+          ]
         }
       ],
       "memo": "",
@@ -1515,7 +1606,15 @@ window.GameData = {
           "name": "迅疾突袭",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "第一回合获得先攻，然后第一回合能行动结束后获得一回合隐身效果（无法被选中攻击），下回合失效。",
           "effects": [
+            {
+              "action": "apply_status",
+              "status": "xian_gong_status",
+              "target": {
+                "source": true
+              }
+            },
             {
               "action": "apply_status",
               "status": "qi_xi_status",
@@ -1524,8 +1623,7 @@ window.GameData = {
                 "source": true
               }
             }
-          ],
-          "text": "第一回合获得先攻，然后第一回合能行动结束后获得一回合隐身效果（无法被选中攻击），下回合失效。"
+          ]
         }
       ],
       "memo": "",
@@ -1533,10 +1631,10 @@ window.GameData = {
       "value": {
         "stats": 8,
         "keywords": 0,
-        "skills": 2,
-        "total": 10,
+        "skills": 4,
+        "total": 12,
         "budget": 11,
-        "diff": -1,
+        "diff": 1,
         "level": "ok"
       }
     },
@@ -3060,6 +3158,7 @@ window.GameData = {
           "name": "离间",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "上场时对指定一名敌方人物进行离间，双方拼点数大小：如果大于对方则使其丢弃一张卡牌；如果小于对方则此敌方卡回到对方手牌中。",
           "effects": [
             {
               "action": "clash",
@@ -3079,6 +3178,17 @@ window.GameData = {
               }
             },
             {
+              "action": "damage",
+              "value_from_discarded": "cost",
+              "target": {
+                "side": "enemy",
+                "lord": true
+              },
+              "condition": {
+                "event": "clash_won"
+              }
+            },
+            {
               "action": "return_to_hand",
               "condition": {
                 "event": "clash_lost"
@@ -3089,11 +3199,10 @@ window.GameData = {
                   "type": "character"
                 },
                 "count": 1,
-                "mode": "lowest_health"
+                "mode": "random"
               }
             }
-          ],
-          "text": "上场时对指定一名敌方人物进行离间，双方拼点数大小：如果大于对方则使其丢弃一张卡牌；如果小于对方则此敌方卡回到对方手牌中。"
+          ]
         }
       ],
       "memo": "",
@@ -3101,10 +3210,10 @@ window.GameData = {
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 4.1,
-        "total": 10.1,
+        "skills": 5.15,
+        "total": 11.15,
         "budget": 15,
-        "diff": -4.9,
+        "diff": -3.85,
         "level": "off"
       }
     },
@@ -3137,16 +3246,18 @@ window.GameData = {
       "cost": 2,
       "attack": 2,
       "health": 3,
-      "keywords": [],
+      "keywords": [
+        "qi_xi"
+      ],
       "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 0,
-        "total": 5,
+        "total": 4,
         "budget": 5,
-        "diff": 0,
+        "diff": -1,
         "level": "ok"
       }
     },
@@ -3161,25 +3272,20 @@ window.GameData = {
       "keywords": [],
       "skills": [
         {
-          "id": "shan_she",
-          "name": "善射",
+          "id": "wan_qiang",
+          "name": "顽强",
           "kind": "trigger",
-          "trigger": "on_play",
+          "trigger": "on_damaged",
+          "text": "上场时第一回合时对指定敌人造成2点伤害",
           "effects": [
             {
-              "action": "damage",
-              "value": 2,
+              "action": "heal",
+              "value": 1,
               "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
+                "source": true
               }
             }
-          ],
-          "text": "上场时第一回合时对指定敌人造成2点伤害"
+          ]
         }
       ],
       "memo": "",
@@ -3187,10 +3293,10 @@ window.GameData = {
       "value": {
         "stats": 7,
         "keywords": 0,
-        "skills": 1,
-        "total": 8,
+        "skills": 0.24,
+        "total": 7.24,
         "budget": 7,
-        "diff": 1,
+        "diff": 0.24,
         "level": "ok"
       }
     },
@@ -3493,6 +3599,50 @@ window.GameData = {
       }
     },
     {
+      "id": "qun_dongzhuo",
+      "name": "董卓",
+      "faction": "qun",
+      "type": "general",
+      "cost": 5,
+      "attack": 3,
+      "health": 6,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "bao_nue",
+          "name": "暴虐",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：抽 1 张牌，并对**自己主公**造成 2 点伤害。",
+          "effects": [
+            {
+              "action": "draw",
+              "value": 1
+            },
+            {
+              "action": "damage",
+              "value": 2,
+              "target": {
+                "side": "ally",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 4,
+        "total": 13,
+        "budget": 11,
+        "diff": 2,
+        "level": "watch"
+      }
+    },
+    {
       "id": "qun_yuanshao",
       "name": "袁绍",
       "faction": "qun",
@@ -3506,10 +3656,11 @@ window.GameData = {
       "keywords": [],
       "skills": [
         {
-          "id": "yuan_shao_summon",
-          "name": "四世三公",
+          "id": "wei_wang",
+          "name": "威望",
           "kind": "trigger",
           "trigger": "turn_start",
+          "text": "每回合可召唤一个 1攻 1血的士族兵",
           "effects": [
             {
               "action": "summon",
@@ -3517,40 +3668,35 @@ window.GameData = {
               "count": 1,
               "position": "random"
             }
-          ],
-          "text": "每回合可召唤一个 1攻 1血的士族兵"
+          ]
         },
         {
-          "id": "yuan_shao_wangjian",
-          "name": "万箭齐发",
+          "id": "jian_xiong_zhi_ming",
+          "name": "万箭齐发之令",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "每回合可召唤一个 1攻 1血的士族兵",
           "effects": [
             {
               "action": "add_to_deck",
               "unit": "tactic_wanjianqifa",
               "count": 1,
-              "to": "hand",
-              "target": {
-                "side": "self"
-              }
+              "to": "hand"
             },
             {
               "action": "add_to_deck",
               "unit": "tactic_wanjianqifa",
               "count": 2,
-              "target": {
-                "side": "self"
-              }
+              "to": "deck"
             }
-          ],
-          "text": "每回合可召唤一个 1攻 1血的士族兵"
+          ]
         },
         {
-          "id": "yuan_shao_yidu",
-          "name": "遗毒",
+          "id": "yi_ji_wan_jian",
+          "name": "遗计·万箭齐发",
           "kind": "trigger",
           "trigger": "on_death",
+          "text": "每回合可召唤一个 1攻 1血的士族兵",
           "effects": [
             {
               "action": "send_to_deck",
@@ -3559,8 +3705,7 @@ window.GameData = {
                 "side": "enemy"
               }
             }
-          ],
-          "text": "每回合可召唤一个 1攻 1血的士族兵"
+          ]
         }
       ],
       "memo": "",

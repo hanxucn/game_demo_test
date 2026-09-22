@@ -1582,6 +1582,30 @@ card_tags:
   - 122
 card_tags_note: ADR-029 归属标签。待确认：周仓/张燕是否算黄巾、董卓是否算西凉、士族是否必要
 new_cards:
+- id: qun_dongzhuo
+  name: 董卓
+  faction: qun
+  type: general
+  cost: 5
+  attack: 3
+  health: 6
+  tags: []
+  skill_name: 暴虐
+  skill_text: 战吼：抽 1 张牌，并对**自己主公**造成 2 点伤害。
+  source: 设计者 2026-09 定稿新建（确认：伤害对象是自己主公）
+  open: []
+- id: wei_xiahouen
+  name: 夏侯恩
+  faction: wei
+  type: general
+  cost: 3
+  attack: 2
+  health: 3
+  tags: []
+  skill_name: 剑侍
+  skill_text: 阵亡时，己方抽一张牌。
+  source: 设计者 2026-09 定稿新建
+  open: []
 - id: token_huangjin_bing
   name: 黄巾兵
   faction: neutral
@@ -1769,31 +1793,6 @@ dsl:
           tag: man_zu
       target:
         source: true
-  wu_zhouyu:
-  - id: li_jian
-    name: 离间
-    kind: trigger
-    trigger: on_play
-    effects:
-    - action: clash
-      clashMode: roll
-      target:
-        side: enemy
-    - action: discard
-      count: 1
-      target:
-        side: enemy
-      condition:
-        event: clash_won
-    - action: return_to_hand
-      condition:
-        event: clash_lost
-      target:
-        side: enemy
-        filter:
-          type: character
-        count: 1
-        mode: lowest_health
   shu_huangyueying:
   - id: ji_qiao_chu_zhen
     name: 机巧出阵
@@ -2000,17 +1999,6 @@ dsl:
         side: self
     - action: draw
       value: 2
-  wei_xiahouyuan:
-  - id: xun_ji_tu_xi
-    name: 迅疾突袭
-    kind: trigger
-    trigger: on_play
-    effects:
-    - action: apply_status
-      status: qi_xi_status
-      duration: 1
-      target:
-        source: true
   wei_zhangliao:
   - id: chong_feng_xian_zhen
     name: 冲锋陷阵
@@ -2088,28 +2076,6 @@ dsl:
     - action: survive
       target:
         source: true
-  wei_guohuai:
-  - id: ju_shou
-    name: 据守
-    kind: trigger
-    trigger: on_play
-    effects:
-    - action: modify
-      health: 2
-      target:
-        side: ally
-        filter:
-          type: character
-          adjacent_to: self
-        count: all
-    - action: apply_status
-      status: jia_dun_status
-      target:
-        side: ally
-        filter:
-          type: character
-          adjacent_to: self
-        count: all
   wei_dianwei:
   - id: yi_fu_dang_guan
     name: 一夫当关
@@ -2198,44 +2164,6 @@ dsl:
         filter:
           troopKind: shield
         count: all
-  qun_yuanshao:
-  - id: yuan_shao_summon
-    name: 四世三公
-    kind: trigger
-    trigger: turn_start
-    effects:
-    - action: summon
-      unit: neutral_archer
-      count: 1
-      position: random
-    text: 每回合召唤一个弓兵。
-  - id: yuan_shao_wangjian
-    name: 万箭齐发
-    kind: trigger
-    trigger: on_play
-    effects:
-    - action: add_to_deck
-      unit: tactic_wanjianqifa
-      count: 1
-      to: hand
-      target:
-        side: self
-    - action: add_to_deck
-      unit: tactic_wanjianqifa
-      count: 2
-      target:
-        side: self
-    text: 战吼：获得一张「万箭齐发」，并将两张「万箭齐发」加入牌组。
-  - id: yuan_shao_yidu
-    name: 遗毒
-    kind: trigger
-    trigger: on_death
-    effects:
-    - action: send_to_deck
-      unit: tactic_wanjianqifa
-      target:
-        side: enemy
-    text: 亡语：将未抽到的「万箭齐发」加入敌方牌库。
   qun_yuanshao_lord:
   - id: wei_wang_lord
     name: 威望
@@ -2279,20 +2207,6 @@ dsl:
           filter:
             type: character
             tag: huang_jin
-  qun_huangzu:
-  - id: shan_she
-    name: 善射
-    kind: trigger
-    trigger: on_play
-    effects:
-    - action: damage
-      value: 2
-      target:
-        side: enemy
-        filter:
-          type: character
-        count: 1
-        mode: choose
   qun_diaochan:
   - id: huo_guo_qing_cheng
     name: 祸国倾城
@@ -2363,33 +2277,6 @@ dsl:
           filter:
             type: character
             tag: xi_liang
-  shu_zhangfei:
-  - id: pao_xiao
-    name: 咆哮
-    kind: trigger
-    trigger: turn_start
-    effects:
-    - action: damage
-      value: 1
-      target:
-        side: enemy
-        filter:
-          type: character
-        count: all
-  shu_huangzhong:
-  - id: bai_bu_chuan_yang
-    name: 百步穿杨
-    kind: trigger
-    trigger: turn_start
-    effects:
-    - action: damage
-      value: 2
-      target:
-        side: enemy
-        filter:
-          type: character
-        count: 1
-        mode: choose
   shu_zhaoyun:
   - id: yi_shen_shi_dan
     name: 一身是胆
@@ -2468,23 +2355,6 @@ dsl:
       count: 1
       target:
         side: enemy
-  shu_guanping:
-  - id: jiang_men_hu_zi
-    name: 将门虎子
-    kind: trigger
-    trigger: on_play
-    effects:
-    - action: modify
-      attack: 1
-      health: 1
-      target:
-        source: true
-      condition:
-        exists:
-          side: ally
-          filter:
-            type: character
-            cost_max: 6
   shu_machao:
   - id: tie_qi_tu_xi
     name: 铁骑突袭
@@ -2594,25 +2464,6 @@ dsl:
         filter:
           type: character
         count: all
-  shu_zhugeliang:
-  - id: yun_chou_wei_wo
-    name: 运筹帷幄
-    kind: trigger
-    trigger: on_play
-    effects:
-    - action: ban_play
-      duration: 1
-      target:
-        side: enemy
-        zone: hand
-        count: 1
-        mode: choose
-    - action: scry
-      from: top
-      count: 1
-      to: hand
-      target:
-        side: self
   qun_chengong:
   - id: zhong_lie_zhi_zhi
     name: 忠烈之志
@@ -2955,6 +2806,265 @@ dsl:
           type: character
         count: all
     text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+  shu_huangzhong:
+  - id: bai_bu_chuan_yang
+    name: 百步穿杨
+    kind: active
+    frequency: once_per_turn
+    text: 自己每回合行动时对指定敌方人物造成 2 点伤害。
+    effects:
+    - action: damage
+      value: 2
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  shu_zhangfei:
+  - id: pao_xiao
+    name: 咆哮
+    kind: trigger
+    trigger: on_play
+    text: 战吼：所有攻击力低于张飞的敌军（不含主公）本回合攻击力 −1，并受到 1 点伤害。
+    effects:
+    - action: modify
+      attack: -1
+      duration: this_turn
+      target:
+        side: enemy
+        filter:
+          type: character
+          attack_below_source: true
+        count: all
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+          attack_below_source: true
+        count: all
+  wei_guohuai:
+  - id: ju_shou
+    name: 据守
+    kind: trigger
+    trigger: on_play
+    text: 战吼：为与郭淮相邻的己方人物 +2 生命上限，并使其获得架盾。
+    effects:
+    - action: modify
+      health: 2
+      target:
+        side: ally
+        filter:
+          type: character
+          adjacent_to: self
+        count: all
+    - action: apply_status
+      status: jia_dun_status
+      target:
+        side: ally
+        filter:
+          type: character
+          adjacent_to: self
+        count: all
+  wei_xiahouyuan:
+  - id: xun_ji_tu_xi
+    name: 迅疾突袭
+    kind: trigger
+    trigger: on_play
+    text: 第一回合获得先攻，行动结束后获得一回合隐身（无法被选中攻击），下回合失效。
+    effects:
+    - action: apply_status
+      status: xian_gong_status
+      target:
+        source: true
+    - action: apply_status
+      status: qi_xi_status
+      duration: 1
+      target:
+        source: true
+  qun_huangzu:
+  - id: wan_qiang
+    name: 顽强
+    kind: trigger
+    trigger: on_damaged
+    text: 每次受到攻击没有阵亡时，恢复 1 点生命。
+    effects:
+    - action: heal
+      value: 1
+      target:
+        source: true
+  qun_caimao:
+  - id: shui_gong
+    name: 水攻
+    kind: trigger
+    trigger: on_play
+    text: 战吼：对指定一名敌人造成 1 点水伤。
+    effects:
+    - action: damage
+      value: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+  wu_zhouyu:
+  - id: li_jian
+    name: 离间
+    kind: trigger
+    trigger: on_play
+    text: 拼点：大于对方则使其丢弃一张牌，并对其主公造成等同于该牌统帅值的伤害；小于对方则使场上随机一名敌方人物回到对方手牌。
+    effects:
+    - action: clash
+      clashMode: roll
+      target:
+        side: enemy
+    - action: discard
+      count: 1
+      target:
+        side: enemy
+      condition:
+        event: clash_won
+    - action: damage
+      value_from_discarded: cost
+      target:
+        side: enemy
+        lord: true
+      condition:
+        event: clash_won
+    - action: return_to_hand
+      condition:
+        event: clash_lost
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: random
+  shu_zhugeliang:
+  - id: yun_chou_wei_wo
+    name: 运筹帷幄
+    kind: active
+    frequency: once_per_turn
+    text: 一回合一次：查看牌库最上面三张牌，并按指定顺序放回。己方抽一张牌。
+    effects:
+    - action: scry
+      count: 3
+      from: top
+      to: deck_top
+      target:
+        side: ally
+    - action: draw
+      value: 1
+  - id: kong_cheng_ji
+    name: 空城之计
+    kind: aura
+    text: 己方手牌为 0 时，诸葛亮获得免疫伤害效果。
+    effects:
+    - action: apply_status
+      status: sheng_dun_status
+      target:
+        source: true
+      condition:
+        count:
+          selector:
+            side: ally
+            zone: hand
+          op: '=='
+          value: 0
+  qun_yuanshao:
+  - id: wei_wang
+    name: 威望
+    kind: trigger
+    trigger: turn_start
+    text: 每回合召唤一个弓兵。
+    effects:
+    - action: summon
+      unit: neutral_archer
+      count: 1
+      position: random
+  - id: jian_xiong_zhi_ming
+    name: 万箭齐发之令
+    kind: trigger
+    trigger: on_play
+    text: 战吼：获得一张万箭齐发，并将两张万箭齐发加入牌组。
+    effects:
+    - action: add_to_deck
+      unit: tactic_wanjianqifa
+      count: 1
+      to: hand
+    - action: add_to_deck
+      unit: tactic_wanjianqifa
+      count: 2
+      to: deck
+  - id: yi_ji_wan_jian
+    name: 遗计·万箭齐发
+    kind: trigger
+    trigger: on_death
+    text: 遗计：将未抽到的万箭齐发加入敌方牌库。
+    effects:
+    - action: send_to_deck
+      unit: tactic_wanjianqifa
+      target:
+        side: enemy      # send_to_deck 靠它决定"塞给谁"：enemy = 塞给对方
+  shu_guanping:
+  - id: yong_wu
+    name: 勇武
+    kind: aura
+    text: 关羽在场时，自身 +1 攻 / +1 血。
+    effects:
+    - action: modify
+      attack: 1
+      health: 1
+      target:
+        source: true
+      condition:
+        exists:
+          side: both
+          filter:
+            card_id: shu_guanyu
+  - id: yi_ji_sheng_dun
+    name: 遗计·圣盾
+    kind: trigger
+    trigger: on_death
+    text: 亡语：使关羽获得圣盾。
+    effects:
+    - action: apply_status
+      status: sheng_dun_status
+      target:
+        side: both
+        filter:
+          card_id: shu_guanyu
+        count: 1
+
+  qun_dongzhuo:
+  - id: bao_nue
+    name: 暴虐
+    kind: trigger
+    trigger: on_play
+    text: 战吼：抽 1 张牌，并对主公造成 2 点伤害。
+    effects:
+    - action: draw
+      value: 1
+    - action: damage
+      value: 2
+      target:
+        side: ally
+        lord: true      # 自己主公（设计者确认）
+
+  wei_xiahouen:
+  - id: jian_shi
+    name: 剑侍
+    kind: trigger
+    trigger: on_death
+    text: 阵亡时，己方抽一张牌。
+    effects:
+    - action: draw
+      value: 1
+
+
 dsl_effects:
   tactic_bishi_ruiqi:
   - action: return_to_hand
@@ -3216,6 +3326,12 @@ card_cost_rules:
           health_max: 1
     value: -1
 card_keywords:
+  shu_xiangchong:
+  - jia_dun          # 向宠：2 费 1/4 架盾
+  qun_songxian:
+  - qi_xi            # 宋宪「伏击」：潜行
+  shu_madai:
+  - xian_gong        # 马岱「西凉子弟」：先攻
   shu_dongjue:
   - jia_dun
   shu_zhoucang:
