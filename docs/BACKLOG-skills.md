@@ -5,19 +5,35 @@
 
 ## 0. 当前状态（接手时请先复核）
 
+> ✅ **2026-09-23：B-3 ~ B-11 与「战吼前端」已全部完成**（ADR-071）。
+> 下面是完成后的状态；每项的实现要点与验证方式见文末「§7 完成记录」。
+
 | 项 | 值 |
 |---|---|
 | 分支 | `update_ui` |
-| 最近提交 | `d209585 feat(core): on_kill 击杀时机 + 击杀者引用；录入华雄/马超（ADR-070）` |
-| 测试 | `npm test` **153 通过 / 0 失败** |
-| 卡池 | **122 张**（`core/data/cards.json`） |
-| 校验 | `npm run validate` → 0 错误 / 178 警告 |
-| DSL 验证 | `npm run verify:dsl` → **100 通过 / 0 失败** |
+| 本轮基线提交 | `b5c4df7 docs(AGENTS): 测试数更新为 153` |
+| 测试 | `npm test` **189 通过 / 0 失败**（+36：`core/test/skills-071.test.ts` 35 条 + 程昱改写） |
+| 卡池 | **123 张**（新建祖茂） |
+| 校验 | `npm run validate` → **0 错误** / 176 警告 |
+| DSL 验证 | `npm run verify:dsl` → **102 通过 / 0 失败** |
+| 冒烟 | `npm run smoke` → 回放完全一致 |
 
 复核命令：
 ```bash
 cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke
+# 数据链（改了 data/ 或 core 的度量后）
+bash tools/build-cards.sh
+# 原型（改了 core/src/*.ts 后必须重建 bundle）
+python3 tools/yaml2json.py && python3 tools/build-data-bundle.py
+cd core && npm run build:browser && cd .. && bash tools/serve.sh
 ```
+
+### ⚠️ 执行前必须先读：BACKLOG 里有 3 项与权威数据矛盾
+
+上一轮写本文档时，B-4 / B-6 / B-9 的**卡牌描述与 `data/` 里的真实卡面不符**
+（例如 B-6 说魏延是「掷骰子分支」，但卡面是「攻击时/受伤时各一半概率伤害+1」）。
+**已与设计者确认口径：以当前数据 + 有设计者背书的澄清为准**，臆造项不实现。
+逐项判定见 §7 的 ⑫。
 
 ## 1. 已完成（B-1 / B-2），不要重做
 
@@ -42,7 +58,7 @@ registerOnXResolver((...) => { runEffects(...); });
 
 ---
 
-## 2. 剩余任务（每项都必须带测试）
+## 2. 任务清单（B-3 ~ B-11）—— ✅ 全部完成，保留原文供复盘
 
 ### B-3 抉择（二选一） — 曹彰、庞统
 
@@ -131,7 +147,7 @@ registerOnXResolver((...) => { runEffects(...); });
 
 ---
 
-## 3. 战吼前端支持（引擎已就绪，UI 未做）
+## 3. 战吼前端支持 —— ✅ 已完成（原型可点选战吼目标）
 
 **背景**：`PLAY_CARD` 现在支持 `target?: { side, row, col }`（B-1 加的），引擎会把
 它作为 `chosen` 传给战吼效果。但**原型出牌时不会弹选目标**，所以陈宫/蔡瑁在实机上
@@ -182,3 +198,66 @@ registerOnXResolver((...) => { runEffects(...); });
 ## 6. 建议顺序
 
 B-3（抉择，2 张卡）→ B-5（连续攻击）→ B-6（掷骰）→ B-7（华佗）→ B-8（程昱）→ B-9（陆抗）→ B-10（姜维）→ B-4（貂蝉）→ B-11（祖茂，需先确认守护范围）→ 战吼前端
+
+---
+
+## 7. 完成记录（2026-09-23，ADR-071）
+
+一条命令验证全部：`cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke`
+
+| 项 | 做了什么 | 主要文件 | 测试 |
+|---|---|---|---|
+| B-3 抉择 | `SkillDef.modes[]` + `PLAY_CARD.modeIndex`；`effectsOf()` 为分支取值唯一真源，缺省/越界取 `modes[0]`；曹彰「猛袭」补效果 | `types.ts` `effects.ts` `engine.ts` `cards_decisions.draft.yaml` | 3 条（含 6 种越界值） |
+| B-4 性别 | `CardDef.gender` + `filter.gender` + `card_gender` 决策段；貂蝉只震慑男性 | `types.ts` `effects.ts` `gen-cards-v1.py` `promote-cards.py` | 3 条 |
+| B-5 连续普攻 | 普攻结算抽成 `effects.resolveAttack()`，`ATTACK` 与 `attack_each` 共用；张苞改为「战吼挨个打攻<自己的敌人，自己阵亡即停」 | `effects.ts` `engine.ts` | 2 条（含中途阵亡停手） |
+| B-6 时序 | `on_attack` 触发技改到**算攻击力之前**；姜维/魏延补 `duration: this_turn`；补魏延漏掉的「受创时」分支。**掷骰子分支：臆造，不实现** | `effects.ts` `cards_decisions.draft.yaml` | 3 条 |
+| B-7 批量驱散 | `remove_status` 支持 `remove_kind: debuff\|buff`；华佗清全部负面 | `types.ts` `effects.ts` | 2 条 |
+| B-8 牺牲取值 | 新增 `sacrifice` 动作（写 `sacrificed_max_hp` / `sacrificed_hp` 进 flags）+ `Action.target2` / `TargetSelector.pick`；程昱改用真·牺牲 | `types.ts` `effects.ts` `mutate.ts` | 3 条 |
+| B-9 复制技能 | `zone: 'both'` 覆盖「手里或场上」+ `filter.exclude_source`；陆抗 | `effects.ts` `types.ts` | 3 条 |
+| B-10 抽到非某类为止 | 新增 `draw_until`；姜维补「使用策略牌时」分支（复用 `on_card_played` 类型过滤） | `effects.ts` `constants.ts` | 3 条（含粮尽） |
+| B-11 护主 | 新状态 `hu_zhu` + `StatusDef.guard_scope` + `findLordGuard`（主帅不是 Unit）；**新建祖茂 2 费 1/3**（ADR-072 改回 ADR-068 的数值） | `constants.ts` `mutate.ts` `statuses.yaml` `new_cards` | 6 条（含跨回合边界） |
+| 战吼前端 | `Core.playTargetPlan()` 把「要不要选/选几个/能选谁」下沉到 core；原型弹选目标 + 抉择按钮 + 指向箭头 | `engine.ts` `index.ts` `battlefield.engine.js` `battlefield.html` | 8 条（plan 单测）+ 浏览器实测 |
+
+### 实现时踩到的坑（值得记住）
+
+| # | 坑 | 后果 |
+|---|---|---|
+| 1 | 光环施加的状态按 `duration: 'turns'` 记了 1 回合 | 会在**自己回合结束**时被清掉，而护主要挡的恰是对手回合的伤害 → 形同虚设。现规定：光环施加的状态不带 `turns`，生命周期交给光环 |
+| 2 | 把兵种卡的 `gender` 记成 `unknown` | 貂蝉在纯基础兵对局里**完全空转**（目标池被清空）。现规定：有攻血的单位默认 `male` |
+| 3 | 用两条互斥 `condition` 效果表达「手里或场上」 | 估值时两条被**相加**（陆抗价值 14.5 超预算），改用 `zone: 'both'` 单个选择器 |
+| 4 | 把 曹彰 的 DSL 误挂在 `wei_chengyu:` 键下 | 程昱的技能被覆盖、曹彰仍是白板 → `bash tools/build-cards.sh` 的输出「有技能名、效果待设计」会暴露这类错误，**改完必须看这一行** |
+| 5 | 测试里用 9 攻打张苞当「会被反击打死」的用例 | 张苞的目标集是「攻 **<** 自己」，9 攻根本不在集合里 → 用例假过 |
+| 6 | 以「**推出来的**类型」为条件搬运攻血字段 | 类型判不出的卡（黄权缺攻击力）连**生命值一起丢**，变成 0/0 白板。攻血该按"照片稿里有就带上" |
+| 7 | 击杀奖励排在「攻击次数 +1」之前 | 关兴「额外行动」刚把次数清零就被加回去 → 额外行动等于白给。**必须排在记账之后** |
+
+### ✅ 设计者答复后已全部收口（ADR-072）
+
+| # | 原「待定夺」项 | 结论 |
+|---|---|---|
+| 1 | 程昱第三个「指定敌人」 | 设计者确认**可以按随机敌人**落地 → 结项 |
+| 2 | 祖茂数值 | 设计者：**1 攻仍是武将，可以显式标注** → 改回 ADR-068 的 **2 费 1/3** + `type_explicit: true` |
+| 3 | 张辽 / 关兴的 `event: killed` 永假 | **已修**：`on_attack` 拆成 before（非击杀条件）/ after（击杀条件）两趟 |
+| 4 | 向宠 / 黄权的类型错误 | 设计者要求「确保数据里人物都修改正确」→ 两张都从**武将改回谋臣**（数值改了类型没跟着改；黄权还额外清掉一处代码硬编码 + 修回被丢掉的生命值） |
+
+`B-4` 的「两个相邻男性角色决斗」与 `B-6` 的「掷骰子分支」仍判定为臆造、不实现（无手写稿 / ADR 依据）。
+
+---
+
+## 8. 待清的内容缺口（ADR-073 审计结果，需设计者定夺或补引擎能力）
+
+> 这几项都是「文案写了、数据里没有」，但**不能靠改数据修**——要么需要新引擎能力，
+> 要么需要设计者拍板口径。**故意没有擅自实现**（本项目已多次因 AI 自行推定机制而返工）。
+
+| 卡 | 文案（真源） | 现状 | 缺什么 |
+|---|---|---|---|
+| **空城计**（5 费战法） | 「当己方场上没有人物在场时，对方一回合无法攻击主帅」 | `damage value: 0` —— **纯白卡**，什么都没发生 | 需要「该方主帅本回合不能被指定为攻击目标」。`legalTargets` 里主将是无条件 `push` 的，也没有对应 status/cap（`untargetable` 只作用于单位）。**这是 5 费卡，优先度最高** |
+| **司马懿**（5 费 1/6） | ①不动则回合结束全体敌方 1 伤 ②**行动且造成伤害**则拆对手牌库一张 ③场上只剩他时②同时生效 | 只做了①（且没判「是否行动过」） | 需要「本回合该单位是否行动过 / 是否造成过伤害」的追踪与条件 |
+| **休养生息**（5 费战法） | 「下一回合不进行任何活动，恢复**全体人员（包括主帅）**3-4 点血量，抽三张牌」 | 只 heal 了己方人物 + 抽 3 | ① 治疗漏了主帅（好补）② 「全体」是否含敌方需确认 ③ 「下一回合不进行任何活动」需要「跳过下个回合」机制 |
+| **黄皓**（2 费 1/2） | 「降低**己方主公**一点统率，敌方随机**封锁**手中一张卡」 | 只有 `discard 1`（弃掉） | ① 自削统率整句缺失（`gain_command` 传负数即可）② 「封锁」= `ban_play`（禁止上场），与 `discard`（永久弃掉）语义不同，需确认 |
+| **张宝 / 张梁**（3 费） | 「张宝与张梁同时在场时召 2 个黄巾兵；**张氏三兄弟同时在场**时共 4 个」 | 条件是 `tag: huang_jin` 存在，第二句缺失 | 需要「多个**指定**人物同时在场的条件」（现只有单个 `exists` / `count`，且 `huang_jin` 标签含黄巾兵 token，不能当判据） |
+| **陈到**（3 费 2/2） | 技能名「白毦兵」 | 正文空白 | 设计者未设计效果（一直在 `skill_name_only` 名单里） |
+| **步兵 / 机械哨兵 / 机械守卫** | 「不能攻击敌方主帅」「当场上设有其他敌方人物时才可攻击主帅」 | 无承载字段 | 限制型文案，`restrict` 字段仍缺（ADR-045 挂账） |
+
+**另外两处「代码层」欠账**（不在数据里）：
+1. `dsl_blocked` 里的 `move` / `random_pick` 两个动作**注册了但没实现**（当前 0 张卡使用，validate 只提示）。
+2. `MATCH.TURN_SECONDS = 60` 的回合时限只在原型生效，`core` 侧没有「超时判负」的入口（若服务端需要权威判定要补）。
