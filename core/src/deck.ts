@@ -14,8 +14,24 @@ import { DECK, NON_DECK_TYPES } from './constants.ts';
 import type { CardDef, Faction } from './types.ts';
 import type { LoadedData } from './loader.ts';
 
-/** 同名卡上限 */
-export const MAX_COPIES = 2;
+/**
+ * 同名卡上限（ADR-065，设计者裁定）：
+ * - **基础兵**（步兵 / 弓射手 / 盾兵，`type: 'troop'`）可放 3 张
+ * - **其余人物与将领独一无二**，只能放 1 张
+ *
+ * 用 `type` 字段表达而不是写死卡 id —— 加新基础兵时数据自动生效。
+ */
+export const BASIC_TROOP_COPIES = 3;
+export const UNIQUE_COPIES = 1;
+
+/** 这张卡的同名上限 */
+export function maxCopiesOf(card: CardDef | undefined): number {
+  if (!card) return UNIQUE_COPIES;
+  return card.type === 'troop' ? BASIC_TROOP_COPIES : UNIQUE_COPIES;
+}
+
+/** @deprecated 同名上限已改为按卡计算，用 maxCopiesOf(card)。保留仅供旧调用方兜底。 */
+export const MAX_COPIES = UNIQUE_COPIES;
 
 /** 可搭配进任何阵营卡组的中立阵营 */
 export const NEUTRAL: Faction = 'neutral';
@@ -140,9 +156,10 @@ export function validateDeck(data: LoadedData, faction: Faction, deckIds: readon
   const copies = new Map<string, number>();
   for (const c of cards) copies.set(c.id, (copies.get(c.id) ?? 0) + 1);
   for (const [id, n] of copies) {
-    if (n > MAX_COPIES) {
-      const c = data.cards.get(id);
-      errors.push({ kind: 'copies', message: `${c?.name ?? id} 同名上限 ${MAX_COPIES} 张，当前 ${n} 张` });
+    const c = data.cards.get(id);
+    const cap = maxCopiesOf(c);
+    if (n > cap) {
+      errors.push({ kind: 'copies', message: `${c?.name ?? id} 同名上限 ${cap} 张，当前 ${n} 张` });
     }
   }
 
@@ -190,7 +207,7 @@ export function autoDeck(data: LoadedData, faction: Faction, seed = 1): string[]
   const deck: string[] = [];
   const take = (c: CardDef): boolean => {
     const n = used.get(c.id) ?? 0;
-    if (n >= MAX_COPIES) return false;
+    if (n >= maxCopiesOf(c)) return false;
     used.set(c.id, n + 1);
     deck.push(c.id);
     return true;
@@ -207,7 +224,7 @@ export function autoDeck(data: LoadedData, faction: Faction, seed = 1): string[]
     if (!bucket.length) continue;
     let placed = 0;
     let guard = 0;
-    while (placed < want && guard < bucket.length * MAX_COPIES + bucket.length) {
+    while (placed < want && guard < bucket.length * BASIC_TROOP_COPIES + bucket.length) {
       const c = bucket[cursor % bucket.length] as CardDef;
       cursor += 1;
       guard += 1;
@@ -218,7 +235,7 @@ export function autoDeck(data: LoadedData, faction: Faction, seed = 1): string[]
   // ② 不足 30 张 → 从整个池子补齐（跳过满同名）
   const flat = [...pool].sort((a, b) => (a.id < b.id ? -1 : 1));
   let guard = 0;
-  while (deck.length < DECK.SIZE && guard < flat.length * MAX_COPIES + flat.length) {
+  while (deck.length < DECK.SIZE && guard < flat.length * BASIC_TROOP_COPIES + flat.length) {
     const c = flat[cursor % flat.length] as CardDef;
     cursor += 1;
     guard += 1;

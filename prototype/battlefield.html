@@ -5,7 +5,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>酒话三国 · 战场原型</title>
-<link rel="stylesheet" href="card-render.css">
+<!-- 开发期防缓存：给所有本地资源带上本次载入的时间戳。
+     裸文件名会被 Chrome 启发式缓存 —— 改了 JS 刷新却仍在跑旧代码，
+     这个坑已经让人误判过三次（"功能明明做了却看不到"）。 -->
+<script>
+  (function () {
+    var v = '?v=' + Date.now();
+    document.write('<link rel="stylesheet" href="card-render.css' + v + '">');
+  })();
+</script>
 <style>
   :root {
     --canvas-w: 736px;
@@ -44,7 +52,7 @@
     display: flex;
     flex-direction: column;
     padding: var(--pad);
-    gap: 4px;
+    gap: 3px;        /* 加倒计时行后 .panel 变高，3px 刚好把画布压回 414pt */
     overflow: hidden;
   }
 
@@ -420,6 +428,60 @@
   /* ===== 拖拽出牌 ===== */
   .hcard-wrap { touch-action: none; }
   .hcard-wrap.is-dragging { opacity: .25; }
+  /* ---------- 悬浮技能弹窗 ---------- */
+  #card-tip {
+    position: fixed; z-index: 620;   /* 高于拖拽幽灵(500)与箭头(480) */
+    display: none;
+    width: 268px; max-height: 60vh; overflow: hidden;
+    padding: 9px 11px 10px;
+    background: linear-gradient(180deg, rgba(30,23,14,.985), rgba(16,11,7,.99));
+    border: 1px solid #6b5636; border-radius: 8px;
+    box-shadow: 0 0 0 1px #201810, 0 16px 40px rgba(0,0,0,.85);
+    color: var(--ink); font-size: 11px; line-height: 1.45;
+    pointer-events: none;
+  }
+  #card-tip.show { display: block; }
+  #card-tip h4 { margin: 0 0 4px; font-size: 13px; color: var(--gold-hi); }
+  #card-tip .sub { color: var(--dim); font-size: 10px; }
+  #card-tip .sk { margin-top: 6px; padding-top: 5px; border-top: 1px solid #3a2f1f; }
+  #card-tip .skname { color: var(--gold); font-size: 11px; }
+  #card-tip .why { color: #e8dcc8; font-size: 10.5px; margin-top: 2px; }
+
+  /* 战法/事件卡的投放区：整块战场亮起 */
+  .arena-inner.is-spell-target,
+  #boards.is-spell-target { box-shadow: 0 0 0 2px var(--gold), 0 0 22px rgba(255,200,110,.35); border-radius: 8px; }
+  #boards.is-hover { box-shadow: 0 0 0 2px #6fe07a, 0 0 26px rgba(111,224,122,.5); }
+
+  /* ---------- 指向箭头（ADR-065）---------- */
+  /* 视口坐标系绘制（指针事件给的就是视口坐标），故用 fixed 铺满 */
+  #arrow-layer {
+    position: fixed; left: 0; top: 0;
+    width: 100vw; height: 100vh;          /* SVG 必须显式给尺寸，否则算出 0×0 */
+    pointer-events: none; z-index: 480;   /* 高于卡牌、低于拖拽幽灵(500) */
+    display: none;
+  }
+  #arrow-layer.show { display: block; }
+  #arrow-path {
+    fill: none; stroke: #ffd27a; stroke-width: 8; stroke-linecap: round;
+    filter: drop-shadow(0 0 7px rgba(0,0,0,.9));
+    transition: stroke .1s linear;
+  }
+  #arrow-layer.is-valid #arrow-path { stroke: #6fe07a; }
+
+  /* ---------- 回合倒计时 ---------- */
+  .panel .turn-timer { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .panel .turn-timer.is-low { color: #ff8a72; }
+  .panel .timer-bar {
+    height: 3px; margin-top: 3px; border-radius: 2px;
+    background: #2a231c; box-shadow: inset 0 0 0 1px #3a3229; overflow: hidden;
+  }
+  .panel .timer-bar i {
+    display: block; height: 100%; width: 100%;
+    background: linear-gradient(90deg, #6fe07a, #ffd27a);
+    transform-origin: left center;
+  }
+  .panel .timer-bar i.is-low { background: linear-gradient(90deg, #ff8a72, #ff5a3a); }
+
   .drag-ghost {
     position: fixed; z-index: 500;
     pointer-events: none;
@@ -649,6 +711,24 @@
 </style>
 </head>
 <body>
+<!-- 指向箭头层：必须是 #stage / #canvas 的**兄弟**节点。
+     #canvas 上有 transform: scale() 与 overflow: hidden；放进去的话
+     position:fixed 会以画布为包含块，坐标被缩放且被裁掉 ——
+     症状就是「箭头位置不对、甚至完全看不见」。 -->
+<svg id="arrow-layer" aria-hidden="true">
+  <defs>
+    <marker id="arrow-head" viewBox="0 0 10 10" refX="6" refY="5"
+            markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ffd27a"></path>
+    </marker>
+    <marker id="arrow-head-ok" viewBox="0 0 10 10" refX="6" refY="5"
+            markerWidth="4" markerHeight="4" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6fe07a"></path>
+    </marker>
+  </defs>
+  <path id="arrow-path" d="" marker-end="url(#arrow-head)"></path>
+</svg>
+
 <div id="stage">
   <div id="canvas">
 
@@ -788,6 +868,10 @@
         <div class="box">
           <div class="row2"><span class="label">回 合</span><b id="turn-num">1</b></div>
           <div class="row2" style="margin-top:4px"><span class="label">当 前</span><b id="turn-side" class="turn-side own">我方回合</b></div>
+          <div class="row2 timer-row" style="margin-top:4px">
+            <span class="label">倒 计 时</span><b id="turn-timer" class="turn-timer">60</b>
+          </div>
+          <div class="timer-bar"><i id="turn-timer-bar"></i></div>
         </div>
 
         <!-- 双方牌堆：都用卡背表示，敌方不再"看不见" -->
@@ -855,10 +939,13 @@
 <div id="log"></div>
 
 
-<script src="core.bundle.js"></script>
-<script src="data.bundle.js"></script>
-<script src="card-render.js"></script>
-<script src="setup.js"></script>
-<script src="battlefield.engine.js"></script>
+<script>
+  // 同上：逐一带时间戳，保证每次刷新都拿到最新的引擎与原型代码
+  (function () {
+    var v = '?v=' + Date.now();
+    ['core.bundle.js', 'data.bundle.js', 'card-render.js', 'setup.js', 'battlefield.engine.js']
+      .forEach(function (f) { document.write('<script src="' + f + v + '"><\/script>'); });
+  })();
+</script>
 </body>
 </html>

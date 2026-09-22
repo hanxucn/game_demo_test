@@ -101,11 +101,16 @@ for c in yaml.safe_load(open(ROOT/'data/characters.draft.yaml', encoding='utf-8'
                 'flavor': c.get('flavor') or '', 'source': {'oral': True},
                 'flags': ['口述录入，数值未经校验']})
 
-# 基础卡：盾兵（设计者答疑给出新数值）
+# 基础卡：盾兵
+# ADR-065（设计者 2026-09 最新裁定）：步兵 / 弓射手 / 盾兵三张基础兵统一 **1 费**，
+# 同名上限 3 张（上限规则见 core/src/deck.ts 的 maxCopiesOf，按 type='troop' 判定）。
+# 此前按更早的一次答疑定的是 2 费，已被本次裁定取代。
+# TODO(数据层): 三张基础兵目前仍硬编码在本脚本里，违反「卡牌数值不进代码」；
+#   后续应迁到 data/cards_decisions.draft.yaml 的 new_cards 段落。
 out.append({'id':'neutral_shieldman','name':'盾兵','faction':'neutral','type':'troop','troopKind':'shield',
-    'cost':2,'attack':1,'health':2,'skills':[],'keywords':['jia_dun'],
-    'memo':'仅前军生效：敌方必须先打掉它才能攻击其他人','flavor':'盾如铁壁，寸步不让。',
-    'source':{'oral':True,'note':'设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）'}})
+    'cost':1,'attack':1,'health':2,'skills':[],'keywords':['jia_dun'],
+    'memo':'架盾：敌方必须先打掉它才能攻击其他人','flavor':'盾如铁壁，寸步不让。',
+    'source':{'oral':True,'note':'ADR-065：基础兵统一 1 费；同名上限 3 张'}})
 # 传国玉玺已删除（ADR-053：设计者裁定非本人设计；后手补偿改为后手第 1 回合多抽 1 张）
 
 # 设计者新增的卡（非照片来源）

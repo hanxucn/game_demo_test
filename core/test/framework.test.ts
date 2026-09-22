@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { applyAction, startMatch } from '../src/engine.ts';
-import { autoDeck, cardPool, validateDeck, MAX_COPIES, PLAYABLE_FACTIONS } from '../src/deck.ts';
+import { autoDeck, cardPool, validateDeck, maxCopiesOf, PLAYABLE_FACTIONS } from '../src/deck.ts';
 import { mulligan, setupMatch } from '../src/setup.ts';
 import { rollFirstSide } from '../src/state.ts';
 import { loadData } from '../src/loader.ts';
@@ -82,7 +82,8 @@ test('组卡：自动卡组不违反同名上限，且不含主公/衍生物', (
     const count = new Map<string, number>();
     for (const id of deck) count.set(id, (count.get(id) ?? 0) + 1);
     for (const [id, n] of count) {
-      assert.ok(n <= MAX_COPIES, `${f} 的 ${id} 出现 ${n} 次`);
+      const cap = maxCopiesOf(data.cards.get(id));
+      assert.ok(n <= cap, `${f} 的 ${id} 出现 ${n} 次（上限 ${cap}）`);
       const t = data.cards.get(id)!.type;
       assert.ok(!['lord', 'token', 'elite', 'status', 'special'].includes(t),
         `${f} 卡组不应含 ${t} 卡 ${id}`);
@@ -693,6 +694,37 @@ test('技能伤害同样扣血并可致阵亡', async () => {
   assert.equal(gu(s, 'enemy', 'front', 0), null, '超量伤害应致阵亡并移出');
 });
 
+
+/* ============================================================
+   同名上限（ADR-065）
+   ============================================================ */
+
+test('同名上限：基础兵 3 张，其余人物与将领 1 张', async () => {
+  const { maxCopiesOf, BASIC_TROOP_COPIES, UNIQUE_COPIES } = await import('../src/deck.ts');
+
+  // 三张基础兵 = type: troop
+  for (const id of ['neutral_infantry', 'neutral_archer', 'neutral_shieldman']) {
+    const c = data.cards.get(id)!;
+    assert.equal(c.type, 'troop', `${id} 应为 troop`);
+    assert.equal(c.cost, 1, `${id} 应为 1 费`);
+    assert.equal(maxCopiesOf(c), BASIC_TROOP_COPIES, `${id} 同名上限应为 3`);
+  }
+  // 其余人物 / 将领独一无二
+  for (const id of ['shu_guanyu', 'wei_caozhang', 'wu_zhouyu']) {
+    const c = data.cards.get(id);
+    if (!c) continue;
+    assert.equal(maxCopiesOf(c), UNIQUE_COPIES, `${id} 同名上限应为 1`);
+  }
+  assert.equal(maxCopiesOf(undefined), UNIQUE_COPIES);
+
+  // 校验器要拦住超限：盾兵 4 张、关羽 2 张
+  const d2 = loadData({ cards: CARDS, heroes: HEROES }, { own: 'shu_liubei', enemy: 'wei_caocao' });
+  const deck = [...Array(4).fill('neutral_shieldman'), 'shu_guanyu', 'shu_guanyu'];
+  while (deck.length < 30) deck.push('neutral_infantry');
+  const chk = validateDeck(d2, 'shu', deck);
+  assert.ok(chk.errors.some((e) => /盾兵 同名上限 3/.test(e.message)), '盾兵超 3 张应报错');
+  assert.ok(chk.errors.some((e) => /关羽 同名上限 1/.test(e.message)), '关羽超 1 张应报错');
+});
 
 /* ============================================================
    战场单位的攻击全链路（设计者要求确认）

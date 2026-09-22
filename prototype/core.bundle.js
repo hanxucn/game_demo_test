@@ -22,6 +22,7 @@ var Core = (() => {
   var index_exports = {};
   __export(index_exports, {
     ACTIONS: () => ACTIONS,
+    BASIC_TROOP_COPIES: () => BASIC_TROOP_COPIES,
     BOARD: () => BOARD,
     CARD_TYPES: () => CARD_TYPES,
     COMMAND: () => COMMAND,
@@ -40,6 +41,7 @@ var Core = (() => {
     SUGGESTED_CURVE: () => SUGGESTED_CURVE,
     TAGS: () => TAGS,
     TIMING: () => TIMING,
+    UNIQUE_COPIES: () => UNIQUE_COPIES,
     activeStatuses: () => activeStatuses,
     allUnits: () => allUnits,
     applyAction: () => applyAction,
@@ -90,6 +92,7 @@ var Core = (() => {
     lordRef: () => lordRef,
     lordStatusStacks: () => lordStatusStacks,
     makeUnit: () => makeUnit,
+    maxCopiesOf: () => maxCopiesOf,
     mulligan: () => mulligan,
     newMatch: () => newMatch,
     nextUidSeq: () => nextUidSeq,
@@ -174,7 +177,14 @@ var Core = (() => {
     HAND_LIMIT: 10,
     DRAW_PER_TURN: 1
   };
-  var MATCH = { TURN_LIMIT: Infinity };
+  var MATCH = {
+    TURN_LIMIT: Infinity,
+    /**
+     * 每方回合时限（秒）。到点自动结束该方回合（ADR-065）。
+     * 放在 core 而不是原型里 —— 它与「回合上限」「统率上限」同属对局规则常量。
+     */
+    TURN_SECONDS: 60
+  };
   var KEYWORDS = {
     jia_dun: {
       name: "\u67B6\u76FE",
@@ -2023,7 +2033,13 @@ var Core = (() => {
   }
 
   // src/deck.ts
-  var MAX_COPIES = 2;
+  var BASIC_TROOP_COPIES = 3;
+  var UNIQUE_COPIES = 1;
+  function maxCopiesOf(card) {
+    if (!card) return UNIQUE_COPIES;
+    return card.type === "troop" ? BASIC_TROOP_COPIES : UNIQUE_COPIES;
+  }
+  var MAX_COPIES = UNIQUE_COPIES;
   var PUBLIC_POOL = ["neutral", "qun"];
   var PLAYABLE_FACTIONS = ["shu", "wei", "wu"];
   var isDeckable = (c) => !NON_DECK_TYPES.includes(c.type);
@@ -2085,9 +2101,10 @@ var Core = (() => {
     const copies = /* @__PURE__ */ new Map();
     for (const c of cards) copies.set(c.id, (copies.get(c.id) ?? 0) + 1);
     for (const [id, n] of copies) {
-      if (n > MAX_COPIES) {
-        const c = data.cards.get(id);
-        errors.push({ kind: "copies", message: `${c?.name ?? id} \u540C\u540D\u4E0A\u9650 ${MAX_COPIES} \u5F20\uFF0C\u5F53\u524D ${n} \u5F20` });
+      const c = data.cards.get(id);
+      const cap = maxCopiesOf(c);
+      if (n > cap) {
+        errors.push({ kind: "copies", message: `${c?.name ?? id} \u540C\u540D\u4E0A\u9650 ${cap} \u5F20\uFF0C\u5F53\u524D ${n} \u5F20` });
       }
     }
     const stats = computeStats(cards);
@@ -2120,7 +2137,7 @@ var Core = (() => {
     const deck = [];
     const take = (c) => {
       const n = used.get(c.id) ?? 0;
-      if (n >= MAX_COPIES) return false;
+      if (n >= maxCopiesOf(c)) return false;
       used.set(c.id, n + 1);
       deck.push(c.id);
       return true;
@@ -2134,7 +2151,7 @@ var Core = (() => {
       if (!bucket.length) continue;
       let placed = 0;
       let guard2 = 0;
-      while (placed < want && guard2 < bucket.length * MAX_COPIES + bucket.length) {
+      while (placed < want && guard2 < bucket.length * BASIC_TROOP_COPIES + bucket.length) {
         const c = bucket[cursor % bucket.length];
         cursor += 1;
         guard2 += 1;
@@ -2143,7 +2160,7 @@ var Core = (() => {
     }
     const flat = [...pool].sort((a, b) => a.id < b.id ? -1 : 1);
     let guard = 0;
-    while (deck.length < DECK.SIZE && guard < flat.length * MAX_COPIES + flat.length) {
+    while (deck.length < DECK.SIZE && guard < flat.length * BASIC_TROOP_COPIES + flat.length) {
       const c = flat[cursor % flat.length];
       cursor += 1;
       guard += 1;

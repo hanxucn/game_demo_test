@@ -39,7 +39,14 @@ export const DECK = {
  * 依据：每回合至少抽 1 张；牌库抽空后触发「粮尽」递增伤害（1、2、3…），
  * 必然会把某一方主将扣死——所以对局一定会自然收束，不需要人为设上限。
  */
-export const MATCH = { TURN_LIMIT: Infinity };
+export const MATCH = {
+  TURN_LIMIT: Infinity,
+  /**
+   * 每方回合时限（秒）。到点自动结束该方回合（ADR-065）。
+   * 放在 core 而不是原型里 —— 它与「回合上限」「统率上限」同属对局规则常量。
+   */
+  TURN_SECONDS: 60,
+};
 
 /** 关键词表（implemented=false 表示引擎尚未实现，校验器会告警） */
 /**

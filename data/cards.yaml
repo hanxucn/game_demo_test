@@ -2940,22 +2940,22 @@
   name: 盾兵
   faction: neutral
   type: troop
-  cost: 2
+  cost: 1
   attack: 1
   health: 2
   troopKind: shield
   keywords:
   - jia_dun
-  memo: 仅前军生效：敌方必须先打掉它才能攻击其他人
+  memo: 架盾：敌方必须先打掉它才能攻击其他人
   flavor: 盾如铁壁，寸步不让。
   value:
     stats: 3
     keywords: -1
     skills: 0
     total: 2
-    budget: 5
-    diff: -3
-    level: watch
+    budget: 3
+    diff: -1
+    level: ok
 - id: elite_baima_yicong
   name: 白马义从
   faction: neutral

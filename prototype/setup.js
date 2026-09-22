@@ -21,6 +21,7 @@
 
   var DESIGN_W = 736;
   var data = null;
+  var matchData = null;   // 按所选阵营重建的数据（主公正确）
   var onStart = null;
   var step = 0;                  // 0 阵营 / 1 构筑 / 2 换牌
   var ownFaction = 'shu';
@@ -43,6 +44,27 @@
     event: '事件', tactic: '战法', token: '衍生物', elite: '精英', special: '特殊', status: '状态',
   };
   var FAC_NAME = { shu: '蜀', wei: '魏', wu: '吴', qun: '群雄', neutral: '中立' };
+
+  /**
+   * 阵营 → 主公 id（从 GameData.heroes 里找 type==='lord' 的那条）。
+   * 必须在开局时按**实际所选阵营**重建 lords —— 原先 battlefield.engine.js 里
+   * 把 loadData 的主公写死成 刘备/曹操，导致选吴也照样出刘备。
+   */
+  function lordIdOf(faction) {
+    var hs = (window.GameData && window.GameData.heroes) || [];
+    for (var i = 0; i < hs.length; i++) {
+      if (hs[i].faction === faction && hs[i].type === 'lord') return hs[i].id;
+    }
+    return null;
+  }
+
+  /** 按当前所选阵营重建一份数据（cards 与阵营无关，lords 必须跟着阵营走） */
+  function dataForFactions() {
+    return Core.loadData(
+      { cards: window.GameData.cards, heroes: window.GameData.heroes },
+      { own: lordIdOf(ownFaction), enemy: lordIdOf(enemyFaction) },
+    );
+  }
 
   /** 一张卡的展示用文本（技能文案优先，没技能就显示关键词或备忘） */
   function cardText(c) {
@@ -149,14 +171,15 @@
 
     var rows = shown.map(function (c) {
       var n = countOf(c.id);
-      var maxed = n >= Core.MAX_COPIES;
+      var cap = Core.maxCopiesOf(c);          // 基础兵 3 张 / 其余 1 张（ADR-065）
+      var maxed = n >= cap;
       return '<div class="crow' + (maxed ? ' maxed' : '') + '" data-add="' + c.id + '" title="' + esc(cardText(c)) + '">'
         + '<span class="cst">' + c.cost + '</span>'
         + '<span class="nm">' + esc(c.name) + '</span>'
         + '<span class="st">' + (c.attack != null ? c.attack + '/' + c.health : '—') + '</span>'
         + '<span class="kind">' + (TYPE_NAME[c.type] || c.type) + '</span>'
         + '<span class="tx">' + esc(cardText(c).slice(0, 40)) + '</span>'
-        + '<span class="n">' + (n ? n : '') + '</span>'
+        + '<span class="n">' + (n ? n + '/' + cap : '·/' + cap) + '</span>'
         + '</div>';
     }).join('');
 
@@ -280,7 +303,7 @@
     el.querySelectorAll('[data-add]').forEach(function (r) {
       r.addEventListener('click', function () {
         var id = r.dataset.add;
-        if (countOf(id) >= Core.MAX_COPIES) return;      // 上限由引擎给，UI 只照做
+        if (countOf(id) >= Core.maxCopiesOf(data.cards.get(id))) return;   // 上限由引擎给，UI 只照做
         if (deck.length >= 30) return;
         deck.push(id);
         render();
@@ -316,10 +339,11 @@
       var chk = Core.validateDeck(data, ownFaction, deck);
       if (!chk.ok) return;
       // 先建对局拿到起手（换牌必须"先看牌再决定"，所以不能用 setupMatch 一步做完）
+      matchData = dataForFactions();          // ← 主公跟着所选阵营走
       baseState = Core.createMatch({
         seed: (Date.now() % 100000) | 0,
-        cards: data.cards,
-        lords: data.lords,
+        cards: matchData.cards,
+        lords: matchData.lords,
         decks: { own: deck.slice(), enemy: Core.autoDeck(data, enemyFaction) },
         rollFirst: true,                     // GDD 03 §1：掷点定先手
       });
@@ -348,6 +372,8 @@
         ownDeck: deck.slice(),
         ownMulligan: indices,
         baseState: st,
+        cards: matchData.cards,
+        lords: matchData.lords,      // 引擎必须用这份，否则又会退回写死的主公
       });
     }
   }
