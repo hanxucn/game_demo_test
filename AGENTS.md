@@ -6,6 +6,7 @@
 
 ```
 docs/                决策与设计文档
+  BACKLOG-skills.md  待办：技能 B 类 + 战吼前端（有明确待办时先读它）
   gdd/               机制设计文档（唯一真源）
   gdd/index.html     由 tools/render-gdd.mjs 生成，勿手改
 data/                游戏数据（唯一内容源）
