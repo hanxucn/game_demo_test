@@ -293,7 +293,15 @@ export function validateCards(cards: CardDef[]): Issue[] {
       const v = cardValue(c, { cards: byId });
       const budget = budgetOf(c.cost);
       const diff = v.total - budget;
-      if (Math.abs(diff) > 3) {
+      // 精英卡（橙卡）允许强于预算 —— 设计者明确"有些卡稍强是预期的"（ADR-068）。
+      // 这类卡的技能往往远超估值模型的表达能力（如"技能禁用""拼点弃牌"），
+      // 强行按模型改数值反而会做坏设计，所以只提示、不报错。
+      const elite = c.rarity === 'elite';
+      if (elite) {
+        if (Math.abs(diff) > 1.5) {
+          add('warn', c.id, `精英卡总价值 ${v.total.toFixed(1)} 偏离预算 ${budget} 达 ${diff.toFixed(1)}（允许，仅提示）`);
+        }
+      } else if (Math.abs(diff) > 3) {
         add('error', c.id, `总价值 ${v.total.toFixed(1)} 超出同费预算 ${budget} 达 ${diff.toFixed(1)}（±3 以上）`);
       } else if (Math.abs(diff) > 1.5) {
         add('warn', c.id, `总价值 ${v.total.toFixed(1)} 偏离预算 ${budget} 达 ${diff.toFixed(1)}（建议复核）`);

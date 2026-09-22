@@ -77,8 +77,8 @@ window.GameData = {
       "faction": "shu",
       "type": "general",
       "cost": 2,
-      "attack": 2,
-      "health": 3,
+      "attack": 1,
+      "health": 4,
       "keywords": [],
       "memo": "",
       "flavor": "",
@@ -545,52 +545,13 @@ window.GameData = {
       }
     },
     {
-      "id": "shu_jiangwei",
-      "name": "姜维",
-      "faction": "shu",
-      "type": "general",
-      "cost": 5,
-      "attack": 4,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wen_wu_shuang_quan",
-          "name": "文武双全",
-          "kind": "trigger",
-          "trigger": "on_attack",
-          "effects": [
-            {
-              "action": "modify",
-              "attack": 1,
-              "target": {
-                "source": true
-              }
-            }
-          ],
-          "text": "当普通攻击时，攻击力+1；当使用策略牌时.可额外抽一张牌，致致到抽出为非策略牌时停止."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 0.8,
-        "total": 9.8,
-        "budget": 11,
-        "diff": -1.2,
-        "level": "ok"
-      }
-    },
-    {
       "id": "shu_machao",
       "name": "马超",
       "faction": "shu",
       "type": "general",
       "cost": 5,
       "attack": 5,
-      "health": 4,
+      "health": 5,
       "tags": [
         "xi_liang"
       ],
@@ -622,13 +583,13 @@ window.GameData = {
       "memo": "",
       "flavor": "",
       "value": {
-        "stats": 9,
+        "stats": 10,
         "keywords": 0,
         "skills": 2.8,
-        "total": 11.8,
+        "total": 12.8,
         "budget": 11,
-        "diff": 0.8,
-        "level": "ok"
+        "diff": 1.8,
+        "level": "watch"
       }
     },
     {
@@ -638,7 +599,7 @@ window.GameData = {
       "type": "general",
       "cost": 5,
       "attack": 5,
-      "health": 4,
+      "health": 5,
       "keywords": [],
       "skills": [
         {
@@ -665,12 +626,12 @@ window.GameData = {
       "memo": "",
       "flavor": "",
       "value": {
-        "stats": 9,
+        "stats": 10,
         "keywords": 0,
         "skills": 1.05,
-        "total": 10.05,
+        "total": 11.05,
         "budget": 11,
-        "diff": -0.95,
+        "diff": 0.05,
         "level": "ok"
       }
     },
@@ -719,9 +680,10 @@ window.GameData = {
       "name": "关羽",
       "faction": "shu",
       "type": "general",
-      "cost": 7,
+      "cost": 6,
       "attack": 6,
-      "health": 4,
+      "health": 5,
+      "rarity": "elite",
       "keywords": [],
       "skills": [
         {
@@ -760,13 +722,53 @@ window.GameData = {
       "memo": "",
       "flavor": "",
       "value": {
-        "stats": 10,
+        "stats": 11,
         "keywords": 0,
         "skills": 7.5,
-        "total": 17.5,
-        "budget": 15,
-        "diff": 2.5,
-        "level": "watch"
+        "total": 18.5,
+        "budget": 13,
+        "diff": 5.5,
+        "level": "off"
+      }
+    },
+    {
+      "id": "shu_jiangwei",
+      "name": "姜维",
+      "faction": "shu",
+      "type": "general",
+      "cost": 6,
+      "attack": 4,
+      "health": 5,
+      "rarity": "elite",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "wen_wu_shuang_quan",
+          "name": "文武双全",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "target": {
+                "source": true
+              }
+            }
+          ],
+          "text": "当普通攻击时，攻击力+1；当使用策略牌时.可额外抽一张牌，致致到抽出为非策略牌时停止."
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 0.8,
+        "total": 9.8,
+        "budget": 13,
+        "diff": -3.2,
+        "level": "off"
       }
     },
     {
@@ -1009,7 +1011,7 @@ window.GameData = {
       "type": "strategist",
       "cost": 5,
       "attack": 1,
-      "health": 2,
+      "health": 3,
       "keywords": [],
       "skills": [
         {
@@ -1037,13 +1039,13 @@ window.GameData = {
       "memo": "",
       "flavor": "",
       "value": {
-        "stats": 3,
+        "stats": 4,
         "keywords": 0,
         "skills": 6,
-        "total": 9,
+        "total": 10,
         "budget": 11,
-        "diff": -2,
-        "level": "watch"
+        "diff": -1,
+        "level": "ok"
       }
     },
     {
@@ -1390,9 +1392,10 @@ window.GameData = {
       "name": "郭淮",
       "faction": "wei",
       "type": "general",
-      "cost": 5,
+      "cost": 4,
       "attack": 2,
-      "health": 3,
+      "health": 4,
+      "rarity": "elite",
       "keywords": [],
       "skills": [
         {
@@ -1432,13 +1435,13 @@ window.GameData = {
       "memo": "",
       "flavor": "",
       "value": {
-        "stats": 5,
+        "stats": 6,
         "keywords": 0,
         "skills": 8,
-        "total": 13,
-        "budget": 11,
-        "diff": 2,
-        "level": "watch"
+        "total": 14,
+        "budget": 9,
+        "diff": 5,
+        "level": "off"
       }
     },
     {
@@ -3046,9 +3049,10 @@ window.GameData = {
       "name": "周瑜",
       "faction": "wu",
       "type": "strategist",
-      "cost": 6,
+      "cost": 7,
       "attack": 1,
       "health": 5,
+      "rarity": "elite",
       "keywords": [],
       "skills": [
         {
@@ -3099,9 +3103,9 @@ window.GameData = {
         "keywords": 0,
         "skills": 4.1,
         "total": 10.1,
-        "budget": 13,
-        "diff": -2.9,
-        "level": "watch"
+        "budget": 15,
+        "diff": -4.9,
+        "level": "off"
       }
     },
     {
@@ -3152,8 +3156,8 @@ window.GameData = {
       "faction": "qun",
       "type": "general",
       "cost": 3,
-      "attack": 2,
-      "health": 3,
+      "attack": 3,
+      "health": 4,
       "keywords": [],
       "skills": [
         {
@@ -3181,13 +3185,60 @@ window.GameData = {
       "memo": "",
       "flavor": "",
       "value": {
-        "stats": 5,
+        "stats": 7,
         "keywords": 0,
         "skills": 1,
-        "total": 6,
+        "total": 8,
         "budget": 7,
-        "diff": -1,
+        "diff": 1,
         "level": "ok"
+      }
+    },
+    {
+      "id": "qun_huaxiong",
+      "name": "华雄",
+      "faction": "qun",
+      "type": "general",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "wei_zhen_si_fang",
+          "name": "威震四方",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "zhen_she",
+              "duration": 1,
+              "chance": 0.75,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              },
+              "note": "平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）"
+            }
+          ],
+          "text": "指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%."
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 3.75,
+        "total": 9.75,
+        "budget": 7,
+        "diff": 2.75,
+        "level": "watch"
       }
     },
     {
@@ -3390,53 +3441,6 @@ window.GameData = {
       }
     },
     {
-      "id": "qun_huaxiong",
-      "name": "华雄",
-      "faction": "qun",
-      "type": "general",
-      "cost": 4,
-      "attack": 4,
-      "health": 4,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wei_zhen_si_fang",
-          "name": "威震四方",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "apply_status",
-              "status": "zhen_she",
-              "duration": 1,
-              "chance": 0.75,
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              },
-              "note": "平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）"
-            }
-          ],
-          "text": "指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 3.75,
-        "total": 11.75,
-        "budget": 9,
-        "diff": 2.75,
-        "level": "watch"
-      }
-    },
-    {
       "id": "qun_mateng",
       "name": "马腾",
       "faction": "qun",
@@ -3617,61 +3621,6 @@ window.GameData = {
       }
     },
     {
-      "id": "qun_diaochan",
-      "name": "貂蝉",
-      "faction": "qun",
-      "type": "strategist",
-      "cost": 3,
-      "attack": 1,
-      "health": 3,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "huo_guo_qing_cheng",
-          "name": "祸国倾城",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "clash",
-              "clashMode": "roll",
-              "target": {
-                "side": "enemy"
-              }
-            },
-            {
-              "action": "apply_status",
-              "status": "zhen_she",
-              "duration": 1,
-              "condition": {
-                "event": "clash_won"
-              },
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              }
-            }
-          ],
-          "text": "和对方比点大小、大对方为胜：每回合指定敌方一名男性角色.一回合无法行动."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 5.5,
-        "total": 9.5,
-        "budget": 7,
-        "diff": 2.5,
-        "level": "watch"
-      }
-    },
-    {
       "id": "qun_zuoci",
       "name": "左慈",
       "faction": "qun",
@@ -3719,7 +3668,7 @@ window.GameData = {
       "type": "strategist",
       "cost": 4,
       "attack": 1,
-      "health": 4,
+      "health": 5,
       "keywords": [],
       "skills": [
         {
@@ -3747,13 +3696,13 @@ window.GameData = {
       "memo": "",
       "flavor": "",
       "value": {
-        "stats": 5,
+        "stats": 6,
         "keywords": 0,
         "skills": 2,
-        "total": 7,
+        "total": 8,
         "budget": 9,
-        "diff": -2,
-        "level": "watch"
+        "diff": -1,
+        "level": "ok"
       }
     },
     {
@@ -3863,6 +3812,61 @@ window.GameData = {
         "total": 9,
         "budget": 9,
         "diff": 0,
+        "level": "ok"
+      }
+    },
+    {
+      "id": "qun_diaochan",
+      "name": "貂蝉",
+      "faction": "qun",
+      "type": "strategist",
+      "cost": 5,
+      "attack": 1,
+      "health": 3,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "huo_guo_qing_cheng",
+          "name": "祸国倾城",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "clash",
+              "clashMode": "roll",
+              "target": {
+                "side": "enemy"
+              }
+            },
+            {
+              "action": "apply_status",
+              "status": "zhen_she",
+              "duration": 1,
+              "condition": {
+                "event": "clash_won"
+              },
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ],
+          "text": "和对方比点大小、大对方为胜：每回合指定敌方一名男性角色.一回合无法行动."
+        }
+      ],
+      "memo": "",
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 5.5,
+        "total": 9.5,
+        "budget": 11,
+        "diff": -1.5,
         "level": "ok"
       }
     },

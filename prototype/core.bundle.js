@@ -36,6 +36,7 @@ var Core = (() => {
     NON_DECK_TYPES: () => NON_DECK_TYPES,
     PLAYABLE_FACTIONS: () => PLAYABLE_FACTIONS,
     PUBLIC_POOL: () => PUBLIC_POOL,
+    RARITIES: () => RARITIES,
     RETIRED_KEYWORDS: () => RETIRED_KEYWORDS,
     STATUSES: () => STATUSES,
     SUGGESTED_CURVE: () => SUGGESTED_CURVE,
@@ -418,6 +419,7 @@ var Core = (() => {
     "cycle_to_deck"
     // 手牌放回牌库随机位置再抽 1 张（ADR-050）
   ];
+  var RARITIES = ["common", "elite"];
   var CARD_TYPES = [
     "troop",
     "general",

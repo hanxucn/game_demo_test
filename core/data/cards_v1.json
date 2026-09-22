@@ -1312,8 +1312,8 @@
   "faction": "qun",
   "type": "general",
   "cost": 3,
-  "attack": 2,
-  "health": 3,
+  "attack": 3,
+  "health": 4,
   "skills": [
    {
     "name": "善射",
@@ -1352,14 +1352,16 @@
   "flags": [
    "转录存疑 3 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "attack_original": 2,
+  "health_original": 3
  },
  {
   "id": "qun_diaochan",
   "name": "貂蝉",
   "faction": "qun",
   "type": "strategist",
-  "cost": 3,
+  "cost": 5,
   "attack": 1,
   "health": 3,
   "skills": [
@@ -1411,7 +1413,8 @@
   "flags": [
    "转录存疑 4 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "cost_original": 3
  },
  {
   "id": "qun_caiwenji",
@@ -1587,7 +1590,7 @@
   "type": "strategist",
   "cost": 4,
   "attack": 1,
-  "health": 4,
+  "health": 5,
   "skills": [
    {
     "name": "忠烈之志",
@@ -1626,7 +1629,8 @@
   "flags": [
    "转录存疑 3 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "health_original": 4
  },
  {
   "id": "qun_zuoci",
@@ -1772,8 +1776,8 @@
   "faction": "shu",
   "type": "general",
   "cost": 2,
-  "attack": 2,
-  "health": 3,
+  "attack": 1,
+  "health": 4,
   "keywords": [],
   "memo": "",
   "flavor": "",
@@ -1784,7 +1788,9 @@
    "转录存疑 1 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
   ],
-  "dsl_status": "无技能（白板/关键词卡），无需翻译"
+  "dsl_status": "无技能（白板/关键词卡），无需翻译",
+  "attack_original": 2,
+  "health_original": 3
  },
  {
   "id": "shu_huangquan",
@@ -2000,7 +2006,7 @@
   "name": "姜维",
   "faction": "shu",
   "type": "general",
-  "cost": 5,
+  "cost": 6,
   "attack": 4,
   "health": 5,
   "skills": [
@@ -2028,6 +2034,7 @@
    }
   ],
   "keywords": [],
+  "rarity": "elite",
   "memo": "",
   "flavor": "",
   "source": {
@@ -2046,7 +2053,7 @@
   "type": "general",
   "cost": 5,
   "attack": 5,
-  "health": 4,
+  "health": 5,
   "skills": [
    {
     "name": "铁骑突袭",
@@ -2089,7 +2096,8 @@
   "flags": [
    "转录存疑 3 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "health_original": 4
  },
  {
   "id": "shu_guanping",
@@ -2151,7 +2159,7 @@
   "type": "general",
   "cost": 5,
   "attack": 5,
-  "health": 4,
+  "health": 5,
   "skills": [
    {
     "name": "咆哮",
@@ -2189,7 +2197,9 @@
   "flags": [
    "转录存疑 4 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "attack_original": 5,
+  "health_original": 4
  },
  {
   "id": "shu_weiyan",
@@ -2389,9 +2399,9 @@
   "name": "关羽",
   "faction": "shu",
   "type": "general",
-  "cost": 7,
+  "cost": 6,
   "attack": 6,
-  "health": 4,
+  "health": 5,
   "skills": [
    {
     "name": "水淹七军",
@@ -2433,6 +2443,7 @@
    }
   ],
   "keywords": [],
+  "rarity": "elite",
   "memo": "",
   "flavor": "",
   "source": {
@@ -2444,6 +2455,7 @@
    "缺 memo"
   ],
   "cost_original": 6,
+  "attack_original": 6,
   "health_original": 5
  },
  {
@@ -2840,7 +2852,7 @@
   "type": "strategist",
   "cost": 5,
   "attack": 1,
-  "health": 2,
+  "health": 3,
   "skills": [
    {
     "name": "机巧出阵",
@@ -2879,7 +2891,8 @@
   "flags": [
    "转录存疑 3 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "health_original": 2
  },
  {
   "id": "token_jixie_shaobing",
@@ -3022,9 +3035,9 @@
   "name": "郭淮",
   "faction": "wei",
   "type": "general",
-  "cost": 5,
+  "cost": 4,
   "attack": 2,
-  "health": 3,
+  "health": 4,
   "skills": [
    {
     "name": "据守",
@@ -3067,6 +3080,7 @@
    }
   ],
   "keywords": [],
+  "rarity": "elite",
   "memo": "",
   "flavor": "",
   "source": {
@@ -3076,7 +3090,8 @@
    "转录存疑 2 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
   ],
-  "cost_original": 4
+  "cost_original": 4,
+  "health_original": 3
  },
  {
   "id": "wei_caozhang",
@@ -3284,9 +3299,9 @@
   "name": "华雄",
   "faction": "qun",
   "type": "general",
-  "cost": 4,
-  "attack": 4,
-  "health": 4,
+  "cost": 3,
+  "attack": 3,
+  "health": 3,
   "skills": [
    {
     "name": "威震四方",
@@ -3328,14 +3343,17 @@
   "flags": [
    "转录存疑 4 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
-  ]
+  ],
+  "cost_original": 4,
+  "attack_original": 4,
+  "health_original": 4
  },
  {
   "id": "wu_zhouyu",
   "name": "周瑜",
   "faction": "wu",
   "type": "strategist",
-  "cost": 6,
+  "cost": 7,
   "attack": 1,
   "health": 5,
   "skills": [
@@ -3387,6 +3405,7 @@
    }
   ],
   "keywords": [],
+  "rarity": "elite",
   "memo": "",
   "flavor": "",
   "source": {

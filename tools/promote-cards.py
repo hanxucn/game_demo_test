@@ -31,7 +31,9 @@ DST = ROOT / "data" / "cards.yaml"
 
 # 只保留这些正式字段（草稿专用字段一律丢弃）
 KEEP = ("id", "name", "faction", "type", "cost", "attack", "health",
-        "troopKind", "keywords", "tags", "memo", "flavor", "cost_rule")
+        "troopKind", "keywords", "tags", "memo", "flavor", "cost_rule",
+    "rarity",   # ADR-068：精英卡允许强于同费预算
+)
 
 FACTION_ORDER = {"shu": 0, "wei": 1, "wu": 2, "qun": 3, "neutral": 4}
 TYPE_ORDER = {"lord": 0, "general": 1, "strategist": 2, "troop": 3,

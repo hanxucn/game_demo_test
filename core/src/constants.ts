@@ -195,6 +195,9 @@ export const ACTIONS = [
   'cycle_to_deck', // 手牌放回牌库随机位置再抽 1 张（ADR-050）
 ] as const;
 
+/** 稀有度（ADR-068）：普通 / 精英。精英卡允许强于同费预算 */
+export const RARITIES = ['common', 'elite'] as const;
+
 export const CARD_TYPES = ['troop', 'general', 'strategist', 'event', 'tactic', 'elite', 'special',
   'lord',     // 主将卡：开局置于主将位，不进卡组（ADR-044）
   'token',    // 衍生物：只能由效果召唤，不可组入卡组（ADR-044）

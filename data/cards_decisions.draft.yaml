@@ -3235,6 +3235,14 @@ skill_name_only:
   wei_caozhang:
     name: 猛袭
     note: 手写稿写了技能名，正文区空白，效果待设计
+card_rarity:
+  # ADR-068：精英卡（橙卡）允许强于同费预算 —— 设计者明确"有些卡稍强是预期的"。
+  # 这些卡的技能远超估值模型的表达能力，强行按模型改数值会做坏设计。
+  shu_guanyu: elite      # 水淹七军：全体技能禁用 + 全体 1 伤
+  wei_guohuai: elite     # 据守：相邻 +2 上限 + 相邻架盾
+  shu_jiangwei: elite    # 文武双全：普攻 +1 / 抽到非策略牌为止
+  wu_zhouyu: elite       # 离间：拼点 + 弃牌 + 按弃牌统帅造成伤害
+
 card_troopkind:
   neutral_infantry: infantry
   neutral_archer: archer
@@ -3252,8 +3260,8 @@ card_stats:
     cost: 6
     reason: 7 费里最该降费的：AOE 毒+伤害整包仅 7.8 分
   wu_zhouyu:
-    cost: 6
-    reason: 离间期望收益依赖拼点胜率，7 费偏弱 4.9
+    cost: 7
+    reason: 设计者 2026-09 定稿数值（原 6 费 1/5）
   qun_zuoci:
     cost: 3
     health: 3
@@ -3264,18 +3272,20 @@ card_stats:
   qun_gongsunzan:
     reason: 召唤 2→1 见 dsl 修改（sibling summon count）
   shu_guanyu:
-    cost: 7
-    health: 4
-    reason: 「水淹七军」是全体禁技+全体1伤（AOE 按 3 目标计 = 7.5 分），6 费 6/5 超模 5.5；涨 1 费并收 1 点生命
+    cost: 6
+    health: 5
+    attack: 6
+    reason: 设计者 2026-09 定稿数值（原 7 费 6/4）
   wei_jiaxu:
     cost: 7
     reason: 策反(cost≤3 敌将→己方 1 回合)+全体混乱，整包 11.2 分；6 费超模 4.2
   wei_guohuai:
-    cost: 5
-    reason: 相邻 +2 上限 + 相邻架盾，按 2 个相邻目标计 8.0 分；4 费 2/3 超模 4.0
+    cost: 4
+    health: 4
+    reason: 设计者 2026-09 定稿数值（原 5 费 2/3）
   shu_jiangwei:
-    cost: 5
-    reason: 4/5 但技能仅 0.8 分（on_attack +1 攻），6 费偏弱 3.2；降到 5 费
+    cost: 6
+    reason: 设计者 2026-09 定稿数值（原 5 费 4/5）
   wei_caocao_lord:
     cost: 0
     reason: '主公卡不进卡组、不消耗统率值，显式补 cost: 0'
@@ -3296,4 +3306,42 @@ card_stats:
     attack: 3
     health: 6
     reason: '设计者裁定（2026-09）：袁绍 6 费 3/6，降为普通人物卡（原 #70/#122 两张 12 血无攻值的主公卡已移出卡池）'
+
+  shu_zhangfei:
+    attack: 5
+    health: 5
+    reason: 设计者 2026-09 定稿数值（原 5 费 5/4）
+
+  shu_machao:
+    health: 5
+    reason: 设计者 2026-09 定稿数值（原 5 费 5/4）
+
+  shu_xiangchong:
+    attack: 1
+    health: 4
+    reason: 设计者 2026-09 定稿数值（原 2 费 2/3）
+
+  qun_diaochan:
+    cost: 5
+    reason: 设计者 2026-09 定稿数值（原 3 费 1/3）
+
+  qun_huaxiong:
+    cost: 3
+    attack: 3
+    health: 3
+    reason: 设计者 2026-09 定稿数值（原 4 费 4/4）
+
+  shu_huangyueying:
+    health: 3
+    reason: 设计者 2026-09 定稿数值（原 5 费 1/2）
+
+  qun_chengong:
+    health: 5
+    reason: 设计者 2026-09 定稿数值（原 4 费 1/4）
+
+  qun_huangzu:
+    attack: 3
+    health: 4
+    reason: 设计者 2026-09 定稿数值（原 3 费 2/3；阵营待设计者确认）
+
 card_stats_note: 平衡调优（ADR-047）：按卡 id 覆盖 cost/attack/health。每条的 reason 记录依据，原值留在 <field>_original。触发命令 cd core && npm run validate；依据 docs/balance-backlog.md 与 docs/gdd/13-balance-data-model.md §7.10。

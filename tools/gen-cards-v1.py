@@ -46,6 +46,7 @@ dec = yaml.safe_load(open(ROOT/'data/cards_decisions.draft.yaml', encoding='utf-
 COST_RULES = dec.get('card_cost_rules') or {}
 CARD_KW = dec.get('card_keywords') or {}
 CARD_TROOPKIND = dec.get('card_troopkind') or {}
+CARD_RARITY = dec.get('card_rarity') or {}   # ADR-068：精英卡允许强于同费预算
 NAME_ONLY = dec.get('skill_name_only') or {}
 # 平衡调优：按卡 id 覆盖 cost/attack/health（值一律来自设计决策，见 docs/balance-backlog.md）
 STATS = dec.get('card_stats') or {}
@@ -85,6 +86,7 @@ for r in sorted(d['cards'], key=lambda r: int(r['photo'])):
                            'dsl': None, 'note': '效果 DSL 待翻译（尚未开始）'}]
     card['keywords'] = list(CARD_KW.get(cid, []))
     if CARD_TROOPKIND.get(cid): card['troopKind'] = CARD_TROOPKIND[cid]
+    if CARD_RARITY.get(cid) and CARD_RARITY[cid] != 'common': card['rarity'] = CARD_RARITY[cid]
     if PHOTO_TAGS.get(ph):
         card['tags'] = PHOTO_TAGS[ph]
     card['memo'] = r.get('memo') or ''

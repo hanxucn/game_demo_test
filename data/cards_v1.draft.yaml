@@ -939,8 +939,8 @@ cards:
   faction: qun
   type: general
   cost: 3
-  attack: 2
-  health: 3
+  attack: 3
+  health: 4
   skills:
   - name: 善射
     text: 上场时第一回合时对指定敌人造成2点伤害
@@ -967,11 +967,13 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  attack_original: 2
+  health_original: 3
 - id: qun_diaochan
   name: 貂蝉
   faction: qun
   type: strategist
-  cost: 3
+  cost: 5
   attack: 1
   health: 3
   skills:
@@ -1007,6 +1009,7 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 3
 - id: qun_caiwenji
   name: 蔡文姬
   faction: qun
@@ -1127,7 +1130,7 @@ cards:
   type: strategist
   cost: 4
   attack: 1
-  health: 4
+  health: 5
   skills:
   - name: 忠烈之志
     text: 上场时指定为一名友方单位分担伤害;当指定的友方单位血减少为一血时其他溢出伤害由陈宫承担有效到陈宫为0血.
@@ -1154,6 +1157,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  health_original: 4
 - id: qun_zuoci
   name: 左慈
   faction: qun
@@ -1256,8 +1260,8 @@ cards:
   faction: shu
   type: general
   cost: 2
-  attack: 2
-  health: 3
+  attack: 1
+  health: 4
   keywords: []
   memo: ''
   flavor: ''
@@ -1267,6 +1271,8 @@ cards:
   - 转录存疑 1 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   dsl_status: 无技能（白板/关键词卡），无需翻译
+  attack_original: 2
+  health_original: 3
 - id: shu_huangquan
   name: 黄权
   faction: shu
@@ -1413,7 +1419,7 @@ cards:
   name: 姜维
   faction: shu
   type: general
-  cost: 5
+  cost: 6
   attack: 4
   health: 5
   skills:
@@ -1431,6 +1437,7 @@ cards:
           source: true
     note: DSL 已翻译
   keywords: []
+  rarity: elite
   memo: ''
   flavor: ''
   source:
@@ -1445,7 +1452,7 @@ cards:
   type: general
   cost: 5
   attack: 5
-  health: 4
+  health: 5
   skills:
   - name: 铁骑突袭
     text: 马超获得先攻状态,如果第一回合斩杀一名敌方武将,则对方主帅下一回合内无法行动.
@@ -1475,6 +1482,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  health_original: 4
 - id: shu_guanping
   name: 关平
   faction: shu
@@ -1517,7 +1525,7 @@ cards:
   type: general
   cost: 5
   attack: 5
-  health: 4
+  health: 5
   skills:
   - name: 咆哮
     text: 每回合对所有敌方人物卡造成 1 点伤害
@@ -1543,6 +1551,8 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  attack_original: 5
+  health_original: 4
 - id: shu_weiyan
   name: 魏延
   faction: shu
@@ -1678,9 +1688,9 @@ cards:
   name: 关羽
   faction: shu
   type: general
-  cost: 7
+  cost: 6
   attack: 6
-  health: 4
+  health: 5
   skills:
   - name: 水淹七军
     text: 使对方所有场上人物技能禁用一回合,并对其造成一点水攻伤害.
@@ -1707,6 +1717,7 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
+  rarity: elite
   memo: ''
   flavor: ''
   source:
@@ -1716,6 +1727,7 @@ cards:
   - 转录存疑 5 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   cost_original: 6
+  attack_original: 6
   health_original: 5
 - id: shu_huanghao
   name: 黄皓
@@ -1989,7 +2001,7 @@ cards:
   type: strategist
   cost: 5
   attack: 1
-  health: 2
+  health: 3
   skills:
   - name: 机巧出阵
     text: 上场时制造一个机械哨兵 1 攻 1 血，不能攻击敌方主将；制造一个 1 攻 1 血机械哨兵并带架盾效果。
@@ -2016,6 +2028,7 @@ cards:
   flags:
   - 转录存疑 3 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  health_original: 2
 - id: token_jixie_shaobing
   name: 机械哨兵
   faction: neutral
@@ -2121,9 +2134,9 @@ cards:
   name: 郭淮
   faction: wei
   type: general
-  cost: 5
+  cost: 4
   attack: 2
-  health: 3
+  health: 4
   skills:
   - name: 据守
     text: 上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。
@@ -2151,6 +2164,7 @@ cards:
           count: all
     note: DSL 已翻译
   keywords: []
+  rarity: elite
   memo: ''
   flavor: ''
   source:
@@ -2159,6 +2173,7 @@ cards:
   - 转录存疑 2 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   cost_original: 4
+  health_original: 3
 - id: wei_caozhang
   name: 曹彰
   faction: wei
@@ -2299,9 +2314,9 @@ cards:
   name: 华雄
   faction: qun
   type: general
-  cost: 4
-  attack: 4
-  health: 4
+  cost: 3
+  attack: 3
+  health: 3
   skills:
   - name: 威震四方
     text: 指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%.
@@ -2331,11 +2346,14 @@ cards:
   flags:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
+  cost_original: 4
+  attack_original: 4
+  health_original: 4
 - id: wu_zhouyu
   name: 周瑜
   faction: wu
   type: strategist
-  cost: 6
+  cost: 7
   attack: 1
   health: 5
   skills:
@@ -2368,6 +2386,7 @@ cards:
           mode: lowest_health
     note: DSL 已翻译
   keywords: []
+  rarity: elite
   memo: ''
   flavor: ''
   source:

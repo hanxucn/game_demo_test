@@ -382,8 +382,10 @@ test('万箭齐发：抽到时自动释放（不进手牌），对全体敌方�
   const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
   const ctx = { cards: d.cards, lords: d.lords };
   let s = startMatch(base, ctx).state;
-  setUnit(s, 'enemy', 'front', 0, makeUnit(d.cards.get('shu_guanyu')!, 1, 900));   // 4/4
-  setUnit(s, 'enemy', 'front', 1, makeUnit(d.cards.get('shu_zhangfei')!, 1, 901)); // 4/4
+  setUnit(s, 'enemy', 'front', 0, makeUnit(d.cards.get('shu_guanyu')!, 1, 900));
+  setUnit(s, 'enemy', 'front', 1, makeUnit(d.cards.get('shu_zhangfei')!, 1, 901));
+  const guanyuHp0 = d.cards.get('shu_guanyu')!.health!;
+  const zhangfeiHp0 = d.cards.get('shu_zhangfei')!.health!;
   s.sides.own.deck = ['tactic_wanjianqifa'];
   const handBefore = s.sides.own.hand.length;
 
@@ -398,8 +400,9 @@ test('万箭齐发：抽到时自动释放（不进手牌），对全体敌方�
   assert.equal(cast.length, 1, '万箭齐发应自动释放 1 次');
   assert.equal(cur.sides.own.hand.length, handBefore, '自动释放的牌不进手牌');
   assert.ok(cur.sides.own.discard.some((c) => c.id === 'tactic_wanjianqifa'), '应进弃牌堆');
-  assert.equal(getUnit(cur, 'enemy', 'front', 0)!.hp, 3, '关羽 4 → 3');
-  assert.equal(getUnit(cur, 'enemy', 'front', 1)!.hp, 3, '张飞 4 → 3');
+  // 断言"掉了 1 点"而不是写死结果血量 —— 否则设计者一改卡面数值这条测试就碎
+  assert.equal(getUnit(cur, 'enemy', 'front', 0)!.hp, guanyuHp0 - 1, '关羽应掉 1 点');
+  assert.equal(getUnit(cur, 'enemy', 'front', 1)!.hp, zhangfeiHp0 - 1, '张飞应掉 1 点');
 });
 
 test('袁绍亡语：把牌组里**未抽到**的万箭齐发全部塞进敌方牌库', async () => {
