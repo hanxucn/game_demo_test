@@ -1,7 +1,7 @@
 meta:
   version: v1
   status: 初步定稿（待 DSL 翻译与数值校验）
-  generated: '2026-09-21'
+  generated: '2026-09-22'
   note: 本文件由工具生成，数据源为 cards_photo.draft.yaml + characters.draft.yaml。不要手改。
   skipped:
   - photo: 45
@@ -3615,17 +3615,17 @@ cards:
   faction: neutral
   type: troop
   troopKind: shield
-  cost: 2
+  cost: 1
   attack: 1
   health: 2
   skills: []
   keywords:
   - jia_dun
-  memo: 仅前军生效：敌方必须先打掉它才能攻击其他人
+  memo: 架盾：敌方必须先打掉它才能攻击其他人
   flavor: 盾如铁壁，寸步不让。
   source:
     oral: true
-    note: 设计者答疑给出新数值（原 cards.yaml 为 1 费 1/2）
+    note: ADR-065：基础兵统一 1 费；同名上限 3 张
   dsl_status: 无技能（白板/关键词卡），无需翻译
 - id: token_huangjin_bing
   name: 黄巾兵

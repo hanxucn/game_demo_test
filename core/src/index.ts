@@ -24,8 +24,10 @@ export {
   type MulliganResult, type SetupOptions, type SetupResult,
 } from './setup.ts';
 export { loadData, type DataBundle, type LoadedData } from './loader.ts';
+export { MATCH, COMMAND, BOARD } from './constants.ts';
 export {
-  autoDeck, cardPool, validateDeck, isDeckable, isPlayableBy, MAX_COPIES, SUGGESTED_CURVE,
+  autoDeck, cardPool, validateDeck, isDeckable, isPlayableBy, SUGGESTED_CURVE,
+  maxCopiesOf, BASIC_TROOP_COPIES, UNIQUE_COPIES, MAX_COPIES,
   PUBLIC_POOL, PLAYABLE_FACTIONS,
   type DeckCheck, type DeckError, type DeckWarning, type DeckStats,
 } from './deck.ts';
