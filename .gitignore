@@ -3,3 +3,4 @@ prototype/_probe.html          # tools/make-probe.sh 生成的临时探针页
 prototype/*.bundle.js
 core/data/*.json
 docs/gdd/index.html
+server/game.db

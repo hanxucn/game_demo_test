@@ -27,6 +27,7 @@
   var ownFaction = 'shu';
   var enemyFaction = 'wei';
   var deck = [];                 // 己方卡组（id 数组，可重复）
+  var savedDecks = [];           // 服务端保存的 Demo 用户卡组摘要
   var costFilter = null;
   var typeFilter = null;
   var baseState = null;          // createMatch 之后、mulligan 之前
@@ -68,8 +69,8 @@
 
   /** 一张卡的展示用文本（技能文案优先，没技能就显示关键词或备忘） */
   function cardText(c) {
-    var sk = (c.skills || [])[0];
-    if (sk && sk.text) return sk.text;
+    var texts = (c.skills || []).map(function (sk) { return sk.text || sk.name; }).filter(Boolean);
+    if (texts.length) return texts.join('；');
     if ((c.keywords || []).length) return '关键词：' + c.keywords.join('、');
     if (c.memo) return c.memo;
     return '';
@@ -142,6 +143,27 @@
   /* ---------- 第 2 步：构筑 ---------- */
   function pool() { return Core.cardPool(data, ownFaction); }
 
+  function refreshSavedDecks() {
+    if (!window.fetch) return;
+    fetch('/api/users/demo-user/decks?faction=' + encodeURIComponent(ownFaction), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : { decks: [] }; })
+      .then(function (body) { savedDecks = body.decks || []; if (step === 1) render(); })
+      .catch(function () { savedDecks = []; });
+  }
+
+  function loadSavedDeck(id) {
+    return fetch('/api/users/demo-user/decks/' + encodeURIComponent(id), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('读取卡组失败'); return r.json(); })
+      .then(function (saved) {
+        if (saved.faction !== ownFaction) throw new Error('该卡组属于' + (FAC_NAME[saved.faction] || saved.faction) + '，当前阵营不可用');
+        deck = [];
+        (saved.cards || []).forEach(function (item) {
+          for (var i = 0; i < Number(item.quantity || 0); i++) deck.push(item.cardId);
+        });
+        render();
+      });
+  }
+
   function countOf(id) { return deck.filter(function (x) { return x === id; }).length; }
 
   function viewDeck() {
@@ -173,13 +195,16 @@
       var n = countOf(c.id);
       var cap = Core.maxCopiesOf(c);          // 基础兵 3 张 / 其余 1 张（ADR-065）
       var maxed = n >= cap;
+      var full = deck.length >= 30;
+      var disabled = maxed || full;
       return '<div class="crow' + (maxed ? ' maxed' : '') + '" data-add="' + c.id + '" title="' + esc(cardText(c)) + '">'
         + '<span class="cst">' + c.cost + '</span>'
         + '<span class="nm">' + esc(c.name) + '</span>'
         + '<span class="st">' + (c.attack != null ? c.attack + '/' + c.health : '—') + '</span>'
         + '<span class="kind">' + (TYPE_NAME[c.type] || c.type) + '</span>'
-        + '<span class="tx">' + esc(cardText(c).slice(0, 40)) + '</span>'
+        + '<span class="tx">' + esc(cardText(c) || '暂无效果描述') + '</span>'
         + '<span class="n">' + (n ? n + '/' + cap : '·/' + cap) + '</span>'
+        + '<button class="add-card" data-add-button="' + c.id + '"' + (disabled ? ' disabled' : '') + '>' + (maxed ? '已满' : (full ? '卡组满' : '加入')) + '</button>'
         + '</div>';
     }).join('');
 
@@ -222,8 +247,18 @@
       msg += '<div class="ok">✓ 卡组合法（30 张，同名 ≤2）</div>';
     }
 
+    var savedHtml = savedDecks.length
+      ? '<div class="saved-decks"><span class="saved-decks-label">已保存卡组 · 当前阵营可用的卡组可直接载入</span><div class="saved-deck-list">'
+        + savedDecks.map(function (d) {
+          var usable = d.faction === ownFaction;
+          return '<button class="' + (usable ? '' : 'unavailable') + '" data-load-deck="' + esc(d.id) + '"' + (usable ? '' : ' disabled') + '>'
+            + esc(d.name) + ' · ' + (FAC_NAME[d.faction] || d.faction) + (usable ? '' : '（不可用）') + '</button>';
+        }).join('') + '</div></div>'
+      : '<div style="color:var(--dim);margin-bottom:8px">暂无已保存卡组；保存卡组需要使用 server/index.mjs 启动完整服务。</div>';
+
     return '<div class="s-panel is-tall">'
       + '<h2>构筑卡组 · ' + FAC_NAME[ownFaction] + ' vs ' + FAC_NAME[enemyFaction] + '</h2>' + steps(1)
+      + savedHtml
       + '<div class="body">'
       + '<div class="col pool"><div class="hd"><span class="t">可用卡池</span>'
       + '<span class="filters">' + costBtns + '</span></div>'
@@ -286,6 +321,7 @@
         if (b.dataset.set === 'own') ownFaction = b.dataset.f; else enemyFaction = b.dataset.f;
         deck = [];                       // 换阵营 → 卡池变了，清空卡组
         render();
+        if (step === 1) refreshSavedDecks();
       });
     });
     el.querySelectorAll('[data-cost]').forEach(function (b) {
@@ -323,13 +359,22 @@
         render();
       });
     });
+    el.querySelectorAll('[data-load-deck]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.disabled = true;
+        loadSavedDeck(b.dataset.loadDeck).catch(function () {
+          b.disabled = false;
+          render();
+        });
+      });
+    });
     el.querySelectorAll('[data-act]').forEach(function (b) {
       b.addEventListener('click', function () { act(b.dataset.act); });
     });
   }
 
   function act(name) {
-    if (name === 'toDeck') { step = 1; render(); return; }
+    if (name === 'toDeck') { step = 1; render(); refreshSavedDecks(); return; }
     if (name === 'back') { step = 0; render(); return; }
     if (name === 'backDeck') { step = 1; render(); return; }
     if (name === 'auto') { deck = Core.autoDeck(data, ownFaction); render(); return; }
@@ -384,7 +429,9 @@
       onStart = opts.onStart;
       step = 0; deck = []; costFilter = null; typeFilter = null;
       baseState = null; mulliganOut = {};
+      savedDecks = [];
       render();
+      refreshSavedDecks();
     },
     /** 重开时回到构筑（保留上次的阵营与卡组） */
     reopen: function () { step = 1; render(); },
