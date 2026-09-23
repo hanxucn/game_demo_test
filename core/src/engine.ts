@@ -179,26 +179,79 @@ export function playTargetPlan(
   }
   return plan;
 
+  // 预览来源用**卡面数值**：`attack_below_source` / `cost_below_source` 这类过滤要靠它
   function collect(eff: CardEffect): void {
-    const t = eff.target;
-    if (!t || t.mode !== 'choose') return;
-    if (t.count === 'all' || (t.count ?? 1) !== 1) return;
-    const pick: 1 | 2 = t.pick === 2 ? 2 : 1;
-    if (plan.choices.some((c) => c.pick === pick)) return;   // 同一个选择只问一次
-    // 用 `count:'all'` 拿**整个候选池**（而不是 resolveTargets 的"取前 N 个"）
-    const preview = { uid: '#preview', cost: card.cost, atk: card.attack ?? 0 } as Unit;
-    const pool = resolveTargets(state, { ...t, count: 'all', mode: 'first' },
-      { side, source: preview }, createRng(state.seed));
-    const targets: PlayTargetChoice['targets'] = [];
-    for (const r of pool) {
-      if (r.kind === 'lord') targets.push({ kind: 'lord', side: r.side });
-      else if (r.kind === 'unit') targets.push({ kind: 'unit', side: r.side, row: r.row, col: r.col });
-    }
-    plan.choices.push({
-      pick, label: choiceLabel(t), targets,
-      includesHand: pool.some((r) => r.kind === 'hand'),
-    });
+    const c = choiceOf(state, side, eff, { cost: card.cost, atk: card.attack ?? 0 });
+    if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
   }
+}
+
+/**
+ * 枚举**一个 `mode:'choose'` 效果**的合法目标（ADR-077）
+ *
+ * 三种"要玩家点目标"的场景共用它：卡牌战吼（`playTargetPlan`）、
+ * 主动技（`unitSkillTargetPlan`）、主公技（`lordSkillTargetPlan`）。
+ *
+ * 此前原型 UI 自己按 `selector.side` 枚举"该方所有单位"，**完全忽略 filter** ——
+ * 于是貂蝉（只认男性）、陆抗（排除自己）这类带过滤的技能会高亮一堆非法目标，
+ * 点了之后引擎又退回兜底目标，表现为"指向性技能的选择逻辑有问题，有些又没问题"
+ * （没问题的那些恰好是 filter 为空、按 side 枚举就等于合法集的）。
+ */
+function choiceOf(
+  state: MatchState, side: Side, eff: CardEffect,
+  preview: { cost: number; atk: number },
+): PlayTargetChoice | null {
+  const t = eff.target;
+  if (!t || t.mode !== 'choose') return null;
+  if (t.count === 'all' || (t.count ?? 1) !== 1) return null;
+  const pick: 1 | 2 = t.pick === 2 ? 2 : 1;
+  // 用 `count:'all'` 拿**整个候选池**（而不是 resolveTargets 的"取前 N 个"）
+  const src = { uid: '#preview', cost: preview.cost, atk: preview.atk } as Unit;
+  const pool = resolveTargets(state, { ...t, count: 'all', mode: 'first' },
+    { side, source: src }, createRng(state.seed));
+  const targets: PlayTargetChoice['targets'] = [];
+  for (const r of pool) {
+    if (r.kind === 'lord') targets.push({ kind: 'lord', side: r.side });
+    else if (r.kind === 'unit') targets.push({ kind: 'unit', side: r.side, row: r.row, col: r.col });
+  }
+  return { pick, label: choiceLabel(t), targets, includesHand: pool.some((r) => r.kind === 'hand') };
+}
+
+/** 主公技的预览来源：主公不参与普攻，cost/atk 取 0 即可 */
+const LORD_PREVIEW = { cost: 0, atk: 0 };
+
+/**
+ * **主动技**需要玩家选什么（ADR-077）
+ *
+ * 与 `playTargetPlan` 同一套判定，UI 直接照它高亮即可 —— 不再自己按 side 猜。
+ */
+export function unitSkillTargetPlan(
+  state: MatchState, side: Side, row: Row, col: number,
+): PlayTargetPlan {
+  const plan: PlayTargetPlan = { modes: [], choices: [] };
+  const u = getUnit(state, side, row, col);
+  if (!u) return plan;
+  const sk = (u.skills ?? []).find((x) => x.kind === 'active');
+  if (!sk) return plan;
+  if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `选项 ${i + 1}`);
+  for (const eff of effectsOf(sk, 0)) {
+    const c = choiceOf(state, side, eff, { cost: u.cost, atk: u.atk });
+    if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
+  }
+  return plan;
+}
+
+/** **主公技**需要玩家选什么（ADR-077） */
+export function lordSkillTargetPlan(state: MatchState, side: Side): PlayTargetPlan {
+  const plan: PlayTargetPlan = { modes: [], choices: [] };
+  const sk = state.sides[side].lord.skillDef;
+  if (!sk) return plan;
+  if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `选项 ${i + 1}`);
+  for (const eff of effectsOf(sk, 0)) {
+    const c = choiceOf(state, side, eff, LORD_PREVIEW);
+    if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
+  }
+  return plan;
 }
 
 /* ============================================================
