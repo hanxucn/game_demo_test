@@ -107,6 +107,18 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 - ⚠️ 不要用 `git add -A`（会把 `prototype/_probe.html` 等生成物带进版本库）
   —— 只 add 自己确实改过的文件
 
+**提交信息格式（设计者 2026-09 定）**：简体中文，**一句话**说清"改了什么"，
+末尾保留 `（ADR-0xx）` 编号：
+
+```
+fix(prototype): 修复箭头从屏幕外飞入（ADR-083）
+```
+
+- 不写长正文 —— "为什么改 / 根因 / 实测数据"一律写进 `14-open-questions.md` 的 ADR 行，
+  commit 只做索引，避免两处各存一份而漂移
+- 不用英文、不写「—— 两处"加了新的没删旧的"」这类括号补充
+- 一次提交只讲一件事；docs 与代码同步的提交写 `docs: 同步 ADR-0xx 与 GDD`
+
 ## AI 使用边界
 
 | 让 AI 干 | 别让 AI 干 |
