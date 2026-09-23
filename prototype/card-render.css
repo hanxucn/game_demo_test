@@ -229,6 +229,11 @@
   color: #33240d; font-size: 8px; font-weight: 900;
   flex: 0 0 auto;
 }
+.cr-costnum.is-unaffordable {
+  background: radial-gradient(circle at 35% 28%, #ffd0c4, #d34a36 55%, #71170d 100%);
+  color: #fff4ee;
+  text-shadow: 0 1px 2px #5b1008;
+}
 .cr-cost {
   position: absolute;
   left: 2px; top: 2px;
@@ -343,7 +348,7 @@
   position: fixed;
   z-index: 200;
   pointer-events: none;
-  transition: transform .38s cubic-bezier(.22,.85,.3,1), opacity .38s ease-out;
+  transition: transform .52s cubic-bezier(.22,.85,.3,1), opacity .52s ease-out;
   will-change: transform;
 }
 .cr-land-flash {
@@ -365,13 +370,13 @@
   55%  { transform: scale(.96); }
   100% { transform: scale(1); }
 }
-.cr-lunge { animation: lunge .34s ease-in-out; }
+.cr-lunge { animation: lunge .52s ease-in-out; }
 @keyframes lunge {
   0%   { transform: translate(0,0); }
   45%  { transform: translate(var(--lx,0), var(--ly,0)) scale(1.08); }
   100% { transform: translate(0,0); }
 }
-.cr-hit { animation: hitShake .3s ease-out; }
+.cr-hit { animation: hitShake .42s ease-out; }
 @keyframes hitShake {
   0%,100% { transform: translate(0,0); }
   20% { transform: translate(-3px,1px); }
@@ -384,7 +389,7 @@
   color: #ffe0b0;
   text-shadow: 0 2px 0 #5a2a06, 0 0 12px rgba(255,180,80,1);
   pointer-events: none;
-  animation: dmgFloat .7s ease-out forwards;
+  animation: dmgFloat 1.05s ease-out forwards;
   z-index: 60;
 }
 @keyframes dmgFloat {
@@ -442,7 +447,7 @@
   border-radius: 10px; pointer-events: none; z-index: 55;
   background: radial-gradient(circle at 50% 45%,
     var(--spell-c, rgba(190,140,255,.95)) 0%, transparent 70%);
-  animation: spellBurst .62s ease-out forwards;
+  animation: spellBurst .9s ease-out forwards;
 }
 @keyframes spellBurst {
   0%   { opacity: 0; transform: scale(.4); }
@@ -454,7 +459,7 @@
   content: ""; position: absolute; inset: 0; z-index: 58; pointer-events: none;
   background: radial-gradient(circle at 50% 45%,
     var(--spell-c, rgba(190,140,255,.5)) 0%, transparent 72%);
-  animation: boardSpell .58s ease-out forwards;
+  animation: boardSpell .9s ease-out forwards;
 }
 @keyframes boardSpell {
   0%   { opacity: 0; }
@@ -463,7 +468,7 @@
 }
 
 /* ---------- 阵亡：先过曝再灰化下沉，最后留一缕尘 ---------- */
-.cr-dying { animation: die .5s cubic-bezier(.4,0,.7,1) forwards; }
+.cr-dying { animation: die .7s cubic-bezier(.4,0,.7,1) forwards; }
 @keyframes die {
   0%   { opacity: 1; transform: scale(1) rotate(0); filter: none; }
   22%  { filter: brightness(2.4) saturate(.35); }
@@ -475,7 +480,7 @@
   pointer-events: none; z-index: 59;
   background: radial-gradient(circle at 50% 50%,
     rgba(255,240,210,.95) 0%, rgba(180,120,80,.4) 45%, transparent 72%);
-  animation: deathBurst .52s ease-out forwards;
+  animation: deathBurst .72s ease-out forwards;
 }
 @keyframes deathBurst {
   0%   { opacity: 0; transform: scale(.5); }

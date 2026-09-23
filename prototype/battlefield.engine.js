@@ -242,16 +242,22 @@ function renderPanel(st) {
   var s = st.sides.own;
   var f = st.sides.enemy;
   $('#cmd-num').innerHTML = s.command.cur + '<small> / ' + s.command.max + '</small>';
+  $('#cmd-num').classList.remove('is-warning');
   $('#turn-num').textContent = st.turn;
-  $('#hand-num').textContent = s.hand.length;
-  $('#deck-num').textContent = s.deck.length;
+  var handNum = $('#hand-num');
+  var deckNum = $('#deck-num');
+  if (handNum) handNum.textContent = s.hand.length;
+  if (deckNum) deckNum.textContent = s.deck.length;
   // 敌方牌库/手牌：只给张数（不泄露内容），手牌另用一排卡背表示
-  $('#foe-deck-num').textContent = f.deck.length;
-  $('#foe-hand-num').textContent = f.hand.length;
+  var foeDeckNum = $('#foe-deck-num');
+  var foeHandNum = $('#foe-hand-num');
+  if (foeDeckNum) foeDeckNum.textContent = f.deck.length;
+  if (foeHandNum) foeHandNum.textContent = f.hand.length;
   // 敌方手牌：右侧面板里排一排，同时在战场上以卡背正面呈现（对称于我方手牌）
   var backs = '';
   for (var k = 0; k < f.hand.length; k++) backs += '<i></i>';
-  $('#foe-hand-backs').innerHTML = backs;
+  var oldBacks = $('#foe-hand-backs');
+  if (oldBacks) oldBacks.innerHTML = backs;
 
   var vis = '';
   for (var v = 0; v < f.hand.length; v++) {
@@ -264,6 +270,12 @@ function renderPanel(st) {
   $('#cmd-pips').innerHTML = pips;
   $('#turn-side').textContent = st.active === 'own' ? '我方回合' : '敌方回合';
   $('#turn-side').className = 'turn-side ' + st.active;
+  var endBtn = $('#end-turn-btn');
+  if (endBtn) endBtn.classList.toggle('is-hidden', st.active !== 'own' || !!st.winner || busy);
+  var ownDeck = $('#own-deck-pile');
+  if (ownDeck) ownDeck.title = '我方牌库：' + s.deck.length + ' 张';
+  var foeDeck = $('#foe-deck-visual');
+  if (foeDeck) foeDeck.title = '敌方牌库：' + f.deck.length + ' 张';
 }
 
 function renderBoard(st) {
@@ -487,30 +499,22 @@ function renderHand(st) {
     wrap.style.setProperty('--lift', (Math.abs(off) * 1.8) + 'px');
     wrap.style.zIndex = 10 + i;
 
-    // ADR-058：统率值不足 → 置灰并标注还差几点（费用判定由引擎给，UI 只显示）
+    // 费用不足仍保留正常卡面；实际出牌仍由 Core 校验，资源提示显示在统率值上。
     var cost = c.cost != null ? c.cost : 0;
     var affordable = cmd >= cost;
     var playable = myTurn && affordable;
-    wrap.appendChild(CR.big(viewCard(c), { desc: true }));   // desc: 卡面显示技能名+文案
-    if (!affordable) {
-      wrap.classList.add('is-poor');
-      var tag = document.createElement('div');
-      tag.className = 'hcard-cost';
-      tag.textContent = '需 ' + cost + '（差 ' + (cost - cmd) + '）';
-      wrap.appendChild(tag);
-    } else if (cost > 0) {
-      var tag2 = document.createElement('div');
-      tag2.className = 'hcard-cost ok';
-      tag2.textContent = '需 ' + cost + ' → 余 ' + (cmd - cost);
-      wrap.appendChild(tag2);
-    }
+    wrap.appendChild(CR.big(viewCard(c), { desc: true, affordable: affordable }));   // desc: 卡面显示技能名+文案
 
     // 悬停 → 贴卡弹出技能详情（卡面太小放不下全文，详情面板又在右下角太远）
     wrap.addEventListener('pointerenter', function () {
       if (busy || drag) return;
+      $('#cmd-num').classList.toggle('is-warning', !affordable);
       showCardTip(viewCard(c), wrap);
     });
-    wrap.addEventListener('pointerleave', hideCardTip);
+    wrap.addEventListener('pointerleave', function () {
+      hideCardTip();
+      $('#cmd-num').classList.remove('is-warning');
+    });
 
     // 两类卡都能"抓起来打出去"：
     //   人物卡 → 拖到绿色格子
@@ -527,8 +531,15 @@ function renderHand(st) {
       if (Date.now() - dragHandledAt < 300) return;      // 拖拽已在 pointerup 处理
       if (onHandPick(i)) return;
       if (isCharacter(c)) { showCardDetail(c); return; }  // 人物卡点击 = 看详情
-      if (!playable) { showCardDetail(c); return; }       // 打不出 → 看详情
-      beginPlay(i);                                        // 非人物卡：点击仍可释放（保留）
+      if (!playable) {
+        $('#cmd-num').classList.add('is-warning');
+        banner('统率值不足', c.name + '需要 ' + cost + ' 点统率，当前 ' + cmd, 'warning');
+        showDetail('统率值不足', c.name + '需要 ' + cost + ' 点统率', '当前统率为 ' + cmd);
+        setTimeout(function () { var n = $('#cmd-num'); if (n) n.classList.remove('is-warning'); }, 900);
+        return;
+      }
+      // 战法/事件必须拖到战场释放，避免手牌点击误触。
+      showDetail('拖到战场释放', c.name + '（' + cost + ' 费）', '请按住这张牌，拖到战场任意位置后松手');
     });
     hand.appendChild(wrap);
   });
@@ -668,6 +679,16 @@ function startDrag(e, index, card, wrap) {
   if (e.button !== undefined && e.button !== 0) return;
   e.preventDefault();
 
+  var command = session.state.sides.own.command.cur;
+  var cost = card.cost || 0;
+  if (cost > command) {
+    $('#cmd-num').classList.add('is-warning');
+    banner('统率值不足', card.name + '需要 ' + cost + ' 点统率，当前 ' + command, 'warning');
+    showDetail('统率值不足', card.name + '需要 ' + cost + ' 点统率', '当前统率为 ' + command);
+    setTimeout(function () { var n = $('#cmd-num'); if (n) n.classList.remove('is-warning'); }, 900);
+    return;
+  }
+
   var rect = wrap.getBoundingClientRect();
   var ghost = wrap.cloneNode(true);
   ghost.classList.add('drag-ghost');
@@ -762,6 +783,12 @@ function bindDragEvents() {
   window.addEventListener('pointercancel', onDragEnd);
 }
 
+/** 战法/事件的有效落点是整个战场，包含格子、单位和主将，不只背景空白。 */
+function isBattlefieldDrop(drop) {
+  if (!drop || !drop.el) return false;
+  return drop.kind === 'board' || !!drop.el.closest('.arena-inner');
+}
+
 function onDragMove(e) {
   if (!drag) return;
   // rAF 节流：pointermove 在 120Hz 触控板上可以一帧来好几次，全部处理就是"卡顿"
@@ -786,14 +813,15 @@ function onDragMove(e) {
     }
 
     // 出牌拖拽：保持原有落点判定
-    $all('.slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover')
+    $all('.slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover, .boards.is-hover, .arena-inner.is-hover')
       .forEach(function (x) { x.classList.remove('is-hover'); });
     var d = dropAt(p.x, p.y);
     if (!d) return;
     if (drag.kind === 'card' && drag.isUnit && d.kind === 'slot' && d.el.classList.contains('is-placeable')) {
       d.el.classList.add('is-hover');
-    } else if (drag.kind === 'card' && !drag.isUnit && d.kind === 'board') {
-      d.el.classList.add('is-hover');
+    } else if (drag.kind === 'card' && !drag.isUnit && isBattlefieldDrop(d)) {
+      var spellBoard = $('#boards') || document.querySelector('.arena-inner');
+      if (spellBoard) spellBoard.classList.add('is-hover');
     }
   });
 }
@@ -819,7 +847,7 @@ function onDragEnd(e) {
   // 它会把 is-placeable / is-target 一并抹掉，之后再查 classList 永远为假。
   // 曾因此导致"费用够也放不下去"（出牌 100% 失败）。
   var dropSlot = (t && t.kind === 'slot' && t.el.classList.contains('is-placeable')) ? t.el : null;
-  var dropBoard = (t && t.kind === 'board') ? t.el : null;
+  var dropBoard = isBattlefieldDrop(t) ? ($('#boards') || document.querySelector('.arena-inner')) : null;
   var dropUnit = (t && t.kind === 'unit' && t.el.classList.contains('is-target')) ? t.el : null;
   var dropLord = (t && t.kind === 'lord' && t.el.classList.contains('is-target')) ? t.el : null;
 
@@ -831,14 +859,18 @@ function onDragEnd(e) {
   if (d.kind === 'card') {
     if (d.isUnit && dropSlot) {
       dragHandledAt = Date.now();
+      d.wrap.classList.add('is-played');
       clearMarks();
       // 战吼可能需要玩家选目标 → 交给 Core.playTargetPlan 判定（BACKLOG §3）
-      beginPlay(d.index, dropSlot.dataset.row, Number(dropSlot.dataset.col));
+      window.setTimeout(function () {
+        beginPlay(d.index, dropSlot.dataset.row, Number(dropSlot.dataset.col));
+      }, 180);
     } else if (!d.isUnit && dropBoard) {
       // 战法 / 事件卡：落到战场即释放（没有 row/col）
       dragHandledAt = Date.now();
+      d.wrap.classList.add('is-played');
       clearMarks();
-      beginPlay(d.index);
+      window.setTimeout(function () { beginPlay(d.index); }, 180);
     } else {
       clearMarks();
       showDetail('取消打出', d.card.name,
@@ -866,9 +898,10 @@ function onDragEnd(e) {
       // 这里只提示"还没打出去"，玩家可以接着点目标；要取消就点空白处。
       tapHandledAt = Date.now(); tapHandledEl = d.wrap;
       var u2 = session.state.sides.own.rows[d.row][d.col];
+      var failedTargets = Core.legalTargets(session.state, 'own', d.row, d.col);
       showDetail('已选中 ' + (u2 ? u2.name : ''),
         '还没选择攻击目标',
-        '点（或拖到）高亮的敌人/敌方主公发起攻击；点空白处取消');
+        failedTargets.why || '点（或拖到）高亮的敌人/敌方主公发起攻击；点空白处取消');
     }
     return;
   }
@@ -982,7 +1015,7 @@ function dropIsValid(x, y) {
  * 都必须排在它前面（见 onDragEnd）。这个先后顺序曾经弄反过，代价是出牌完全失效。
  */
 function clearDropHighlights() {
-  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover, .is-spell-target')
+  $all('.slot.is-placeable, .slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover, .boards.is-hover, .arena-inner.is-hover, .is-spell-target')
     .forEach(function (el) { el.classList.remove('is-placeable', 'is-hover', 'is-spell-target'); });
 }
 
@@ -1135,6 +1168,10 @@ function finishPlay() {
 }
 
 function cancelPlay() {
+  if (pendingPlay) {
+    var cardEl = document.querySelector('.hcard-wrap[data-card-index="' + pendingPlay.cardIndex + '"]');
+    if (cardEl) cardEl.classList.remove('is-played');
+  }
   pendingPlay = null;
   stopPlayArrow();
   clearMarks();
@@ -1384,6 +1421,13 @@ function onUnitClick(side, row, col, ev) {
                  to: { kind: 'unit', row: row, col: col } });
       return;
     }
+    var blockedAttack = Core.legalTargets(session.state, 'own', sel.row, sel.col);
+    var hasTaunt = blockedAttack.why && blockedAttack.why.indexOf('架盾') >= 0;
+    if (hasTaunt) banner('必须先攻击嘲讽目标', '敌方存在架盾单位，请先攻击高亮的嘲讽单位', 'warning');
+    showDetail(hasTaunt ? '必须先攻击嘲讽目标' : '无法攻击',
+      hasTaunt ? '这个目标受到嘲讽保护' : '这个目标不可选',
+      hasTaunt ? '敌方存在架盾单位，普通攻击只能选择高亮的架盾单位' : (blockedAttack.why || '请先选择高亮目标'));
+    return;
   }
 
   clearMarks();
@@ -1434,6 +1478,14 @@ function onLordClick(side, bar) {
   if (pendingPlay && recordPlayPick(side, undefined, undefined)) return;
   if (sel && sel.kind === 'unit' && side === 'enemy' && bar.classList.contains('is-target')) {
     doAction({ type: 'ATTACK', from: { row: sel.row, col: sel.col }, to: { kind: 'lord' } });
+    return;
+  }
+  if (sel && sel.kind === 'unit' && side === 'enemy') {
+    var blockedLordAttack = Core.legalTargets(session.state, 'own', sel.row, sel.col);
+    if (blockedLordAttack.why && blockedLordAttack.why.indexOf('架盾') >= 0) {
+      banner('必须先攻击嘲讽目标', '敌方存在架盾单位，请先攻击高亮的嘲讽单位', 'warning');
+    }
+    showDetail('无法攻击主将', '当前目标不可选', blockedLordAttack.why || '请先选择高亮目标');
     return;
   }
   clearMarks();
@@ -1519,7 +1571,20 @@ function doAction(action) {
   if (busy) skipAnimation();
   var res = Core.applyAction(session.state, session.ctx, action);
   if (!res.ok) {
-    showDetail('操作无效', res.error || '', '');
+    if (action.type === 'ATTACK') {
+      var legalAttack = Core.legalTargets(session.state, 'own', action.from.row, action.from.col);
+      if (legalAttack.why && legalAttack.why.indexOf('架盾') >= 0) {
+        banner('必须先攻击嘲讽目标', '敌方存在架盾单位，请先攻击高亮的嘲讽单位', 'warning');
+      }
+      showDetail('无法攻击', '目标不可选', legalAttack.why || res.error || '动作不合法');
+    } else if (res.error && res.error.indexOf('统率值不足') >= 0) {
+      $('#cmd-num').classList.add('is-warning');
+      banner('统率值不足', res.error, 'warning');
+      showDetail('统率值不足', '无法使用这张牌', res.error);
+      setTimeout(function () { var n = $('#cmd-num'); if (n) n.classList.remove('is-warning'); }, 900);
+    } else {
+      showDetail('操作无效', res.error || '', '');
+    }
     return;
   }
   session = { state: res.state, ctx: session.ctx };
@@ -1680,11 +1745,11 @@ function screenShake() {
 
 /** 每档的时长倍率：慢 / 正常 / 快 */
 var SPEED_STEPS = [
-  { key: 'slow', label: '慢', rate: 2.0 },
-  { key: 'normal', label: '正常', rate: 1.35 },
-  { key: 'fast', label: '快', rate: 0.7 },
+  { key: 'slow', label: '慢', rate: 2.4 },
+  { key: 'normal', label: '正常', rate: 1.7 },
+  { key: 'fast', label: '快', rate: 0.85 },
 ];
-var speedIdx = 1;                    // 默认「正常」，但比原先慢 35%
+var speedIdx = 1;                    // 默认「正常」，以可读性优先
 
 function speedRate() { return SPEED_STEPS[speedIdx].rate; }
 /** 把一个时长按当前档位换算成实际毫秒 */
@@ -1933,8 +1998,8 @@ function animate(e) {
       // 另外 `highlightNewHandCard()`（renderAll 里按 drawnThisAction 触发）也会弹最新手牌，
       // 与这里的弹跳**重复一次**，故这里处理完就不再置 drawnThisAction。
       var mine = e.side === 'own';
-      var pile = $(mine ? '#own-deck-pile' : '#foe-deck-pile');
-      var hp2 = $(mine ? '#own-hand-pile' : '#foe-hand-pile');
+      var pile = $(mine ? '#own-deck-pile' : '#foe-deck-pile') || (!mine ? $('#foe-deck-visual') : null);
+      var hp2 = $(mine ? '#own-hand-pile' : '#foe-hand-pile') || (!mine ? $('#foe-hand-visual') : null);
       if (pile) {
         pile.classList.add('is-drawing');
         setTimeout(function () { pile.classList.remove('is-drawing'); }, paced(460));
@@ -1961,16 +2026,16 @@ function animate(e) {
       if (e.row === undefined) {
         // 战法 / 事件卡：没有落点，用整块战场闪光表示"技能释放"
         CR.spell(null, null, true);
-        return 340;
+      return 520;
       }
       var handEl = document.querySelector('.hcard-wrap[data-card-index="' + e.handIndex + '"]');
       var slotEl = document.querySelector('.slot[data-side="' + e.side + '"][data-row="' + e.row + '"][data-col="' + e.col + '"]');
-      if (handEl && slotEl) { CR.flyTo(handEl, slotEl, null); return 430; }
+      if (handEl && slotEl) { CR.flyTo(handEl, slotEl, null); return 560; }
       return 0;
     }
     case 'UNIT_SUMMONED': {
       insertUnitNow(e);
-      return 240;
+      return 400;
     }
     case 'UNIT_TRANSFORMED': {
       var te = unitEl(e.side, e.row, e.col);
@@ -1979,7 +2044,7 @@ function animate(e) {
         te.appendChild(CR.mini(e.unit, { row: e.row, hurt: e.unit.hp < e.unit.maxHp, statuses: statusList(e.unit) }));
         CR.spell(te, 'rgba(255,225,150,.95)');
       }
-      return 320;
+      return 460;
     }
     case 'ATTACK_DECLARED': {
       var from = unitEl(e.side, e.from.row, e.from.col);
@@ -1998,7 +2063,7 @@ function animate(e) {
           if (atk === 0) CR.float(from, '无反击', 'is-nerf', '对方 0 攻');
         }, 760);
       }
-      return 300;
+      return 500;
     }
     case 'DAMAGE': {
       var el = e.target.kind === 'lord' ? lordEl(e.target.side)
@@ -2015,7 +2080,7 @@ function animate(e) {
         CR.tickHp(el, -e.amount);          // 卡面血量当场掉下来
         if (e.amount >= 5) screenShake();
       }
-      return 520;
+      return 700;
     }
     case 'HEAL': {
       var he = e.target.kind === 'lord' ? lordEl(e.target.side)
@@ -2024,17 +2089,17 @@ function animate(e) {
         CR.float(he, '+' + e.amount, 'is-heal', '治疗', paced(1000));
         CR.tickHp(he, e.amount);
       }
-      return 300;
+      return 420;
     }
     case 'ARMOR_GAINED': {
       var le = lordEl(e.side);
       if (le) CR.float(le, '◈+' + e.amount, 'is-armor', '护甲');
-      return 240;
+      return 340;
     }
     case 'STATUS_APPLIED': {
       var se = unitEl(e.side, e.row, e.col) || (e.row === undefined ? lordEl(e.side) : null);
       if (se) CR.float(se, statusName(e.status) + (e.stacks > 1 ? '×' + e.stacks : ''), 'is-status', '状态', paced(950));
-      return 260;
+      return 380;
     }
     case 'STAT_MODIFIED': {
       var me = unitEl(e.side, e.row, e.col);
@@ -2043,7 +2108,7 @@ function animate(e) {
                 + (e.health ? ' 血' + (e.health > 0 ? '+' : '') + e.health : '');
         CR.float(me, txt.trim() || '属性变化', (e.attack > 0 || e.health > 0) ? 'is-buff' : 'is-nerf', '', paced(950));
       }
-      return 240;
+      return 360;
     }
     case 'SKILL_TRIGGERED': {
       // 引擎在技能真正执行前一刻发的（ADR-074）——玩家必须看得见"谁发动了什么"
@@ -2061,10 +2126,10 @@ function animate(e) {
       // 中央横幅：即使单位在角落也能看见
       skillToast((e.unitName ? e.unitName + ' · ' : '') + (when || '技能'),
         '〈' + e.skillName + '〉', tone);
-      return 300;                     // 横幅会一直留到结算结束，单事件不必等太久
+      return 560;                     // 给玩家看清发动者、技能名与随后发生的效果
     }
     case 'CARD_MILLED': {
-      var mp = $(e.side === 'own' ? '#own-deck-pile' : '#foe-deck-pile');
+      var mp = $(e.side === 'own' ? '#own-deck-pile' : '#foe-deck-pile') || (e.side !== 'own' ? $('#foe-deck-visual') : null);
       if (mp) {
         mp.classList.add('is-milled');
         setTimeout(function () { mp.classList.remove('is-milled'); }, paced(520));
@@ -2108,7 +2173,7 @@ function animate(e) {
         CR.float(de, '✝', 'is-dmg', e.unit ? e.unit.name : '');
         CR.die(de, null);
         if (lastAttack && lastAttack.targetEl === de) lastAttack.killed = true;
-        return 520;
+        return 700;
       }
       // ADR-081：找不到卡面时**不能静默 return 0**（玩家会觉得"人凭空消失了"）。
       // 常见于该格已被同批新召唤的单位占用，或这一批刚被跳过。
@@ -2146,11 +2211,13 @@ function animate(e) {
   }
 }
 
-function banner(title, sub) {
+var bannerTimer = null;
+function banner(title, sub, tone) {
   var b = document.getElementById('banner');
   b.innerHTML = '<b>' + title + '</b>' + (sub ? '<span>' + sub + '</span>' : '');
-  b.classList.add('show');
-  setTimeout(function () { b.classList.remove('show'); }, 900);
+  b.className = 'show' + (tone ? ' is-' + tone : '');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(function () { b.className = ''; }, 900);
 }
 
 /* ============================================================

@@ -147,7 +147,8 @@ window.CardRender = (function () {
     var html = portraitHTML(card);
     var costInline = opts.board ? '' :
       '<b class="cr-costnum">' + (card.cost != null ? card.cost : 0) + '</b>';
-    html += '<div class="cr-name">' + costInline + (card.name || '') + '</div>';
+    html += '<div class="cr-name">' + (opts.affordable === false
+      ? costInline.replace('cr-costnum', 'cr-costnum is-unaffordable') : costInline) + (card.name || '') + '</div>';
     html += statusHTML(opts);
     html += keywordsHTML(card, opts.row);
 
@@ -278,7 +279,7 @@ window.CardRender = (function () {
         setTimeout(function () { toEl.classList.remove('cr-land-bounce'); }, 320);
       }
       if (done) done();
-    }, 400);
+    }, 520);
   }
 
   /** 攻击：冲刺 → 抖动 → 伤害数字 */
@@ -290,11 +291,11 @@ window.CardRender = (function () {
     attackerEl.style.setProperty('--lx', (dx * 0.6) + 'px');
     attackerEl.style.setProperty('--ly', (dy * 0.6) + 'px');
     attackerEl.classList.add('cr-lunge');
-    setTimeout(function () { attackerEl.classList.remove('cr-lunge'); }, 360);
+    setTimeout(function () { attackerEl.classList.remove('cr-lunge'); }, 520);
 
     setTimeout(function () {
       targetEl.classList.add('cr-hit');
-      setTimeout(function () { targetEl.classList.remove('cr-hit'); }, 320);
+      setTimeout(function () { targetEl.classList.remove('cr-hit'); }, 420);
       if (damage != null) {
         var dmg = document.createElement('div');
         dmg.className = 'cr-dmg';
@@ -303,9 +304,9 @@ window.CardRender = (function () {
         dmg.style.top = '12%';
         ensurePositioned(targetEl);
         targetEl.appendChild(dmg);
-        setTimeout(function () { dmg.remove(); }, 760);
+        setTimeout(function () { dmg.remove(); }, 1050);
       }
-    }, 170);
+    }, 250);
   }
 
   /** 死亡：过曝 → 灰化下沉，并炸开一圈尘光 */
@@ -319,7 +320,7 @@ window.CardRender = (function () {
       burst.remove();
       el.classList.remove('cr-dying');
       if (done) done();
-    }, 500);
+    }, 700);
   }
 
   /** 飘字：伤害/治疗/护甲/状态。cls 见 card-render.css 的 .cr-float.is-* */
@@ -351,7 +352,7 @@ window.CardRender = (function () {
       if (c) {
         c.style.setProperty('--spell-c', color || 'rgba(190,140,255,.5)');
         c.classList.add('cr-board-spell');
-        setTimeout(function () { c.classList.remove('cr-board-spell'); }, 620);
+        setTimeout(function () { c.classList.remove('cr-board-spell'); }, 900);
       }
       return;
     }
@@ -361,7 +362,7 @@ window.CardRender = (function () {
     if (color) f.style.setProperty('--spell-c', color);
     ensurePositioned(el);
     el.appendChild(f);
-    setTimeout(function () { f.remove(); }, 660);
+    setTimeout(function () { f.remove(); }, 900);
   }
 
   /** 卡面血量本地扣减：返回扣减后的值（数据仍以 core 为准，此处只为看得见掉血） */

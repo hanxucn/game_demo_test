@@ -275,6 +275,7 @@
   }
   .panel .label { font-size: 9px; letter-spacing: .18em; color: #8a8070; }
   .panel .big-num { font-size: 20px; font-weight: 800; color: var(--gold); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .panel .big-num.is-warning, #command-box .big-num.is-warning { color: #ff806f; text-shadow: 0 0 9px rgba(255,80,60,.45); }
   .panel .big-num small { font-size: 11px; color: var(--dim); font-weight: 600; }
   .panel .pips { display: flex; gap: 2px; margin-top: 4px; }
   .panel .pip { flex: 1 1 0; height: 6px; border-radius: 2px; background: #2a231c; box-shadow: inset 0 0 0 1px #3a3229; }
@@ -344,6 +345,14 @@
     padding: 1px 5px 1px 3px; border-radius: 3px;
     background: rgba(12,9,6,.72); border: 1px solid #3d3226;
   }
+  /* 与右侧结束回合控件同一横向区域，牌库固定在画布最左侧。 */
+  .foe-tray .foe-deck {
+    position: absolute;
+    left: calc(-1 * (var(--board-w) / 2 + 12px));
+    top: calc(50% - 20px);
+    transform: translateY(-50%);
+    z-index: 8;
+  }
   .foe-deck b { font-size: 9px; color: var(--ink); font-variant-numeric: tabular-nums; }
   .foe-deck .pback, .foe-hand .pback {
     display: block; border-radius: 2px;
@@ -352,10 +361,37 @@
   }
   .foe-deck .pback { width: 13px; height: 18px; }
   .foe-deck.is-drawing { animation: pileDraw .45s ease-out; }
+  #deck-tray {
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    z-index: 8; display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    pointer-events: none;
+  }
+  #deck-tray .deck-pile {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px 2px 4px; border-radius: 5px;
+    background: rgba(12,9,6,.88); border: 1px solid #3d3226;
+    pointer-events: auto;
+  }
+  #deck-tray .deck-pile b {
+    display: inline; font-size: 12px; font-weight: 800;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  #deck-tray .deck-pile .pback {
+    display: block; width: 24px; height: 30px; border-radius: 4px;
+    box-shadow: inset 0 0 0 1px #6b5636, 0 1px 3px rgba(0,0,0,.6);
+  }
+  #deck-tray .foe-deck .pback {
+    background: linear-gradient(135deg, #5a2f2f 0%, #33191a 55%, #462424 100%);
+    box-shadow: inset 0 0 0 1px #8a5050, 0 1px 3px rgba(0,0,0,.6);
+  }
+  #deck-tray .own-deck .pback {
+    background: linear-gradient(135deg, #4a3a24, #2a1f12 55%, #3a2c1a);
+  }
   .foe-hand { display: flex; gap: 2px; align-items: flex-end; min-height: 22px; }
   .foe-hand .pback {
-    width: 16px; height: 22px;
+    width: var(--card-w); height: var(--card-h);
     animation: backIn .3s ease-out backwards;
+    margin: 0 -7px;
   }
   .foe-hand .pback:hover { transform: translateY(-3px); }
 
@@ -388,7 +424,12 @@
   }
   .hcard-wrap:hover { transform: rotate(0deg) translateY(-16px) scale(1.1); z-index: 30; }
   .hcard-wrap.is-selected { transform: rotate(0deg) translateY(-20px) scale(1.12); z-index: 31; }
-  .hcard-wrap.is-played { opacity: 0; transition: opacity .2s; }
+  .hcard-wrap.is-played {
+    opacity: 0;
+    transform: translateY(-10px) scale(.94);
+    transition: opacity .24s ease, transform .24s ease;
+    pointer-events: none;
+  }
 
   /* ===== 事件动画（由 core 事件流驱动） ===== */
   .cr-heal {
@@ -421,6 +462,8 @@
   #banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   #banner b { font-size: 17px; color: var(--gold-hi); letter-spacing: .1em; text-shadow: 0 2px 4px #000; }
   #banner span { font-size: 11px; color: var(--dim); letter-spacing: .2em; }
+  #banner.is-warning { border-color: #b94b3b; box-shadow: inset 0 0 0 1px rgba(255,110,85,.45), 0 10px 30px rgba(0,0,0,.8); }
+  #banner.is-warning b { color: #ff9d8b; text-shadow: 0 0 12px rgba(255,75,50,.45); }
 
   .turn-side.own { color: #9fd0a4; }
   .turn-side.enemy { color: #ff9a86; }
@@ -463,7 +506,7 @@
   .cr-float { --stack: 0; margin-top: calc(var(--stack) * -15px); }
 
   /* 牌库被拆 */
-  #own-deck-pile.is-milled, #foe-deck-pile.is-milled {
+  #own-deck-pile.is-milled, #foe-deck-pile.is-milled, #foe-deck-visual.is-milled {
     animation: millFlash .52s ease-out;
   }
   @keyframes millFlash {
@@ -847,7 +890,6 @@
 
 
   /* ---------- 手牌费用提示（ADR-058） ---------- */
-  .hcard-wrap.is-poor .cr-card { filter: grayscale(.85) brightness(.62); }
   /* 费用提示放在卡牌**上方**：放下方会溢出手牌区、撑高画布并被裁切 */
   .hcard-cost {
     position: absolute; left: 50%; transform: translateX(-50%); top: -12px;
@@ -856,6 +898,29 @@
     pointer-events: none; z-index: 40;
   }
   .hcard-cost.ok { background: rgba(14,30,16,.92); color: #9fd0a4; border-color: #3a5a3a; }
+  .hcard-cost { display: none; }
+  #command-box {
+    position: absolute; left: 8px; bottom: 72px; z-index: 8; width: 92px;
+    background: linear-gradient(180deg, rgba(46,32,20,.9), rgba(16,12,9,.94));
+    border-radius: 8px; padding: 7px 9px;
+    box-shadow: inset 0 0 0 1px rgba(196,152,98,.38), 0 6px 16px rgba(0,0,0,.6);
+  }
+  #command-box .label { font-size: 9px; letter-spacing: .18em; color: #8a8070; }
+  #command-box .big-num { font-size: 20px; font-weight: 800; color: var(--gold); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  #command-box .big-num small { font-size: 11px; color: var(--dim); font-weight: 600; }
+  #command-box .pips { display: flex; gap: 2px; margin-top: 4px; }
+  #command-box .pip { flex: 1 1 0; height: 6px; border-radius: 2px; background: #2a231c; box-shadow: inset 0 0 0 1px #3a3229; }
+  #command-box .pip.on { background: linear-gradient(180deg,#ffe9b0,var(--gold)); box-shadow: 0 0 6px rgba(212,175,106,.55); }
+  /* 双方牌库沿战场中线对称展示：敌方在上、我方在下。 */
+  #own-tray { display: none; }
+  #own-tray .pile { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px 2px 4px; border-radius: 4px; background: rgba(12,9,6,.84); border: 1px solid #3d3226; }
+  #own-tray .pile b, #foe-deck-visual b { display: inline; font-size: 9px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  #own-tray .pback { display: block; width: 13px; height: 18px; border-radius: 2px; background: linear-gradient(135deg,#4a3a24,#2a1f12 55%,#3a2c1a); box-shadow: inset 0 0 0 1px #6b5636; }
+  #own-hand-pile { display: none !important; }
+  .foe-deck b { display: none; }
+  .foe-deck:hover b { display: inline; }
+  .panel .pile-box, .foe-hand-backs { display: none; }
+  #end-turn-btn.is-hidden { display: none; }
 
   /* ---------- 详情弹窗里的技能块 ---------- */
   #detail .sk { margin-top: 6px; padding-top: 5px; border-top: 1px dotted #3a3228; }
@@ -1004,14 +1069,20 @@
 
     <div class="table-top"></div>
 
+    <div id="deck-tray" aria-label="双方牌库">
+      <div class="deck-pile foe-deck" id="foe-deck-visual" title="敌方牌库">
+        <i class="pback"></i><b id="foe-deck-visual-num">25</b>
+      </div>
+      <div class="deck-pile own-deck" id="own-deck-pile" title="我方牌库">
+        <i class="pback"></i><b id="deck-num">25</b>
+      </div>
+    </div>
+
     <div class="arena">
       <div class="arena-inner">
         <!-- 敌方手牌 + 牌库：以卡背正面呈现（对称于我下方的手牌），
              对方手里几张牌一眼可见 —— 原先只在右侧面板里有个数字 -->
         <div class="foe-tray">
-          <div class="foe-deck" id="foe-deck-visual" title="敌方牌库">
-            <i class="pback"></i><b id="foe-deck-visual-num">25</b>
-          </div>
           <div class="foe-hand" id="foe-hand-visual"></div>
         </div>
 
@@ -1028,11 +1099,6 @@
 
       <div class="panel">
         <div class="box">
-          <div class="label">统 率 值</div>
-          <div class="big-num" id="cmd-num">3<small> / 4</small></div>
-          <div class="pips" id="cmd-pips"></div>
-        </div>
-        <div class="box">
           <div class="row2"><span class="label">回 合</span><b id="turn-num">1</b></div>
           <div class="row2" style="margin-top:4px"><span class="label">当 前</span><b id="turn-side" class="turn-side own">我方回合</b></div>
           <div class="row2 timer-row" style="margin-top:4px">
@@ -1041,33 +1107,20 @@
           <div class="timer-bar"><i id="turn-timer-bar"></i></div>
         </div>
 
-        <!-- 双方牌堆：都用卡背表示，敌方不再"看不见" -->
-        <div class="box">
-          <div class="pile-row">
-            <span class="label">我 方</span>
-            <span class="pile" id="own-deck-pile" title="我方牌库">
-              <i class="pback"></i><b id="deck-num">25</b>
-            </span>
-            <span class="pile" id="own-hand-pile" title="我方手牌">
-              <i class="pback"></i><b id="hand-num">5</b>
-            </span>
-          </div>
-          <div class="pile-row" style="margin-top:5px">
-            <span class="label">敌 方</span>
-            <span class="pile" id="foe-deck-pile" title="敌方牌库">
-              <i class="pback"></i><b id="foe-deck-num">25</b>
-            </span>
-            <span class="pile" id="foe-hand-pile" title="敌方手牌">
-              <i class="pback"></i><b id="foe-hand-num">5</b>
-            </span>
-          </div>
-          <!-- 敌方手牌：一张张卡背排开，张数一眼可见 -->
-          <div class="foe-hand-backs" id="foe-hand-backs"></div>
-        </div>
-        <div class="btn">结束回合</div>
+        <div class="btn" id="end-turn-btn">结束回合</div>
       </div>
     </div>
 
+    <div id="command-box">
+      <div class="label">统 率 值</div>
+      <div class="big-num" id="cmd-num">3<small> / 4</small></div>
+      <div class="pips" id="cmd-pips"></div>
+    </div>
+    <div id="own-tray">
+      <span class="pile" id="own-hand-pile" title="我方手牌">
+        <i class="pback"></i><b id="hand-num">5</b>
+      </span>
+    </div>
     <div class="hand" id="hand"></div>
     <div id="banner"></div>
   </div>
