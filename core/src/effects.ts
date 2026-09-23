@@ -69,6 +69,8 @@ export interface EffectContext {
   chosenCol?: number;
   /** 本次结算中发生的事件标记（killed / clash_won…），供条件判定读取（ADR-033） */
   flags?: string[];
+  /** 本次效果结算中各事件发生的次数；用于“每次击杀”类条件效果。 */
+  eventCounts?: Record<string, number>;
   /** 光环收集模式（ADR-037）：非空时 modify 写入修正层而非直接改数值 */
   auraId?: string;
   /** discard mode:'choose' 时，指定弃掉手牌的第几张（ADR-049） */
@@ -849,6 +851,8 @@ export function runEffects(
             if (before > 0 && hpOf(state, t) <= 0) {
               ctx.flags = ctx.flags ?? [];
               if (!ctx.flags.includes('killed')) ctx.flags.push('killed');
+              ctx.eventCounts = ctx.eventCounts ?? {};
+              ctx.eventCounts.killed = (ctx.eventCounts.killed ?? 0) + 1;
             }
             // 时机表第 16 步：受到伤害触发技（存活才触发）
             if (victim && victim.hp > 0) runUnitTrigger(state, cards, victim, 'on_damaged', rng, events);
@@ -874,7 +878,10 @@ export function runEffects(
             if (!state.sides[ctx.side].rows[r][c]) empties.push({ row: r, col: c });
           }
         }
-        const n = eff.count ?? 1;
+        // 条件为 event:killed 时，召唤次数按本次效果实际击杀数结算，
+        // 避免多次雷击只在效果列表末尾触发一次召唤（如张角五雷轰顶）。
+        const eventCount = eff.condition?.event ? ctx.eventCounts?.[eff.condition.event] : undefined;
+        const n = eventCount ?? eff.count ?? 1;
         for (let i = 0; i < n && empties.length; i++) {
           const idx = eff.position === 'random' ? rng.int(empties.length) : 0;
           const slot = empties.splice(idx, 1)[0]!;

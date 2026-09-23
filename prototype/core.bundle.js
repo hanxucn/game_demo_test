@@ -1642,6 +1642,8 @@ var Core = (() => {
               if (before > 0 && hpOf(state, t) <= 0) {
                 ctx.flags = ctx.flags ?? [];
                 if (!ctx.flags.includes("killed")) ctx.flags.push("killed");
+                ctx.eventCounts = ctx.eventCounts ?? {};
+                ctx.eventCounts.killed = (ctx.eventCounts.killed ?? 0) + 1;
               }
               if (victim && victim.hp > 0) runUnitTrigger(state, cards, victim, "on_damaged", rng, events);
               if (victim) runMarkDamaged(state, cards, victim, val, rng, events);
@@ -1665,7 +1667,8 @@ var Core = (() => {
               if (!state.sides[ctx.side].rows[r][c]) empties.push({ row: r, col: c });
             }
           }
-          const n = eff.count ?? 1;
+          const eventCount = eff.condition?.event ? ctx.eventCounts?.[eff.condition.event] : void 0;
+          const n = eventCount ?? eff.count ?? 1;
           for (let i = 0; i < n && empties.length; i++) {
             const idx = eff.position === "random" ? rng.int(empties.length) : 0;
             const slot = empties.splice(idx, 1)[0];

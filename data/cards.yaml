@@ -4193,6 +4193,7 @@
       side: both
       filter:
         type: character
+        include_lord: true
       count: all
   flavor: ''
   value:

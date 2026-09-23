@@ -336,12 +336,44 @@ test('马腾 西凉铁骑：召唤 2 步兵 + 场上步兵进化并获得先攻'
 test('高顺 陷阵营：召唤 2 盾兵并全部进化为 2/2', () => {
   realCard('qun_gaoshun');
   const { state, ctx } = scenario({ ownHand: ['qun_gaoshun'] });
+  // 场上已有的盾兵也必须纳入“全场盾兵”进化范围。
+  setUnit(state, 'own', 'front', 0, makeUnit(realCard('neutral_shieldman'), 0, 900));
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 2 });
   const elites = r.state.sides.own.rows.front
     .filter((u) => u?.cardId === 'elite_xianzhen_dun');
-  assert.equal(elites.length, 2, `应进化 2 个盾兵，实际 ${elites.length}`);
+  assert.equal(elites.length, 3, `应进化场上已有盾兵和新召唤的 2 个盾兵，实际 ${elites.length}`);
   assert.ok(elites.every((u) => u!.atk === 2 && u!.maxHp === 2), '陷阵盾兵 2 攻 2 血');
   assert.ok(elites.every((u) => u!.kw.includes('jia_dun')), '陷阵盾兵保留架盾');
+});
+
+test('张角 五雷轰顶：每次雷击击杀都召唤黄巾兵', () => {
+  realCard('qun_zhangjiao');
+  realCard('token_huangjin_bing');
+  const { state, ctx } = scenario({});
+  setUnit(state, 'own', 'front', 0, makeUnit(realCard('qun_zhangjiao'), 0, 901));
+  const victimA = makeUnit(realCard('neutral_infantry'), 0, 902);
+  const victimB = makeUnit(realCard('neutral_infantry'), 0, 903);
+  victimA.hp = 1;
+  victimB.hp = 1;
+  setUnit(state, 'enemy', 'front', 0, victimA);
+  setUnit(state, 'enemy', 'front', 1, victimB);
+  const r = applyAction(state, ctx, { type: 'END_TURN' });
+  const summoned = r.events.filter((e) => e.type === 'UNIT_SUMMONED' && e.unit.cardId === 'token_huangjin_bing');
+  assert.equal(summoned.length, 2, `两次雷击击杀应召唤 2 个黄巾兵，实际 ${summoned.length}`);
+});
+
+test('南蛮入侵：双方单位和双方主公都受到 1 点伤害', () => {
+  realCard('event_nanmanruqin');
+  const { state, ctx } = scenario({ ownHand: ['event_nanmanruqin'] });
+  setUnit(state, 'own', 'front', 0, makeUnit(realCard('neutral_infantry'), 0, 904));
+  setUnit(state, 'enemy', 'front', 0, makeUnit(realCard('neutral_infantry'), 0, 905));
+  const ownLordHp = state.sides.own.lord.hp;
+  const enemyLordHp = state.sides.enemy.lord.hp;
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
+  assert.equal(getUnit(r.state, 'own', 'front', 0), null, '己方单位应受到 1 点伤害并阵亡');
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null, '敌方单位应受到 1 点伤害并阵亡');
+  assert.equal(r.state.sides.own.lord.hp, ownLordHp - 1, '己方主公应受到 1 点伤害');
+  assert.equal(r.state.sides.enemy.lord.hp, enemyLordHp - 1, '敌方主公应受到 1 点伤害');
 });
 
 test('进化规则：保留已受伤害，不白送治疗（GDD 07-troops §4.2）', () => {

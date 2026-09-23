@@ -5662,7 +5662,8 @@ window.GameData = {
           "target": {
             "side": "both",
             "filter": {
-              "type": "character"
+              "type": "character",
+              "include_lord": true
             },
             "count": "all"
           }
