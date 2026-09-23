@@ -194,6 +194,26 @@
   guard_scope: lord
   memo: "只把该方**主帅**受到的伤害转由本单位承担（祖茂「替主」，ADR-071）"
 
+- id: kong_cheng
+  name: 空城
+  kind: buff
+  numeric: false
+  scope: lord
+  timing: 9             # 攻击声明：目标选择
+  duration: turns
+  caps: [untargetable]
+  memo: "该方主帅不能被**普通攻击**指定为目标；效果伤害仍可命中（空城计，ADR-074）"
+
+- id: xiu_zheng
+  name: 休整
+  kind: debuff
+  numeric: false
+  scope: lord
+  timing: 1             # 回合开始：整回合被跳过
+  duration: until_consumed
+  caps: [skip_turn]
+  memo: "该方下一个回合整个被跳过（休养生息「下一回合不进行任何活动」，ADR-074）"
+
 - id: duan_chou
   name: 断抽
   kind: debuff

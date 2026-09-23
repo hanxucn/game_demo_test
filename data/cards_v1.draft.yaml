@@ -779,6 +779,7 @@ cards:
       name: 谋定后动
       kind: trigger
       trigger: turn_end
+      text: 回合结束时，若司马懿本回合没有任何行动，对所有敌方人物造成 1 点伤害；若行动且造成过伤害，则弃掉对方牌库一张；场上只剩司马懿时后者同时生效。
       effects:
       - action: damage
         value: 1
@@ -787,6 +788,23 @@ cards:
           filter:
             type: character
           count: all
+        condition:
+          acted_this_turn: false
+      - action: mill
+        count: 1
+        target:
+          side: enemy
+        condition:
+          any_of:
+          - acted_this_turn: true
+            dealt_damage_this_turn: true
+          - count:
+              selector:
+                side: ally
+                filter:
+                  type: character
+              op: ==
+              value: 1
     note: DSL 已翻译
   keywords: []
   gender: male
@@ -873,17 +891,32 @@ cards:
       name: 黄天当立
       kind: trigger
       trigger: on_play
+      text: 战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。
       effects:
       - action: summon
         unit: token_huangjin_bing
         count: 2
         position: random
         condition:
-          exists:
-            side: ally
-            filter:
-              type: character
-              tag: huang_jin
+          all_of:
+          - exists:
+              side: ally
+              filter:
+                card_id: qun_zhangliang
+      - action: summon
+        unit: token_huangjin_bing
+        count: 2
+        position: random
+        condition:
+          all_of:
+          - exists:
+              side: ally
+              filter:
+                card_id: qun_zhangliang
+          - exists:
+              side: ally
+              filter:
+                card_id: qun_zhangjiao
     note: DSL 已翻译
   keywords: []
   gender: male
@@ -913,17 +946,32 @@ cards:
       name: 黄天当立
       kind: trigger
       trigger: on_play
+      text: 战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。
       effects:
       - action: summon
         unit: token_huangjin_bing
         count: 2
         position: random
         condition:
-          exists:
-            side: ally
-            filter:
-              type: character
-              tag: huang_jin
+          all_of:
+          - exists:
+              side: ally
+              filter:
+                card_id: qun_zhangbao
+      - action: summon
+        unit: token_huangjin_bing
+        count: 2
+        position: random
+        condition:
+          all_of:
+          - exists:
+              side: ally
+              filter:
+                card_id: qun_zhangbao
+          - exists:
+              side: ally
+              filter:
+                card_id: qun_zhangjiao
     note: DSL 已翻译
   keywords: []
   gender: male
@@ -1895,11 +1943,16 @@ cards:
       name: 谮言
       kind: trigger
       trigger: on_play
+      text: 战吼：己方主公本回合统率 −1，并随机封锁敌方手中一张卡（被封的牌无法打出）。
       effects:
-      - action: discard
-        count: 1
+      - action: gain_command
+        value: -1
+      - action: ban_play
         target:
           side: enemy
+          zone: hand
+          count: 1
+          mode: random
     note: DSL 已翻译
   keywords: []
   gender: male
@@ -3323,10 +3376,11 @@ cards:
   - 转录存疑 4 处（详见 cards_photo.draft.yaml）
   - 缺 memo
   effects:
-  - action: damage
-    value: 0
+  - action: apply_status
+    status: kong_cheng
+    duration: 2
     target:
-      side: enemy
+      side: ally
       lord: true
     condition:
       count:
@@ -3393,6 +3447,16 @@ cards:
       filter:
         type: character
       count: all
+  - action: heal
+    value: 3
+    target:
+      side: ally
+      lord: true
+  - action: apply_status
+    status: xiu_zheng
+    target:
+      side: ally
+      lord: true
   - action: draw
     value: 3
 - id: tactic_yuqin_guzong

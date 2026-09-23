@@ -34,6 +34,7 @@ function useLordSkill(
     lord.skillUsedThisTurn = true;
   }
   events.push({ type: 'LORD_SKILL_USED', side, skill: lord.skill });
+  emitSkillTriggered(state, side, null, skill, 'lord_skill', events);
   // 抉择（ADR-071）：主公技同样支持 modes
   runEffects(state, ctx.cards, effectsOf(skill, action.modeIndex),
              { side, chosen: target, handIndex: action.handIndex, modeIndex: action.modeIndex }, rng, events);
@@ -64,7 +65,7 @@ import {
   resolveTurnEndStatuses, resolveTurnStartStatuses, unitRef, type TargetRef,
 } from './mutate.ts';
 import {
-  costRuleDelta, effectsOf, recomputeAuras, resolveAttack, resolveTargets,
+  costRuleDelta, effectsOf, emitSkillTriggered, recomputeAuras, resolveAttack, resolveTargets,
   runCardPlayedTriggers, runEffects, runTriggerSkills,
 } from './effects.ts';
 import type {
@@ -228,6 +229,8 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   s.lord.skillUsedThisTurn = false;
   for (const ref of allUnits(state, side)) {
     ref.unit.attackedThisTurn = 0;
+    ref.unit.actedThisTurn = false;               // ADR-074：本回合行为标记
+    ref.unit.dealtDamageThisTurn = false;
     ref.unit.skillUsesThisTurn = {};              // 主动技频率每回合重置（GDD 10 §1.1）
   }
 
@@ -251,7 +254,8 @@ function startTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], r
   runTriggerSkills(state, ctx.cards, side, TIMING.TURN_START, rng, events);   // 第 3 步 ③回合开始技
 }
 
-function endTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng: ReturnType<typeof createRng>): void {
+/** 结算当前行动方的回合结束（第 20~23 步），**不**换手、不开始新回合 */
+function finishTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng: ReturnType<typeof createRng>): void {
   const side = state.active;
   resolveTurnEndStatuses(state, ctx.cards, side, events);                     // 第 20 步 ①中毒
   runTriggerSkills(state, ctx.cards, side, TIMING.TURN_END, rng, events);     // 第 20 步 ②回合结束技
@@ -262,11 +266,37 @@ function endTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng
   const dropped = discardOverflow(state, side);
   dropped.forEach((c) => events.push({ type: 'CARD_PLAYED', side, card: c }));   // 弃牌也用同一事件，客户端可区分
   events.push({ type: 'TURN_END', side, turn: state.turn, halfTurn: state.halfTurn });
+}
+
+/** 该方身上是否有「跳过整个回合」的状态（ADR-074，休养生息）；有则消耗掉并返回 true */
+function consumeSkipTurn(state: MatchState, events: GameEvent[]): boolean {
+  const lord = state.sides[state.active].lord;
+  const hit = Object.entries(lord.statuses ?? {})
+    .find(([id, inst]) => inst.stacks > 0 && STATUSES[id]?.caps?.includes('skip_turn'));
+  if (!hit) return false;
+  delete lord.statuses![hit[0]];
+  events.push({ type: 'LORD_STATUS_EXPIRED', side: state.active, status: hit[0] });
+  events.push({ type: 'TURN_SKIPPED', side: state.active, reason: STATUSES[hit[0]]?.name ?? hit[0] });
+  return true;
+}
+
+function endTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], rng: ReturnType<typeof createRng>): void {
+  finishTurn(state, ctx, events, rng);
 
   // ADR-054：不设回合上限、不判平局——对局只能由主将阵亡结束（粮尽保证必然收束）
 
-  state.active = other(side);
+  state.active = other(state.active);
   startTurn(state, ctx, events, rng);
+
+  // 跳回合（ADR-074，休养生息「下一回合不进行任何活动」）：
+  // 带 `skip_turn` 状态的一方，其回合刚开始就整个结束 —— 用循环而不是递归，
+  // 并设上限防呆（双方同时带着该状态时不会无限套娃）。
+  for (let guard = 0; guard < 4; guard++) {
+    if (!consumeSkipTurn(state, events)) break;
+    finishTurn(state, ctx, events, rng);
+    state.active = other(state.active);
+    startTurn(state, ctx, events, rng);
+  }
 }
 
 /* ============================================================
@@ -311,6 +341,7 @@ function playCard(
       ? ({ kind: 'unit', side: action.target2.side, row: action.target2.row, col: action.target2.col } as const)
       : undefined;
     for (const sk of onPlay) {
+      emitSkillTriggered(state, side, u, sk, 'on_play', events);
       // 抉择（ADR-071）：给了 modes 就按 modeIndex 挑分支，否则用 effects
       runEffects(state, ctx.cards, effectsOf(sk, action.modeIndex),
         { side, source: u, chosen, chosen2, chosenRow: slot.row, chosenCol: slot.col }, rng, events);
@@ -391,6 +422,8 @@ function useUnitSkill(
 
   const key = skill.id || skill.name || '0';
   u.skillUsesThisTurn[key] = (u.skillUsesThisTurn[key] ?? 0) + 1;
+  u.actedThisTurn = true;                       // ADR-074：司马懿要判"本回合有没有行动"
+  emitSkillTriggered(state, side, u, skill, 'active', events);
   if ((skill.frequency ?? 'once_per_turn') === 'once') u.skillsUsedOnce.push(key);
   state.sides[side].command.cur -= skill.cost ?? 0;
   const target: TargetRef | undefined = action.target

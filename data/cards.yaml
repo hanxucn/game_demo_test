@@ -138,11 +138,11 @@
   value:
     stats: 6
     keywords: 0
-    skills: 2.6
-    total: 8.6
+    skills: 1.9
+    total: 7.9
     budget: 7
-    diff: 1.6
-    level: watch
+    diff: 0.9
+    level: ok
 - id: shu_madai
   name: 马岱
   faction: shu
@@ -442,10 +442,10 @@
   value:
     stats: 10
     keywords: -1
-    skills: 1.12
-    total: 10.12
+    skills: 0.78
+    total: 9.78
     budget: 11
-    diff: -0.88
+    diff: -1.22
     level: ok
 - id: shu_zhangfei
   name: 张飞
@@ -621,21 +621,25 @@
     name: 谮言
     kind: trigger
     trigger: on_play
+    text: 战吼：己方主公本回合统率 −1，并随机封锁敌方手中一张卡（被封的牌无法打出）。
     effects:
-    - action: discard
-      count: 1
+    - action: gain_command
+      value: -1
+    - action: ban_play
       target:
         side: enemy
-    text: 有黄皓在场时，降低己方主公一点统率，敌方随机封锁手中一张卡。
+        zone: hand
+        count: 1
+        mode: random
   flavor: ''
   value:
     stats: 3
     keywords: 0
-    skills: 1
-    total: 4
+    skills: 4
+    total: 7
     budget: 5
-    diff: -1
-    level: ok
+    diff: 2
+    level: watch
 - id: shu_xiangchong
   name: 向宠
   faction: shu
@@ -1660,6 +1664,7 @@
     name: 谋定后动
     kind: trigger
     trigger: turn_end
+    text: 回合结束时，若司马懿本回合没有任何行动，对所有敌方人物造成 1 点伤害；若行动且造成过伤害，则弃掉对方牌库一张；场上只剩司马懿时后者同时生效。
     effects:
     - action: damage
       value: 1
@@ -1668,15 +1673,31 @@
         filter:
           type: character
         count: all
-    text: ①如果当前回合司马懿没有任何行动,回合结束时对所有敌方人物卡牌造成一点伤害.②如果行动且对敌方造成伤害,则使敌方卡池随机丢弃一张卡牌.③当场上只剩司马懿时,效果同时包含②.
+      condition:
+        acted_this_turn: false
+    - action: mill
+      count: 1
+      target:
+        side: enemy
+      condition:
+        any_of:
+        - acted_this_turn: true
+          dealt_damage_this_turn: true
+        - count:
+            selector:
+              side: ally
+              filter:
+                type: character
+            op: ==
+            value: 1
   flavor: ''
   value:
     stats: 7
     keywords: 0
-    skills: 1.05
-    total: 8.05
+    skills: 1.47
+    total: 8.47
     budget: 11
-    diff: -2.95
+    diff: -2.53
     level: watch
 - id: wei_xunyu
   name: 荀彧
@@ -2696,26 +2717,40 @@
     name: 黄天当立
     kind: trigger
     trigger: on_play
+    text: 战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。
     effects:
     - action: summon
       unit: token_huangjin_bing
       count: 2
       position: random
       condition:
-        exists:
-          side: ally
-          filter:
-            type: character
-            tag: huang_jin
-    text: 当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangliang
+    - action: summon
+      unit: token_huangjin_bing
+      count: 2
+      position: random
+      condition:
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangliang
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangjiao
   flavor: ''
   value:
     stats: 3
     keywords: 0
-    skills: 4.2
-    total: 7.2
+    skills: 2.83
+    total: 5.83
     budget: 7
-    diff: 0.2
+    diff: -1.17
     level: ok
 - id: qun_zhangliang
   name: 张梁
@@ -2734,26 +2769,40 @@
     name: 黄天当立
     kind: trigger
     trigger: on_play
+    text: 战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。
     effects:
     - action: summon
       unit: token_huangjin_bing
       count: 2
       position: random
       condition:
-        exists:
-          side: ally
-          filter:
-            type: character
-            tag: huang_jin
-    text: 当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangbao
+    - action: summon
+      unit: token_huangjin_bing
+      count: 2
+      position: random
+      condition:
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangbao
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangjiao
   flavor: ''
   value:
     stats: 4
     keywords: 0
-    skills: 4.2
-    total: 8.2
+    skills: 2.83
+    total: 6.83
     budget: 7
-    diff: 1.2
+    diff: -0.17
     level: ok
 - id: qun_gaoshun
   name: 高顺
@@ -3950,10 +3999,11 @@
     name: ''
     text: 当己方场上没有人物在場时，对方一回合无法攻击主帅。
   effects:
-  - action: damage
-    value: 0
+  - action: apply_status
+    status: kong_cheng
+    duration: 2
     target:
-      side: enemy
+      side: ally
       lord: true
     condition:
       count:
@@ -3967,10 +4017,10 @@
   value:
     stats: 0
     keywords: 0
-    skills: 0
-    total: 0
+    skills: 1.4
+    total: 1.4
     budget: 11
-    diff: -11
+    diff: -9.6
     level: 'off'
 - id: tactic_xiushengyangxi
   name: 休养生息
@@ -3992,17 +4042,27 @@
       filter:
         type: character
       count: all
+  - action: heal
+    value: 3
+    target:
+      side: ally
+      lord: true
+  - action: apply_status
+    status: xiu_zheng
+    target:
+      side: ally
+      lord: true
   - action: draw
     value: 3
   flavor: ''
   value:
     stats: 0
     keywords: 0
-    skills: 12.6
-    total: 12.6
+    skills: 15.8
+    total: 15.8
     budget: 11
-    diff: 1.6
-    level: watch
+    diff: 4.8
+    level: 'off'
 - id: tactic_caochuanjiejian
   name: 草船借箭
   faction: neutral

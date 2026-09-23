@@ -10,7 +10,7 @@
 
 import { BOARD, DECK } from './constants.ts';
 import {
-  allUnits, getUnit, hasCap, hasKeyword, hasTrait, other, shieldUnits, statusStacks, unitCount,
+  allUnits, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, other, shieldUnits, statusStacks, unitCount,
 } from './state.ts';
 import type { CardDef, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
@@ -120,7 +120,11 @@ export function legalTargets(state: MatchState, side: Side, row: Row, col: numbe
     .map(({ row: r, col: c }) => ({ kind: 'unit' as const, side: foe, row: r, col: c }));
 
   // 规则③ 也可以直接攻击主将（ADR-051：取消「必须先清空一列」的破阵限制）
-  targets.push({ kind: 'lord', side: foe });
+  // ADR-074：主帅身上带 `untargetable`（空城计「空城」）时不可被指定为攻击目标。
+  // 只挡**普通攻击** —— 效果伤害（战法/技能）仍可打主将，与卡面「无法攻击」一致。
+  if (!hasCapOn(state.sides[foe].lord.statuses, 'untargetable')) {
+    targets.push({ kind: 'lord', side: foe });
+  }
 
   return {
     targets,

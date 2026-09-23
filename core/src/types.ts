@@ -37,6 +37,23 @@ export interface EffectCondition {
   turn_max?: number;
   /** 本次被击杀者的卡牌类型（马超只认「武将」，ADR-070） */
   victim_type?: 'troop' | 'general' | 'strategist';
+  /**
+   * 来源单位**本回合是否行动过**（攻击或使用主动技），ADR-074 —— 司马懿「谋定后动」①
+   * 需要「如果当前回合司马懿没有任何行动」。
+   */
+  acted_this_turn?: boolean;
+  /** 来源单位本回合的攻击**是否造成过伤害**（ADR-074，司马懿②） */
+  dealt_damage_this_turn?: boolean;
+  /**
+   * 条件的**与 / 或**组合（ADR-074）
+   *
+   * 单个条件字段之间是「与」，但有些卡面写的是"要么…要么…"或"三者同时在场"：
+   *   · `all_of` —— 张宝 / 张梁「张氏三兄弟同时在场」
+   *   · `any_of` —— 司马懿③「场上只剩司马懿时，效果同时包含②」
+   * 两者可与其它字段共存（先判 and/or，再与其余字段相与）。
+   */
+  all_of?: EffectCondition[];
+  any_of?: EffectCondition[];
 }
 
 export type CompareOp = '>=' | '<=' | '==' | '>' | '<' | '!=';
@@ -78,6 +95,11 @@ export interface CardEffect {
    * **不是** `until_not_type` 的牌为止（该牌也进手牌）。
    */
   until_not_type?: CardType | 'character';
+  /**
+   * mill 专用（ADR-074，司马懿「谋定后动」②）：从哪一端弃。
+   * 缺省 `'random'`（卡面写的是"随机丢弃一张"），`'top'` 则固定弃牌库顶。
+   */
+  from_deck?: 'top' | 'random';
 }
 
 export interface TargetSelector {
@@ -248,6 +270,19 @@ export interface Unit {
   statuses: Record<string, StatusInstance>;   // 状态实例（ADR-034）
   skills?: SkillDef[];
   attackedThisTurn: number;
+  /** 本回合是否行动过（攻击 / 使用主动技）—— ADR-074，司马懿①「没有任何行动」 */
+  actedThisTurn: boolean;
+  /** 本回合的攻击是否造成过伤害 —— ADR-074，司马懿② */
+  dealtDamageThisTurn: boolean;
+  /**
+   * 已经播报过「技能发动」的光环 id（ADR-074）
+   *
+   * `recomputeAuras` 每次重算都会重跑所有光环 —— 入场、死亡、回合开始/结束各一次。
+   * 若每次都发 SKILL_TRIGGERED，客户端会不停弹"某某的光环"，把日志和动画全淹掉。
+   * 光环是持续生效的被动，播报一次即可（属性/状态的**变化**另有 STAT_MODIFIED /
+   * STATUS_APPLIED 事件兜底）。
+   */
+  auraAnnounced?: string[];
   enteredTurn: number;
   /** 本回合各主动技已使用次数，key = 技能 id 或下标（GDD 10 §1.1 频率限制） */
   skillUsesThisTurn: Record<string, number>;
@@ -327,6 +362,21 @@ export type GameEvent =
   | { type: 'CARD_DRAWN'; side: Side; card: CardDef; deckLeft: number }
   | { type: 'CARD_AUTO_CAST'; side: Side; card: CardDef }
   | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number; to?: 'hand' | 'deck' }
+  /** 牌库被弃牌（milled）：ADR-074 */
+  | { type: 'CARD_MILLED'; side: Side; cardId: string; from: 'top' | 'random' }
+  /**
+   * 某个技能**发动了**（ADR-074）
+   *
+   * 原先客户端只能从效果事件（DAMAGE / STATUS_APPLIED…）间接猜"是不是技能干的"，
+   * 玩家看不出「咆哮」「五雷轰顶」这类技能什么时候生效。现在引擎在技能真正执行的
+   * 前一刻发这条事件，客户端据此播"技能发动"的提示（技能名 + 时机）。
+   */
+  | { type: 'SKILL_TRIGGERED'; side: Side; row?: Row; col?: number; unitName: string;
+      skillName: string; skillId: string; kind: SkillDef['kind']; timing?: string;
+      /** 触发技的来源（击杀者 / 亡语 / 光环重算…），便于日志分组 */
+      from: 'on_play' | 'active' | 'trigger' | 'aura' | 'lord_skill' | 'card' }
+  /** 该方整个回合被跳过（ADR-074，休养生息「下一回合不进行任何活动」） */
+  | { type: 'TURN_SKIPPED'; side: Side; reason: string }
   | { type: 'DECK_SENT'; side: Side; cardId: string; count: number }
   | { type: 'CARD_RETURNED_TO_DECK'; side: Side; card: CardDef }
   | { type: 'FATIGUE'; side: Side; amount: number; hp: number }

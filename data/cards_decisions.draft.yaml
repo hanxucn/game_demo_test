@@ -2168,7 +2168,9 @@ dsl:
     name: 谋定后动
     kind: trigger
     trigger: turn_end
+    text: 回合结束时，若司马懿本回合没有任何行动，对所有敌方人物造成 1 点伤害；若行动且造成过伤害，则弃掉对方牌库一张；场上只剩司马懿时后者同时生效。
     effects:
+    # ① 本回合没行动 → 全体 1 伤（ADR-074：新增 acted_this_turn 条件）
     - action: damage
       value: 1
       target:
@@ -2176,6 +2178,25 @@ dsl:
         filter:
           type: character
         count: all
+      condition:
+        acted_this_turn: false
+    # ② 行动过且造成过伤害 → 弃掉对方牌库一张（ADR-074：新增 mill 动作）
+    # ③ 场上只剩司马懿 → ②同样生效（ADR-074：新增 any_of 条件组合）
+    - action: mill
+      count: 1
+      target:
+        side: enemy
+      condition:
+        any_of:
+        - acted_this_turn: true
+          dealt_damage_this_turn: true
+        - count:
+            selector:
+              side: ally
+              filter:
+                type: character
+            op: '=='
+            value: 1
   qun_gaoshun:
   - id: xian_zhen_ying
     name: 陷阵营
@@ -2209,33 +2230,65 @@ dsl:
     name: 黄天当立
     kind: trigger
     trigger: on_play
+    text: 战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。
     effects:
+    # ADR-074：条件原先写成"场上有黄巾标签的角色"—— 黄巾兵 token 也带这个标签，
+    # 等于随便站个黄巾兵就能触发；现在按 **card_id** 精确判定「谁在场」。
     - action: summon
       unit: token_huangjin_bing
       count: 2
       position: random
       condition:
-        exists:
-          side: ally
-          filter:
-            type: character
-            tag: huang_jin
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangliang
+    - action: summon
+      unit: token_huangjin_bing
+      count: 2
+      position: random
+      condition:
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangliang
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangjiao
   qun_zhangliang:
   - id: huang_tian_dang_li
     name: 黄天当立
     kind: trigger
     trigger: on_play
+    text: 战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。
     effects:
     - action: summon
       unit: token_huangjin_bing
       count: 2
       position: random
       condition:
-        exists:
-          side: ally
-          filter:
-            type: character
-            tag: huang_jin
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangbao
+    - action: summon
+      unit: token_huangjin_bing
+      count: 2
+      position: random
+      condition:
+        all_of:
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangbao
+        - exists:
+            side: ally
+            filter:
+              card_id: qun_zhangjiao
   qun_diaochan:
   - id: huo_guo_qing_cheng
     name: 祸国倾城
@@ -2402,11 +2455,18 @@ dsl:
     name: 谮言
     kind: trigger
     trigger: on_play
+    text: 战吼：己方主公本回合统率 −1，并随机封锁敌方手中一张卡（被封的牌无法打出）。
     effects:
-    - action: discard
-      count: 1
+    # ADR-074：原先只做了 `discard`（把牌**弃掉**），而且漏了「降低己方主公一点统率」整句。
+    # 「封锁」按卡面应是 ban_play（禁止上场、牌还在手里），不是 discard（永久进弃牌堆）。
+    - action: gain_command
+      value: -1
+    - action: ban_play
       target:
         side: enemy
+        zone: hand
+        count: 1
+        mode: random
   shu_machao:
   - id: tie_qi_tu_xi
     name: 铁骑突袭
@@ -3287,10 +3347,15 @@ dsl_effects:
       count: 1
       mode: choose
   tactic_kongchengji:
-  - action: damage
-    value: 0
+  # ADR-074：原先是 `damage value: 0` —— 纯占位，什么都没发生（校验器的空转检测抓到的）。
+  # 现在给己方主帅挂「空城」：该方主帅**不能被普通攻击指定为目标**。
+  # `duration: 2` 而不是 1 —— 状态在**自己的回合结束**时递减，本回合打出后还剩 1 层，
+  # 正好覆盖「对方的下一个回合」（写 1 会在对手动手前就过期，护主那轮踩过同款坑）。
+  - action: apply_status
+    status: kong_cheng
+    duration: 2
     target:
-      side: enemy
+      side: ally
       lord: true
     condition:
       count:
@@ -3298,7 +3363,7 @@ dsl_effects:
           side: ally
           filter:
             type: character
-        op: ==
+        op: '=='
         value: 0
   tactic_shizhanqunru:
   - action: apply_status
@@ -3310,6 +3375,8 @@ dsl_effects:
         type: strategist
       count: all
   tactic_xiushengyangxi:
+  # ADR-074：补上卡面漏掉的两句 ——「包括主帅」与「下一回合不进行任何活动」。
+  # 后者是这张 5 费卡的**代价**：己方下一个回合整个被跳过（引擎的 skip_turn）。
   - action: heal
     value: 3
     target:
@@ -3317,6 +3384,16 @@ dsl_effects:
       filter:
         type: character
       count: all
+  - action: heal            # 卡面：「恢复全体人员(包括主帅)」
+    value: 3
+    target:
+      side: ally
+      lord: true
+  - action: apply_status    # 卡面：「下一回合不进行任何活动」
+    status: xiu_zheng
+    target:
+      side: ally
+      lord: true
   - action: draw
     value: 3
   tactic_yuqin_guzong:
