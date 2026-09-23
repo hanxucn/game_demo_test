@@ -538,6 +538,36 @@ function renderHand(st) {
    卡牌 / 技能详情（ADR-058：点卡或点技能名弹出）
    ============================================================ */
 
+/**
+ * 关键词的名称 / 释义**一律从数据读**（`data/keywords.yaml` 的 name + definition）。
+ *
+ * 原先这里维护了一份 `KW_DESC` 硬编码副本地图，而名称走的是 `statusName(id)` ——
+ * 它查的是 `GD.statuses`，键是 `jia_dun_status` 这种**状态 id**，
+ * 于是详情面板把关键词 id 原样印了出来：`关键词：jia_dun（嘲讽：…）`（ADR-080 修）。
+ * 同一份定义在数据与代码里各存一份也必然漂移，故改为数据驱动 + 硬编码兜底。
+ */
+var KW_INFO = null;
+function kwInfo(id) {
+  if (!KW_INFO) {
+    KW_INFO = {};
+    var list = GD.keywords;
+    if (list && !Array.isArray(list) && Array.isArray(list.keywords)) list = list.keywords;
+    (list || []).forEach(function (k) { if (k && k.id) KW_INFO[k.id] = k; });
+  }
+  var k = KW_INFO[id];
+  return {
+    // 名称：数据优先，其次旧硬编码中文名，最后才退回 id（绝不把 jia_dun 这种 id 印给玩家）
+    name: (k && k.name) || KW_DESC_LEGACY[id] || id,
+    desc: (k && k.definition) || KW_DESC[id] || '—',
+  };
+}
+
+/** 旧硬编码兜底（数据里查不到时才用；也保留了它的 desc 文案） */
+var KW_DESC_LEGACY = {
+  jia_dun: '架盾', xian_gong: '先攻', lian_ji: '连击', yi_ji: '遗计',
+  yin_xue: '饮血', sheng_dun: '圣盾', shen_she: '神射', qi_xi: '奇袭', zhong_yi: '忠义',
+};
+
 var KW_DESC = {
   jia_dun: '嘲讽：敌方普通攻击必须先打它。',
   xian_gong: '入场当回合即可行动攻击。',
@@ -565,7 +595,8 @@ function cardDetailHTML(c) {
   var kws = c.keywords || c.kw || [];
   if (kws.length) {
     rows.push('<div class="sub">关键词：' + kws.map(function (k) {
-      return '<b>' + statusName(k) + '</b>（' + (KW_DESC[k] || '—') + '）';
+      var info = kwInfo(k);
+      return '<b>' + info.name + '</b>（' + info.desc + '）';
     }).join('　') + '</div>');
   }
   (c.skills || []).forEach(function (sk) {
@@ -1771,6 +1802,28 @@ function unitEl(side, row, col) {
 }
 function lordEl(side) { return document.getElementById('lord-' + side); }
 
+/**
+ * 把刚抽到的**卡面**从牌堆飞到它在手牌里的位置（ADR-080）
+ *
+ * 直接克隆刚渲染出来的那张手牌元素来飞 —— 与手牌完全同源，不会出现
+ * "飞过去的和落下来的长得不一样"。`transition` 结束后立刻移除幽灵。
+ */
+function flyDrawnCard(fromEl, toWrap) {
+  if (!fromEl || !toWrap) return;
+  var a = fromEl.getBoundingClientRect();
+  var b = toWrap.getBoundingClientRect();
+  var ghost = toWrap.cloneNode(true);
+  ghost.classList.remove('cr-land-bounce');
+  ghost.classList.add('cr-draw-fly');
+  ghost.style.width = b.width + 'px';
+  ghost.style.height = b.height + 'px';
+  ghost.style.transform = 'translate3d(' + a.left + 'px,' + a.top + 'px,0) scale(.5)';
+  document.body.appendChild(ghost);
+  void ghost.offsetWidth;                    // 强制重排，让初始 transform 生效
+  ghost.style.transform = 'translate3d(' + b.left + 'px,' + b.top + 'px,0) scale(1)';
+  setTimeout(function () { ghost.remove(); }, 460);
+}
+
 /* ---------- 伤害来源分类 ----------
    事件里的 source 是：攻击者单位名（普攻）/「反击」/「中毒」/「摧毁」/
    「fatigue」/ 战法或事件卡名。做卡牌测试时"这一下是谁打的"最关键，
@@ -1839,15 +1892,19 @@ function animate(e) {
       var handBox = $('#hand');
       if (handBox) {
         handBox.classList.add('is-drawing');
-        setTimeout(function () { handBox.classList.remove('is-drawing'); }, paced(420));
+        setTimeout(function () { handBox.classList.remove('is-drawing'); }, paced(460));
         var newCard = handBox.lastElementChild;
+        var mine = e.side === 'own';
         if (newCard) {
           newCard.classList.add('cr-land-bounce');
-          setTimeout(function () { newCard.classList.remove('cr-land-bounce'); }, paced(420));
+          setTimeout(function () { newCard.classList.remove('cr-land-bounce'); }, paced(460));
+          // ADR-080：设计者"只看到 抽牌+1，看不出抽了什么" —— 飘字说不出是哪张牌。
+          // 现在把**抽到的那张卡的牌面**从牌堆飞到它该待的位置（敌方只飞卡背，别泄露情报）。
+          if (mine && pile) flyDrawnCard(pile, newCard);
         }
-        CR.float(handBox, '+1 张', 'is-buff', '抽牌', paced(1200));
+        if (mine) CR.float(handBox, '+1 张', 'is-buff', '抽牌', paced(1100));
       }
-      return 420;
+      return 620;
     }
     case 'CARD_PLAYED': {
       if (e.row === undefined) {

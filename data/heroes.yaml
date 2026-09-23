@@ -27,8 +27,10 @@
       effects:
         - action: heal
           value: 2
-          target: { side: both, filter: { type: character }, count: 1, mode: choose }
-      text: 指定任意一名场上人物恢复 2 点生命（不超过其最大生命；**敌我皆可**）。
+          # ADR-080：设计者——刘备的主公技**可以给自己加血**。
+          # `type: character` 不含主帅，故用 include_lord 把双方主帅一并纳入候选池。
+          target: { side: both, filter: { type: character, include_lord: true }, count: 1, mode: choose }
+      text: 指定任意一名场上人物（**含双方主帅**）恢复 2 点生命，不超过其最大生命；敌我皆可。
       note: >-
         设计者裁定（2026-09）：可指定**任何**人物，不局限于自己/己方——与手写稿
         「每回合能对自己或任意将领恢复█点血量」的「任意」一致。仁者无敌，连敌人也救。
