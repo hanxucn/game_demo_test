@@ -86,13 +86,19 @@ window.CardRender = (function () {
     return '<div class="cr-kw">' + html + '</div>';
   }
 
-  /** 卡面技能摘要：优先「技能名 + 文案」，无技能则退回记忆点 */
+  /**
+   * 卡面技能摘要「技能名 + 文案」。
+   *
+   * ⚠️ 无技能时**不要**退回 `card.memo`（ADR-079）：记忆点是给设计/校对用的内部字段，
+   * 拿它冒充技能描述会让玩家以为那是技能效果（白板卡尤其误导）。
+   * 返回空串时上层不会渲染这一行。
+   */
   function skillBrief(card) {
     var sk = (card.skills || [])[0];
     if (sk && (sk.name || sk.text)) {
       return '<b>' + (sk.name || '技能') + '</b>' + (sk.text ? '　' + sk.text : '');
     }
-    return card.memo || '';
+    return '';
   }
 
   /** 战场卡只放得下一个技能名 */
