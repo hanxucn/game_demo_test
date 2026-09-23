@@ -151,7 +151,11 @@ window.CardRender = (function () {
         + opts.skill + (opts.skillUsable ? '（点击使用）' : '（本回合不可用）') + '">技</div>';
     }
 
-    if (isCharacter(card)) {
+    // 攻血圆圈：按**这张卡有没有攻血**判断，而不是"是不是人物卡"（ADR-077）。
+    // 原先写 `isCharacter(card)`（只认 troop/general/strategist），
+    // 于是**衍生物**（黄巾兵 1/1 等）在战场上不显示攻血 —— 玩家不知道它会死。
+    var hasStats = card.atk != null || card.hp != null;
+    if (hasStats) {
       html += '<div class="cr-stat atk">' + (card.atk != null ? card.atk : 0) + '</div>';
       html += '<div class="cr-stat hp' + (opts.hurt ? ' is-hurt' : '') + '">' +
         (card.hp != null ? card.hp : 0) + '</div>';
@@ -160,10 +164,8 @@ window.CardRender = (function () {
     if (opts.board) {
       // 战场卡只有 42×59：全文放不下，先把**技能名**摆出来（血攻圆圈上方那条），
       // 完整文案走悬浮详情面板（见 battlefield.engine.js 的 hover 绑定）。
-      if (isCharacter(card)) {
-        var sn = skillName(card);
-        if (sn) html += '<div class="cr-skillname">' + sn + '</div>';
-      }
+      var sn = hasStats ? skillName(card) : null;
+      if (sn) html += '<div class="cr-skillname">' + sn + '</div>';
     } else {
       // 手牌 56×78：显示技能名 + 文案（原先进来时 opts.desc 从没被传过，
       // 所以这段描述一直没渲染出来 —— 设计者反馈"看不到技能描述"）

@@ -27,12 +27,21 @@ var data = Core.loadData(
 var session = null;      // { state, ctx }
 var sel = null;          // 已选中的我方单位 { row, col }
 var drag = null;         // 拖拽中的卡牌
-var pendingSkill = null; // 等待选择目标的主公技
+var pendingSkill = null; // 等待选择目标的主公技（旧字段，保留兼容）
+/**
+ * 统一的「待选目标」状态（ADR-077）：主动技 / 主公技都用它，
+ * 与 `pendingPlay`（出牌，可能有两段选择）分开。
+ * 形状：{ targets: [{kind,side,row,col}], resolve: (t) => void }
+ */
+var pendingPick = null;
 /**
  * 等待「战吼 / 卡级效果」选目标的出牌（BACKLOG §3）。
  * 形状：{ cardIndex, row, col, modeIndex, plan, idx, picks: {1: t, 2: t} }
  */
 var pendingPlay = null;
+/** 动画播放令牌 / 队列：供 skipAnimation 打断（ADR-077） */
+var animToken = 0;
+var animQueue = null;
 var busy = false;
 
 var $ = function (s) { return document.querySelector(s); };
@@ -84,7 +93,12 @@ function unitSkillState(st, side, row, col) {
 function viewCard(c) {
   return {
     id: c.id, name: c.name, type: c.type, faction: c.faction, cost: c.cost,
-    atk: c.attack || 0, hp: c.health || 0, kw: c.keywords || [],
+    // ⚠️ 不能写 `c.attack || 0`：那会把"这张卡没有攻血"（战法/事件）变成 0/0，
+    //    于是渲染层分不清"0 攻的谋臣"和"根本没有攻血的计策卡"（ADR-077）。
+    //    衍生物（黄巾兵等）的攻血也靠这个判断才会画出来。
+    atk: c.attack != null ? c.attack : null,
+    hp: c.health != null ? c.health : null,
+    kw: c.keywords || [],
     // skills / keywords 必须带上：详情面板靠它们显示技能全文与关键词释义，
     // 原先这里丢了 skills，于是「点手牌看详情」永远没有技能那一段。
     skills: c.skills, keywords: c.keywords,
@@ -158,7 +172,8 @@ function renderLords(st) {
       (l.armor ? '<span class="lb-armor">◈' + l.armor + '</span>' : '') +
       (l.skill
         ? '<span class="lb-skill' + (canUse ? '' : ' is-disabled') + '" title="主公技：' + l.skill +
-          '（消耗 ' + skillCost + ' 统率 / 每回合 1 次）">' + l.skill + '<i>' + skillCost + '</i></span>'
+          '　' + skillTextOf(l.skillDef) + '（消耗 ' + skillCost + ' 统率 / 每回合 1 次）">'
+          + l.skill + '<i>' + skillCost + '</i></span>'
         : '');
 
     var skillEl = bar.querySelector('.lb-skill');
@@ -166,6 +181,12 @@ function renderLords(st) {
       skillEl.addEventListener('click', function (e) {
         e.stopPropagation();
         onLordSkillClick(side);
+      });
+      // 悬停即看主公技全文（ADR-077：设计者反馈"看不到描述，不知道曹操是干什么的"）
+      skillEl.addEventListener('pointerenter', function () {
+        if (busy || drag) return;
+        showDetail('主公技　' + l.name + ' 〈' + l.skill + '〉', skillTextOf(l.skillDef),
+          '消耗 ' + skillCost + ' 统率 / 每回合 1 次' + (side === 'own' ? '　·　点击使用' : '　·　敌方主公技'));
       });
     }
     bar.addEventListener('click', function (e) {
@@ -295,6 +316,35 @@ function renderBoard(st) {
 var hitTargets = [];   // [{kind,side,row,col,left,top,right,bottom,cx,cy}]
 var hitPad = 18;       // 吸附半径（屏幕像素）
 
+/**
+ * 同一目标上连续挨打时**合并成一个累加飘字**（ADR-077）
+ *
+ * 设计者反馈「谋略/计策造成的群体伤害飘的数值还是快，有时候会漏看到」。
+ * 群体技（如五雷轰顶 5 连击）会在同一目标上连续打出好几个 -1，
+ * 分开播就是一片数字乱飞。这里把 1.2 秒内的同类伤害累加成一个 "-3 ×3"，
+ * 既看得清总数、也还知道被打了几下。
+ */
+var dmgAcc = new WeakMap();   // el -> { node, n, hits, cls, src, t }
+function floatDamage(el, amount, cls, source, life) {
+  if (!el) return;
+  var now = Date.now();
+  var a = dmgAcc.get(el);
+  if (a && a.cls === cls && now - a.t < 1200 && a.node.isConnected) {
+    a.n += amount; a.hits += 1; a.t = now;
+    a.node.innerHTML = '-' + a.n
+      + '<span class="cr-src">' + (a.src || source || '') + (a.hits > 1 ? ' ×' + a.hits : '') + '</span>';
+    a.node.classList.toggle('is-big', a.n >= 4);
+    a.node.style.setProperty('--float-life', life + 'ms');
+    a.node.style.animation = 'none';
+    void a.node.offsetWidth;          // 强制重排以重启动画
+    a.node.style.animation = '';
+    return;
+  }
+  CR.float(el, '-' + amount, cls + (amount >= 4 ? ' is-big' : ''), source, life);
+  var node = el.querySelector('.cr-float:last-of-type');
+  if (node) dmgAcc.set(el, { node: node, n: amount, hits: 1, cls: cls, src: source, t: now });
+}
+
 function rectOf(el, t) {
   var r = el.getBoundingClientRect();
   return {
@@ -339,6 +389,8 @@ function renderLanes(st) {
   $all('.unit-wrap.is-target').forEach(function (el) { el.classList.remove('is-target'); });
   $('#lord-enemy').classList.remove('is-target');
   hitTargets = [];
+  // 正在选技能目标时，高亮与命中缓存归它管，别被普攻目标覆盖（ADR-077）
+  if (pendingPick) { highlightPickTargets(); return; }
   if (!sel) return;
   var res = Core.legalTargets(st, 'own', sel.row, sel.col);
   res.targets.forEach(function (t) {
@@ -408,7 +460,8 @@ function renderHand(st) {
 
     wrap.addEventListener('click', function (e) {
       e.stopPropagation();
-      if (busy || st.winner || st.active !== 'own') return;
+      if (st.winner || st.active !== 'own') return;
+      if (busy) skipAnimation();                          // ADR-077
       if (Date.now() - dragHandledAt < 300) return;      // 拖拽已在 pointerup 处理
       if (onHandPick(i)) return;
       if (isCharacter(c)) { showCardDetail(c); return; }  // 人物卡点击 = 看详情
@@ -517,7 +570,8 @@ var TYPE_LABEL = {
    ============================================================ */
 
 function startDrag(e, index, card, wrap) {
-  if (busy || session.state.winner || session.state.active !== 'own') return;
+  if (session.state.winner || session.state.active !== 'own') return;
+  if (busy) skipAnimation();          // ADR-077：拖牌时若还在播动画，先跳过
   if (e.button !== undefined && e.button !== 0) return;
   e.preventDefault();
 
@@ -558,7 +612,8 @@ function startDrag(e, index, card, wrap) {
 
 /** 攻击拖拽：抓住战场上的单位，拖到敌方人物卡或主将上（与出牌同一套手感） */
 function startUnitDrag(e, row, col, wrap) {
-  if (busy || session.state.winner || session.state.active !== 'own') return;
+  if (session.state.winner || session.state.active !== 'own') return;
+  if (busy) skipAnimation();          // ADR-077：动画中也能直接选下一张卡
   if (e.button !== undefined && e.button !== 0) return;
 
   var chk = Core.canAttack(session.state, 'own', row, col);
@@ -704,6 +759,7 @@ function onDragEnd(e) {
     if (d.raf) { cancelAnimationFrame(d.raf); d.raf = 0; }
     if (d.hoverEl) { d.hoverEl.classList.remove('is-hover'); d.hoverEl = null; }
     var hit = nearestHit(e.clientX, e.clientY);
+    if (hit && pendingPick) { tapHandledAt = Date.now(); tapHandledEl = d.wrap; finishPick(hit); return; }
     if (hit) {
       tapHandledAt = Date.now(); tapHandledEl = d.wrap;
       doAction(hit.kind === 'lord'
@@ -830,6 +886,7 @@ function clearMarks() {
     .forEach(function (el) {
       el.classList.remove('is-selected', 'is-target', 'is-placeable', 'is-hover');
     });
+  hitTargets = [];
   $('#detail').classList.remove('show');
   if (session) renderLanes(session.state);
 }
@@ -877,8 +934,23 @@ function highlightPlayChoice() {
     finishPlay();
     return;
   }
+  // ADR-077：出牌时要把**本卡的技能全文**摆在眼前 —— 设计者反馈
+  // "出牌时候不知道具体技能描述"，而卡面只有 56×78 放不下文案。
   showDetail('选择目标' + step, name + '：请选择' + choice.label,
-    '点击高亮的' + choice.label + '（点空白处取消）' + extra);
+    '技能：' + cardSkillText(hc ? hc.card : null) + '　·　点高亮的' + choice.label
+    + '（空白处或 Esc 取消）' + extra);
+}
+
+/** 把一张卡的技能文案拼成一段（出牌提示 / 详情里用） */
+function cardSkillText(card) {
+  if (!card) return '';
+  var list = (card.skills || []).map(function (sk) {
+    var nm = sk.name ? '〈' + sk.name + '〉' : '';
+    return nm + (sk.text || '');
+  }).filter(Boolean);
+  if (list.length) return list.join('；');
+  if (card.memo) return card.memo;
+  return '（无技能）';
 }
 
 /** 进入待选状态；需要时可以带一个「先选分支」的结果 */
@@ -1018,7 +1090,14 @@ function trySnapAttack(ev) {
 }
 
 function onSlotClick(ev) {
-  if (busy) return;
+  if (busy) skipAnimation();
+  if (busy) return;                    // 极端情况：跳过失败就不处理
+  if (pendingPick) {
+    var pt = ev && nearestHit(ev.clientX, ev.clientY);
+    if (pt) { finishPick(pt); return; }
+    cancelPick();
+    return;
+  }
   if (pendingPlay) { cancelPlay(); return; }   // 点空白 = 放弃这次出牌
   // 空格子 / 卡与卡之间的缝隙：只要**靠近**合法目标就打过去。
   // 这是"点不到敌人"最直接的兜底 —— 格间距只有 4px，真人很难精准点中卡面。
@@ -1036,39 +1115,98 @@ function onSlotClick(ev) {
  * 这里同样先试吸附；没吸附到也不清选中（背景点击太容易误触，不该当成取消）。
  */
 function onBoardClick(ev) {
-  if (busy || pendingPlay) return;
+  if (busy) skipAnimation();
+  if (pendingPlay) return;
   trySnapAttack(ev);
 }
 
 /** 谋臣主动技：点卡上的「技」按钮。合法性由 Core.canUseUnitSkill 判定 */
 function onUnitSkillClick(row, col, skill) {
-  if (busy || session.state.winner) return;
+  if (session.state.winner) return;
+  if (busy) skipAnimation();
   var st = session.state;
   if (st.active !== 'own') { showDetail('主动技', skill.name, '现在不是你的回合'); return; }
   if (!skill.usable) { showDetail('主动技', skill.name, skill.why || '本回合不可用'); return; }
 
   var u = st.sides.own.rows[row][col];
   var def = (u.skills || []).filter(function (x) { return x.kind === 'active'; })[0];
-  var needTarget = (def.effects || []).some(function (e) {
-    return e.target && e.target.count === 1 && e.target.mode === 'choose';
-  });
-  if (needTarget) {
-    var t0 = (def.effects || []).filter(function (e) { return e.target && e.target.count === 1 && e.target.mode === 'choose'; })[0].target;
-    var sides = t0.side === 'both' ? ['own', 'enemy'] : [t0.side === 'enemy' ? 'enemy' : 'own'];
-    var targets = [];
-    sides.forEach(function (sd) {
-      Core.allUnits(st, sd).forEach(function (r) { targets.push({ side: sd, row: r.row, col: r.col }); });
+  // ⚠️ 目标集一律由 core 给（ADR-077）：原先这里自己按 selector.side 枚举"该方所有单位"，
+  //    **完全忽略 filter** —— 貂蝉（只认男性）、陆抗（排除自己）这类技能会高亮一堆非法目标，
+  //    点了之后引擎又退回兜底目标，表现为"指向性技能的选择逻辑有问题，有些又没问题"。
+  var plan = Core.unitSkillTargetPlan(st, 'own', row, col);
+  var choice = plan.choices[0];
+  if (choice) {
+    if (!choice.targets.length) {
+      showDetail('主动技', def.name, '没有合法目标' + (choice.includesHand ? '（可选目标在手里）' : ''));
+      return;
+    }
+    beginTargetPick(choice.targets, function (t) {
+      doAction({ type: 'USE_SKILL', row: row, col: col, target: { side: t.side, row: t.row, col: t.col } });
+    }, {
+      title: '选择目标',
+      sub: def.name,
+      why: '点击高亮的' + choice.label + '　·　' + skillTextOf(def),
     });
-    if (!targets.length) { showDetail('主动技', def.name, '没有合法目标'); return; }
-    pendingSkill = { targets: targets, useSkill: { row: row, col: col } };
-    targets.forEach(function (t) {
-      var el = unitEl(t.side, t.row, t.col);
-      if (el) el.classList.add('is-target');
-    });
-    showDetail('选择目标', def.name, '点击一名合法目标');
     return;
   }
   doAction({ type: 'USE_SKILL', row: row, col: col });
+}
+
+/** 取一段技能的可读文案（详情面板里用；没有 text 就退回"动作列表"） */
+function skillTextOf(sk) {
+  if (!sk) return '';
+  if (sk.text) return sk.text;
+  var effs = sk.effects || [];
+  return effs.map(function (e) { return e.action; }).join(' / ');
+}
+
+/**
+ * 统一的「选目标」入口（ADR-077）
+ *
+ * 卡牌战吼（pendingPlay）、主动技、主公技此前各写一套：
+ * 前两者各自枚举目标、后者按 side 猜，选中判定也各不相同。
+ * 现在都走这里 —— 目标集由 core 给，命中判定与拖拽攻击共用 `hitTargets` + 吸附半径。
+ */
+function beginTargetPick(targets, resolve, labels) {
+  pendingPick = {
+    targets: targets.map(function (t) { return { kind: t.kind || 'unit', side: t.side, row: t.row, col: t.col }; }),
+    resolve: resolve,
+  };
+  sel = null;                      // 选技能目标时不再高亮普攻目标，避免两套高亮打架
+  renderLanes(session.state);
+  highlightPickTargets();
+  showDetail(labels.title || '选择目标', labels.sub || '',
+    (labels.why || '') + (pendingPick.targets.length ? '　（点空白处或按 Esc 取消）' : ''));
+}
+
+function highlightPickTargets() {
+  if (!pendingPick) return;
+  hitTargets = [];
+  pendingPick.targets.forEach(function (t) {
+    var el = t.kind === 'lord' ? lordEl(t.side)
+      : (function () {
+          var slot = document.querySelector('.row[data-side="' + t.side + '"][data-row="' + t.row + '"] .slot[data-col="' + t.col + '"]');
+          return slot && slot.querySelector('.unit-wrap');
+        })();
+    if (!el) return;
+    el.classList.add('is-target');
+    hitTargets.push(rectOf(el, t));
+  });
+}
+
+function cancelPick() {
+  pendingPick = null;
+  hitTargets = [];
+  arrowHide();
+  clearMarks();
+  showDetail('已取消', '', '');
+}
+
+function finishPick(t) {
+  var pick = pendingPick;
+  pendingPick = null;
+  hitTargets = [];
+  if (pick) pick.resolve(t);
 }
 
 /** 主公技「选一张手牌」模式（如孙权坐断东南）。返回 true 表示已消费这次点击 */
@@ -1084,7 +1222,15 @@ function onHandPick(index) {
 }
 
 function onUnitClick(side, row, col, ev) {
-  if (busy || session.state.winner) return;
+  if (session.state.winner) return;
+  if (busy) skipAnimation();          // ADR-077：动画中点任何东西都先跳过动画
+
+  // ⓪-0 技能待选目标：精确点到就打，点偏了用吸附
+  if (pendingPick) {
+    var pt = exactHit(side, row, col) || (ev && nearestHit(ev.clientX, ev.clientY));
+    if (pt) { finishPick(pt); return; }
+    return;                                   // 点到非目标：保持待选，不乱取消
+  }
 
   // ⓪ 出牌待选目标（战吼 / 卡级效果，BACKLOG §3）—— 优先级最高
   if (pendingPlay && recordPlayPick(side, row, col)) return;
@@ -1156,8 +1302,10 @@ function onUnitClick(side, row, col, ev) {
 }
 
 function onLordClick(side, bar) {
-  if (busy || session.state.winner) return;
-  // 出牌待选目标可能是主将（如「随机打含主将」类选择器）
+  if (session.state.winner) return;
+  if (busy) skipAnimation();
+  // 技能/出牌的待选目标可能是主将
+  if (pendingPick && exactHit(side, undefined, undefined)) { finishPick(exactHit(side, undefined, undefined)); return; }
   if (pendingPlay && recordPlayPick(side, undefined, undefined)) return;
   if (sel && sel.kind === 'unit' && side === 'enemy' && bar.classList.contains('is-target')) {
     doAction({ type: 'ATTACK', from: { row: sel.row, col: sel.col }, to: { kind: 'lord' } });
@@ -1177,7 +1325,8 @@ function onLordClick(side, bar) {
  * 现在只看 skillDef.cost 与 effects[].target 的形状。
  */
 function onLordSkillClick(side) {
-  if (busy || session.state.winner) return;
+  if (busy) skipAnimation();          // ADR-077
+  if (session.state.winner) return;
   var st = session.state;
   if (side !== 'own' || st.active !== 'own') return;
 
@@ -1185,64 +1334,47 @@ function onLordSkillClick(side) {
   var sk = lord.skillDef;
   if (!sk) { showDetail('主公技', lord.skill, '该主公没有可用的主公技'); return; }
   var cost = sk.cost || 2;
+  var desc = skillTextOf(sk);            // ADR-077：主公技文案必须能看见
 
-  if (lord.skillUsedThisTurn) { showDetail('主公技', lord.skill, '本回合已使用过'); return; }
+  if (lord.skillUsedThisTurn) { showDetail('主公技 ' + lord.skill, desc, '本回合已使用过'); return; }
   if (st.sides.own.command.cur < cost) {
-    showDetail('主公技', lord.skill, '统率值不足（需要 ' + cost + '）');
+    showDetail('主公技 ' + lord.skill, desc, '统率值不足（需要 ' + cost + '）');
     return;
   }
 
-  // 需要选目标吗？看效果里有没有带 count:1 + mode:'choose' 的选择器
-  var picks = (sk.effects || []).filter(function (e) {
-    return e.target && e.target.count === 1 && e.target.mode === 'choose';
-  });
-  if (picks.length) {
-    clearMarks();
-    var sel0 = picks[0].target;
-    // side:'both' → 敌我都能选（仁德）；否则按 selector 的 side
-    var sides = sel0.side === 'both' ? ['own', 'enemy'] : [sel0.side === 'enemy' ? 'enemy' : 'own'];
-    var targets = [];
-    sides.forEach(function (sd) {
-      Core.allUnits(st, sd).forEach(function (r) {
-        targets.push({ side: sd, row: r.row, col: r.col });
-      });
+  // 要不要选目标由 core 判定（filter 一并生效）——UI 不再自己按 side 猜
+  var plan = Core.lordSkillTargetPlan(st, 'own');
+  var choice = plan.choices[0];
+  if (choice && choice.targets.length) {
+    beginTargetPick(choice.targets, function (t) {
+      doAction({ type: 'USE_LORD_SKILL', target: { side: t.side, row: t.row, col: t.col } });
+    }, {
+      title: '选择目标（主公技）',
+      sub: lord.skill + '　消耗 ' + cost + ' 统率',
+      why: '技能：' + desc + '　·　点高亮的' + choice.label,
     });
-    if (!targets.length) { showDetail('主公技', lord.skill, '场上没有可选人物'); return; }
-    pendingSkill = { targets: targets };
-    targets.forEach(function (t) {
-      var el = document.querySelector('.slot[data-side="' + t.side + '"][data-row="' + t.row + '"][data-col="' + t.col + '"] .unit-wrap');
-      if (el) el.classList.add('is-target');
-    });
-    showDetail('选择目标', lord.skill + '（消耗 ' + cost + ' 统率）',
-      sel0.side === 'both' ? '点击任意一名场上人物（敌我皆可）' : '点击一名符合条件的己方人物');
     return;
   }
 
-  // 不需要选目标（奸雄/坐断东南）——坐断东南要指定弃哪张手牌
+  // 不需要选目标（奸雄）——坐断东南要指定弃哪张手牌
   var needsHand = (sk.effects || []).some(function (e) {
     return e.action === 'cycle_to_deck' || (e.action === 'discard' && e.mode === 'choose');
   });
   if (needsHand) {
     var hand = st.sides.own.hand;
-    if (!hand.length) { showDetail('主公技', lord.skill, '手牌为空，无法使用'); return; }
-    // 进入「选一张手牌」模式：给手牌加高亮，由 onHandClick 处理
+    if (!hand.length) { showDetail('主公技 ' + lord.skill, desc, '手牌为空，无法使用'); return; }
     pendingSkill = { handPick: true, action: { type: 'USE_LORD_SKILL' } };
     $all('.hcard-wrap').forEach(function (el) { el.classList.add('is-target'); });
-    showDetail('选择手牌', lord.skill + '（消耗 ' + cost + ' 统率）', '点击一张手牌放回牌组随机位置，再随机抽一张');
+    showDetail('选择手牌（主公技）', lord.skill + '　消耗 ' + cost + ' 统率',
+      '技能：' + desc + '　·　点一张手牌');
     return;
   }
 
   doAction({ type: 'USE_LORD_SKILL' });
 }
 
-/**
- * Esc 取消当前操作（ADR-076）
- *
- * 之所以不做"再点一次选中单位 = 取消"：选中已经改到 **pointerdown**，
- * 再点一次会先取消、于是"按住同一单位拖到目标"这个最顺的手势就被抢掉了。
- * 取消改走 Esc（以及点空格子），两条路都不会和拖拽冲突。
- */
 function onEscape() {
+  if (pendingPick) { cancelPick(); return; }
   if (busy) return;
   if (pendingPlay) { cancelPlay(); return; }
   if (pendingSkill) { pendingSkill = null; clearMarks(); showDetail('已取消', '', ''); return; }
@@ -1250,13 +1382,16 @@ function onEscape() {
 }
 
 function onEndTurn() {
-  if (busy || session.state.winner) return;
+  if (session.state.winner) return;
+  if (busy) skipAnimation();
   if (session.state.active !== 'own') return;
   doAction({ type: 'END_TURN' });
 }
 
 function doAction(action) {
-  if (busy || session.state.winner) return;
+  if (session.state.winner) return;
+  // 动画播放中又来操作 → 先跳过动画再执行（ADR-077，替代原来的"点不动"）
+  if (busy) skipAnimation();
   var res = Core.applyAction(session.state, session.ctx, action);
   if (!res.ok) {
     showDetail('操作无效', res.error || '', '');
@@ -1491,14 +1626,35 @@ function hideSkillToast() {
   clearTimeout(skillToastTimer);
 }
 
+/**
+ * 跳过当前正在播的结算动画（ADR-077）
+ *
+ * 设计者反馈「执行攻击动作时不能选择其他卡牌」：`busy` 会把整段动画期间的
+ * 所有操作全部挡住，节奏调慢之后尤其难受。现在任意操作都能**打断动画**：
+ * 立刻跳到结算完成的状态，然后照常执行新操作。
+ */
+function skipAnimation() {
+  if (!busy) return;
+  animToken += 1;          // 让旧的播放链失效（它自己会 return）
+  animQueue = null;
+  hideSkillToast();
+  arrowHide();
+  busy = false;
+  renderAll();
+}
+
 function playEvents(events, done) {
   lastAttack = null;
   drawnThisAction = false;
-  var queue = events.slice();
+  var token = ++animToken;
+  animQueue = events.slice();
   hideSkillToast();
   (function next() {
-    if (!queue.length) { hideSkillToast(); done(); return; }
-    var e = queue.shift();
+    if (token !== animToken) return;                 // 已被 skipAnimation 打断
+    if (!animQueue.length) {
+      animQueue = null; hideSkillToast(); done(); return;
+    }
+    var e = animQueue.shift();
     // ⚠️ ADR-076：日志**逐条**写，和动画同步。
     // 原先进结算前就把整段结果一次性写进日志 —— 玩家想"回看刚才为什么掉血"时，
     // 日志里早就写着结局，反而对不上正在播的动画。
@@ -1603,17 +1759,33 @@ function insertUnitNow(e) {
 function animate(e) {
   switch (e.type) {
     case 'CARD_DRAWN': {
-      // 起牌原先是"日志里多一行"，肉眼几乎察觉不到 —— 现改为
-      // 牌堆闪光 + 一张卡背从牌堆飞向手牌，并记下待高亮的手牌序号。
+      // ADR-077：设计者反馈"抽牌没有动画，不看数量和日志不知道自己抽牌了"。
+      // 原因：手牌 DOM 要等整段动画结束后的 renderAll 才更新，抽到的牌在那之前**根本不存在**，
+      // 只有一条很轻的牌堆闪光。现在：牌堆闪光 + 卡背飞向手牌 + **立刻重画手牌**
+      // （新牌当场出现并弹一下）+ 手牌区飘一张 "+1"。
       var pile = $(e.side === 'own' ? '#own-deck-pile' : '#foe-deck-pile');
       var hp2 = $(e.side === 'own' ? '#own-hand-pile' : '#foe-hand-pile');
       if (pile) {
         pile.classList.add('is-drawing');
-        setTimeout(function () { pile.classList.remove('is-drawing'); }, 460);
+        setTimeout(function () { pile.classList.remove('is-drawing'); }, paced(460));
       }
       if (pile && hp2) flyCardBack(pile, hp2);
       if (e.side === 'own') drawnThisAction = true;
-      return 300;
+      // 立刻把新手牌画出来，别等动画播完
+      renderHand(session.state);
+      renderPanel(session.state);
+      var handBox = $('#hand');
+      if (handBox) {
+        handBox.classList.add('is-drawing');
+        setTimeout(function () { handBox.classList.remove('is-drawing'); }, paced(420));
+        var newCard = handBox.lastElementChild;
+        if (newCard) {
+          newCard.classList.add('cr-land-bounce');
+          setTimeout(function () { newCard.classList.remove('cr-land-bounce'); }, paced(420));
+        }
+        CR.float(handBox, '+1 张', 'is-buff', '抽牌', paced(1200));
+      }
+      return 420;
     }
     case 'CARD_PLAYED': {
       if (e.row === undefined) {
@@ -1667,13 +1839,13 @@ function animate(e) {
         el.classList.add('cr-hit');
         setTimeout(function () { el.classList.remove('cr-hit'); }, paced(320));
         CR.spell(el, f.cls === 'is-skill' ? 'rgba(200,150,255,.9)' : null);
-        // 飘字带出处（普攻 / 反击 / 技能名 / 中毒…），≥4 点加大，
-        // 停留时间随节奏档位拉长，避免"数字一闪而过"
-        CR.float(el, '-' + e.amount, f.cls + (e.amount >= 4 ? ' is-big' : ''), f.label, paced(1150));
+        // 飘字带出处（普攻 / 反击 / 技能名 / 中毒…），同目标连续挨打会累加；
+        // 停留时间随节奏档位拉长 + 本步延时加长，避免"数字一闪而过、漏看"
+        floatDamage(el, e.amount, f.cls, f.label, paced(1750));
         CR.tickHp(el, -e.amount);          // 卡面血量当场掉下来
         if (e.amount >= 5) screenShake();
       }
-      return 330;
+      return 520;
     }
     case 'HEAL': {
       var he = e.target.kind === 'lord' ? lordEl(e.target.side)

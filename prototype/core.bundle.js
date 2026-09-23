@@ -93,6 +93,7 @@ var Core = (() => {
     loadData: () => loadData,
     lordAlive: () => lordAlive,
     lordRef: () => lordRef,
+    lordSkillTargetPlan: () => lordSkillTargetPlan,
     lordStatusStacks: () => lordStatusStacks,
     makeUnit: () => makeUnit,
     maxCopiesOf: () => maxCopiesOf,
@@ -126,6 +127,7 @@ var Core = (() => {
     takeTurn: () => takeTurn,
     unitCount: () => unitCount,
     unitRef: () => unitRef,
+    unitSkillTargetPlan: () => unitSkillTargetPlan,
     validateDeck: () => validateDeck
   });
 
@@ -2212,30 +2214,53 @@ var Core = (() => {
     }
     return plan;
     function collect(eff) {
-      const t = eff.target;
-      if (!t || t.mode !== "choose") return;
-      if (t.count === "all" || (t.count ?? 1) !== 1) return;
-      const pick = t.pick === 2 ? 2 : 1;
-      if (plan.choices.some((c) => c.pick === pick)) return;
-      const preview = { uid: "#preview", cost: card.cost, atk: card.attack ?? 0 };
-      const pool = resolveTargets(
-        state,
-        { ...t, count: "all", mode: "first" },
-        { side, source: preview },
-        createRng(state.seed)
-      );
-      const targets = [];
-      for (const r of pool) {
-        if (r.kind === "lord") targets.push({ kind: "lord", side: r.side });
-        else if (r.kind === "unit") targets.push({ kind: "unit", side: r.side, row: r.row, col: r.col });
-      }
-      plan.choices.push({
-        pick,
-        label: choiceLabel(t),
-        targets,
-        includesHand: pool.some((r) => r.kind === "hand")
-      });
+      const c = choiceOf(state, side, eff, { cost: card.cost, atk: card.attack ?? 0 });
+      if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
     }
+  }
+  function choiceOf(state, side, eff, preview) {
+    const t = eff.target;
+    if (!t || t.mode !== "choose") return null;
+    if (t.count === "all" || (t.count ?? 1) !== 1) return null;
+    const pick = t.pick === 2 ? 2 : 1;
+    const src = { uid: "#preview", cost: preview.cost, atk: preview.atk };
+    const pool = resolveTargets(
+      state,
+      { ...t, count: "all", mode: "first" },
+      { side, source: src },
+      createRng(state.seed)
+    );
+    const targets = [];
+    for (const r of pool) {
+      if (r.kind === "lord") targets.push({ kind: "lord", side: r.side });
+      else if (r.kind === "unit") targets.push({ kind: "unit", side: r.side, row: r.row, col: r.col });
+    }
+    return { pick, label: choiceLabel(t), targets, includesHand: pool.some((r) => r.kind === "hand") };
+  }
+  var LORD_PREVIEW = { cost: 0, atk: 0 };
+  function unitSkillTargetPlan(state, side, row, col) {
+    const plan = { modes: [], choices: [] };
+    const u = getUnit(state, side, row, col);
+    if (!u) return plan;
+    const sk = (u.skills ?? []).find((x) => x.kind === "active");
+    if (!sk) return plan;
+    if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `\u9009\u9879 ${i + 1}`);
+    for (const eff of effectsOf(sk, 0)) {
+      const c = choiceOf(state, side, eff, { cost: u.cost, atk: u.atk });
+      if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
+    }
+    return plan;
+  }
+  function lordSkillTargetPlan(state, side) {
+    const plan = { modes: [], choices: [] };
+    const sk = state.sides[side].lord.skillDef;
+    if (!sk) return plan;
+    if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `\u9009\u9879 ${i + 1}`);
+    for (const eff of effectsOf(sk, 0)) {
+      const c = choiceOf(state, side, eff, LORD_PREVIEW);
+      if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
+    }
+    return plan;
   }
   function startTurn(state, ctx, events, rng) {
     state.halfTurn += 1;
