@@ -14,7 +14,10 @@ export * from './state.ts';
 export * from './rules.ts';
 export * from './mutate.ts';
 export { resolveTargets, runEffects, type EffectContext } from './effects.ts';
-export { applyAction, startMatch } from './engine.ts';
+export {
+  applyAction, startMatch, playTargetPlan,
+  type PlayTargetPlan, type PlayTargetChoice,
+} from './engine.ts';
 export {
   summarizeMatch, formatSummary,
   type MatchResult, type MatchSummary, type SideSummary,

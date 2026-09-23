@@ -105,7 +105,13 @@ for (const c of cards) {
       auraNote = applied
         ? ` [光环生效: ${auraSkills.map((s) => s.name).join('/')}]`
         : ` [⚠️ 光环未生效]`;
-      if (!applied && c.id !== 'shu_madai') fails.push(`${c.id}(光环未生效)`);
+      // 条件性光环在通用场景里无法满足（关平需关羽在场、诸葛亮需手牌为 0、
+      // 马岱需场上有西凉人物）——只看它的效果是否**全部带 condition**，
+      // 是则只提示，不算失败。否则就是真的没生效。
+      const allConditional = auraSkills.length > 0
+        && auraSkills.every((sk) => (sk.effects ?? []).length > 0
+          && (sk.effects ?? []).every((e) => e.condition));
+      if (!applied && !allConditional) fails.push(`${c.id}(光环未生效)`);
     }
     console.log(`  ✓ ${c.faction.padEnd(7)} ${c.name.padEnd(6)} → ${sig.slice(0, 4).join(', ') || '（触发技/未命中）'}${auraNote}`);
     ok++;

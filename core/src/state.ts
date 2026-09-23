@@ -159,6 +159,24 @@ export const lordStatusStacks = (l: { statuses?: Record<string, StatusInstance> 
 export const statusTurns = (u: Unit | null, id: string): number | undefined => u?.statuses[id]?.turns;
 
 /** 该单位是否具备某项状态能力（ADR-034）——引擎只查能力，不认状态 id */
+/**
+ * 关键词判定（**同时认状态形式**，ADR-066）
+ *
+ * 项目里同一概念有两套载体：
+ *   · 卡的固有关键词 `u.kw`        —— 如盾兵自带 jia_dun
+ *   · 效果施加的状态 `<kw>_status` —— 如典韦「古之恶来」给自己架盾
+ *
+ * 行为判定必须两者都认。此前只有 hasKeyword，于是**用状态施加的那批卡全部静默失效**：
+ *   关兴「先攻」/ 夏侯渊「奇袭」/ 典韦·郭淮·曹仁「架盾」都不生效
+ *   （曹仁的圣盾走 hasCap 读状态，反而是好的 —— 正好暴露了这个不一致）。
+ */
+export function hasTrait(u: Unit | null, keyword: string): boolean {
+  if (!u) return false;
+  if (u.kw.includes(keyword)) return true;
+  const st = u.statuses[`${keyword}_status`];
+  return !!st && st.stacks > 0;
+}
+
 export function hasCap(u: Unit | null, cap: StatusCap): boolean {
   if (!u) return false;
   return hasCapOn(u.statuses, cap);
@@ -192,7 +210,7 @@ export const activeStatuses = (u: Unit | null): string[] =>
 
 /** 「架盾」生效单位（ADR-051：单排后为纯嘲讽，不再限定前军） */
 export const shieldUnits = (s: MatchState, side: Side): UnitRef[] =>
-  allUnits(s, side).filter(({ unit }) => hasKeyword(unit, 'jia_dun') && unit.hp > 0);
+  allUnits(s, side).filter(({ unit }) => hasTrait(unit, 'jia_dun') && unit.hp > 0);
 
 export const lordAlive = (s: MatchState, side: Side): boolean => s.sides[side].lord.hp > 0;
 
@@ -224,6 +242,7 @@ export function makeUnit(card: CardDef, turn: number, seq: number): Unit {
     hp: card.health ?? 1,
     maxHp: card.health ?? 1,
     troopKind: card.troopKind,
+    gender: card.gender,
     kw: [...(card.keywords ?? [])],
     tags: [...(card.tags ?? [])],
     statuses: {},

@@ -47,7 +47,6 @@
 
 | 关键词 | 价值 | 备注 |
 |---|---|---|
-| 结阵 | −0.5 | 条件性 |
 | 神射 | −0.5 | 条件性 |
 | 架盾 | −1 | 全局嘲讽 |
 | 武圣 | −1 | 免疫一次 |
@@ -132,7 +131,7 @@
   skills: []                    # 技能定义
   bonds: []                     # 羁绊 id
   memo: "相邻有步兵时攻击 +1"     # 必填，设计用
-  flavor: "结阵而战，进退有度"     # 可选，收藏页显示
+  flavor: "盾如铁壁，寸步不让。"     # 可选，收藏页显示
 ```
 
 ### 6.1 非人物卡
@@ -203,26 +202,47 @@ effects:
 | `cost_modifier` | value, limit | 费用修正 |
 | `transform` | to | 变形/进化 |
 | `random_pick` | from, count | 随机选择 |
+| `sacrifice` | target | **牺牲**己方单位，并把它的 `maxHp` / 当前 `hp` 写进 `ctx.flags`（ADR-071，程昱） |
+| `attack_each` | target | 对目标集**挨个发动真正的普通攻击**（含反击），自己阵亡即停（ADR-071，张苞） |
+| `draw_until` | until_not_type | 一直抽，直到抽出一张不是该类型的牌（ADR-071，姜维） |
+
+> 动作分两张表：`ACTIONS` 只是**注册表**，`IMPLEMENTED_ACTIONS`（`core/src/effects.ts`）
+> 才是**已实现**。两者不一致时用该动作的卡会**静默空转**（华佗的 `remove_status` 就这样
+> 空转过一整轮）。`validate` 现在逐卡核对并直接报 error。
 
 ### 7.3 目标选择器
 
 ```yaml
 target:
   side: ally | enemy | both | self      # 阵营（self = 来源方阵营）
+  zone: board | hand | both             # 作用区域，默认 board；both = 手牌 + 场上（ADR-071）
   source: true                          # 只选「来源单位自身」（ADR-033）
+  pick: 1 | 2                           # 取玩家的第几个选择（ADR-071，见 §7.11）
+  lord: true                            # 选该方主帅
+  event: killer | victim                # 本次事件里的另一方单位（ADR-070）
   filter:                               # 过滤条件
     type: troop | general | strategist | character
     keyword: xian_gong
     tag: xi_liang                       # 归属标签（见 §7.5）
     faction: shu
+    gender: male | female | unknown     # 性别（ADR-071，见 §7.11）
     lane: 1-5
     row: front | back
     health_max: 2
+    cost_max: 3 / cost_min: 4
+    attack_below_source: true            # 攻击力低于来源单位
+    exclude_source: true                 # 排除来源自身（ADR-071，陆抗）
+    adjacent_to: self                    # 相邻
     has_status: zhen_she
+    include_lord: true                   # 候选池额外纳入主将
   count: 1 | all | 2                    # 数量
   mode: choose | random | first | lowest_health
   require_empty: true                   # 是否要求空格
 ```
+
+`mode: choose` 的取值顺序：**先看玩家给的选择**（`pick` 指定用哪个），
+该选择不在合法池内、或调用方（AI / 测试 / 未接入选目标的 UI）没给，才退回「合法池取前 N 个」。
+**绝不**因为玩家选错了就照打 —— 例如貂蝉指定一个女性目标时，退回合法池里的男性目标。
 
 ### 7.4 事件卡的"双方"表达
 
@@ -321,6 +341,12 @@ condition: { event: killed }        # killed | clash_won | clash_lost
 | `scry` | target, count, to | 查看/移动卡池顶或底（"查看卡池第一张牌""放到最底层"）|
 | `silence` | target, duration | 禁用技能（"技能禁用一回合"）|
 | `flip` | target | 翻面（"将卡牌翻面"，翻面期间不可被选中）|
+| `sacrifice` | target | 牺牲己方单位并记下它的血量（ADR-071） |
+| `attack_each` | target | 挨个发动真正的普攻（ADR-071） |
+| `draw_until` | until_not_type | 抽到非某类牌为止（ADR-071） |
+| `damage` / `heal` | `value_from_flag` | 数值取自 `ctx.flags` 里的 `"<name>:N"`（ADR-041），
+`sacrifice` 写入 `sacrificed_max_hp` / `sacrificed_hp` |
+| `remove_status` | `remove_kind: debuff \| buff` | 按**类别**批量驱散（ADR-071，华佗「清除其负面效果状态」）|
 
 #### ⑤ 目标选择器补充
 
@@ -496,6 +522,85 @@ interface StatMod {
 
 `value_from_discarded` 取值：`cost` | `health`。
 
+### 7.11 抉择 · 性别 · 双目标 · 守护范围（ADR-071）
+
+> 来源：`docs/BACKLOG-skills.md` 的 B-3 ~ B-11。这一节记的四项都是**通用 DSL 能力**，
+> 不是某张卡的私货 —— 加卡不改代码的前提是"表达力够用"。
+
+#### ① 抉择 `modes`（B-3，曹彰「猛袭」）
+
+```yaml
+skills:
+  - id: meng_xi
+    kind: trigger
+    trigger: on_play
+    modes:                              # 有 modes 时 effects 被忽略
+      - name: 蓄势（抽 1 张牌）
+        effects: [{ action: draw, value: 1 }]
+      - name: 奋击（本回合攻击 +1）
+        effects: [{ action: modify, attack: 1, duration: this_turn, target: { source: true } }]
+```
+
+- 玩家通过 `PLAY_CARD.modeIndex`（`USE_SKILL` / `USE_LORD_SKILL` 同）选择分支；
+- **缺省 / 越界 / 非整数一律取 `modes[0]`**（`effectsOf()` 是唯一真源），
+  这样 AI 与尚未接分支选择的 UI 都能跑；
+- 每个分支自己带完整的一组效果，不做"公共前缀"合并；
+- **计价按各分支的最大值**，不能相加 —— 相加等于把「二选一」当成「都拿到」。
+
+#### ② 性别 `gender`（B-4，貂蝉「祸国倾城」）
+
+- `TargetSelector.filter.gender`，运行期读 `Unit.gender`；
+- 数据侧 `CardDef.gender: 'male' | 'female' | 'unknown'`，由 `cards_decisions.draft.yaml`
+  的 `card_gender` 段驱动。**口径：场上"有攻血的单位"默认 `male`**（含兵种 / 衍生物 ——
+  它们也是场上的角色），女性角色显式登记；战法 / 事件 / 状态等非单位卡记 `unknown`。
+  123 张里只有 3 位女性（貂蝉 / 蔡文姬 / 黄月英），逐张写反而更容易写错。
+- ⚠️ **别把兵种记成 `unknown`**：那样貂蝉在纯基础兵的对局里会**完全空转**
+  （目标池被性别过滤清空，技能什么都不做）。这是实现时实际踩到的。
+
+#### ③ 双目标 `pick`（B-8，程昱「审时度势」）
+
+卡面要"牺牲一个己方人物，把血量上限恢复给**指定人物**"，一次结算里有两个玩家选择：
+
+- `Action` 增加 `target2`，`EffectContext` 增加 `chosen2`；
+- `TargetSelector.pick: 1 | 2` 指定该效果读哪一个（缺省 1）；
+- **只给了 `target` 时 `pick: 2` 退回第一个选择**，AI / 测试 / 旧 UI 不会因此空转；
+- 目前最多两个玩家选择。程昱卡面的第三个"指定敌人"以**随机敌人**落地 ——
+  ADR-072 已确认这是设计者口径，不是实现妥协。
+
+#### ④ 类型定型：1 攻武将必须显式标注（ADR-072）
+
+`ADR-018` 的自动判定（**攻击 > 1 → 武将；否则默认谋臣**）是在**照片稿的攻击力**上跑的，
+而攻击力会被 `card_stats` 改 —— 所以「1 攻的武将」必须由设计者显式裁定，否则一律算谋臣：
+
+```yaml
+# data/cards_decisions.draft.yaml
+card_type:
+  wu_zumao:            # 祖茂 2 费 1/3 —— 设计者：即便 1 攻仍是武将
+    type: general
+    explicit: true     # → 卡片字段 type_explicit: true
+  shu_xiangchong:      # 向宠 2 费 1/4 —— 攻击 ≤ 1 且无显式标注 → 谋臣
+    type: strategist
+```
+
+- 规则落在 `core/tools/validate.ts`：`general && attack <= 1 && !type_explicit` → **error**；
+- `type_explicit` 必须列入 `promote-cards.py` 的 `KEEP`，否则会被静默丢弃（陷阱 #3）；
+- 同一条目也顺手清掉了 `gen-cards-v1.py` 里 `TYPE_FIX = {'shu_huangquan': 'general'}`
+  这种**按 id 的类型硬编码**（卡牌数据不该写进代码，铁律 1）。
+
+#### ⑤ 守护范围 `guard_scope`（B-11，祖茂「替主」）
+
+`STATUSES[id].guard_scope`：
+
+| 值 | 代表状态 | 语义 |
+|---|---|---|
+| `any`（默认） | `shou_hu` 守护 | **被守护单位**受到的伤害都转给 `srcUid`（陈宫「忠烈」） |
+| `lord` | `hu_zhu` 护主 | **只有该方主帅**受到的伤害才转给 `srcUid`（祖茂「替主」） |
+
+- 主帅不是 `Unit`，所以 `findGuard`（扫单位身上的状态）之外另开 `findLordGuard`
+  （反扫**主帅身上**的守护状态，用 `srcUid` 找替他挨打的人）；
+- 光环施加的状态**不带 `turns`**，生命周期交给光环（每次 `recomputeAuras` 先清后加）。
+  否则它会在**自己回合结束**时被"回合到期"清掉，而护主要挡的恰恰是对手回合的伤害。
+
 ## 7.10 平衡的基本等式（ADR-043）
 
 > **这是本作数值设计的第一原则，任何时候都不许只看属性栏。**
@@ -531,6 +636,12 @@ interface StatMod {
 | 进化（transform） | `(进化后总价值 − 进化前总价值) × 单位数` | **ADR-046**：原先固定 4 分，会把最强与最弱的同构卡算成一样；来源卡从同技能的 `summon` 推断，取不到才退回 4 |
 | 打 N 次（`eff.count`） | 上述单价 × N | **ADR-046**：`伤害/治疗/施加状态` 的 `count` 是次数，原先被忽略（张角 `count: 5` 只算 1 次） |
 | AOE（`target.count: 'all'`） | 单价 × `AOE_NOMINAL`(2.5) | **ADR-046**：实际张数取决于场面，取名义值 |
+| 牺牲（`sacrifice`） | 0 | **ADR-071**：销毁自己的单位是**代价**，按 `discard` 的先例记 0；收益由后续 `value_from_flag` 记 |
+| `value_from_flag` | damage ×0.5 / heal ×0.4（名义值 3） | **ADR-071**：不记的话程昱整条"牺牲换血"链会被算成白板 |
+| 连续普攻（`attack_each`） | 3 | **ADR-071**：名义值 ≈ 一次额外普攻的伤害；要吃反击、自己阵亡即中断，故不给满值 |
+| 抽到非某类为止（`draw_until`） | 3 | **ADR-071**：名义值 ≈ 比抽 1 张多拿半张 |
+| 批量驱散（`remove_kind`） | ×3 / 次 | **ADR-071**：一次清掉一堆 debuff，不能还按"1 层"计价 |
+| 抉择（`modes`） | 各分支取**最大值** | **ADR-071**：相加等于把「二选一」当成「都拿到」 |
 | 主动技折扣 | ×0.8 | 可被震慑打断 |
 | 触发技折扣 | 按时机 0.6–1.0 | 见 `TRIGGER_RATE` |
 
@@ -546,7 +657,7 @@ interface StatMod {
 
 | 卡 | 费用 | 属性点 | 关键词 | 技能 | 总价值 | 预算 | 判定 |
 |---|---|---|---|---|---|---|---|
-| 步兵 | 1 | 3 | 结阵 −0.5 | — | 2.5 | 3 | 略低，可接受 |
+| 步兵 | 1 | 3 | — | — | 3.0 | 3 | 合规 |
 | 盾兵 | 1 | 3 | 架盾 −1 | — | 4.0 | 3 | **超模 1 点，需调** |
 | 弓箭手 | 1 | 2 | 神射 −0.5 | — | 2.5 | 3 | **偏弱 0.5 点** |
 | 火攻（战法） | 3 | — | — | 4 伤害 = 2 | 2.0 | 7 | 偏弱（单体伤害价值低） |

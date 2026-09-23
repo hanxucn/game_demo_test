@@ -10,7 +10,7 @@
 
 import { BOARD, DECK } from './constants.ts';
 import {
-  allUnits, getUnit, hasCap, hasKeyword, other, shieldUnits, statusStacks, unitCount,
+  allUnits, getUnit, hasCap, hasKeyword, hasTrait, other, shieldUnits, statusStacks, unitCount,
 } from './state.ts';
 import type { CardDef, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
@@ -33,7 +33,7 @@ export interface Check {
 
 /** 是否近战（非神射、非谋臣） */
 export const isMelee = (u: Unit): boolean =>
-  u.type !== 'strategist' && !hasKeyword(u, 'shen_she');
+  u.type !== 'strategist' && !hasTrait(u, 'shen_she');
 
 /**
  * 能否使用某单位的主动技（GDD 10 §1.1：默认每回合 1 次）。
@@ -67,12 +67,12 @@ export function canAttack(state: MatchState, side: Side, row: Row, col: number):
   if (hasCap(u, 'block_action') || hasCap(u, 'block_attack')) {
     return { ok: false, reason: '当前状态无法普通攻击' };
   }
-  const maxAttacks = hasKeyword(u, 'lian_ji') ? 2 : 1;
+  const maxAttacks = hasTrait(u, 'lian_ji') ? 2 : 1;
   if (u.attackedThisTurn >= maxAttacks) {
     return { ok: false, reason: `本回合已攻击 ${u.attackedThisTurn} 次` };
   }
   // 「先攻」= 入场当回合即可攻击（ADR-054：设计者裁定「疾行 = 先攻」，已合并为同名）
-  if (u.enteredTurn === state.turn && !hasKeyword(u, 'xian_gong')) {
+  if (u.enteredTurn === state.turn && !hasTrait(u, 'xian_gong')) {
     return { ok: false, reason: '本回合入场，无法攻击（「先攻」除外）' };
   }
   return { ok: true };
@@ -85,13 +85,8 @@ export function effectiveAttack(state: MatchState, side: Side, row: Row, col: nu
   let atk = u.atk;
   atk += statusStacks(u, 'zhen_fen');
   atk -= statusStacks(u, 'xu_ruo');
-  if (hasKeyword(u, 'jie_zhen')) {
-    const cols = [col - 1, col, col + 1];
-    const hasAllyInfantry = allUnits(state, side).some(({ row: r, col: c, unit }) =>
-      unit.uid !== u.uid && unit.troopKind === 'infantry' && cols.includes(c) && (r === 'front' || r === 'back'),
-    );
-    if (hasAllyInfantry) atk += 1;
-  }
+  // 「结阵」已移除（ADR-067）：引擎里"相邻有友方步兵时 +1 攻"是 AI 自己推的，
+  // 设计者从未给出机制，且 0 张卡在用 —— 与先攻/无双/武圣同属需清理的编造内容。
   return Math.max(0, atk);
 }
 
@@ -121,7 +116,7 @@ export function legalTargets(state: MatchState, side: Side, row: Row, col: numbe
   // 规则② 无架盾 → 可自由攻击任意敌方人物（翻面/奇袭者不可被指定）
   const targets: Target[] = allUnits(state, foe)
     .filter(({ unit }) => unit.hp > 0                    // 已阵亡但尚未移出场的（结算中途）不算
-      && !hasCap(unit, 'untargetable') && !hasKeyword(unit, 'qi_xi'))
+      && !hasCap(unit, 'untargetable') && !hasTrait(unit, 'qi_xi'))
     .map(({ row: r, col: c }) => ({ kind: 'unit' as const, side: foe, row: r, col: c }));
 
   // 规则③ 也可以直接攻击主将（ADR-051：取消「必须先清空一列」的破阵限制）

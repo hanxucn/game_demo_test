@@ -95,33 +95,3 @@ keywords:
   definition: 免疫混乱、离间等状态。
   memo: 不吃控制
   open: 待实现。⚠️ 原引擎误把「忠义」做成"阵亡触发亡语"，已纠正——亡语是「遗计」
-- id: jie_zhen
-  name: 结阵
-  type: buff
-  grants: []
-  stackable: false
-  value: 0
-  implemented: false
-  definition: ⚠️ 设计者尚未设计具体机制，先保留名字，后续再定。
-  memo: （待设计）
-  open: 引擎里现存的"相邻有友方步兵时 +1 攻"是 AI 旧推定，**不可用**（Q-06-3）
-retired:
-- id: ji_xing
-  name: 疾行
-  reason: 与「先攻」是同一个东西（设计者裁定），已合并 → 请改用 xian_gong
-- id: wu_shuang
-  name: 无双
-  reason: 设计者：暂时没有这个状态
-forbidden_combos:
-- - jia_dun
-  - qi_xi
-open_questions:
-- id: Q-06-2
-  q: 「饮血」恢复给谁：该单位自身，还是己方主将？
-  owner: 策划
-- id: Q-06-3
-  q: 「结阵」的具体机制
-  owner: 策划
-- id: Q-06-4
-  q: 「武圣」的机制是什么？（手写稿只给了名字，没写效果）
-  owner: 策划

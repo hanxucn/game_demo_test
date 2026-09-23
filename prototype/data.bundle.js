@@ -12,13 +12,14 @@ window.GameData = {
       "keywords": [
         "jia_dun"
       ],
+      "memo": "2 费带架盾的矮墙，替后排挡刀",
+      "gender": "male",
       "skills": [
         {
           "id": "",
           "name": "守势"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -38,6 +39,8 @@ window.GameData = {
       "cost": 2,
       "attack": 2,
       "health": 4,
+      "memo": "一半概率整回合发呆 —— 便宜但会掉链子",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -59,7 +62,6 @@ window.GameData = {
           "text": "每回合有一半概率无法行动."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -72,27 +74,6 @@ window.GameData = {
       }
     },
     {
-      "id": "shu_xiangchong",
-      "name": "向宠",
-      "faction": "shu",
-      "type": "general",
-      "cost": 2,
-      "attack": 2,
-      "health": 3,
-      "keywords": [],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 0,
-        "total": 5,
-        "budget": 5,
-        "diff": 0,
-        "level": "ok"
-      }
-    },
-    {
       "id": "shu_chendao",
       "name": "陈到",
       "faction": "shu",
@@ -100,6 +81,8 @@ window.GameData = {
       "cost": 3,
       "attack": 2,
       "health": 2,
+      "memo": "3 费 2/2，技能「白毦兵」效果待设计",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -108,7 +91,6 @@ window.GameData = {
           "pending": true
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -128,13 +110,15 @@ window.GameData = {
       "cost": 3,
       "attack": 3,
       "health": 3,
+      "memo": "关羽在场才 +1/+1；阵亡把圣盾交给关羽",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
-          "id": "jiang_men_hu_zi",
-          "name": "将门虎子",
-          "kind": "trigger",
-          "trigger": "on_play",
+          "id": "yong_wu",
+          "name": "勇武",
+          "kind": "aura",
+          "text": "关羽在场时，自身 +1 攻 / +1 血。",
           "effects": [
             {
               "action": "modify",
@@ -145,66 +129,44 @@ window.GameData = {
               },
               "condition": {
                 "exists": {
-                  "side": "ally",
+                  "side": "both",
                   "filter": {
-                    "type": "character",
-                    "cost_max": 6
+                    "card_id": "shu_guanyu"
                   }
                 }
               }
             }
-          ],
-          "text": "当关羽在场时,获得中攻击+1,血量+1"
+          ]
+        },
+        {
+          "id": "yi_ji_sheng_dun",
+          "name": "遗计·圣盾",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "亡语：使关羽获得圣盾。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "sheng_dun_status",
+              "target": {
+                "side": "both",
+                "filter": {
+                  "card_id": "shu_guanyu"
+                },
+                "count": 1
+              }
+            }
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 1.4,
-        "total": 7.4,
+        "skills": 2.6,
+        "total": 8.6,
         "budget": 7,
-        "diff": 0.4,
-        "level": "ok"
-      }
-    },
-    {
-      "id": "shu_huangquan",
-      "name": "黄权",
-      "faction": "shu",
-      "type": "general",
-      "cost": 3,
-      "health": 3,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "quan_jian",
-          "name": "劝谏",
-          "kind": "aura",
-          "effects": [
-            {
-              "action": "apply_status",
-              "status": "can_mou",
-              "stacks": 1,
-              "target": {
-                "side": "ally",
-                "lord": true
-              }
-            }
-          ],
-          "text": "在场时 我方主帅有50%概率 每回合使用二次主公技."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": 0,
-        "skills": 2,
-        "total": 5,
-        "budget": 7,
-        "diff": -2,
+        "diff": 1.6,
         "level": "watch"
       }
     },
@@ -216,10 +178,14 @@ window.GameData = {
       "cost": 3,
       "attack": 3,
       "health": 3,
+      "keywords": [
+        "xian_gong"
+      ],
       "tags": [
         "xi_liang"
       ],
-      "keywords": [],
+      "memo": "先攻；西凉全家的 +1/+1 旗手",
+      "gender": "male",
       "skills": [
         {
           "id": "xi_liang_zi_di",
@@ -252,15 +218,14 @@ window.GameData = {
           "text": "获得先攻；有西凉人物时，所有西凉人物攻击 +1、血量 +1。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 2.1,
-        "total": 8.1,
+        "total": 7.1,
         "budget": 7,
-        "diff": 1.1,
+        "diff": 0.1,
         "level": "ok"
       }
     },
@@ -278,13 +243,14 @@ window.GameData = {
       "tags": [
         "huang_jin"
       ],
+      "memo": "身板够厚的架盾，跟着关羽扛线",
+      "gender": "male",
       "skills": [
         {
           "id": "",
           "name": "架盾"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -304,6 +270,8 @@ window.GameData = {
       "cost": 4,
       "attack": 4,
       "health": 4,
+      "memo": "敌方有低费人时可先攻；斩杀低费者半数概率再动一次",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -352,7 +320,6 @@ window.GameData = {
           "text": "当场上有低于3统帅的人则可上场时先攻，击败低于3统帅的人物时有50%获得一次额外行动.(只有触发一次)"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -375,6 +342,8 @@ window.GameData = {
       "tags": [
         "man_zu"
       ],
+      "memo": "蛮族越多自己越大",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -404,7 +373,6 @@ window.GameData = {
           "text": "场上每有 1 名蛮族人物，自身获得 +1 攻 +1 血量。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 7,
@@ -424,6 +392,8 @@ window.GameData = {
       "cost": 4,
       "attack": 4,
       "health": 4,
+      "memo": "攻击或挨打都有一半概率 +1 攻",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -431,28 +401,46 @@ window.GameData = {
           "name": "桀骜不驯",
           "kind": "trigger",
           "trigger": "on_attack",
+          "text": "攻击时有一半概率攻击力 +1（本回合）。",
           "effects": [
             {
               "action": "modify",
               "attack": 1,
+              "duration": "this_turn",
               "chance": 0.5,
               "target": {
                 "source": true
               }
             }
-          ],
-          "text": "攻击时有一半概率伤害+1,受到伤害时有一半概率伤害+1."
+          ]
+        },
+        {
+          "id": "jie_ao_bu_xun_hurt",
+          "name": "桀骜不驯（受创）",
+          "kind": "trigger",
+          "trigger": "on_damaged",
+          "text": "受到伤害时有一半概率攻击力 +1（本回合）。",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "duration": "this_turn",
+              "chance": 0.5,
+              "target": {
+                "source": true
+              }
+            }
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
         "keywords": 0,
-        "skills": 0.4,
-        "total": 8.4,
+        "skills": 0.49,
+        "total": 8.49,
         "budget": 9,
-        "diff": -0.6,
+        "diff": -0.51,
         "level": "ok"
       }
     },
@@ -464,39 +452,39 @@ window.GameData = {
       "cost": 4,
       "attack": 4,
       "health": 3,
+      "memo": "战吼连打所有攻低于自己的敌人，直到自己倒下",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
           "id": "fu_zi_jiang_feng",
           "name": "父子将风",
           "kind": "trigger",
-          "trigger": "on_attack",
+          "trigger": "on_play",
+          "text": "战吼：挨个对攻击力低于自己的敌方人物发动普通攻击（含正常反击），直到自己阵亡。",
           "effects": [
             {
-              "action": "damage",
-              "value": 1,
+              "action": "attack_each",
               "target": {
                 "side": "enemy",
                 "filter": {
                   "type": "character",
-                  "adjacent_to": "self"
+                  "attack_below_source": true
                 },
                 "count": "all"
               }
             }
-          ],
-          "text": "攻击时对相邻的敌人造成一点伤害。"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 7,
         "keywords": 0,
-        "skills": 0.8,
-        "total": 7.8,
+        "skills": 3,
+        "total": 10,
         "budget": 9,
-        "diff": -1.2,
+        "diff": 1,
         "level": "ok"
       }
     },
@@ -508,13 +496,16 @@ window.GameData = {
       "cost": 5,
       "attack": 4,
       "health": 4,
+      "memo": "每回合免费点名 2 点，专治高价值目标",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
           "id": "bai_bu_chuan_yang",
           "name": "百步穿杨",
-          "kind": "trigger",
-          "trigger": "turn_start",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "text": "自己每回合行动时对指定敌方人物造成 2 点伤害。",
           "effects": [
             {
               "action": "damage",
@@ -528,59 +519,18 @@ window.GameData = {
                 "mode": "choose"
               }
             }
-          ],
-          "text": "每回合开始时，对指定敌方人物造成 2 点伤害。"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
         "keywords": 0,
-        "skills": 0.7,
-        "total": 8.7,
-        "budget": 11,
-        "diff": -2.3,
-        "level": "watch"
-      }
-    },
-    {
-      "id": "shu_jiangwei",
-      "name": "姜维",
-      "faction": "shu",
-      "type": "general",
-      "cost": 5,
-      "attack": 4,
-      "health": 5,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wen_wu_shuang_quan",
-          "name": "文武双全",
-          "kind": "trigger",
-          "trigger": "on_attack",
-          "effects": [
-            {
-              "action": "modify",
-              "attack": 1,
-              "target": {
-                "source": true
-              }
-            }
-          ],
-          "text": "当普通攻击时，攻击力+1；当使用策略牌时.可额外抽一张牌，致致到抽出为非策略牌时停止."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
         "skills": 0.8,
-        "total": 9.8,
+        "total": 8.8,
         "budget": 11,
-        "diff": -1.2,
-        "level": "ok"
+        "diff": -2.2,
+        "level": "watch"
       }
     },
     {
@@ -590,44 +540,47 @@ window.GameData = {
       "type": "general",
       "cost": 5,
       "attack": 5,
-      "health": 4,
+      "health": 5,
+      "keywords": [
+        "xian_gong"
+      ],
       "tags": [
         "xi_liang"
       ],
-      "keywords": [],
+      "memo": "先攻；首回合斩武将可封住敌方主公技",
+      "gender": "male",
       "skills": [
         {
           "id": "tie_qi_tu_xi",
           "name": "铁骑突袭",
           "kind": "trigger",
-          "trigger": "on_attack",
+          "trigger": "on_kill",
+          "text": "先攻；首回合击杀敌方武将后，敌主帅下回合无法发动主公技。",
           "effects": [
             {
               "action": "apply_status",
-              "status": "zhen_she",
+              "status": "jin_yong",
               "duration": 1,
-              "condition": {
-                "event": "killed"
-              },
               "target": {
                 "side": "enemy",
-                "count": 1,
-                "mode": "first"
+                "lord": true
+              },
+              "condition": {
+                "turn_max": 1,
+                "victim_type": "general"
               }
             }
-          ],
-          "text": "马超获得先攻状态,如果第一回合斩杀一名敌方武将,则对方主帅下一回合内无法行动."
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 2.8,
-        "total": 11.8,
+        "stats": 10,
+        "keywords": -1,
+        "skills": 1.12,
+        "total": 10.12,
         "budget": 11,
-        "diff": 0.8,
+        "diff": -0.88,
         "level": "ok"
       }
     },
@@ -638,40 +591,55 @@ window.GameData = {
       "type": "general",
       "cost": 5,
       "attack": 5,
-      "health": 4,
+      "health": 5,
+      "memo": "战吼削弱并烫伤所有攻低于自己的敌人",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
           "id": "pao_xiao",
           "name": "咆哮",
           "kind": "trigger",
-          "trigger": "turn_start",
+          "trigger": "on_play",
+          "text": "战吼：所有攻击力低于张飞的敌军（不含主公）本回合攻击力 −1，并受到 1 点伤害。",
           "effects": [
+            {
+              "action": "modify",
+              "attack": -1,
+              "duration": "this_turn",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "attack_below_source": true
+                },
+                "count": "all"
+              }
+            },
             {
               "action": "damage",
               "value": 1,
               "target": {
                 "side": "enemy",
                 "filter": {
-                  "type": "character"
+                  "type": "character",
+                  "attack_below_source": true
                 },
                 "count": "all"
               }
             }
-          ],
-          "text": "每回合对所有敌方人物卡造成 1 点伤害"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 9,
+        "stats": 10,
         "keywords": 0,
-        "skills": 1.05,
-        "total": 10.05,
+        "skills": 3.6,
+        "total": 13.6,
         "budget": 11,
-        "diff": -0.95,
-        "level": "ok"
+        "diff": 2.6,
+        "level": "watch"
       }
     },
     {
@@ -682,6 +650,8 @@ window.GameData = {
       "cost": 5,
       "attack": 5,
       "health": 5,
+      "memo": "第一个回合免疫一切伤害，敢直接冲脸",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -702,7 +672,6 @@ window.GameData = {
           "text": "在自己行动结束的第一回合前,自己免疫一切伤害."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 10,
@@ -719,9 +688,12 @@ window.GameData = {
       "name": "关羽",
       "faction": "shu",
       "type": "general",
-      "cost": 7,
+      "cost": 6,
       "attack": 6,
-      "health": 4,
+      "health": 5,
+      "memo": "全体禁技外加全体 1 伤，一锤定音的精英",
+      "rarity": "elite",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -757,16 +729,75 @@ window.GameData = {
           "text": "使对方所有场上人物技能禁用一回合,并对其造成一点水攻伤害."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 10,
+        "stats": 11,
         "keywords": 0,
         "skills": 7.5,
-        "total": 17.5,
-        "budget": 15,
-        "diff": 2.5,
-        "level": "watch"
+        "total": 18.5,
+        "budget": 13,
+        "diff": 5.5,
+        "level": "off"
+      }
+    },
+    {
+      "id": "shu_jiangwei",
+      "name": "姜维",
+      "faction": "shu",
+      "type": "general",
+      "cost": 6,
+      "attack": 4,
+      "health": 5,
+      "memo": "普攻 +1；打出策略牌就一路抽到非策略牌",
+      "rarity": "elite",
+      "gender": "male",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "wen_wu_shuang_quan",
+          "name": "文武双全",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "text": "普通攻击时攻击力 +1。",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "duration": "this_turn",
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "wen_wu_shuang_quan_draw",
+          "name": "文武双全（策略）",
+          "kind": "trigger",
+          "trigger": "on_card_played",
+          "text": "使用策略牌时，抽牌直到抽到非策略牌为止。",
+          "target": {
+            "filter": {
+              "type": "tactic"
+            }
+          },
+          "effects": [
+            {
+              "action": "draw_until",
+              "until_not_type": "tactic"
+            }
+          ]
+        }
+      ],
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 2.96,
+        "total": 11.96,
+        "budget": 13,
+        "diff": -1.04,
+        "level": "ok"
       }
     },
     {
@@ -777,6 +808,8 @@ window.GameData = {
       "cost": 2,
       "attack": 1,
       "health": 2,
+      "memo": "自削己方一点统率，换对手随机一张手牌被封锁",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -796,7 +829,6 @@ window.GameData = {
           "text": "有黄皓在场时，降低己方主公一点统率，敌方随机封锁手中一张卡。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 3,
@@ -809,6 +841,71 @@ window.GameData = {
       }
     },
     {
+      "id": "shu_xiangchong",
+      "name": "向宠",
+      "faction": "shu",
+      "type": "strategist",
+      "cost": 2,
+      "attack": 1,
+      "health": 4,
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "2 费最厚的架盾",
+      "gender": "male",
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": -1,
+        "skills": 0,
+        "total": 4,
+        "budget": 5,
+        "diff": -1,
+        "level": "ok"
+      }
+    },
+    {
+      "id": "shu_huangquan",
+      "name": "黄权",
+      "faction": "shu",
+      "type": "strategist",
+      "cost": 3,
+      "attack": 0,
+      "health": 3,
+      "memo": "半数概率让己方主帅一回合能放两次主公技",
+      "gender": "male",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "quan_jian",
+          "name": "劝谏",
+          "kind": "aura",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "can_mou",
+              "stacks": 1,
+              "target": {
+                "side": "ally",
+                "lord": true
+              }
+            }
+          ],
+          "text": "在场时 我方主帅有50%概率 每回合使用二次主公技."
+        }
+      ],
+      "flavor": "",
+      "value": {
+        "stats": 3,
+        "keywords": 0,
+        "skills": 2,
+        "total": 5,
+        "budget": 7,
+        "diff": -2,
+        "level": "watch"
+      }
+    },
+    {
       "id": "shu_jianyang",
       "name": "简雍",
       "faction": "shu",
@@ -816,6 +913,8 @@ window.GameData = {
       "cost": 3,
       "attack": 1,
       "health": 2,
+      "memo": "劝降同统率的敌将，半数概率收回自己手里",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -839,7 +938,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 3,
@@ -859,6 +957,8 @@ window.GameData = {
       "cost": 3,
       "attack": 1,
       "health": 3,
+      "memo": "抽 2 再随机弃 2，纯换手牌质量",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -880,7 +980,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -900,6 +999,8 @@ window.GameData = {
       "cost": 4,
       "attack": 1,
       "health": 4,
+      "memo": "标记一名仇敌，仇敌挨打就给指定友军回血",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -946,16 +1047,15 @@ window.GameData = {
           "text": "标记一个敌方人物为仇敌(放在对应敌方卡牌位).我仇敌受到伤害时,为指定友方恢复等量的血;当自己受到恢复血量,则抽一张卡牌."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
         "keywords": 0,
-        "skills": 2,
-        "total": 7,
+        "skills": 2.96,
+        "total": 7.96,
         "budget": 9,
-        "diff": -2,
-        "level": "watch"
+        "diff": -1.04,
+        "level": "ok"
       }
     },
     {
@@ -966,6 +1066,8 @@ window.GameData = {
       "cost": 4,
       "attack": 1,
       "health": 4,
+      "memo": "战吼二选一：回 3 血或抽 2 张",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -990,7 +1092,6 @@ window.GameData = {
           "text": "上场时恢复指定友方人物3点滴血量,或者抽取两张卡牌."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
@@ -1009,7 +1110,9 @@ window.GameData = {
       "type": "strategist",
       "cost": 5,
       "attack": 1,
-      "health": 2,
+      "health": 3,
+      "memo": "一次召唤两个机械兵，一个架盾一个不能打主将",
+      "gender": "female",
       "keywords": [],
       "skills": [
         {
@@ -1034,16 +1137,15 @@ window.GameData = {
           "text": "上场时制造一个机械哨兵 1 攻 1 血，不能攻击敌方主将；制造一个 1 攻 1 血机械哨兵并带架盾效果。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 3,
+        "stats": 4,
         "keywords": 0,
         "skills": 6,
-        "total": 9,
+        "total": 10,
         "budget": 11,
-        "diff": -2,
-        "level": "watch"
+        "diff": -1,
+        "level": "ok"
       }
     },
     {
@@ -1054,6 +1156,8 @@ window.GameData = {
       "cost": 6,
       "attack": 1,
       "health": 4,
+      "memo": "在场时己方非人物牌统率 −2；阵亡送己方 2 张牌",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1087,7 +1191,6 @@ window.GameData = {
           "text": "在场时己方所有非人物卡牌统率-2；庞统阵亡时己方抽 2 张卡。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
@@ -1107,47 +1210,67 @@ window.GameData = {
       "cost": 7,
       "attack": 1,
       "health": 6,
+      "memo": "调牌库顶三张再抽 1；空手时免疫伤害",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
           "id": "yun_chou_wei_wo",
           "name": "运筹帷幄",
-          "kind": "trigger",
-          "trigger": "on_play",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "text": "一回合一次：查看牌库最上面三张牌，并按指定顺序放回。己方抽一张牌。",
           "effects": [
             {
-              "action": "ban_play",
-              "duration": 1,
+              "action": "scry",
+              "count": 3,
+              "from": "top",
+              "to": "deck_top",
               "target": {
-                "side": "enemy",
-                "zone": "hand",
-                "count": 1,
-                "mode": "choose"
+                "side": "ally"
               }
             },
             {
-              "action": "scry",
-              "from": "top",
-              "count": 1,
-              "to": "hand",
+              "action": "draw",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": "kong_cheng_ji",
+          "name": "空城之计",
+          "kind": "aura",
+          "text": "己方手牌为 0 时，诸葛亮获得免疫伤害效果。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "sheng_dun_status",
               "target": {
-                "side": "self"
+                "source": true
+              },
+              "condition": {
+                "count": {
+                  "selector": {
+                    "side": "ally",
+                    "zone": "hand"
+                  },
+                  "op": "==",
+                  "value": 0
+                }
               }
             }
-          ],
-          "text": "上场时，每回合可以查看对方指定两张手牌，并可指定一张手牌下回合禁止上场；可抽取己方卡池第一张牌，如果是非人物卡当前回合统率-2。"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 7,
         "keywords": 0,
-        "skills": 6.5,
-        "total": 13.5,
+        "skills": 9.8,
+        "total": 16.8,
         "budget": 15,
-        "diff": -1.5,
-        "level": "ok"
+        "diff": 1.8,
+        "level": "watch"
       }
     },
     {
@@ -1159,6 +1282,8 @@ window.GameData = {
       "attack": 0,
       "health": 1,
       "troopKind": "archer",
+      "memo": "0 攻，但每回合结束白嫖 1 点伤害",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1181,10 +1306,9 @@ window.GameData = {
               }
             }
           ],
-          "text": "每回合对指定任意敌方人物造成一点伤害。"
+          "text": "回合结束时，随机对敌方一名人物或主将造成 1 点伤害。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 1,
@@ -1205,6 +1329,8 @@ window.GameData = {
       "attack": 1,
       "health": 1,
       "troopKind": "infantry",
+      "memo": "1 费 1/1 的填线兵",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1214,7 +1340,6 @@ window.GameData = {
           "pending": true
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 2,
@@ -1237,6 +1362,9 @@ window.GameData = {
       "keywords": [
         "jia_dun"
       ],
+      "memo": "1 攻 3 血还带架盾，纯肉盾",
+      "gender": "male",
+      "type_explicit": true,
       "skills": [
         {
           "id": "",
@@ -1244,7 +1372,6 @@ window.GameData = {
           "text": "架盾"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -1264,8 +1391,9 @@ window.GameData = {
       "cost": 3,
       "attack": 2,
       "health": 3,
+      "memo": "3 费 2/3 白板，靠身材吃饭",
+      "gender": "male",
       "keywords": [],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
@@ -1285,23 +1413,87 @@ window.GameData = {
       "cost": 3,
       "attack": 3,
       "health": 3,
+      "memo": "战吼二选一：抽 1 张，或本回合 +1 攻",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
-          "id": "",
+          "id": "meng_xi",
           "name": "猛袭",
-          "pending": true
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：选择一项 —— ① 抽 1 张牌；② 本回合攻击力 +1。",
+          "modes": [
+            {
+              "name": "蓄势（抽 1 张牌）",
+              "effects": [
+                {
+                  "action": "draw",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "name": "奋击（本回合攻击 +1）",
+              "effects": [
+                {
+                  "action": "modify",
+                  "attack": 1,
+                  "duration": "this_turn",
+                  "target": {
+                    "source": true
+                  }
+                }
+              ]
+            }
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 0,
-        "total": 6,
+        "skills": 3,
+        "total": 9,
         "budget": 7,
-        "diff": -1,
+        "diff": 2,
+        "level": "watch"
+      }
+    },
+    {
+      "id": "wei_xiahouen",
+      "name": "夏侯恩",
+      "faction": "wei",
+      "type": "general",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "memo": "阵亡时给己方补 1 张牌",
+      "gender": "male",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "jian_shi",
+          "name": "剑侍",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "阵亡时，己方抽一张牌。",
+          "effects": [
+            {
+              "action": "draw",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "flavor": "",
+      "value": {
+        "stats": 5,
+        "keywords": 0,
+        "skills": 1.8,
+        "total": 6.8,
+        "budget": 7,
+        "diff": -0.2,
         "level": "ok"
       }
     },
@@ -1319,6 +1511,8 @@ window.GameData = {
       "tags": [
         "huang_jin"
       ],
+      "memo": "上场即可攻击的快攻件",
+      "gender": "male",
       "skills": [
         {
           "id": "",
@@ -1326,7 +1520,6 @@ window.GameData = {
           "text": "上场时获得先攻"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
@@ -1346,6 +1539,8 @@ window.GameData = {
       "cost": 4,
       "attack": 3,
       "health": 5,
+      "memo": "第一回合免一次伤害，第二回合转为架盾",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1373,7 +1568,6 @@ window.GameData = {
           "text": "上场第二回合架盾并在上场第一回合获得一次伤害免疫."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -1390,9 +1584,12 @@ window.GameData = {
       "name": "郭淮",
       "faction": "wei",
       "type": "general",
-      "cost": 5,
+      "cost": 4,
       "attack": 2,
-      "health": 3,
+      "health": 4,
+      "memo": "战吼让相邻友军 +2 上限并架盾，逼你摆位",
+      "rarity": "elite",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1400,6 +1597,7 @@ window.GameData = {
           "name": "据守",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "战吼：为与郭淮相邻的己方人物 +2 生命上限，并使其获得架盾。",
           "effects": [
             {
               "action": "modify",
@@ -1425,20 +1623,18 @@ window.GameData = {
                 "count": "all"
               }
             }
-          ],
-          "text": "上场时为郭淮相邻的己方人物 +2 上限，并让其架盾。"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 5,
+        "stats": 6,
         "keywords": 0,
         "skills": 8,
-        "total": 13,
-        "budget": 11,
-        "diff": 2,
-        "level": "watch"
+        "total": 14,
+        "budget": 9,
+        "diff": 5,
+        "level": "off"
       }
     },
     {
@@ -1449,6 +1645,8 @@ window.GameData = {
       "cost": 5,
       "attack": 4,
       "health": 6,
+      "memo": "非满血挨打就 +1 攻；满血被击杀半数概率留 1 血",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1485,7 +1683,6 @@ window.GameData = {
           "text": "夏侯惇受到伤害(非满血)时，攻击力+1；满血被击杀时，有一半的机率以 1 血存活。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 10,
@@ -1505,6 +1702,8 @@ window.GameData = {
       "cost": 5,
       "attack": 4,
       "health": 4,
+      "memo": "第一回合先攻，行动后隐身一回合",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1512,7 +1711,15 @@ window.GameData = {
           "name": "迅疾突袭",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "第一回合获得先攻，行动结束后获得一回合隐身（无法被选中攻击），下回合失效。",
           "effects": [
+            {
+              "action": "apply_status",
+              "status": "xian_gong_status",
+              "target": {
+                "source": true
+              }
+            },
             {
               "action": "apply_status",
               "status": "qi_xi_status",
@@ -1521,19 +1728,17 @@ window.GameData = {
                 "source": true
               }
             }
-          ],
-          "text": "第一回合获得先攻，然后第一回合能行动结束后获得一回合隐身效果（无法被选中攻击），下回合失效。"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
         "keywords": 0,
-        "skills": 2,
-        "total": 10,
+        "skills": 4,
+        "total": 12,
         "budget": 11,
-        "diff": -1,
+        "diff": 1,
         "level": "ok"
       }
     },
@@ -1545,6 +1750,8 @@ window.GameData = {
       "cost": 5,
       "attack": 4,
       "health": 5,
+      "memo": "打低统率 +1 攻，打高统率 +1 血",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1593,7 +1800,6 @@ window.GameData = {
           "text": "对低于自己统帅的敌军时攻击+1；对不低于自己统帅的敌军时血量+1。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 9,
@@ -1613,6 +1819,8 @@ window.GameData = {
       "cost": 5,
       "attack": 4,
       "health": 4,
+      "memo": "上场让一名人物 −2 攻或 −2 血",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1637,7 +1845,6 @@ window.GameData = {
           "text": "上场时使指定一人物，选择攻击-2 或血量-2。最少血量为 1，攻击为 0。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -1657,7 +1864,11 @@ window.GameData = {
       "cost": 5,
       "attack": 5,
       "health": 4,
-      "keywords": [],
+      "keywords": [
+        "xian_gong"
+      ],
+      "memo": "先攻；斩杀后溢出伤害转打敌方主将",
+      "gender": "male",
       "skills": [
         {
           "id": "chong_feng_xian_zhen",
@@ -1681,16 +1892,15 @@ window.GameData = {
           "text": "获得先攻。上场可立即开始行动，如若斩杀敌人人物卡牌，溢出伤害由对方主将承受。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 9,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 0.56,
-        "total": 9.56,
+        "total": 8.56,
         "budget": 11,
-        "diff": -1.44,
-        "level": "ok"
+        "diff": -2.44,
+        "level": "watch"
       }
     },
     {
@@ -1701,6 +1911,8 @@ window.GameData = {
       "cost": 6,
       "attack": 5,
       "health": 6,
+      "memo": "己方只剩他一人时 +1/+2 并架盾",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1752,7 +1964,6 @@ window.GameData = {
           "text": "如果场上只有典韦一名己方人物时，其攻击 +1、血量 +2，并获得架盾。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 11,
@@ -1772,6 +1983,8 @@ window.GameData = {
       "cost": 6,
       "attack": 5,
       "health": 6,
+      "memo": "指定一名敌将单挑，分出胜负前谁也碰不到他们（一局一次）",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1806,7 +2019,6 @@ window.GameData = {
           "text": "指定敌方一名武将(非主公)与自己对决;分出胜负前,其他人无法对两人进行攻击.(只能使用一次)"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 11,
@@ -1826,6 +2038,8 @@ window.GameData = {
       "cost": 4,
       "attack": 1,
       "health": 4,
+      "memo": "战吼封住敌方两名人物技能一回合",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1851,7 +2065,6 @@ window.GameData = {
           "text": "上场时指定敌方 2 个人物卡牌进入技能禁用状态，持续一回合。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
@@ -1871,6 +2084,8 @@ window.GameData = {
       "cost": 5,
       "attack": 1,
       "health": 5,
+      "memo": "牺牲己方一名人物，按它的血量回血又造伤",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1878,18 +2093,10 @@ window.GameData = {
           "name": "审时度势",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "战吼：牺牲一名己方人物（由你指定），将其**血量最大值**恢复给指定人物（第二个指定目标），并对随机一名敌人造成牺牲者**当前血量**的伤害。",
           "effects": [
             {
-              "action": "discard",
-              "count": 1,
-              "target": {
-                "side": "self",
-                "zone": "hand"
-              }
-            },
-            {
-              "action": "heal",
-              "value_from_discarded": "health",
+              "action": "sacrifice",
               "target": {
                 "side": "ally",
                 "filter": {
@@ -1900,22 +2107,33 @@ window.GameData = {
               }
             },
             {
+              "action": "heal",
+              "value_from_flag": "sacrificed_max_hp",
+              "target": {
+                "side": "ally",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose",
+                "pick": 2
+              }
+            },
+            {
               "action": "damage",
-              "value_from_discarded": "health",
+              "value_from_flag": "sacrificed_hp",
               "target": {
                 "side": "enemy",
                 "filter": {
                   "type": "character"
                 },
                 "count": 1,
-                "mode": "choose"
+                "mode": "random"
               }
             }
-          ],
-          "text": "每回合行动时可选择牺牲一名己方卡牌，将其血量最大值恢复给指定人物，并对指定敌人造成牺牲卡牌当时血量伤害。"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -1935,6 +2153,8 @@ window.GameData = {
       "cost": 5,
       "attack": 1,
       "health": 4,
+      "memo": "己方策略牌 −1 费；每打一张策略牌抽 1",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -1976,7 +2196,6 @@ window.GameData = {
           "text": "郭嘉上场时,我方策略牌需要统帅-1,如果每打出一张策略牌,既可抽一张卡牌."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
@@ -1996,6 +2215,8 @@ window.GameData = {
       "cost": 5,
       "attack": 1,
       "health": 6,
+      "memo": "不动就全场 1 伤；动过手就拆对手牌库一张",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2019,7 +2240,6 @@ window.GameData = {
           "text": "①如果当前回合司马懿没有任何行动,回合结束时对所有敌方人物卡牌造成一点伤害.②如果行动且对敌方造成伤害,则使敌方卡池随机丢弃一张卡牌.③当场上只剩司马懿时,效果同时包含②."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 7,
@@ -2039,6 +2259,8 @@ window.GameData = {
       "cost": 5,
       "attack": 1,
       "health": 5,
+      "memo": "主帅统率上限永久 +2，本回合人物牌再 −1 费",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2062,7 +2284,6 @@ window.GameData = {
           "text": "永久增加主帅两点统帅，且当前回合所有手牌里的人物卡牌减少一个统帅消耗。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -2082,6 +2303,8 @@ window.GameData = {
       "cost": 7,
       "attack": 1,
       "health": 5,
+      "memo": "把 3 费以下的敌将拐过来用一回合",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2128,7 +2351,6 @@ window.GameData = {
           "text": "指定一个不大于 3 统率的敌方将来临时变为己方将领 1 回合；大于 3 统率的敌方将领每次行动有一半的机率随机选择任意一名人物单位进行攻击（敌我不限）。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -2149,6 +2371,7 @@ window.GameData = {
       "attack": 2,
       "health": 2,
       "memo": "2 费 2/2 普通卡，低费填充",
+      "gender": "male",
       "keywords": [],
       "flavor": "",
       "value": {
@@ -2170,6 +2393,7 @@ window.GameData = {
       "attack": 2,
       "health": 3,
       "memo": "2 费 2/3 扎实身材，无技能纯站场",
+      "gender": "male",
       "keywords": [],
       "flavor": "",
       "value": {
@@ -2194,6 +2418,7 @@ window.GameData = {
         "jia_dun"
       ],
       "memo": "2 费前排嘲讽，敌方必须先打掉它",
+      "gender": "male",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -2206,6 +2431,61 @@ window.GameData = {
       }
     },
     {
+      "id": "wu_zumao",
+      "name": "祖茂",
+      "faction": "wu",
+      "type": "general",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "memo": "主帅的肉盾 —— 伤害全由祖茂扛，他倒下保护就没了",
+      "gender": "male",
+      "type_explicit": true,
+      "keywords": [],
+      "skills": [
+        {
+          "id": "ti_zhu",
+          "name": "替主",
+          "kind": "aura",
+          "text": "己方主帅受到伤害时，改由祖茂承受。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "hu_zhu",
+              "status_source": "self",
+              "condition": {
+                "count": {
+                  "selector": {
+                    "side": "ally",
+                    "lord": true,
+                    "filter": {
+                      "has_status": "hu_zhu"
+                    }
+                  },
+                  "op": "==",
+                  "value": 0
+                }
+              },
+              "target": {
+                "side": "ally",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 1.4,
+        "total": 5.4,
+        "budget": 5,
+        "diff": 0.4,
+        "level": "ok"
+      }
+    },
+    {
       "id": "wu_mazhong",
       "name": "马忠",
       "faction": "wu",
@@ -2214,6 +2494,7 @@ window.GameData = {
       "attack": 2,
       "health": 3,
       "memo": "入场给敌方一个人物下套，50% 让它动不了",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2259,6 +2540,7 @@ window.GameData = {
       "attack": 3,
       "health": 2,
       "memo": "3 费 3/2，吴国中坚白板曲线",
+      "gender": "male",
       "keywords": [],
       "flavor": "",
       "value": {
@@ -2279,6 +2561,7 @@ window.GameData = {
       "cost": 4,
       "attack": 4,
       "health": 4,
+      "memo": "己方有 1 血残兵时自己少 1 费",
       "cost_rule": {
         "condition": {
           "exists": {
@@ -2291,6 +2574,7 @@ window.GameData = {
         },
         "value": -1
       },
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2299,7 +2583,6 @@ window.GameData = {
           "text": "如果己方场上有受伤而且为1血人物，就降低一点统帅消耗。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -2319,6 +2602,8 @@ window.GameData = {
       "cost": 4,
       "attack": 4,
       "health": 4,
+      "memo": "上场那回合点名 2 点伤害",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2343,7 +2628,6 @@ window.GameData = {
           "text": "上场第一回合时，对指定敌人造成2点伤害。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -2363,6 +2647,8 @@ window.GameData = {
       "cost": 4,
       "attack": 3,
       "health": 4,
+      "memo": "自掉 1 血换敌人半数概率混乱，混乱成功再抽 1",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2404,7 +2690,6 @@ window.GameData = {
           "text": "每回合可一次机会自己掉一血指定一名敌人混乱（50%概率），如果混乱成功，则抽一张卡牌."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 7,
@@ -2424,6 +2709,8 @@ window.GameData = {
       "cost": 4,
       "attack": 2,
       "health": 4,
+      "memo": "复制手里或场上友方将领的一个技能",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2436,8 +2723,10 @@ window.GameData = {
               "action": "copy_skill",
               "target": {
                 "side": "ally",
+                "zone": "both",
                 "filter": {
-                  "type": "character"
+                  "type": "character",
+                  "exclude_source": true
                 },
                 "count": 1,
                 "mode": "choose"
@@ -2447,7 +2736,6 @@ window.GameData = {
           "text": "自上场时，可选择手里或场上友方将领的技能一次。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -2467,6 +2755,8 @@ window.GameData = {
       "cost": 4,
       "attack": 4,
       "health": 3,
+      "memo": "阵亡拼点，赢了让一张手牌免费下场",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2493,7 +2783,6 @@ window.GameData = {
           "text": "阵亡时与敌方拼点。如果拼点获胜，则随机让己方手牌中一名人物不消耗统率上场（但不能触发这张牌的上场效果）。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 7,
@@ -2513,6 +2802,8 @@ window.GameData = {
       "cost": 4,
       "attack": 3,
       "health": 5,
+      "memo": "替友将挨打；被击败时半数概率留 1 血",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2556,7 +2847,6 @@ window.GameData = {
           "text": "每回合，若有己方将领被击破时，可选择是否援护一次，该将领受到的伤害由周泰承受。周泰被击败时，有一次机会50%概率存活。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -2576,6 +2866,8 @@ window.GameData = {
       "cost": 4,
       "attack": 3,
       "health": 5,
+      "memo": "受伤后每回合自回 1 血，越拖越难死",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2595,7 +2887,6 @@ window.GameData = {
           "text": "自己在场时，如果受伤，每回合恢复自己一点血量。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -2615,7 +2906,11 @@ window.GameData = {
       "cost": 5,
       "attack": 5,
       "health": 5,
-      "keywords": [],
+      "keywords": [
+        "xian_gong"
+      ],
+      "memo": "第一回合先攻，并让全场敌人 −1 攻一回合",
+      "gender": "male",
       "skills": [
         {
           "id": "bai_qi_jie_ying",
@@ -2639,15 +2934,14 @@ window.GameData = {
           "text": "第一回合上场时获得先攻，且所有场上敌方人物 -1 攻一回合。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 10,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 2.1,
-        "total": 12.1,
+        "total": 11.1,
         "budget": 11,
-        "diff": 1.1,
+        "diff": 0.1,
         "level": "ok"
       }
     },
@@ -2659,7 +2953,11 @@ window.GameData = {
       "cost": 5,
       "attack": 4,
       "health": 5,
-      "keywords": [],
+      "keywords": [
+        "xian_gong"
+      ],
+      "memo": "先攻；攻击时半数概率震慑目标",
+      "gender": "male",
       "skills": [
         {
           "id": "guo_shi_zhi_feng",
@@ -2685,15 +2983,14 @@ window.GameData = {
           "text": "获得先攻，并且对攻击的敌人有 50% 概率造成震慑。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 9,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 2,
-        "total": 11,
+        "total": 10,
         "budget": 11,
-        "diff": 0,
+        "diff": -1,
         "level": "ok"
       }
     },
@@ -2705,6 +3002,8 @@ window.GameData = {
       "cost": 5,
       "attack": 3,
       "health": 5,
+      "memo": "把自己和一名友军翻面，之后回合再翻回来行动",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2734,7 +3033,6 @@ window.GameData = {
           "text": "上场时可选择一名友方卡牌进行\"白衣渡江\"：本回合内将自己和选择的卡牌翻面，可在之后的回合开始行动。翻面卡牌无法被攻击以及被计策选中。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 8,
@@ -2754,6 +3052,8 @@ window.GameData = {
       "cost": 5,
       "attack": 5,
       "health": 5,
+      "memo": "按己方人物数对指定敌人造成等量伤害",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2783,7 +3083,6 @@ window.GameData = {
           "text": "上场时，根据场上友军人物卡数对敌方指定敌人造成人物数伤害。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 10,
@@ -2803,6 +3102,8 @@ window.GameData = {
       "cost": 6,
       "attack": 4,
       "health": 5,
+      "memo": "上场震慑一名敌人；攻击时给随机友军回 1 血",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2849,7 +3150,6 @@ window.GameData = {
           "text": "上场时选择一名敌方人物震慑一回合（无法行动）；攻击时，恢复随机友军 1 点血量。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 9,
@@ -2869,6 +3169,8 @@ window.GameData = {
       "cost": 6,
       "attack": 5,
       "health": 6,
+      "memo": "−2 攻换一回合打两次",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2889,7 +3191,6 @@ window.GameData = {
           "text": "可选择-2攻击力，但一回合可攻击2次."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 11,
@@ -2909,6 +3210,8 @@ window.GameData = {
       "cost": 3,
       "attack": 1,
       "health": 3,
+      "memo": "偷看对手牌库顶一张；再牺牲一人还能看其手牌",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2930,7 +3233,6 @@ window.GameData = {
           "text": "上场时，可查看对手卡池顶部一张牌。如果牺牲一名人物, 可同时查看对手手中一张卡牌。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -2951,6 +3253,7 @@ window.GameData = {
       "attack": 1,
       "health": 4,
       "memo": "每回合送对手 1 张手牌，自己抽 2 张",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -2993,6 +3296,8 @@ window.GameData = {
       "cost": 6,
       "attack": 1,
       "health": 5,
+      "memo": "每回合全场 1 点火伤，被灼烧的敌人再吃 +1",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3029,7 +3334,6 @@ window.GameData = {
           "text": "陆逊每回合对敌方全体造成 1 点火攻伤害，并使其持续灼烧状态 1 回合；在灼烧状态下的敌人受到火攻伤害 +1。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -3046,9 +3350,12 @@ window.GameData = {
       "name": "周瑜",
       "faction": "wu",
       "type": "strategist",
-      "cost": 6,
+      "cost": 7,
       "attack": 1,
       "health": 5,
+      "memo": "拼点赢就弃对手手牌，并按该牌统率打其主将",
+      "rarity": "elite",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3056,6 +3363,7 @@ window.GameData = {
           "name": "离间",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "拼点：大于对方则使其丢弃一张牌，并对其主公造成等同于该牌统帅值的伤害；小于对方则使场上随机一名敌方人物回到对方手牌。",
           "effects": [
             {
               "action": "clash",
@@ -3075,6 +3383,17 @@ window.GameData = {
               }
             },
             {
+              "action": "damage",
+              "value_from_discarded": "cost",
+              "target": {
+                "side": "enemy",
+                "lord": true
+              },
+              "condition": {
+                "event": "clash_won"
+              }
+            },
+            {
               "action": "return_to_hand",
               "condition": {
                 "event": "clash_lost"
@@ -3085,23 +3404,21 @@ window.GameData = {
                   "type": "character"
                 },
                 "count": 1,
-                "mode": "lowest_health"
+                "mode": "random"
               }
             }
-          ],
-          "text": "上场时对指定一名敌方人物进行离间，双方拼点数大小：如果大于对方则使其丢弃一张卡牌；如果小于对方则此敌方卡回到对方手牌中。"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 4.1,
-        "total": 10.1,
-        "budget": 13,
-        "diff": -2.9,
-        "level": "watch"
+        "skills": 5.15,
+        "total": 11.15,
+        "budget": 15,
+        "diff": -3.85,
+        "level": "off"
       }
     },
     {
@@ -3112,16 +3429,40 @@ window.GameData = {
       "cost": 2,
       "attack": 2,
       "health": 2,
+      "memo": "战吼点名 1 点水伤",
+      "gender": "male",
       "keywords": [],
-      "memo": "",
+      "skills": [
+        {
+          "id": "shui_gong",
+          "name": "水攻",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：对指定一名敌人造成 1 点水伤。",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "",
       "value": {
         "stats": 4,
         "keywords": 0,
-        "skills": 0,
-        "total": 4,
+        "skills": 0.5,
+        "total": 4.5,
         "budget": 5,
-        "diff": -1,
+        "diff": -0.5,
         "level": "ok"
       }
     },
@@ -3133,16 +3474,19 @@ window.GameData = {
       "cost": 2,
       "attack": 2,
       "health": 3,
-      "keywords": [],
-      "memo": "",
+      "keywords": [
+        "qi_xi"
+      ],
+      "memo": "上场隐身，出手后现形",
+      "gender": "male",
       "flavor": "",
       "value": {
         "stats": 5,
-        "keywords": 0,
+        "keywords": -1,
         "skills": 0,
-        "total": 5,
+        "total": 4,
         "budget": 5,
-        "diff": 0,
+        "diff": -1,
         "level": "ok"
       }
     },
@@ -3152,42 +3496,96 @@ window.GameData = {
       "faction": "qun",
       "type": "general",
       "cost": 3,
-      "attack": 2,
-      "health": 3,
+      "attack": 3,
+      "health": 4,
+      "memo": "挨打没死就回 1 血，极耐消耗",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
-          "id": "shan_she",
-          "name": "善射",
+          "id": "wan_qiang",
+          "name": "顽强",
           "kind": "trigger",
-          "trigger": "on_play",
+          "trigger": "on_damaged",
+          "text": "每次受到攻击没有阵亡时，恢复 1 点生命。",
           "effects": [
             {
-              "action": "damage",
-              "value": 2,
+              "action": "heal",
+              "value": 1,
               "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
+                "source": true
               }
             }
-          ],
-          "text": "上场时第一回合时对指定敌人造成2点伤害"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 5,
+        "stats": 7,
         "keywords": 0,
-        "skills": 1,
-        "total": 6,
+        "skills": 0.24,
+        "total": 7.24,
         "budget": 7,
-        "diff": -1,
+        "diff": 0.24,
         "level": "ok"
+      }
+    },
+    {
+      "id": "qun_huaxiong",
+      "name": "华雄",
+      "faction": "qun",
+      "type": "general",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "memo": "每次击杀 +1/+1；亡语把这份成长送给击杀者",
+      "gender": "male",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "wei_zhen_si_fang",
+          "name": "威震四方",
+          "kind": "trigger",
+          "trigger": "on_kill",
+          "text": "每次击杀时获得 +1 攻 / +1 血。",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "health": 1,
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "yi_ji_wei_zhen",
+          "name": "遗计·威震四方",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "亡语：击杀华雄的角色获得 +1 攻 / +1 血。",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "health": 1,
+              "target": {
+                "event": "killer"
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "",
+      "value": {
+        "stats": 6,
+        "keywords": 0,
+        "skills": 2.8,
+        "total": 8.8,
+        "budget": 7,
+        "diff": 1.8,
+        "level": "watch"
       }
     },
     {
@@ -3201,6 +3599,9 @@ window.GameData = {
       "tags": [
         "huang_jin"
       ],
+      "memo": "与张梁同场召 2 个黄巾兵，三兄弟齐全翻倍",
+      "gender": "male",
+      "type_explicit": true,
       "keywords": [],
       "skills": [
         {
@@ -3228,7 +3629,6 @@ window.GameData = {
           "text": "当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 3,
@@ -3251,6 +3651,8 @@ window.GameData = {
       "tags": [
         "huang_jin"
       ],
+      "memo": "与张宝同场召 2 个黄巾兵，三兄弟齐全翻倍",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3278,7 +3680,6 @@ window.GameData = {
           "text": "当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -3298,6 +3699,8 @@ window.GameData = {
       "cost": 4,
       "attack": 2,
       "health": 2,
+      "memo": "召唤 2 个盾兵，并把全场盾兵进化成陷阵盾兵",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3327,7 +3730,6 @@ window.GameData = {
           "text": "召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -3347,6 +3749,8 @@ window.GameData = {
       "cost": 4,
       "attack": 2,
       "health": 2,
+      "memo": "召唤 2 个弓兵，并把全场弓兵进化成白马义从",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3377,7 +3781,6 @@ window.GameData = {
           "text": "召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -3387,53 +3790,6 @@ window.GameData = {
         "budget": 9,
         "diff": 0.35,
         "level": "ok"
-      }
-    },
-    {
-      "id": "qun_huaxiong",
-      "name": "华雄",
-      "faction": "qun",
-      "type": "general",
-      "cost": 4,
-      "attack": 4,
-      "health": 4,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "wei_zhen_si_fang",
-          "name": "威震四方",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "apply_status",
-              "status": "zhen_she",
-              "duration": 1,
-              "chance": 0.75,
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              },
-              "note": "平衡（ADR-047）：原文只震慑一名目标，原先两条分支会各选一个目标各震慑一次；概率按「统帅低于华雄必中 / 否则半概率」的期望值 0.75 折算（DSL 暂无法表达按目标统帅取概率）"
-            }
-          ],
-          "text": "指定一名敌人物，高于配统帅时有一半概率震慑对手和统帅，一回合；如果统帅低于华雄值，则概率为100%."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 3.75,
-        "total": 11.75,
-        "budget": 9,
-        "diff": 2.75,
-        "level": "watch"
       }
     },
     {
@@ -3447,6 +3803,8 @@ window.GameData = {
       "tags": [
         "xi_liang"
       ],
+      "memo": "召唤 2 个步兵，并把全场步兵进化成西凉铁骑",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3476,7 +3834,6 @@ window.GameData = {
           "text": "召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -3486,6 +3843,51 @@ window.GameData = {
         "budget": 9,
         "diff": 1,
         "level": "ok"
+      }
+    },
+    {
+      "id": "qun_dongzhuo",
+      "name": "董卓",
+      "faction": "qun",
+      "type": "general",
+      "cost": 5,
+      "attack": 3,
+      "health": 6,
+      "memo": "抽 1 张，但要自己主公吃 2 点",
+      "gender": "male",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "bao_nue",
+          "name": "暴虐",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：抽 1 张牌，并对主公造成 2 点伤害。",
+          "effects": [
+            {
+              "action": "draw",
+              "value": 1
+            },
+            {
+              "action": "damage",
+              "value": 2,
+              "target": {
+                "side": "ally",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "",
+      "value": {
+        "stats": 9,
+        "keywords": 0,
+        "skills": 4,
+        "total": 13,
+        "budget": 11,
+        "diff": 2,
+        "level": "watch"
       }
     },
     {
@@ -3499,13 +3901,16 @@ window.GameData = {
       "tags": [
         "shi_zu"
       ],
+      "memo": "每回合送弓兵；战吼塞万箭齐发，亡语全塞给对手",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
-          "id": "yuan_shao_summon",
-          "name": "四世三公",
+          "id": "wei_wang",
+          "name": "威望",
           "kind": "trigger",
           "trigger": "turn_start",
+          "text": "每回合召唤一个弓兵。",
           "effects": [
             {
               "action": "summon",
@@ -3513,40 +3918,35 @@ window.GameData = {
               "count": 1,
               "position": "random"
             }
-          ],
-          "text": "每回合可召唤一个 1攻 1血的士族兵"
+          ]
         },
         {
-          "id": "yuan_shao_wangjian",
-          "name": "万箭齐发",
+          "id": "jian_xiong_zhi_ming",
+          "name": "万箭齐发之令",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "战吼：获得一张万箭齐发，并将两张万箭齐发加入牌组。",
           "effects": [
             {
               "action": "add_to_deck",
               "unit": "tactic_wanjianqifa",
               "count": 1,
-              "to": "hand",
-              "target": {
-                "side": "self"
-              }
+              "to": "hand"
             },
             {
               "action": "add_to_deck",
               "unit": "tactic_wanjianqifa",
               "count": 2,
-              "target": {
-                "side": "self"
-              }
+              "to": "deck"
             }
-          ],
-          "text": "每回合可召唤一个 1攻 1血的士族兵"
+          ]
         },
         {
-          "id": "yuan_shao_yidu",
-          "name": "遗毒",
+          "id": "yi_ji_wan_jian",
+          "name": "遗计·万箭齐发",
           "kind": "trigger",
           "trigger": "on_death",
+          "text": "遗计：将未抽到的万箭齐发加入敌方牌库。",
           "effects": [
             {
               "action": "send_to_deck",
@@ -3555,11 +3955,9 @@ window.GameData = {
                 "side": "enemy"
               }
             }
-          ],
-          "text": "每回合可召唤一个 1攻 1血的士族兵"
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 9,
@@ -3579,6 +3977,8 @@ window.GameData = {
       "cost": 2,
       "attack": 0,
       "health": 2,
+      "memo": "让一张武将牌和一个人物各少 1 费",
+      "gender": "female",
       "keywords": [],
       "skills": [
         {
@@ -3604,7 +4004,6 @@ window.GameData = {
           "text": "使当前一回合使 自己一名武将和一张非令牌中武将牌 统帅消耗一."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 2,
@@ -3617,61 +4016,6 @@ window.GameData = {
       }
     },
     {
-      "id": "qun_diaochan",
-      "name": "貂蝉",
-      "faction": "qun",
-      "type": "strategist",
-      "cost": 3,
-      "attack": 1,
-      "health": 3,
-      "keywords": [],
-      "skills": [
-        {
-          "id": "huo_guo_qing_cheng",
-          "name": "祸国倾城",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "effects": [
-            {
-              "action": "clash",
-              "clashMode": "roll",
-              "target": {
-                "side": "enemy"
-              }
-            },
-            {
-              "action": "apply_status",
-              "status": "zhen_she",
-              "duration": 1,
-              "condition": {
-                "event": "clash_won"
-              },
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": 1,
-                "mode": "choose"
-              }
-            }
-          ],
-          "text": "和对方比点大小、大对方为胜：每回合指定敌方一名男性角色.一回合无法行动."
-        }
-      ],
-      "memo": "",
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 5.5,
-        "total": 9.5,
-        "budget": 7,
-        "diff": 2.5,
-        "level": "watch"
-      }
-    },
-    {
       "id": "qun_zuoci",
       "name": "左慈",
       "faction": "qun",
@@ -3679,6 +4023,8 @@ window.GameData = {
       "cost": 3,
       "attack": 1,
       "health": 3,
+      "memo": "看对手手牌并踢一张进牌库；阵亡回自己牌库底",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3700,7 +4046,6 @@ window.GameData = {
           "text": "可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -3719,41 +4064,63 @@ window.GameData = {
       "type": "strategist",
       "cost": 4,
       "attack": 1,
-      "health": 4,
+      "health": 5,
+      "memo": "指定一人：敌人被禁锢，友军的伤害由陈宫扛",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
-          "id": "zhong_lie_zhi_zhi",
-          "name": "忠烈之志",
-          "kind": "aura",
+          "id": "zhong_lie",
+          "name": "忠烈",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：选择一名武将，使其直到下个自己回合开始时获得——若为敌军，无法攻击和使用技能；若为友军，其受到的伤害由陈宫承担。",
           "effects": [
             {
               "action": "apply_status",
-              "status": "shou_hu",
-              "status_source": "self",
+              "status": "jin_gu",
+              "duration": 1,
               "target": {
-                "side": "ally",
+                "side": "both",
                 "filter": {
                   "type": "character"
                 },
                 "count": 1,
                 "mode": "choose"
+              },
+              "condition": {
+                "chosen_side": "enemy"
+              }
+            },
+            {
+              "action": "apply_status",
+              "status": "shou_hu",
+              "duration": 1,
+              "status_source": "self",
+              "target": {
+                "side": "both",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "choose"
+              },
+              "condition": {
+                "chosen_side": "ally"
               }
             }
-          ],
-          "text": "上场时指定为一名友方单位分担伤害;当指定的友方单位血减少为一血时其他溢出伤害由陈宫承担有效到陈宫为0血."
+          ]
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 5,
+        "stats": 6,
         "keywords": 0,
-        "skills": 2,
-        "total": 7,
+        "skills": 2.8,
+        "total": 8.8,
         "budget": 9,
-        "diff": -2,
-        "level": "watch"
+        "diff": -0.2,
+        "level": "ok"
       }
     },
     {
@@ -3764,6 +4131,8 @@ window.GameData = {
       "cost": 4,
       "attack": 0,
       "health": 5,
+      "memo": "弃 1 张牌，按它的统率回血并清掉全部负面",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3795,7 +4164,7 @@ window.GameData = {
             },
             {
               "action": "remove_status",
-              "status": "zhen_she",
+              "remove_kind": "debuff",
               "target": {
                 "side": "ally",
                 "filter": {
@@ -3809,15 +4178,14 @@ window.GameData = {
           "text": "可弃掉自己手中一张手牌.恢复指定场上一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.每回合限一次."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 5,
         "keywords": 0,
-        "skills": 2.56,
-        "total": 7.56,
+        "skills": 3.36,
+        "total": 8.36,
         "budget": 9,
-        "diff": -1.44,
+        "diff": -0.64,
         "level": "ok"
       }
     },
@@ -3829,6 +4197,8 @@ window.GameData = {
       "cost": 4,
       "attack": 1,
       "health": 3,
+      "memo": "封住己方主公技一回合，换 1 张牌（策略牌免费）",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3854,7 +4224,6 @@ window.GameData = {
           "text": "禁用己方主将一回合主公技，可抽取一张卡牌到手种，如果为策略卡，则无需消耗统帅."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -3863,6 +4232,63 @@ window.GameData = {
         "total": 9,
         "budget": 9,
         "diff": 0,
+        "level": "ok"
+      }
+    },
+    {
+      "id": "qun_diaochan",
+      "name": "貂蝉",
+      "faction": "qun",
+      "type": "strategist",
+      "cost": 5,
+      "attack": 1,
+      "health": 3,
+      "memo": "拼点赢就迷住一名敌方男性角色一回合",
+      "gender": "female",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "huo_guo_qing_cheng",
+          "name": "祸国倾城",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：与对手拼点，胜则指定一名敌方**男性**角色，使其直到下个自己回合开始无法行动。",
+          "effects": [
+            {
+              "action": "clash",
+              "clashMode": "roll",
+              "target": {
+                "side": "enemy"
+              }
+            },
+            {
+              "action": "apply_status",
+              "status": "zhen_she",
+              "duration": 1,
+              "condition": {
+                "event": "clash_won"
+              },
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "gender": "male"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "",
+      "value": {
+        "stats": 4,
+        "keywords": 0,
+        "skills": 5.5,
+        "total": 9.5,
+        "budget": 11,
+        "diff": -1.5,
         "level": "ok"
       }
     },
@@ -3877,6 +4303,8 @@ window.GameData = {
       "tags": [
         "huang_jin"
       ],
+      "memo": "回合结束 5 道雷，半数震慑，雷死敌人就召黄巾兵",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3924,10 +4352,9 @@ window.GameData = {
               }
             }
           ],
-          "text": "每回合结束时释放 5 次随机 1 点雷击，目标为敌方随机人物；每次雷击有 50% 概率对其造成震慑；若雷击击杀敌人，则上场一个 1 攻 1 血的黄巾兵。"
+          "text": "每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 6,
@@ -3953,6 +4380,7 @@ window.GameData = {
       ],
       "memo": "架盾：敌方必须先打掉它才能攻击其他人",
       "flavor": "盾如铁壁，寸步不让。",
+      "gender": "male",
       "value": {
         "stats": 3,
         "keywords": -1,
@@ -3972,6 +4400,8 @@ window.GameData = {
       "attack": 1,
       "health": 2,
       "troopKind": "archer",
+      "memo": "公孙瓒的进化体：每回合点 2 点伤害",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -3996,7 +4426,6 @@ window.GameData = {
           "text": "每回合对指定任意敌方人物造成 2 点伤害。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 3,
@@ -4020,7 +4449,8 @@ window.GameData = {
       "keywords": [
         "jia_dun"
       ],
-      "memo": "",
+      "memo": "高顺的进化体：2/2 仍带架盾",
+      "gender": "male",
       "flavor": "",
       "value": {
         "stats": 4,
@@ -4044,7 +4474,8 @@ window.GameData = {
       "keywords": [
         "xian_gong"
       ],
-      "memo": "",
+      "memo": "马腾的进化体：2/1 带先攻",
+      "gender": "male",
       "flavor": "",
       "value": {
         "stats": 3,
@@ -4067,8 +4498,9 @@ window.GameData = {
       "tags": [
         "huang_jin"
       ],
+      "memo": "黄巾系召唤的 1/1 衍生物",
+      "gender": "male",
       "keywords": [],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 2,
@@ -4086,6 +4518,10 @@ window.GameData = {
       "faction": "neutral",
       "type": "token",
       "cost": 0,
+      "attack": 2,
+      "health": 1,
+      "memo": "黄月英召唤的 2/1，不能打主将",
+      "gender": "male",
       "keywords": [],
       "skills": [
         {
@@ -4095,16 +4531,15 @@ window.GameData = {
           "pending": true
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 0,
+        "stats": 3,
         "keywords": 0,
         "skills": 0,
-        "total": 0,
+        "total": 3,
         "budget": 1,
-        "diff": -1,
-        "level": "ok"
+        "diff": 2,
+        "level": "watch"
       }
     },
     {
@@ -4113,24 +4548,28 @@ window.GameData = {
       "faction": "neutral",
       "type": "token",
       "cost": 0,
-      "keywords": [],
+      "attack": 1,
+      "health": 2,
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "黄月英召唤的 1/2 架盾，不能打主将",
+      "gender": "male",
       "skills": [
         {
           "id": "",
           "name": "",
-          "text": "打开架盾效果. 不能攻击敌方主帅.",
-          "pending": true
+          "text": "打开架盾效果. 不能攻击敌方主帅."
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
-        "stats": 0,
-        "keywords": 0,
+        "stats": 3,
+        "keywords": -1,
         "skills": 0,
-        "total": 0,
+        "total": 2,
         "budget": 1,
-        "diff": -1,
+        "diff": 1,
         "level": "ok"
       }
     },
@@ -4145,8 +4584,9 @@ window.GameData = {
       "tags": [
         "shi_zu"
       ],
+      "memo": "袁绍召唤的 1/1 衍生物",
+      "gender": "male",
       "keywords": [],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 2,
@@ -4164,6 +4604,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 0,
+      "memo": "抽到时自动释放：敌方全体 1 伤（袁绍专属）",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4187,7 +4629,6 @@ window.GameData = {
           "text": "抽到时释放：对所有敌方人物造成 1 点伤害。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4205,6 +4646,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 2,
+      "memo": "把己方一张人物牌收回手里",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4226,7 +4669,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4244,6 +4686,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 2,
+      "memo": "指定敌人攻击 −2 一回合（最低 0）",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4267,7 +4711,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4285,6 +4728,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 3,
+      "memo": "让一张人物牌直接翻面，翻回来时算重新上场",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4317,7 +4762,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4335,6 +4779,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 3,
+      "memo": "打敌方最残血的角色 2 点",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4357,7 +4803,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4375,6 +4820,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 3,
+      "memo": "半数概率让一名敌将下回合无法行动",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4399,7 +4846,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4417,6 +4863,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 3,
+      "memo": "点名 1 点，半数概率再追加 2 点火伤",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4452,7 +4900,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4470,6 +4917,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 3,
+      "memo": "手牌两张塞回牌库底，再从顶上抽两张",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4493,7 +4942,6 @@ window.GameData = {
           "value": 2
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4511,6 +4959,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 3,
+      "memo": "简单粗暴抽 2 张",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4525,7 +4975,6 @@ window.GameData = {
           "value": 2
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4543,6 +4992,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 4,
+      "memo": "翻牌库顶一张：非人物牌可立刻用，人物牌直接上场",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4562,7 +5013,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4580,6 +5030,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 4,
+      "memo": "直接对敌方主帅打 4 点",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4598,7 +5050,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4616,6 +5067,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 4,
+      "memo": "从对手手里抢一张，是人物就强制上场",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4634,7 +5087,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4652,6 +5104,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 4,
+      "memo": "封印敌方全场谋臣的技能一回合",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4674,7 +5128,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4692,6 +5145,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 4,
+      "memo": "斩杀敌人后拼点，赢了把那张人物收进手里",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4723,7 +5178,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4741,6 +5195,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 4,
+      "memo": "召唤两个 1/1 盾兵并抽 2 张",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4761,7 +5217,6 @@ window.GameData = {
           "value": 2
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4779,6 +5234,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 5,
+      "memo": "混乱中的敌人会打自己人，顺便抽对手一张牌",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4789,6 +5246,24 @@ window.GameData = {
       ],
       "effects": [
         {
+          "action": "force_attack",
+          "condition": {
+            "exists": {
+              "side": "enemy",
+              "filter": {
+                "has_status": "hun_luan"
+              }
+            }
+          },
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "has_status": "hun_luan"
+            },
+            "count": "all"
+          }
+        },
+        {
           "action": "scry",
           "from": "top",
           "count": 1,
@@ -4798,15 +5273,14 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
         "keywords": 0,
-        "skills": 2.5,
-        "total": 2.5,
+        "skills": 3.9,
+        "total": 3.9,
         "budget": 11,
-        "diff": -8.5,
+        "diff": -7.1,
         "level": "off"
       }
     },
@@ -4816,6 +5290,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 5,
+      "memo": "己方场上无人时，对手一回合打不了主帅",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4846,7 +5322,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4864,6 +5339,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 5,
+      "memo": "歇一回合，全体（含主帅）回血并抽 3 张",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4889,7 +5366,6 @@ window.GameData = {
           "value": 3
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4907,6 +5383,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 6,
+      "memo": "让两名敌人去打我方最肉的单位，敌将阵亡就抽 2",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4941,7 +5419,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4959,6 +5436,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "event",
       "cost": 1,
+      "memo": "双方各抽 2 张",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -4980,7 +5459,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -4998,6 +5476,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "event",
       "cost": 1,
+      "memo": "全体停止抽牌一回合（含技能与计策引发的抽牌）",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -5017,7 +5497,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -5035,6 +5514,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "event",
       "cost": 3,
+      "memo": "打出者立刻多两个 1/1 黄巾兵",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -5051,7 +5532,6 @@ window.GameData = {
           "position": "random"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -5069,6 +5549,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "event",
       "cost": 3,
+      "memo": "双方全体各吃 1 点，连主公一起",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -5090,7 +5572,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -5108,6 +5589,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "event",
       "cost": 3,
+      "memo": "指定一方下回合主帅统率上限 −2",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -5127,7 +5610,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -5145,6 +5627,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "event",
       "cost": 4,
+      "memo": "敌方全体 1 点火伤持续 2 回合，代价是弃 1 张手牌",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -5173,7 +5657,6 @@ window.GameData = {
           }
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -5191,6 +5674,8 @@ window.GameData = {
       "faction": "neutral",
       "type": "status",
       "cost": 0,
+      "memo": "状态卡：装备者只能攻击带此状态的敌人",
+      "gender": "unknown",
       "keywords": [],
       "skills": [
         {
@@ -5199,7 +5684,6 @@ window.GameData = {
           "text": "只能攻击装备此状态的敌人。"
         }
       ],
-      "memo": "",
       "flavor": "",
       "value": {
         "stats": 0,
@@ -5496,7 +5980,22 @@ window.GameData = {
       "caps": [
         "redirect_damage"
       ],
-      "memo": "引擎内部：把指向友方主将的伤害转由本单位承担"
+      "guard_scope": "any",
+      "memo": "把**被守护单位**受到的伤害转由本单位承担（陈宫「忠烈」）"
+    },
+    {
+      "id": "hu_zhu",
+      "name": "护主",
+      "kind": "buff",
+      "numeric": false,
+      "scope": "lord",
+      "timing": 10,
+      "duration": "turns",
+      "caps": [
+        "redirect_damage"
+      ],
+      "guard_scope": "lord",
+      "memo": "只把该方**主帅**受到的伤害转由本单位承担（祖茂「替主」，ADR-071）"
     },
     {
       "id": "duan_chou",
@@ -5553,6 +6052,20 @@ window.GameData = {
       "timing": 9,
       "duration": "turns",
       "memo": "引擎内部：本单位被标记为某人的仇敌"
+    },
+    {
+      "id": "jin_gu",
+      "name": "禁锢",
+      "kind": "debuff",
+      "numeric": false,
+      "scope": "character",
+      "timing": 5,
+      "duration": "turns",
+      "caps": [
+        "block_attack",
+        "block_skill"
+      ],
+      "memo": "不能普通攻击，也不能使用主动技（陈宫「忠烈」对敌军的效果）"
     }
   ],
   "keywords": [
@@ -5667,18 +6180,6 @@ window.GameData = {
       "definition": "免疫混乱、离间等状态。",
       "memo": "不吃控制",
       "open": "待实现。⚠️ 原引擎误把「忠义」做成\"阵亡触发亡语\"，已纠正——亡语是「遗计」"
-    },
-    {
-      "id": "jie_zhen",
-      "name": "结阵",
-      "type": "buff",
-      "grants": [],
-      "stackable": false,
-      "value": 0,
-      "implemented": false,
-      "definition": "⚠️ 设计者尚未设计具体机制，先保留名字，后续再定。",
-      "memo": "（待设计）",
-      "open": "引擎里现存的\"相邻有友方步兵时 +1 攻\"是 AI 旧推定，**不可用**（Q-06-3）"
     }
   ]
 };

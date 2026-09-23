@@ -239,19 +239,19 @@ test('结束：主将阵亡 → reason「主将阵亡」且摘要含双方数据
    ⑥ 卡数据正确性回归（docs/balance-backlog.md 报告的问题）
    ============================================================ */
 
-test('回归·华雄「威震四方」：只震慑一名目标，不再双次结算', () => {
+// 华雄的技能已按设计者 2026-09 定稿改为「威震四方」（击杀 +1/+1 + 亡语给击杀者 +1/+1），
+// 原先那条「只震慑一名目标」的回归断言对应的是一版已被取代的设计，故一并替换。
+test('回归·华雄「威震四方」：技能为击杀成长 + 亡语给击杀者，且不再有旧的震慑分支', () => {
   const hx = data.cards.get('qun_huaxiong');
   assert.ok(hx, '华雄应存在于卡表');
+  const triggers = (hx.skills ?? []).map((sk) => sk.trigger);
+  assert.ok(triggers.includes('on_kill'), '应有 on_kill 触发（击杀时 +1/+1）');
+  assert.ok(triggers.includes('on_death'), '应有 on_death 触发（亡语给击杀者 +1/+1）');
   const effs = (hx.skills ?? []).flatMap((sk) => sk.effects ?? []);
-  // ADR-047：原文「指定一名敌人物」，原先两条分支会各选一个目标各震慑一次（低价目标被双重结算）
-  assert.equal(effs.length, 1, `应合并为单条震慑，实际 ${effs.length} 条`);
-  const e = effs[0]!;
-  assert.equal(e.action, 'apply_status');
-  assert.equal(e.status, 'zhen_she');
-  assert.equal(e.target?.count, 1, '只作用于一个目标');
-  assert.equal(e.target?.filter?.cost_min, undefined, '不应再有互斥的 cost 分支');
-  assert.equal(e.target?.filter?.cost_below_source, undefined, '不应再有互斥的 cost 分支');
-  assert.equal(e.chance, 0.75, '概率按「低于华雄必中 / 否则半概率」的期望值折算');
+  assert.ok(!effs.some((e) => e.action === 'apply_status' && e.status === 'zhen_she'),
+    '不应再有旧设计的震慑分支');
+  const death = (hx.skills ?? []).find((sk) => sk.trigger === 'on_death')!;
+  assert.equal(death.effects?.[0]?.target?.event, 'killer', '亡语应指向击杀者');
 });
 
 test('主动技频率：0 费主动技每回合只能用 1 次（GDD 10 §1.1）', () => {
@@ -382,8 +382,10 @@ test('万箭齐发：抽到时自动释放（不进手牌），对全体敌方�
   const base = createMatch({ seed: 5, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
   const ctx = { cards: d.cards, lords: d.lords };
   let s = startMatch(base, ctx).state;
-  setUnit(s, 'enemy', 'front', 0, makeUnit(d.cards.get('shu_guanyu')!, 1, 900));   // 4/4
-  setUnit(s, 'enemy', 'front', 1, makeUnit(d.cards.get('shu_zhangfei')!, 1, 901)); // 4/4
+  setUnit(s, 'enemy', 'front', 0, makeUnit(d.cards.get('shu_guanyu')!, 1, 900));
+  setUnit(s, 'enemy', 'front', 1, makeUnit(d.cards.get('shu_zhangfei')!, 1, 901));
+  const guanyuHp0 = d.cards.get('shu_guanyu')!.health!;
+  const zhangfeiHp0 = d.cards.get('shu_zhangfei')!.health!;
   s.sides.own.deck = ['tactic_wanjianqifa'];
   const handBefore = s.sides.own.hand.length;
 
@@ -398,8 +400,9 @@ test('万箭齐发：抽到时自动释放（不进手牌），对全体敌方�
   assert.equal(cast.length, 1, '万箭齐发应自动释放 1 次');
   assert.equal(cur.sides.own.hand.length, handBefore, '自动释放的牌不进手牌');
   assert.ok(cur.sides.own.discard.some((c) => c.id === 'tactic_wanjianqifa'), '应进弃牌堆');
-  assert.equal(getUnit(cur, 'enemy', 'front', 0)!.hp, 3, '关羽 4 → 3');
-  assert.equal(getUnit(cur, 'enemy', 'front', 1)!.hp, 3, '张飞 4 → 3');
+  // 断言"掉了 1 点"而不是写死结果血量 —— 否则设计者一改卡面数值这条测试就碎
+  assert.equal(getUnit(cur, 'enemy', 'front', 0)!.hp, guanyuHp0 - 1, '关羽应掉 1 点');
+  assert.equal(getUnit(cur, 'enemy', 'front', 1)!.hp, zhangfeiHp0 - 1, '张飞应掉 1 点');
 });
 
 test('袁绍亡语：把牌组里**未抽到**的万箭齐发全部塞进敌方牌库', async () => {
@@ -512,9 +515,12 @@ test('ADR-054：关键词表——疾行已合并入先攻，无双已取消', a
   assert.ok(!KEYWORDS.wu_shuang, '无双不应再是关键词（已取消）');
   assert.ok(RETIRED_KEYWORDS.ji_xing.includes('先攻'), '疾行应指向先攻');
   // 定义已给出但引擎未实现的关键词，必须显式标 false，避免"卡面写了却不生效"
-  for (const k of ['shen_she', 'qi_xi', 'zhong_yi', 'jie_zhen']) {
+  for (const k of ['shen_she', 'qi_xi', 'zhong_yi']) {
     assert.equal(KEYWORDS[k]!.implemented, false, `${k} 应标为未实现`);
   }
+  // ADR-067：「结阵」整个移除（引擎里那套是 AI 自己推的，设计者从未设计、0 卡使用）
+  assert.ok(!KEYWORDS.jie_zhen, '结阵不应再是关键词');
+  assert.ok(RETIRED_KEYWORDS.jie_zhen, '结阵应记入已取消');
   // 忠义的定义已从"亡语"纠正为"免疫控制"
   assert.ok(KEYWORDS.zhong_yi!.note.includes('免疫'), '忠义应为免疫控制类');
   // ADR-057：武圣废弃 → 圣盾（免疫一次伤害）；饮血已实现（回自身）
@@ -694,6 +700,185 @@ test('技能伤害同样扣血并可致阵亡', async () => {
   assert.equal(gu(s, 'enemy', 'front', 0), null, '超量伤害应致阵亡并移出');
 });
 
+
+/* ============================================================
+   on_kill 与击杀者引用（ADR-070）
+   ============================================================ */
+
+test('华雄「威震四方」：击杀时 +1/+1；亡语给击杀者 +1/+1', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { dealDamage, unitRef } = await import('../src/mutate.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctxData = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctxData).state;
+
+  // 我方华雄 3/3 打敌方一个 1/1
+  const hx = makeUnit(d.cards.get('qun_huaxiong')!, 0, 860);
+  setUnit(s, 'own', 'front', 0, hx);
+  const foe = makeUnit(d.cards.get('neutral_infantry')!, 0, 861);
+  foe.hp = 1; foe.maxHp = 1; foe.baseMaxHp = 1;
+  setUnit(s, 'enemy', 'front', 3, foe);
+
+  const before = { atk: hx.atk, hp: hx.hp };
+  const evs: import('../src/types.ts').GameEvent[] = [];
+  // 2 点伤害打死 1 血目标，killerRef 指向华雄
+  dealDamage(s, d.cards, unitRef('enemy', 'front', 3), 2, evs, '华雄', 0, { side: 'own', row: 'front', col: 0 });
+
+  const hx2 = gu(s, 'own', 'front', 0)!;
+  assert.equal(gu(s, 'enemy', 'front', 3), null, '目标应阵亡');
+  assert.equal(hx2.atk, before.atk + 1, '击杀后攻击 +1');
+  assert.equal(hx2.hp, before.hp + 1, '击杀后生命 +1');
+  assert.ok(evs.some((e) => e.type === 'UNIT_DIED' && e.side === 'enemy'));
+
+  // 再打死一个 → 华雄应变成 +2/+2；同时验证**亡语给击杀者**：
+  // 让敌方华雄被我方单位击杀，我方单位应 +1/+1
+  const base2 = createMatch({ seed: 2, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const s2 = startMatch(base2, ctxData).state;
+  const foeHx = makeUnit(d.cards.get('qun_huaxiong')!, 0, 862);
+  foeHx.hp = 1; foeHx.maxHp = 1; foeHx.baseMaxHp = 1;
+  setUnit(s2, 'enemy', 'front', 0, foeHx);
+  const mine = makeUnit(d.cards.get('neutral_infantry')!, 0, 863);
+  setUnit(s2, 'own', 'front', 0, mine);
+  const a0 = mine.atk, h0 = mine.hp;
+  const evs2: import('../src/types.ts').GameEvent[] = [];
+  dealDamage(s2, d.cards, unitRef('enemy', 'front', 0), 5, evs2, '步兵', 0, { side: 'own', row: 'front', col: 0 });
+  const mine2 = gu(s2, 'own', 'front', 0)!;
+  assert.equal(mine2.atk, a0 + 1, '击杀者的攻击应 +1（华雄亡语）');
+  assert.equal(mine2.hp, h0 + 1, '击杀者的生命应 +1（华雄亡语）');
+});
+
+test('马超「铁骑突袭」：仅首回合、仅击杀武将才禁敌方主公技', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { dealDamage, unitRef } = await import('../src/mutate.ts');
+  const d = qun();
+  const ctxData = { cards: d.cards, lords: d.lords };
+
+  const kill = (opts: { turn: number; victimId: string }) => {
+    const base = createMatch({ seed: 3, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+    const s = startMatch(base, ctxData).state;
+    s.turn = opts.turn;
+    const mc = makeUnit(d.cards.get('shu_machao')!, 0, 870);
+    setUnit(s, 'own', 'front', 0, mc);
+    const v = makeUnit(d.cards.get(opts.victimId)!, 0, 871);
+    v.hp = 1; v.maxHp = 1; v.baseMaxHp = 1;
+    setUnit(s, 'enemy', 'front', 1, v);
+    dealDamage(s, d.cards, unitRef('enemy', 'front', 1), 9, [], '马超', 0, { side: 'own', row: 'front', col: 0 });
+    return s.sides.enemy.lord.statuses?.jin_yong;
+  };
+
+  assert.ok(kill({ turn: 1, victimId: 'shu_zhangfei' }), '首回合击杀武将 → 敌主帅应被禁用主公技');
+  assert.equal(kill({ turn: 2, victimId: 'shu_zhangfei' }), undefined, '非首回合不应触发');
+  assert.equal(kill({ turn: 1, victimId: 'shu_zhugeliang' }), undefined,
+    '击杀谋臣（诸葛亮 1/6，攻击 ≤1 → 谋臣）不该触发 —— 文案只认「武将」');
+});
+
+/* ============================================================
+   驱散 remove_status（ADR-066）
+   ============================================================ */
+
+test('remove_status：移除全部层数并发 STATUS_EXPIRED；关键词状态一并摘掉', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { runEffects } = await import('../src/effects.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctxData = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctxData).state;
+
+  const u = makeUnit(d.cards.get('neutral_infantry')!, 0, 870);
+  u.statuses.zhen_she = { stacks: 3 };
+  u.kw.push('jia_dun');
+  u.statuses.jia_dun_status = { stacks: 1 };
+  s.sides.own.rows.front[1] = u;
+
+  const events: import('../src/types.ts').GameEvent[] = [];
+  const rng = createRng(3);
+  // 移除「震慑」全部层数
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'zhen_she' } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 1 } } as never, rng, events);
+
+  assert.equal(gu(s, 'own', 'front', 1)!.statuses.zhen_she, undefined, '震慑应被清掉');
+  assert.ok(events.some((e) => e.type === 'STATUS_EXPIRED' && e.status === 'zhen_she'),
+    '应发 STATUS_EXPIRED');
+
+  // 移除通过效果施加的「架盾」状态（如典韦「古之恶来」）：
+  // 只清状态，**不动卡面上的固有关键词** —— 那是卡的属性，不是可驱散的效果。
+  const u3 = makeUnit(d.cards.get('neutral_shieldman')!, 0, 872);   // 自带 jia_dun 关键词
+  u3.statuses.jia_dun_status = { stacks: 1 };
+  s.sides.own.rows.front[3] = u3;
+  const events2: import('../src/types.ts').GameEvent[] = [];
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'jia_dun_status' } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 3 } } as never, rng, events2);
+  assert.equal(gu(s, 'own', 'front', 3)!.statuses.jia_dun_status, undefined, '状态应被移除');
+  assert.ok(gu(s, 'own', 'front', 3)!.kw.includes('jia_dun'),
+    '卡面固有「架盾」关键词不应被驱散');
+
+  // 部分移除：只扣指定层数，未扣完不发 STATUS_EXPIRED
+  const u2 = makeUnit(d.cards.get('neutral_infantry')!, 0, 871);
+  u2.statuses.zhen_she = { stacks: 3 };
+  s.sides.own.rows.front[2] = u2;
+  const events3: import('../src/types.ts').GameEvent[] = [];
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'zhen_she', stacks: 1 } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 2 } } as never, rng, events3);
+  assert.equal(gu(s, 'own', 'front', 2)!.statuses.zhen_she.stacks, 2, '只扣 1 层');
+  assert.ok(!events3.some((e) => e.type === 'STATUS_EXPIRED'), '未清空不应发 EXPIRED');
+
+  // 目标身上没有该状态 → 空操作，不报错
+  const events4: import('../src/types.ts').GameEvent[] = [];
+  runEffects(s, d.cards, [{ action: 'remove_status', status: 'hun_luan' } as never],
+    { side: 'own', chosen: { kind: 'unit', side: 'own', row: 'front', col: 2 } } as never, rng, events4);
+  assert.equal(events4.length, 0);
+});
+
+test('动作守卫：ACTIONS 里注册但未实现的，必须显式登记（防「静默空转」）', async () => {
+  const { ACTIONS } = await import('../src/constants.ts');
+  const { IMPLEMENTED_ACTIONS } = await import('../src/effects.ts');
+  const missing = [...ACTIONS].filter((a) => !IMPLEMENTED_ACTIONS.has(a)).sort();
+  // 已知尚未实现：move（换位）、random_pick（随机取牌）；当前无卡使用。
+  // 若实现了就把它们加进 IMPLEMENTED_ACTIONS 并更新这里。
+  assert.deepEqual(missing, ['move', 'random_pick'],
+    `ACTIONS 与已实现集合不一致：${missing.join('、')} —— 用了它们的卡会静默空转`);
+});
+
+test('关键词的两套载体等价：状态形式的「架盾/先攻/奇袭」必须与关键词同样生效（ADR-066）', async () => {
+  const { createMatch, setUnit, makeUnit, getUnit: gu } = await import('../src/state.ts');
+  const { canAttack, legalTargets } = await import('../src/rules.ts');
+  const { shieldUnits, hasTrait } = await import('../src/state.ts');
+  const d = qun();
+  const base = createMatch({ seed: 1, cards: d.cards, lords: d.lords, decks: { own: [], enemy: [] }, firstSide: 'own' });
+  const ctxData = { cards: d.cards, lords: d.lords };
+  const s = startMatch(base, ctxData).state;
+
+  // 一张**没有**任何关键词的白板，只靠状态获得能力
+  const g = makeUnit(d.cards.get('neutral_infantry')!, 0, 880);
+  g.kw = [];
+  g.statuses.jia_dun_status = { stacks: 1 };
+  s.sides.enemy.rows.front[0] = g;
+
+  assert.equal(hasTrait(g, 'jia_dun'), true, '状态形式的架盾应被 hasTrait 认到');
+  assert.equal(shieldUnits(s, 'enemy').length, 1, '架盾（状态形式）应产生嘲讽');
+  // 我方打手
+  const a = makeUnit(d.cards.get('neutral_infantry')!, 0, 881);
+  s.sides.own.rows.front[1] = a;
+  const t = legalTargets(s, 'own', 'front', 1);
+  assert.deepEqual(t.targets.map((x: { col?: number }) => x.col), [0],
+    '有架盾时只能打架盾单位');
+
+  // 状态形式的先攻：入场当回合即可攻击
+  const f = makeUnit(d.cards.get('neutral_infantry')!, s.turn, 882);
+  f.kw = [];
+  f.statuses.xian_gong_status = { stacks: 1 };
+  s.sides.own.rows.front[2] = f;
+  assert.equal(canAttack(s, 'own', 'front', 2).ok, true, '状态形式的先攻应当回合可攻击');
+
+  // 状态形式的奇袭：不可被指定为目标
+  const q = makeUnit(d.cards.get('neutral_infantry')!, 0, 883);
+  q.kw = [];
+  q.statuses.qi_xi_status = { stacks: 1 };
+  s.sides.enemy.rows.front[3] = q;
+  const t2 = legalTargets(s, 'own', 'front', 1);
+  assert.ok(!t2.targets.some((x: { col?: number }) => x.col === 3), '奇袭（状态形式）不应可被指定');
+});
 
 /* ============================================================
    同名上限（ADR-065）

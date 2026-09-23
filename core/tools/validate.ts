@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES, TAGS } from '../src/constants.ts';
+import { IMPLEMENTED_ACTIONS } from '../src/effects.ts';
 import type { CardDef, CardEffect, SkillDef, TargetSelector } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -31,7 +32,6 @@ const KEYWORD_VALUE: Record<string, number> = {
   shen_she: -1,    // 神射（待实现）
   qi_xi: -1,       // 奇袭（待实现）
   zhong_yi: -1,    // 忠义：免疫混乱/离间（待实现）
-  jie_zhen: 0,     // ⚠️ 设计者尚未设计，暂不计价
 };
 
 
@@ -130,7 +130,12 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
       return self ? 0 : scale * 1.0;
     }
     case 'return_to_hand': return 2;              // 让对手单位回手：拖节奏，非净赚
-    case 'remove_status': return (eff.stacks ?? 1) * 2;        // 驱散（ADR-046：原先未计价）
+    case 'remove_status': {
+      // 驱散（ADR-046：原先未计价）。ADR-071：按**类别**批量驱散（remove_kind）
+      // 一次能清掉一堆 debuff，不能还按「1 层」计价。
+      if (eff.remove_kind) return (eff.count ?? 1) * 3;
+      return (eff.stacks ?? 1) * 2;
+    }
     // ADR-033~042 新增动作的价值估算
     case 'clash': return 2;                                   // 拼点：中等收益
     case 'scry': return (eff.count ?? 1) * 2.5;               // 卡池操作 + 信息优势
@@ -147,6 +152,15 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
     case 'add_to_deck': return (eff.count ?? 1) * 1.5;
     case 'send_to_deck': return 0;
     case 'cycle_to_deck': return 1.0;                 // 弃 1 抽 1 的加强版（牌回牌库）
+    // ADR-071 新增动作
+    //   sacrifice：销毁自己的单位是**代价**，按 self-discard 的先例记 0 分；
+    //              收益由后续 value_from_flag 的 heal/damage 记（见 effectValue）
+    case 'sacrifice': return 0;
+    //   attack_each：名义值 ≈ 一次额外普攻的伤害（打点 3）。张苞 4/3 打「攻 < 4」的敌人，
+    //              通常吃 2 个目标但要承担反击、且自己阵亡就中断，故不给满值。
+    case 'attack_each': return 3;
+    //   draw_until：名义值 ≈ 比抽 1 张多拿到半张（策略密度决定）。
+    case 'draw_until': return 3;
     case 'transform': {
       // 进化：价值 = (进化后总价值 − 进化前总价值) × 受影响单位数
       // 固定给 4 分会把「+1 攻」和「+1/2 攻且带每回合 2 伤技能」算成一样，方向都可能反（ADR-046）
@@ -178,12 +192,26 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
 /** `value_from_discarded` 的取值名义值：被弃牌多在 3 费/3 血附近 */
 const DISCARDED_NOMINAL = 3;
 
+/**
+ * `value_from_flag` 的取值名义值（ADR-071）
+ *
+ * 程昱「审时度势」的数值来自被牺牲单位的血量；`sacrifice` 记 0 分（它是代价），
+ * 若这里不记收益，整条链会算成白板。牺牲品的血量与「被弃牌的血量」同量级（≈3）。
+ */
+const FLAG_NOMINAL = 3;
+
 function effectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
   let v = baseEffectValue(eff, ctx);
   // 读数取自「最近被弃牌」的机制（ADR-040）原先记 0 分，等于整张卡的核心机制白送
   if (eff.value_from_discarded) {
     v = eff.action === 'damage' ? DISCARDED_NOMINAL * 0.5
       : eff.action === 'heal' ? DISCARDED_NOMINAL * 0.4
+      : v;
+  }
+  // ADR-071：读数取自 flags（牺牲品的 maxHp / 当前 hp），同口径处理
+  if (eff.value_from_flag) {
+    v = eff.action === 'damage' ? FLAG_NOMINAL * 0.5
+      : eff.action === 'heal' ? FLAG_NOMINAL * 0.4
       : v;
   }
   if (typeof eff.chance === 'number') v *= eff.chance;        // 概率打折
@@ -200,8 +228,13 @@ const TRIGGER_RATE: Record<string, number> = {
 };
 
 function skillValue(sk: SkillDef, ctx: ValueCtx = {}): number {
+  // 抉择（ADR-071）：玩家会挑最有利的分支，所以按**各分支的最大值**计价 ——
+  // 把两条分支相加等于把「二选一」当成「都拿到」，会把卡算爆。
+  const modeVals = (sk.modes ?? []).map((m) =>
+    (m.effects ?? []).reduce((s, e) => s + effectValue(e, withSiblings(m.effects, ctx)), 0));
   const effs = sk.effects ?? [];
-  let raw = effs.reduce((s, e) => s + effectValue(e, withSiblings(effs, ctx)), 0);
+  let raw = modeVals.length ? Math.max(...modeVals)
+    : effs.reduce((s, e) => s + effectValue(e, withSiblings(effs, ctx)), 0);
   // 技能级概率（ADR-039：免死等）原先完全没参与折扣，导致 50% 的血战被按 100% 计价
   if (typeof sk.chance === 'number') raw *= sk.chance;
   if (sk.kind === 'active') return raw * 0.8;          // 主动技可被震慑打断
@@ -268,22 +301,94 @@ export function validateCards(cards: CardDef[]): Issue[] {
       for (const e of effs ?? []) {
         if (!(ACTIONS as readonly string[]).includes(e.action)) add('error', c.id, `${where} 未注册的动作：${e.action}`);
         if (e.status && !STATUSES[e.status]) add('error', c.id, `${where} 未注册的状态：${e.status}`);
+        if (e.remove_kind && !['buff', 'debuff'].includes(e.remove_kind)) {
+          add('error', c.id, `${where} remove_kind 只能是 buff / debuff，当前「${e.remove_kind}」`);
+        }
         if (e.target?.filter?.keyword && !KEYWORDS[e.target.filter.keyword]) {
           add('error', c.id, `${where} 选择器引用了未注册的关键词：${e.target.filter.keyword}`);
         }
         if (e.target?.filter?.tag && !TAGS[e.target.filter.tag]) {
           add('error', c.id, `${where} 选择器引用了未注册的归属标签：${e.target.filter.tag}`);
         }
+        // 性别筛选（ADR-071）：只认这三个值，写错会静默选不中任何人
+        const g = e.target?.filter?.gender;
+        if (g && !['male', 'female', 'unknown'].includes(g)) {
+          add('error', c.id, `${where} 选择器使用了非法性别：${g}`);
+        }
+        if (e.target?.pick && ![1, 2].includes(e.target.pick)) {
+          add('error', c.id, `${where} pick 只能是 1 或 2，当前「${e.target.pick}」`);
+        }
         if (e.unit && !ids.has(e.unit)) add('error', c.id, `${where} 召唤了不存在的卡：${e.unit}`);
+        /**
+         * 效果**不可能产生任何结果**（ADR-073）
+         *
+         * 这是「静默空转」家族里最隐蔽的一种：动作注册了、实现也有，但数值恒为 0，
+         * 于是跑完什么都不发生。空城计就是 `damage value: 0` —— 文案写着"对方一回合
+         * 无法攻击主帅"，实际是一张纯白卡，`verify:dsl` 也照样"通过"。
+         *
+         * 判定：`damage` / `heal` / `modify` 既没有动态取值（`*_from` / `value_from_flag`
+         * / `value_from_discarded`），也没有非零 `value`（modify 另看 `attack`/`health`）。
+         * 报 warn 而不是 error：占位可能是"机制还没设计"，不该阻断构建，但必须看得见。
+         */
+        const dynValue = (['value_from', 'value_from_flag', 'value_from_discarded'] as const)
+          .some((k) => e[k] !== undefined && e[k] !== null);
+        if ((e.action === 'damage' || e.action === 'heal') && !dynValue && !e.value) {
+          add('warn', c.id, `${where} 的「${e.action}」没有任何数值来源（值 ${String(e.value)}）—— 实际不会发生任何事，是不是占位没翻译完？`);
+        }
+        if (e.action === 'modify' && !dynValue && !e.value
+          && e.attack === undefined && e.health === undefined
+          && e.attack_from === undefined && e.health_from === undefined) {
+          add('warn', c.id, `${where} 的「modify」既没有 attack/health 也没有数值来源 —— 实际不会发生任何事`);
+        }
       }
     };
     scanEffects(c.effects, 'effects');
-    for (const sk of c.skills ?? []) scanEffects(sk.effects, `技能「${sk.name}」`);
+    for (const sk of c.skills ?? []) {
+      scanEffects(sk.effects, `技能「${sk.name}」`);
+      // 抉择分支里的效果同样要逐条核对（ADR-071）
+      (sk.modes ?? []).forEach((m, i) => scanEffects(m.effects, `技能「${sk.name}」分支「${m.name || i}」`));
+      if (sk.modes?.length && sk.effects?.length) {
+        add('warn', c.id, `技能「${sk.name}」同时写了 modes 与 effects —— 有 modes 时 effects 被忽略`);
+      }
+      if (sk.modes?.some((m) => !(m.effects ?? []).length)) {
+        add('error', c.id, `技能「${sk.name}」有空的抉择分支（玩家选中后会什么都没发生）`);
+      }
+      if (sk.modes?.length && !sk.modes.some((m) => m.name)) {
+        add('warn', c.id, `技能「${sk.name}」的抉择分支缺少 name（UI 无法展示选项）`);
+      }
+    }
+    // 性别字段本身（ADR-071）
+    if (c.gender && !['male', 'female', 'unknown'].includes(c.gender)) {
+      add('error', c.id, `非法性别：${c.gender}`);
+    }
+    // 具体人物卡没有性别 = 貂蝉「祸国倾城」之类按性别筛目标的选择器会静默落空
+    if (['general', 'strategist'].includes(c.type) && !c.gender) {
+      add('warn', c.id, '人物卡缺少 gender（ADR-071：默认 male，女性需显式登记）');
+    }
 
     // ⑤ 谋臣攻击力上限 1（原规则「必须为 0」已于 ADR-015/018 放宽）
     const STRATEGIST_ATTACK_MAX = 1;
     if (c.type === 'strategist' && (c.attack ?? 0) > STRATEGIST_ATTACK_MAX) {
       add('error', c.id, `谋臣攻击力上限 ${STRATEGIST_ATTACK_MAX}，当前 ${c.attack}`);
+    }
+    /**
+     * ⑤bis 类型定型（ADR-018 / ADR-072）
+     *
+     * ADR-018 的自动判定（攻击 > 1 → 武将；否则默认谋臣）是在**照片稿的攻击力**上跑的，
+     * 而攻击力后来会被 `card_stats` 改 —— 于是出现「数值改了、类型没跟着改」的静默错误
+     * （向宠就是：按 2 攻判成武将，改成 1 攻后类型仍是武将）。
+     *
+     * 所以：**1 攻的武将必须由设计者显式标注**（`card_type` 段的 `explicit: true` →
+     * 卡片字段 `type_explicit`）。没标注的，数据里就应该是谋臣 ——
+     * 这是设计者 2026-09-23 给的口径。
+     */
+    if (c.type === 'general' && (c.attack ?? 0) <= 1) {
+      const explicit = (c as CardDef & { type_explicit?: boolean }).type_explicit === true;
+      if (!explicit) {
+        add('error', c.id,
+          `武将但攻击力 ${c.attack ?? 0} ≤ 1 且未显式标注 —— 按 ADR-018 默认应为谋臣；`
+          + '确需保留武将在 card_type 段标 explicit: true（ADR-072）');
+      }
     }
     // 类型合法
     if (!(CARD_TYPES as readonly string[]).includes(c.type)) add('error', c.id, `未知卡牌类型：${c.type}`);
@@ -293,7 +398,15 @@ export function validateCards(cards: CardDef[]): Issue[] {
       const v = cardValue(c, { cards: byId });
       const budget = budgetOf(c.cost);
       const diff = v.total - budget;
-      if (Math.abs(diff) > 3) {
+      // 精英卡（橙卡）允许强于预算 —— 设计者明确"有些卡稍强是预期的"（ADR-068）。
+      // 这类卡的技能往往远超估值模型的表达能力（如"技能禁用""拼点弃牌"），
+      // 强行按模型改数值反而会做坏设计，所以只提示、不报错。
+      const elite = c.rarity === 'elite';
+      if (elite) {
+        if (Math.abs(diff) > 1.5) {
+          add('warn', c.id, `精英卡总价值 ${v.total.toFixed(1)} 偏离预算 ${budget} 达 ${diff.toFixed(1)}（允许，仅提示）`);
+        }
+      } else if (Math.abs(diff) > 3) {
         add('error', c.id, `总价值 ${v.total.toFixed(1)} 超出同费预算 ${budget} 达 ${diff.toFixed(1)}（±3 以上）`);
       } else if (Math.abs(diff) > 1.5) {
         add('warn', c.id, `总价值 ${v.total.toFixed(1)} 偏离预算 ${budget} 达 ${diff.toFixed(1)}（建议复核）`);
@@ -316,7 +429,7 @@ export function validateCards(cards: CardDef[]): Issue[] {
     if (c.effects?.length || c.cost_rule) continue;
     for (const sk of c.skills ?? []) {
       const text = (sk.text ?? '').trim();
-      if (!text || sk.effects?.length || sk.dsl?.length || (c.keywords ?? []).length) continue;
+      if (!text || sk.effects?.length || sk.modes?.length || sk.dsl?.length || (c.keywords ?? []).length) continue;
       const where = `技能「${sk.name || '(无名)'}」`;
       if (RESTRICTION.test(text)) {
         add('warn', c.id, `${where} 是限制型文案「${text.slice(0, 20)}…」，尚无 restrict 字段承载（见 ADR-045）`);
@@ -324,6 +437,42 @@ export function validateCards(cards: CardDef[]): Issue[] {
         add('error', c.id, `${where} 有文案「${text.slice(0, 20)}…」但无任何效果`);
       }
     }
+  }
+
+  // ⑦quater 动作是否真的实现了
+  //
+  // `ACTIONS` 只是**注册表**（DSL 里允许出现的名字），不等于引擎实现了它。
+  // 两者不一致时，用该动作的卡会**静默空转**：文案在、事件不发、什么都没发生。
+  // 华佗「青囊」的 remove_status 就这样空转了整整一轮才被发现（ADR-066）。
+  // 这里逐卡核对，并直接报 error —— 空转的卡等同于坏卡，不该混进测试局。
+  const NOT_IMPLEMENTED = [...ACTIONS].filter((a) => !IMPLEMENTED_ACTIONS.has(a));
+  const collectActions = (list: CardEffect[] | undefined, out: string[]): void => {
+    for (const eff of list ?? []) {
+      if (eff.action) out.push(eff.action);
+      // 条件里也可能嵌效果（condition / value_from 等）
+      for (const v of Object.values(eff as unknown as Record<string, unknown>)) {
+        if (Array.isArray(v)) collectActions(v as CardEffect[], out);
+        else if (v && typeof v === 'object' && 'action' in (v as object)) collectActions([v as CardEffect], out);
+      }
+    }
+  };
+  for (const c of cards) {
+    const used: string[] = [];
+    for (const sk of c.skills ?? []) {
+      collectActions(sk.effects as CardEffect[], used);
+      for (const m of sk.modes ?? []) collectActions(m.effects as CardEffect[], used);
+    }
+    collectActions(c.effects as CardEffect[], used);
+    for (const a of new Set(used)) {
+      if (!ACTIONS.includes(a as (typeof ACTIONS)[number])) {
+        add('error', c.id, `使用了未注册的动作「${a}」`);
+      } else if (!IMPLEMENTED_ACTIONS.has(a)) {
+        add('error', c.id, `动作「${a}」已在 ACTIONS 注册但引擎未实现 —— 该卡会静默空转`);
+      }
+    }
+  }
+  if (NOT_IMPLEMENTED.length) {
+    add('warn', '-', `引擎未实现的动作（无卡使用则可以接受，但不要在新卡里用）：${NOT_IMPLEMENTED.join('、')}`);
   }
 
   // ⑥bis value 块新鲜度：data/cards.yaml 的 value 是派生数据，必须与实时计算一致

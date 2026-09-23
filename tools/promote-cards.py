@@ -30,8 +30,13 @@ SRC = ROOT / "data" / "cards_v1.draft.yaml"
 DST = ROOT / "data" / "cards.yaml"
 
 # 只保留这些正式字段（草稿专用字段一律丢弃）
+# ⚠️ 新字段不加进这里会被**静默丢弃**（`rarity` 就丢过，ADR-068；`gender` 见 ADR-071）
 KEEP = ("id", "name", "faction", "type", "cost", "attack", "health",
-        "troopKind", "keywords", "tags", "memo", "flavor", "cost_rule")
+        "troopKind", "keywords", "tags", "memo", "flavor", "cost_rule",
+    "rarity",   # ADR-068：精英卡允许强于同费预算
+    "gender",   # ADR-071：性别（貂蝉「祸国倾城」只认男性）
+    "type_explicit",  # ADR-072：1 攻武将是否由设计者显式裁定（校验器据此报 error）
+)
 
 FACTION_ORDER = {"shu": 0, "wei": 1, "wu": 2, "qun": 3, "neutral": 4}
 TYPE_ORDER = {"lord": 0, "general": 1, "strategist": 2, "troop": 3,
@@ -57,7 +62,11 @@ def normalize(card: dict) -> dict:
         if dsl:
             for d in dsl:
                 entry = dict(d)
-                if sk.get("text"):
+                # 文案优先级：DSL 条目自带的 text > 卡面原文。
+                # 原先无条件用卡面原文覆盖，有两个后果：
+                #   ① 设计者更新后的文案（写在 DSL 里）永远显示不出来；
+                #   ② **一张卡有多个技能时，每条都显示同一段卡面原文**（袁绍 3 条全一样）。
+                if not entry.get("text") and sk.get("text"):
                     entry["text"] = sk["text"]
                 skills_out.append(entry)
         elif sk.get("name") or sk.get("text"):

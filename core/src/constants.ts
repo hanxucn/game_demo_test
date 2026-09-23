@@ -74,8 +74,6 @@ export const KEYWORDS: Record<string, { name: string; implemented: boolean; note
                note: '上场先隐身（不能被选定）；下回合可选择行动攻击，执行过行动后隐身消失（待实现）' },
   zhong_yi:  { name: '忠义', implemented: false,
                note: '免疫混乱、离间等状态（待实现。注：原实现误做成"阵亡触发亡语"，已纠正）' },
-  jie_zhen:  { name: '结阵', implemented: false,
-               note: '⚠️ 设计者尚未设计具体机制，先保留名字（当前引擎里的"相邻步兵+1攻"是 AI 旧推定，不可用）' },
 };
 
 /** 已取消的关键词（保留列表以免数据误用） */
@@ -83,6 +81,7 @@ export const RETIRED_KEYWORDS: Record<string, string> = {
   ji_xing: '疾行 —— 与「先攻」是同一个东西（设计者裁定），已合并，请改用 xian_gong',
   wu_shuang: '无双 —— 设计者：暂时没有这个状态',
   wu_sheng: '武圣 —— 设计者：废弃此名（关羽的技能名用「水淹七军」）；其"免疫一次伤害"的机制改名为「圣盾」',
+  jie_zhen: '结阵 —— 设计者：移除该效果（引擎里"相邻有友方步兵时 +1 攻"是 AI 自己推的，从未被设计）',
 };
 
 
@@ -129,6 +128,13 @@ export interface StatusDef {
   scope?: 'character' | 'lord';
   note: string;
   caps?: StatusCap[];    // 能力列表：引擎据此判定行为
+  /**
+   * 守护范围（ADR-071）：只有这个状态挂在**谁**身上、以及它拦截**谁**的伤害。
+   *   · 'any'（默认）—— `shou_hu`：被守护者受到的伤害都转给 srcUid（陈宫「忠烈」）
+   *   · 'lord'        —— `hu_zhu`：只有**该方主帅**受到的伤害才转给 srcUid（祖茂「替主」）
+   * 见 `mutate.findGuard` / `mutate.findLordGuard`。
+   */
+  guard_scope?: 'any' | 'lord';
 }
 
 export const STATUSES: Record<string, StatusDef> = {
@@ -158,9 +164,16 @@ export const STATUSES: Record<string, StatusDef> = {
   can_mou:    { name: '参谋', kind: 'buff',   numeric: true,  duration: 'permanent', scope: 'lord',
                 caps: ['extra_lord_skill'], note: '该方主帅每回合主公技次数 +N' },
   shou_hu:    { name: '守护', kind: 'buff',   numeric: false, duration: 'turns', caps: ['redirect_damage'],
+                guard_scope: 'any',
                 note: '受到的伤害转由守护者承受（援护/分担/护驾共用）' },
+  hu_zhu:     { name: '护主', kind: 'buff',   numeric: false, duration: 'turns', caps: ['redirect_damage'],
+                guard_scope: 'lord',
+                note: '只把**该方主帅**受到的伤害转给守护者（祖茂「替主」，ADR-071）' },
   jin_yong:   { name: '禁用', kind: 'debuff', numeric: false, duration: 'turns', caps: ['block_skill'],
                 note: '不能使用主动技与触发技（silence）' },
+  jin_gu:     { name: '禁锢', kind: 'debuff', numeric: false, duration: 'turns',
+                caps: ['block_attack', 'block_skill'],
+                note: '不能普攻也不能用主动技（陈宫「忠烈」对敌军分支，ADR-069）' },
   mian_yi:    { name: '免疫', kind: 'buff',   numeric: false, duration: 'turns', caps: ['immune_debuff', 'untargetable'],
                 note: '免疫负面状态，且不能被指定为目标' },
   fan_mian:   { name: '翻面', kind: 'debuff', numeric: false, duration: 'conditional',
@@ -184,6 +197,7 @@ export const TIMING = {
   ON_CARD_PLAYED: 'on_card_played',
   ON_MARK_DAMAGED: 'on_mark_damaged',
   ON_MARK_DEATH: 'on_mark_death',
+  ON_KILL: 'on_kill',          // 击杀者视角：每次击杀时（ADR-070）
 } as const;
 
 export const ACTIONS = [
@@ -194,7 +208,13 @@ export const ACTIONS = [
   'add_to_deck',   // 往牌库随机位置塞 N 张指定卡（ADR-050）
   'send_to_deck',  // 把牌库里剩下的指定牌全塞给对方（ADR-050）
   'cycle_to_deck', // 手牌放回牌库随机位置再抽 1 张（ADR-050）
+  'sacrifice',     // 牺牲一个己方单位，把它的 maxHp/hp 写进 flags（ADR-071，程昱）
+  'attack_each',   // 挨个发动**真正的普攻**（含反击），自己阵亡即停（ADR-071，张苞）
+  'draw_until',    // 一直抽到抽出一张「非某类型」的牌为止（ADR-071，姜维）
 ] as const;
+
+/** 稀有度（ADR-068）：普通 / 精英。精英卡允许强于同费预算 */
+export const RARITIES = ['common', 'elite'] as const;
 
 export const CARD_TYPES = ['troop', 'general', 'strategist', 'event', 'tactic', 'elite', 'special',
   'lord',     // 主将卡：开局置于主将位，不进卡组（ADR-044）

@@ -91,20 +91,60 @@ test('法正 恩怨分明：标记仇敌，仇敌受伤时为友军回血', () =
   assert.equal(marked.statuses.chou_di?.srcUid, r1.state.sides.own.rows.front[1]?.uid, '标记应记录法正 uid');
 });
 
-/* ================= 程昱：牺牲手牌，按其血量回血并造伤 ================= */
+/* ================= 程昱：牺牲己方人物，按其血量回血并造伤（ADR-071） ================= */
 
-test('程昱 审时度势：弃手牌 → 按该牌血量给友军回血', () => {
+test('程昱 审时度势：牺牲己方人物 → 按「血量上限」回血、按「当前血量」造伤', () => {
   realCard('wei_chengyu');
-  const { state, ctx } = scenario({ ownHand: ['wei_chengyu', 'test_champion'] });
-  const ally = u('hurt', 2, 5, [], 'shu');
-  ally.hp = 1;
-  setUnit(state, 'own', 'front', 0, ally);
+  const { state, ctx } = scenario({ ownHand: ['wei_chengyu'] });
 
-  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
-  assert.ok(r.events.some((e) => e.type === 'CARD_DISCARDED'), '应弃掉一张手牌');
-  // test_champion 血量 5 → 友军应从 1 回到 5（上限）
-  const healed = getUnit(r.state, 'own', 'front', 0)!;
-  assert.ok(healed.hp > 1, `友军应被治疗（1 → ${healed.hp}）`);
+  // 牺牲品：5 血上限，已被打到 2 血 —— 这样「血量最大值」与「当时血量」不相等，
+  // 才验得出两个 value_from_flag 取的是不同的数
+  const victim = u('victim', 3, 5, [], 'shu');
+  victim.hp = 2;
+  setUnit(state, 'own', 'front', 0, victim);
+  // 治疗对象：1 血（5 血上限，能收下 5 点治疗）
+  const wounded = u('wounded', 2, 5, [], 'shu');
+  wounded.hp = 1;
+  setUnit(state, 'own', 'front', 2, wounded);
+  // 敌人：血量够厚，验伤害量
+  const foe = u('foe', 1, 20);
+  setUnit(state, 'enemy', 'front', 0, foe);
+
+  const r = applyAction(state, ctx, {
+    type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1,
+    target: { side: 'own', row: 'front', col: 0 },     // 牺牲谁
+    target2: { side: 'own', row: 'front', col: 2 },     // 恢复给谁
+  });
+  assert.ok(r.ok, `打出应成功：${r.error}`);
+
+  assert.equal(getUnit(r.state, 'own', 'front', 0), null, '牺牲品应离开战场');
+  assert.ok(r.events.some((e) => e.type === 'UNIT_DIED'), '应产生阵亡事件');
+  assert.ok(!r.events.some((e) => e.type === 'CARD_DISCARDED'), '不应再弃手牌（原实现读错了卡面）');
+
+  // 治疗量 = 牺牲者的**血量上限** = 5（1 → 5 封顶，故至少涨到 4）
+  const healed = getUnit(r.state, 'own', 'front', 2)!;
+  assert.ok(healed.hp > 2, `治疗对象应被治疗（1 → ${healed.hp}）`);
+
+  // 伤害量 = 牺牲时的**当前血量** = 2（不是上限 5）
+  const enemy = getUnit(r.state, 'enemy', 'front', 0)!;
+  assert.equal(enemy.maxHp - enemy.hp, 2, '伤害应等于牺牲者的当前血量（受伤后更小）');
+});
+
+test('程昱 审时度势：牺牲满血人物时，伤害量等于其血量上限', () => {
+  realCard('wei_chengyu');
+  const { state, ctx } = scenario({ ownHand: ['wei_chengyu'] });
+  const victim = u('victim2', 3, 4, [], 'shu');          // 满血 4/4
+  setUnit(state, 'own', 'front', 0, victim);
+  const foe = u('foe2', 1, 20);
+  setUnit(state, 'enemy', 'front', 0, foe);
+
+  const r = applyAction(state, ctx, {
+    type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1,
+    target: { side: 'own', row: 'front', col: 0 },
+  });
+  assert.ok(r.ok, `打出应成功：${r.error}`);
+  const enemy = getUnit(r.state, 'enemy', 'front', 0)!;
+  assert.equal(enemy.maxHp - enemy.hp, 4, '满血牺牲 → 伤害 = 血量上限');
 });
 
 /* ================= 贾诩：控制权转移 ================= */

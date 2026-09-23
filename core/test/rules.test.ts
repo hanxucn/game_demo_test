@@ -111,20 +111,14 @@ test('部署：满 8 张后无法再部署', () => {
   assert.equal(legalPlacements(state, 'own').length, 0);
 });
 
-test('有效攻击力：结阵加成（相邻有友方步兵）', () => {
+// 「结阵」已移除（ADR-067）：引擎里"相邻有友方步兵时 +1 攻"是 AI 自己推的机制，
+// 设计者从未设计，且 0 张卡在用。原先这两条测试锁的是一个不该存在的行为。
+test('有效攻击力：不因相邻步兵而加成（「结阵」已移除）', () => {
   const { state } = scenario({
     own: { front: ['neutral_infantry', 'neutral_infantry'] },
   });
-  // 两个步兵相邻 → 各 +1
-  assert.equal(effectiveAttack(state, 'own', 'front', 0), 3);
-  assert.equal(effectiveAttack(state, 'own', 'front', 1), 3);
-});
-
-test('有效攻击力：结阵不生效（无相邻步兵）', () => {
-  const { state } = scenario({
-    own: { front: ['neutral_infantry', null, null, null, 'neutral_infantry'] },
-  });
-  assert.equal(effectiveAttack(state, 'own', 'front', 0), 2);
+  assert.equal(effectiveAttack(state, 'own', 'front', 0), 2, '相邻步兵不应再加攻');
+  assert.equal(effectiveAttack(state, 'own', 'front', 1), 2);
 });
 
 test('震慑状态：不能攻击', () => {

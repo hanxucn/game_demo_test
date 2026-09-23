@@ -7,6 +7,13 @@
 
 export type Side = 'own' | 'enemy';
 export type Row = 'front' | 'back';
+/**
+ * 性别（ADR-071）：貂蝉「祸国倾城」只认「男性角色」，需要按性别筛目标。
+ *
+ * 数据侧口径：**人物卡默认男性**，女性角色在 `card_gender` 决策段显式登记；
+ * 兵种/衍生物/进化卡等非具体人物的卡保持 `unknown`（不参与性别选择）。
+ */
+export type Gender = 'male' | 'female' | 'unknown';
 export type CardType =
   | 'troop' | 'general' | 'strategist' | 'event' | 'tactic' | 'elite' | 'special'
   | 'lord'      // 主公卡（不进卡组，见 ADR-014）
@@ -24,6 +31,12 @@ export interface EffectCondition {
   count?: { selector: TargetSelector; op: CompareOp; value: number };   // 数量与定值比
   count_vs?: { left: TargetSelector; right: TargetSelector; op: CompareOp };  // 两集合互比
   event?: 'killed' | 'clash_won' | 'clash_lost';             // 本次结算中的事件
+  /** 所选目标属于哪一方（陈宫「忠烈」：选敌将 vs 选友将走不同分支，ADR-069） */
+  chosen_side?: 'ally' | 'enemy';
+  /** 完整回合数上限（马超「首回合击杀」= turn_max:1，ADR-070） */
+  turn_max?: number;
+  /** 本次被击杀者的卡牌类型（马超只认「武将」，ADR-070） */
+  victim_type?: 'troop' | 'general' | 'strategist';
 }
 
 export type CompareOp = '>=' | '<=' | '==' | '>' | '<' | '!=';
@@ -54,27 +67,53 @@ export interface CardEffect {
   target?: TargetSelector;
   /** discard 专用：'choose' 表示由调用方通过 ctx.handIndex 指定弃哪张 */
   mode?: 'choose' | 'random';
+  /**
+   * remove_status 专用（ADR-071，华佗「青囊」）：按**状态类别**批量驱散。
+   * 卡面写「清除其负面效果状态」——只知道具体状态 id 无法表达，
+   * 玩家身上挂几个 debuff 就得列几条。给 `remove_kind: 'debuff'` 即清掉全部负面。
+   */
+  remove_kind?: 'debuff' | 'buff';
+  /**
+   * draw_until 专用（ADR-071，姜维「文武双全」）：一直抽，直到抽出一张
+   * **不是** `until_not_type` 的牌为止（该牌也进手牌）。
+   */
+  until_not_type?: CardType | 'character';
 }
 
 export interface TargetSelector {
   side?: 'ally' | 'enemy' | 'both' | 'self';
-  zone?: 'board' | 'hand';       // 作用区域，默认 board（ADR-038）
+  /** 作用区域，默认 board（ADR-038）。'both' = 手牌 + 场上都算候选（ADR-071，陆抗） */
+  zone?: 'board' | 'hand' | 'both';
   source?: boolean;              // true = 只选「来源单位自身」（ADR-033）
+  /** 本次事件里的另一方单位（华雄亡语：使**击杀者**获得 +1/+1，ADR-070） */
+  event?: 'killer' | 'victim';
   lord?: boolean;                // true = 选该方主帅（ADR-036）
+  /**
+   * 取玩家的第几个选择（ADR-071，程昱「审时度势」需要同时指定「牺牲谁」与「治疗谁」）。
+   *   · 1（默认）= `ctx.chosen`，即 `action.target`
+   *   · 2         = `ctx.chosen2`，即 `action.target2`
+   * 未提供时退回「合法池取前 N 个」，供 AI 与测试兜底。
+   */
+  pick?: 1 | 2;
   filter?: {
     type?: CardType | 'character';
     keyword?: string;
     tag?: string;                  // 归属标签，见 data/tags.yaml（ADR-029）
     faction?: Faction;
+    gender?: Gender;               // 性别筛选（ADR-071，貂蝉「祸国倾城」只认男性）
     lane?: number;
     row?: Row;
     health_max?: number;
     cost_max?: number;             // 统帅值上限（绝对，含）
     cost_min?: number;             // 统帅值下限（绝对，含）——与 cost_max 配合可写出互斥分支
     cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADR-036
+    attack_below_source?: boolean; // 攻击力低于来源单位（张飞「咆哮」）ADR-069
+    card_id?: string;              // 指定具体卡（关平亡语指定「关羽」）ADR-069
     troopKind?: 'infantry' | 'shield' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
     has_status?: string;
     adjacent_to?: 'self';          // 相邻单位（"相邻的己方人物"）
+    /** 排除来源单位自身（ADR-071，陆抗「手里**或**场上友方将领」：不能复制自己） */
+    exclude_source?: boolean;
     include_lord?: boolean;        // 候选池额外纳入该方主将（ADR-051，弓兵射箭「含主将」）
   };
   count?: number | 'all';
@@ -94,11 +133,31 @@ export interface SkillDef {
   chance?: number;               // 技能级概率（免死等，ADR-039）
   target?: TargetSelector;
   effects?: CardEffect[];
+  /**
+   * 抉择：同一技能的二选一分支（ADR-071，曹彰「猛袭」）。
+   *
+   * 给出 `modes` 时**忽略 `effects`**，由 `PLAY_CARD.modeIndex` 选中的分支执行；
+   * `modeIndex` 缺省或越界一律取 `modes[0]`（AI 与测试的兜底路径）。
+   * 每个分支自己带完整的一组效果，不做"公共前缀"合并 —— 分支之间往往互斥。
+   */
+  modes?: SkillMode[];
   /** 卡面技能文案（来自手写卡；仅用于显示与校验，不参与结算） */
   text?: string;
 }
 
+/** 抉择的一个分支（ADR-071） */
+export interface SkillMode {
+  name: string;
+  effects: CardEffect[];
+}
+
 export interface CardDef {
+  /**
+   * 稀有度（ADR-068）：普通卡必须贴合同费预算；
+   * **精英卡（橙卡）允许强于预算** —— 设计者明确"有些卡稍强是预期的，类似炉石的橙卡"。
+   * 校验器据此把"偏离预算"从 error 降为提示。
+   */
+  rarity?: 'common' | 'elite';
   id: string;
   name: string;
   faction: Faction;
@@ -107,6 +166,15 @@ export interface CardDef {
   attack?: number;
   health?: number;
   troopKind?: 'infantry' | 'shield' | 'archer';
+  /** 性别（ADR-071）：有攻血的单位默认 male，女性角色在 card_gender 决策段显式登记 */
+  gender?: Gender;
+  /**
+   * 类型是否由**设计者显式裁定**（ADR-072）。
+   *
+   * ADR-018 的自动判定是「攻击 > 1 → 武将；否则默认谋臣」，而攻击力会被后续调值改掉。
+   * 1 攻的武将必须带这个标记，否则校验器报 error —— 防止"数值改了、类型没跟着改"的静默错误。
+   */
+  type_explicit?: boolean;
   keywords?: string[];
   tags?: string[];               // 归属标签：西凉/蛮族/黄巾/士族（ADR-029）
   skills?: SkillDef[];
@@ -174,6 +242,7 @@ export interface Unit {
   hp: number;
   maxHp: number;                 // 派生值 = baseMaxHp + Σmods.health
   troopKind?: string;
+  gender?: Gender;              // 性别（ADR-071）
   kw: string[];
   tags: string[];                // 归属标签（ADR-029）
   statuses: Record<string, StatusInstance>;   // 状态实例（ADR-034）
@@ -236,10 +305,16 @@ export interface MatchState {
    ============================================================ */
 
 export type Action =
-  | { type: 'PLAY_CARD'; cardIndex: number; row?: Row; col?: number }
+  | { type: 'PLAY_CARD'; cardIndex: number; row?: Row; col?: number;
+      /** 战吼（on_play）需要玩家选目标时，在此带上所选目标（ADR-069） */
+      target?: { side: Side; row: Row; col: number };
+      /** 第二个玩家选择（ADR-071，程昱）：`TargetSelector.pick: 2` 读它 */
+      target2?: { side: Side; row: Row; col: number };
+      /** 抉择分支下标（ADR-071，曹彰）：缺省 / 越界一律取 modes[0] */
+      modeIndex?: number }
   | { type: 'ATTACK'; from: { row: Row; col: number }; to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' } }
-  | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }
-  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number }
+  | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number }; handIndex?: number; modeIndex?: number }
+  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number; modeIndex?: number }
   | { type: 'END_TURN' };
 
 /* ============================================================
@@ -269,7 +344,9 @@ export type GameEvent =
   | { type: 'SKILL_COPIED'; side: Side; from: string; skill: string }
   | { type: 'FORCED_ATTACK'; side: Side; row: Row; col: number }
   | { type: 'LORD_STATUS_EXPIRED'; side: Side; status: string }
-  | { type: 'DAMAGE_REDIRECTED'; side: Side; row: Row; col: number; to: Side; guardName: string }
+  | { type: 'DAMAGE_REDIRECTED'; side: Side; row?: Row; col?: number; to: Side; guardName: string;
+      /** true = 被守护的是**主帅**（护主，ADR-071）：没有 row/col，客户端应指向主公条 */
+      lord?: boolean }
   | { type: 'UNIT_SURVIVED'; side: Side; row: Row; col: number; unit: Unit }
   | { type: 'UNIT_FLIPPED'; side: Side; row: Row; col: number; to: 'front' | 'back'; unit: Unit }
   | { type: 'HAND_MODIFIED'; side: Side; index: number; kind: 'cost' | 'ban'; value?: number; turns?: number }
