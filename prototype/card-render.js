@@ -225,6 +225,21 @@ window.CardRender = (function () {
   /* ---------- 动画辅助 ---------- */
 
   /** 出牌：从手牌位置飞到目标格 */
+  /**
+   * 让元素成为"定位祖先"，好让飘字/特效挂上去。
+   *
+   * ⚠️ 不能无条件写 `el.style.position = 'relative'`（ADR-074 修的真 bug）：
+   * 战场上的 `.unit-wrap` 本身是 `position: absolute; inset: 0`，
+   * 被内联的 relative 一覆盖就退化成静态流里的空方块 —— **高度塌成 0，整张卡当场消失**。
+   * 症状是"打了一下之后那张卡就看不见了"，而且只要挂过一次飘字就永久生效，
+   * 于是"技能看不出来发动、数值跳动看不清"。只在 static 时才补 relative。
+   */
+  function ensurePositioned(el) {
+    if (!el || !el.style) return;
+    var pos = window.getComputedStyle ? window.getComputedStyle(el).position : '';
+    if (pos === 'static' || pos === '') el.style.position = 'relative';
+  }
+
   function flyTo(fromEl, toEl, done) {
     var a = fromEl.getBoundingClientRect();
     var b = toEl.getBoundingClientRect();
@@ -248,7 +263,7 @@ window.CardRender = (function () {
       if (toEl) {
         var flash = document.createElement('div');
         flash.className = 'cr-land-flash';
-        toEl.style.position = 'relative';
+        ensurePositioned(toEl);
         toEl.appendChild(flash);
         setTimeout(function () { flash.remove(); }, 460);
         toEl.classList.add('cr-land-bounce');
@@ -278,7 +293,7 @@ window.CardRender = (function () {
         dmg.textContent = '-' + damage;
         dmg.style.left = '50%';
         dmg.style.top = '12%';
-        targetEl.style.position = 'relative';
+        ensurePositioned(targetEl);
         targetEl.appendChild(dmg);
         setTimeout(function () { dmg.remove(); }, 760);
       }
@@ -289,7 +304,7 @@ window.CardRender = (function () {
   function die(el, done) {
     var burst = document.createElement('div');
     burst.className = 'cr-death-burst';
-    el.style.position = 'relative';
+    ensurePositioned(el);
     el.appendChild(burst);
     el.classList.add('cr-dying');
     setTimeout(function () {
@@ -300,14 +315,22 @@ window.CardRender = (function () {
   }
 
   /** 飘字：伤害/治疗/护甲/状态。cls 见 card-render.css 的 .cr-float.is-* */
-  function float(el, text, cls, source) {
+  /**
+   * 飘字。ADR-074：加两个参数 ——
+   *   · `life`：停留时长。原先写死 960ms，节奏放慢后数字先消失、动画还在跑；
+   *   · 同元素上已有的飘字会自动**错开**，否则五雷轰顶那种连击会叠成一坨看不清。
+   */
+  function float(el, text, cls, source, life) {
     if (!el) return;
     var n = document.createElement('div');
     n.className = 'cr-float ' + (cls || 'is-dmg');
     n.innerHTML = text + (source ? '<span class="cr-src">' + source + '</span>' : '');
-    el.style.position = 'relative';
+    ensurePositioned(el);
+    var live = el.querySelectorAll(':scope > .cr-float');
+    var stack = Math.min(live.length, 4);
+    if (stack) n.style.setProperty('--stack', String(stack));
     el.appendChild(n);
-    setTimeout(function () { n.remove(); }, 960);
+    setTimeout(function () { n.remove(); }, life || 960);
   }
 
   /** 技能释放：目标处爆开光环；wholeBoard=true 时整块战场闪一下（群体技） */
@@ -325,7 +348,7 @@ window.CardRender = (function () {
     var f = document.createElement('div');
     f.className = 'cr-spell';
     if (color) f.style.setProperty('--spell-c', color);
-    el.style.position = 'relative';
+    ensurePositioned(el);
     el.appendChild(f);
     setTimeout(function () { f.remove(); }, 660);
   }
