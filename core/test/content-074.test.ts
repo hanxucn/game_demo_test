@@ -260,11 +260,36 @@ test('ADR-075 陈到：无技能、无关键词的白板武将（技能名「白
   assert.ok(chendao.memo, '白板卡也要有 memo');
 });
 
-test('ADR-075：全卡池不再有「有技能名、效果待设计」的人物卡', () => {
-  const pending = ALL.filter((c) =>
+/**
+ * ⚠️ 这条测试必须读 `cards.json`（真实运行数据 + 校验器读的那份），
+ * **不能**读 `cards_v1.json` —— `pending` 标记是 `promote-cards.py` 入库时才加的，
+ * `cards_v1.json` 里永远没有这个字段，读它这条断言会**永远通过**（第一版就是这么写的空转测试）。
+ */
+test('ADR-075：人物卡不再有「有技能名、效果待设计」的 pending 技能（陈到回归）', () => {
+  const runtime: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
+  const pending = runtime.filter((c) =>
     (c.skills ?? []).some((sk) => (sk as { pending?: boolean }).pending));
-  assert.deepEqual(pending.map((c) => `${c.id}（${c.name}）`), [],
-    'pending 技能会让 UI 显示一个点不动的技能，应改为白板或补齐效果');
+  const pendingIds = pending.map((c) => c.id);
+  const names = pending.map((c) => `${c.id}（${c.name}）`);
+
+  // 人物卡（general / strategist）一个都不能有：卡面会显示一个点不动、也没效果的技能
+  const chars = pending.filter((c) => ['general', 'strategist'].includes(c.type))
+    .map((c) => `${c.id}（${c.name}）`);
+  assert.deepEqual(chars, [], `这些人物卡还挂着 pending 技能：${chars.join('、')}`);
+
+  // 剩下的只允许是「限制型文案」那两张（等 ADR-045 的 restrict 字段），换名单就报错
+  const ALLOW = ['neutral_infantry', 'token_jixie_shaobing'];
+  assert.deepEqual([...pendingIds].sort(), [...ALLOW].sort(),
+    `pending 技能名单变了：${names.join('、')} —— 若是新加的限制型文案，`
+    + '请连同 ADR-045 的 restrict 字段一起处理，不要让它静默挂在卡上');
+});
+
+test('ADR-075：陈到确实从 pending 名单里出来了（防"测试读错文件"回归）', () => {
+  const runtime: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
+  const chendao = runtime.find((c) => c.id === 'shu_chendao')!;
+  assert.ok(chendao, 'cards.json 里应有陈到');
+  assert.ok(!(chendao.skills ?? []).some((sk) => (sk as { pending?: boolean }).pending),
+    '陈到不该再有 pending 技能');
 });
 
 /* ============================================================
