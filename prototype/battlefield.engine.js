@@ -1910,36 +1910,40 @@ function insertUnitNow(e) {
 function animate(e) {
   switch (e.type) {
     case 'CARD_DRAWN': {
-      // ADR-077：设计者反馈"抽牌没有动画，不看数量和日志不知道自己抽牌了"。
-      // 原因：手牌 DOM 要等整段动画结束后的 renderAll 才更新，抽到的牌在那之前**根本不存在**，
-      // 只有一条很轻的牌堆闪光。现在：牌堆闪光 + 卡背飞向手牌 + **立刻重画手牌**
-      // （新牌当场出现并弹一下）+ 手牌区飘一张 "+1"。
-      var pile = $(e.side === 'own' ? '#own-deck-pile' : '#foe-deck-pile');
-      var hp2 = $(e.side === 'own' ? '#own-hand-pile' : '#foe-hand-pile');
+      // 抽牌表现（ADR-077 起，ADR-082 去重）
+      //
+      // ⚠️ 这里曾经**同时**做两件飞行动画，看起来像播了两遍：
+      //   · `flyCardBack()`  —— 一张**卡背**从牌堆飞到手牌区（ADR-065 的旧实现）
+      //   · `flyDrawnCard()` —— **卡面**从牌堆飞到它在手牌里的位置（ADR-080 新增）
+      //   ADR-080 只加了新的、忘了删旧的 → 自己抽牌时两个东西一起飞。
+      // 现在按"能不能看见牌面"二选一：
+      //   自己抽 → 飞**卡面**（能看出抽了什么）
+      //   对手抽 → 只飞**卡背**（不泄露情报）
+      // 另外 `highlightNewHandCard()`（renderAll 里按 drawnThisAction 触发）也会弹最新手牌，
+      // 与这里的弹跳**重复一次**，故这里处理完就不再置 drawnThisAction。
+      var mine = e.side === 'own';
+      var pile = $(mine ? '#own-deck-pile' : '#foe-deck-pile');
+      var hp2 = $(mine ? '#own-hand-pile' : '#foe-hand-pile');
       if (pile) {
         pile.classList.add('is-drawing');
         setTimeout(function () { pile.classList.remove('is-drawing'); }, paced(460));
       }
-      if (pile && hp2) flyCardBack(pile, hp2);
-      if (e.side === 'own') drawnThisAction = true;
       // 立刻把新手牌画出来，别等动画播完
       renderHand(session.state);
       renderPanel(session.state);
       var handBox = $('#hand');
+      var newCard = handBox ? handBox.lastElementChild : null;
       if (handBox) {
         handBox.classList.add('is-drawing');
         setTimeout(function () { handBox.classList.remove('is-drawing'); }, paced(460));
-        var newCard = handBox.lastElementChild;
-        var mine = e.side === 'own';
         if (newCard) {
           newCard.classList.add('cr-land-bounce');
           setTimeout(function () { newCard.classList.remove('cr-land-bounce'); }, paced(460));
-          // ADR-080：设计者"只看到 抽牌+1，看不出抽了什么" —— 飘字说不出是哪张牌。
-          // 现在把**抽到的那张卡的牌面**从牌堆飞到它该待的位置（敌方只飞卡背，别泄露情报）。
-          if (mine && pile) flyDrawnCard(pile, newCard);
         }
         if (mine) CR.float(handBox, '+1 张', 'is-buff', '抽牌', paced(1100));
       }
+      if (pile && mine && newCard) flyDrawnCard(pile, newCard);       // 自己：飞牌面
+      else if (pile && !mine && hp2) flyCardBack(pile, hp2);          // 对手：只飞卡背
       return 620;
     }
     case 'CARD_PLAYED': {
