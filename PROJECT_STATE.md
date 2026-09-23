@@ -64,9 +64,9 @@
 
 | 命令 | 作用 | 当前结果 |
 |---|---|---|
-| `cd core && npm test` | 204 个测试（规则/引擎/回放/DSL/B 类技能/数据校验） | ✅ 204/204 |
+| `cd core && npm test` | 224 个测试（规则/引擎/回放/DSL/B 类技能/数据校验/内容收口） | ✅ 224/224 |
 | `npm run typecheck` | `tsc --noEmit` | ✅ 通过 |
-| `npm run validate` | 卡牌数据校验（GDD 的 10 条规则） | ✅ 0 错误 / 63 警告 |
+| `npm run validate` | 卡牌数据校验（GDD 的 10 条规则） | ✅ 0 错误 / 62 警告 |
 | `npm run verify:dsl` | 逐张真实卡牌的 DSL 端到端 | ✅ 102 通过 / 0 失败 |
 | `npm run smoke` | 两个 AI 互打一局 + 回放校验 | ✅ 回放完全一致 |
 
