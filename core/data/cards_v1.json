@@ -427,17 +427,9 @@
   "cost": 3,
   "attack": 2,
   "health": 2,
-  "skills": [
-   {
-    "name": "白毦兵",
-    "text": "",
-    "dsl": null,
-    "note": "效果 DSL 待翻译（尚未开始）"
-   }
-  ],
   "keywords": [],
   "gender": "male",
-  "memo": "3 费 2/2，技能「白毦兵」效果待设计",
+  "memo": "3 费 2/2 的白板武将（技能名「白毦兵」等效果设计好再加）",
   "flavor": "",
   "source": {
    "photo": 58
@@ -446,7 +438,7 @@
    "转录存疑 2 处（详见 cards_photo.draft.yaml）",
    "缺 memo"
   ],
-  "dsl_status": "⚠️ 有技能名、效果待设计（手写稿正文区空白）"
+  "no_skill_reason": "设计者裁定：先作为无技能武将加入（技能名保留在设计文档里）"
  },
  {
   "id": "wei_xiahouyuan",
@@ -4907,14 +4899,14 @@
   "skills": [
    {
     "name": "",
-    "text": "下一回合不进行任何活动, 恢复全体人员(包括主帅)3-4点血量, 抽三张牌。",
+    "text": "恢复己方全体（含主帅）3 点生命，并抽 1 张牌。",
     "dsl": null,
     "note": "DSL 已翻译（卡级 effects）"
    }
   ],
   "keywords": [],
   "gender": "unknown",
-  "memo": "歇一回合，全体（含主帅）回血并抽 3 张",
+  "memo": "己方全体（含主帅）回 3 血并抽 1 张",
   "flavor": "",
   "source": {
    "photo": 147
@@ -4945,16 +4937,8 @@
     }
    },
    {
-    "action": "apply_status",
-    "status": "xiu_zheng",
-    "target": {
-     "side": "ally",
-     "lord": true
-    }
-   },
-   {
     "action": "draw",
-    "value": 3
+    "value": 1
    }
   ]
  },

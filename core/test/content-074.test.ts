@@ -197,10 +197,13 @@ test('ADR-074 司马懿③：场上只剩他一人时，②额外生效（any_of
 });
 
 /* ============================================================
-   休养生息：群体治疗（含主帅）+ 抽 3 + 下一回合被跳过
+   休养生息：己方全体（含主帅）+3 血，然后抽 1 张
+   ------------------------------------------------------------
+   ADR-075（设计者裁定）把效果改成这个 —— 去掉了旧的
+   「下一回合不进行任何活动」（skip_turn）与抽 3 张。
    ============================================================ */
 
-test('ADR-074 休养生息：治疗全体人物**与主帅**、抽 3 张，并跳过自己的下一个回合', () => {
+test('ADR-075 休养生息：己方全体（含主帅）各回 3 血，然后抽 1 张', () => {
   realCard('tactic_xiushengyangxi');
   // ⚠️ 不能用 1/1 的步兵：它 maxHp = 1，治疗被上限吃掉，等于没测（第一版就栽在这里）
   const { state, ctx } = scenario({ ownHand: ['tactic_xiushengyangxi'], own: { front: ['test_champion'] } });
@@ -212,28 +215,56 @@ test('ADR-074 休养生息：治疗全体人物**与主帅**、抽 3 张，并�
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
   assert.ok(r.ok, `打出应成功：${r.error}`);
 
-  assert.equal(r.state.sides.own.lord.hp, 23, '主帅也要回 3 点（卡面「包括主帅」）');
+  assert.equal(r.state.sides.own.lord.hp, 23, '「己方全体」含主帅 → 主帅回 3 点');
   assert.equal(getUnit(r.state, 'own', 'front', 0)!.hp, 4, '场上人物回 3 点（1 → 4）');
-  assert.equal(r.state.sides.own.hand.length, 3, '抽 3 张');
-  assert.ok(r.state.sides.own.lord.statuses?.xiu_zheng, '应挂上「休整」');
-
-  // 自己结束回合 → 对手回合 → 再回到自己时，整个回合被跳过
-  const r2 = applyAction(r.state, ctx, { type: 'END_TURN' });
-  assert.ok(r2.ok);
-  assert.equal(r2.state.active, 'enemy', '先交到对手手上（不跳对手的回合）');
-
-  const r3 = applyAction(r2.state, ctx, { type: 'END_TURN' });
-  assert.ok(r3.ok, `对手结束回合应成功：${r3.error}`);
-  assert.ok(has(r3.events, 'TURN_SKIPPED'), '自己那个回合应被跳过');
-  const skipped = r3.events.find((e) => e.type === 'TURN_SKIPPED') as Extract<GameEvent, { type: 'TURN_SKIPPED' }>;
-  assert.equal(skipped.side, 'own', '被跳过的是自己（这是这张 5 费卡的代价）');
-  assert.equal(r3.state.active, 'enemy', '跳过之后仍轮到对手');
-  assert.equal(r3.state.sides.own.lord.statuses?.xiu_zheng, undefined, '「休整」应被消耗掉');
+  assert.equal(r.state.sides.own.hand.length, 1, '抽 1 张（原先是抽 3）');
+  assert.equal(r.state.sides.own.deck.length, 3, '牌库只少 1 张');
+  assert.equal(r.state.sides.own.lord.statuses?.xiu_zheng, undefined,
+    'ADR-075 已去掉「下一回合不进行任何活动」，不该再挂「休整」');
 });
 
-test('ADR-074：`xiu_zheng` 状态已注册且带 skip_turn 能力', () => {
+test('ADR-075 休养生息：不再跳过任何一方的回合（回归：旧代价已移除）', () => {
+  realCard('tactic_xiushengyangxi');
+  const { state, ctx } = scenario({ ownHand: ['tactic_xiushengyangxi'] });
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
+  assert.ok(r.ok, `打出应成功：${r.error}`);
+
+  const r2 = applyAction(r.state, ctx, { type: 'END_TURN' });        // → 敌方
+  assert.ok(r2.ok);
+  const r3 = applyAction(r2.state, ctx, { type: 'END_TURN' });       // → 回来正常轮到自己
+  assert.ok(r3.ok, `对手结束回合应成功：${r3.error}`);
+  assert.ok(!has(r3.events, 'TURN_SKIPPED'), '不该再出现跳回合');
+  assert.equal(r3.state.active, 'own', '轮次应正常回到自己');
+});
+
+test('ADR-075 / ADR-074：`skip_turn` 能力与 `xiu_zheng` 状态仍保留（当前无卡使用）', () => {
+  // 设计者随时可能把「下一回合不进行任何活动」挂回某张卡，能力与测试一并留着
   assert.ok(STATUSES.xiu_zheng, 'xiu_zheng 必须登记在 STATUSES');
   assert.ok(STATUSES.xiu_zheng!.caps!.includes('skip_turn'));
+});
+
+/* ============================================================
+   陈到：先作为**无技能武将**进卡池（ADR-075）
+   ============================================================ */
+
+test('ADR-075 陈到：无技能、无关键词的白板武将（技能名「白毦兵」暂缓设计）', () => {
+  const chendao = ALL.find((c) => c.id === 'shu_chendao');
+  assert.ok(chendao, '陈到应存在于卡表');
+  assert.equal(chendao.type, 'general', '是武将');
+  assert.equal(chendao.attack, 2, '2 攻 > 1 → 按 ADR-018 判武将，不需要 type_explicit');
+  assert.equal(chendao.health, 2);
+  assert.equal(chendao.cost, 3);
+  assert.deepEqual(chendao.keywords ?? [], [], '没有关键词');
+  // 关键：不能留一条 `pending: true` 的空技能，那会让卡面显示一个不存在的技能
+  assert.deepEqual(chendao.skills ?? [], [], '不该再有「白毦兵」这条待设计技能');
+  assert.ok(chendao.memo, '白板卡也要有 memo');
+});
+
+test('ADR-075：全卡池不再有「有技能名、效果待设计」的人物卡', () => {
+  const pending = ALL.filter((c) =>
+    (c.skills ?? []).some((sk) => (sk as { pending?: boolean }).pending));
+  assert.deepEqual(pending.map((c) => `${c.id}（${c.name}）`), [],
+    'pending 技能会让 UI 显示一个点不动的技能，应改为白板或补齐效果');
 });
 
 /* ============================================================
