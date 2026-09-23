@@ -503,6 +503,48 @@
     100% { background: transparent; }
   }
 
+  /* ===== ADR-078：本回合「能不能动」一眼可见 =====
+     卡与卡之间只有 4px，靠记忆记"哪张动过了"不现实。规则：
+       · 当前行动方 + 可以攻击 → 绿色描边 + 右上角绿点
+       · 当前行动方 + 不能攻击 → 去饱和压暗（一眼看出"这张动不了"）
+       · 悬停时绿色加亮；不能行动时详情面板说明原因
+     非行动方不标注（attackedThisTurn 是上一轮残留值，标出来是错的）。 */
+  .unit-wrap.is-ready::before {
+    content: ''; position: absolute; inset: -3px; border-radius: 9px;
+    border: 2px solid rgba(111,224,122,.78);
+    box-shadow: 0 0 10px rgba(111,224,122,.35), inset 0 0 8px rgba(111,224,122,.18);
+    pointer-events: none; z-index: 6;
+  }
+  .unit-wrap.is-ready::after {
+    content: ''; position: absolute; right: -3px; top: -3px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #d6ffdd, #58c96a 70%);
+    box-shadow: 0 0 6px rgba(111,224,122,.9);
+    pointer-events: none; z-index: 7;
+  }
+  .unit-wrap.is-ready:hover::before {
+    border-color: #9dffab;
+    box-shadow: 0 0 16px rgba(140,255,160,.75), inset 0 0 12px rgba(111,224,122,.3);
+  }
+  /* 中间态：不能攻击、但主动技可用（谋臣常见）—— 轻微压暗但不至于像"完全不能动" */
+  .unit-wrap.is-skillready .cr-card { filter: grayscale(.18) brightness(.93); }
+  .unit-wrap.is-spent .cr-card { filter: grayscale(.5) brightness(.72); }
+  .unit-wrap.is-spent.is-target .cr-card { filter: grayscale(.15) brightness(.95); }
+
+  /* 可行动计数：挂在左侧说明面板底部 */
+  #ready-count {
+    margin-top: 6px; padding: 4px 7px; border-radius: 5px;
+    font-size: 11px; letter-spacing: .02em;
+    border: 1px solid #3a3228; background: rgba(0,0,0,.28);
+  }
+  #ready-count b { color: #9dffab; font-size: 13px; }
+  #ready-count.is-ok { border-color: #3f6a45; color: #cfe9d2; }
+  #ready-count.is-none { border-color: #5a4a2a; color: var(--dim); }
+  #ready-count.is-wait { border-color: #3a3228; color: var(--dim); }
+
+  #detail .act-why { margin-top: 6px; padding-top: 5px; border-top: 1px dotted #3a3228; color: #ffb08a; }
+  #detail .act-why.is-ok { color: #9fd0a4; }
+
   /* 攻击目标：卡面外扩 5px 的透明命中层 —— 战场卡只有 42×59、格间距 4px，
      光靠卡面本身很难点中（ADR-076）。吸附半径是主兜底，这层是眼睛看不见的加成。 */
   .unit-wrap.is-target::after {
@@ -1030,7 +1072,7 @@
   <div class="tiny"><b>开局</b>：阵营 → 构筑 30 张 → 换牌</div>
   <hr>
   <div class="tiny">点手牌 → 点绿格出牌</div>
-  <div class="tiny">点我方单位 → 点高亮目标攻击</div>
+  <div class="tiny">点我方单位 → 点高亮目标攻击<br><b style="color:#9dffab">绿框</b> = 本回合可行动，暗卡 = 已动过</div>
   <div class="tiny">敌方<b>有架盾</b>时只能打盾；否则可直攻主将</div>
   <div class="tiny">点主公卡 → 发动主公技（2 统率 / 每回合 1 次）</div>
   <div class="tiny">右下角<b>事件日志</b>可查看每次结算细节</div>
