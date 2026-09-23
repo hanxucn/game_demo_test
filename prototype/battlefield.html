@@ -495,6 +495,23 @@
   #speed-ctl button:hover { color: #f6ecd8; border-color: #6b5730; }
   #speed-ctl button.is-on { color: #1b1409; background: linear-gradient(180deg, #e8c877, #b9932f); font-weight: 700; }
 
+  /* 日志：刚写下的那一行闪一下 —— 配合"日志与动画同步"（ADR-076），
+     玩家的视线可以跟着日志逐行往下走，而不是一次性看到结局 */
+  #log .le.fresh { animation: logFresh .7s ease-out; }
+  @keyframes logFresh {
+    0%   { background: rgba(255,215,140,.30); color: #fff6dc; }
+    100% { background: transparent; }
+  }
+
+  /* 攻击目标：卡面外扩 5px 的透明命中层 —— 战场卡只有 42×59、格间距 4px，
+     光靠卡面本身很难点中（ADR-076）。吸附半径是主兜底，这层是眼睛看不见的加成。 */
+  .unit-wrap.is-target::after {
+    content: ''; position: absolute; inset: -5px; border-radius: 8px;
+  }
+  .lord-bar.is-target::after {
+    content: ''; position: absolute; inset: -6px; border-radius: 8px;
+  }
+
   /* 日志：技能发动 / 牌库被拆 单独着色 */
   #log .le.skill b { color: #ffd98a; }
   #log .le.skill i { color: #9c8a63; font-style: normal; font-size: 10px; }
