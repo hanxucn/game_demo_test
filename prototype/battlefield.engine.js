@@ -886,9 +886,18 @@ var dragHandledAt = 0;   // 上一次拖拽已处理的时间戳（避免随后�
 function arrowEl() { return document.getElementById('arrow-layer'); }
 function arrowPathEl() { return document.getElementById('arrow-path'); }
 
-/** 箭头起点 = 单位卡中心 */
+/**
+ * 箭头起点 = 单位卡中心。
+ *
+ * ⚠️ ADR-083：元素**没布局**时（已被 renderAll 换掉、或祖先隐藏）
+ * `getBoundingClientRect()` 全是 0 → 起点变成 (0,0)，箭头就从屏幕左上角
+ * 斜着飞进来（设计者截图里那条"飘出屏幕"的箭头就是这个）。
+ * 这里返回 null 让调用方**干脆不画**，而不是画一条错的。
+ */
 function arrowOrigin(el) {
+  if (!el || !el.isConnected) return null;
   var r = el.getBoundingClientRect();
+  if (!r.width && !r.height) return null;      // 退化矩形 = 没有布局
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
@@ -912,6 +921,7 @@ function arrowToCached(fromEl, x, y, ok) {
   var layer = arrowEl(), path = arrowPathEl();
   if (!layer || !path || !fromEl || !drag || !drag.origin) { arrowTo(fromEl, x, y, ok); return; }
   var o = drag.origin;
+  if (!o) { arrowHide(); return; }
   var e2 = clampToViewport(x, y);
   x = e2.x; y = e2.y;
   var mx = (o.x + x) / 2;
@@ -929,6 +939,7 @@ function arrowTo(fromEl, x, y, ok) {
   var layer = arrowEl(), path = arrowPathEl();
   if (!layer || !path || !fromEl) return;
   var o = arrowOrigin(fromEl);
+  if (!o) { arrowHide(); return; }             // 起点取不到 → 不画（ADR-083）
   var e2 = clampToViewport(x, y);
   x = e2.x; y = e2.y;
   // 轻微上拱的二次曲线，比直线更接近炉石的"指向感"
@@ -2295,7 +2306,8 @@ window.addEventListener('pointermove', function (e) {
   if (!sel || sel.kind !== 'unit') { arrowHide(); return; }
   var wrap = document.querySelector('.slot[data-side="own"][data-row="' + sel.row +
     '"][data-col="' + sel.col + '"] .unit-wrap');
-  if (!wrap) { arrowHide(); return; }
+  // 取不到 / 拿到的元素没布局（例如刚被 renderAll 换掉）→ 收箭头，不要画一条起点在 (0,0) 的
+  if (!wrap || !arrowOrigin(wrap)) { arrowHide(); return; }     // ADR-083
   arrowTo(wrap, e.clientX, e.clientY, dropIsValid(e.clientX, e.clientY));
 });
 window.addEventListener('resize', reportSizes);
