@@ -503,6 +503,14 @@
     100% { background: transparent; }
   }
 
+  /* 抽牌：飞向手牌的卡面幽灵（ADR-080） */
+  .cr-draw-fly {
+    position: fixed; left: 0; top: 0; z-index: 600; pointer-events: none;
+    transition: transform .4s cubic-bezier(.2,.8,.3,1), opacity .4s;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.8)) brightness(1.12);
+  }
+  #hand.is-drawing { box-shadow: inset 0 0 26px rgba(255,215,140,.30); }
+
   /* ===== ADR-078：本回合「能不能动」一眼可见 =====
      卡与卡之间只有 4px，靠记忆记"哪张动过了"不现实。规则：
        · 当前行动方 + 可以攻击 → 绿色描边 + 右上角绿点
