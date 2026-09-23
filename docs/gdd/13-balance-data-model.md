@@ -205,6 +205,7 @@ effects:
 | `sacrifice` | target | **牺牲**己方单位，并把它的 `maxHp` / 当前 `hp` 写进 `ctx.flags`（ADR-071，程昱） |
 | `attack_each` | target | 对目标集**挨个发动真正的普通攻击**（含反击），自己阵亡即停（ADR-071，张苞） |
 | `draw_until` | until_not_type | 一直抽，直到抽出一张不是该类型的牌（ADR-071，姜维） |
+| `mill` | count, from_deck | 弃掉目标方**牌库**的 N 张（ADR-074，司马懿②「使敌方卡池随机丢弃一张」）|
 
 > 动作分两张表：`ACTIONS` 只是**注册表**，`IMPLEMENTED_ACTIONS`（`core/src/effects.ts`）
 > 才是**已实现**。两者不一致时用该动作的卡会**静默空转**（华佗的 `remove_status` 就这样
@@ -587,7 +588,36 @@ card_type:
 - 同一条目也顺手清掉了 `gen-cards-v1.py` 里 `TYPE_FIX = {'shu_huangquan': 'general'}`
   这种**按 id 的类型硬编码**（卡牌数据不该写进代码，铁律 1）。
 
-#### ⑤ 守护范围 `guard_scope`（B-11，祖茂「替主」）
+#### ⑤ 条件的与 / 或 组合（ADR-074）
+
+```yaml
+condition:
+  all_of:            # 全部满足（张宝/张梁「张氏三兄弟同时在场」）
+    - exists: { side: ally, filter: { card_id: qun_zhangliang } }
+    - exists: { side: ally, filter: { card_id: qun_zhangjiao } }
+  any_of:            # 任一满足（司马懿③「场上只剩他一人时，②同样生效」）
+    - acted_this_turn: true
+      dealt_damage_this_turn: true
+    - count: { selector: { side: ally, filter: { type: character } }, op: '==', value: 1 }
+```
+
+- 单个字段之间仍是「与」；`all_of` / `any_of` 先判，再与其余字段相与。
+- **计价**：每个子句 ×0.7 连乘；子句指名具体卡（`filter.card_id`）再 ×0.5（组合技）；
+  `all_of` 连乘、`any_of` 取最宽的一支。
+
+#### ⑥ 本回合行为（ADR-074，司马懿）
+
+| 条件 | 含义 | 设定时机 |
+|---|---|---|
+| `acted_this_turn` | 来源单位本回合是否**行动过**（攻击或使用主动技） | 回合开始重置；攻击 / 用主动技时置真 |
+| `dealt_damage_this_turn` | 来源单位本回合的攻击是否**造成过伤害** | 只有实际伤害 > 0 才置真 |
+
+#### ⑦ 跳过回合（ADR-074，休养生息）
+
+`StatusDef.caps` 里的 `skip_turn`：该方主帅带此状态时，其**下一个回合整个被跳过**
+（引擎在换手后循环结算，上限 4 次防呆）。`xiu_zheng`（休整）即此能力的状态实现。
+
+#### ⑧ 守护范围 `guard_scope`（B-11，祖茂「替主」）
 
 `STATUSES[id].guard_scope`：
 
