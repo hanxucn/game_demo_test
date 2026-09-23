@@ -143,6 +143,38 @@ function newGame() {
    渲染
    ============================================================ */
 
+/**
+ * 「本回合可行动数」实时计数（ADR-078）
+ *
+ * 卡与卡之间只差 4px，光靠边框颜色仍要一张张扫；给一个总数最省事。
+ * 非自己回合时 attackedThisTurn 是上一轮的残留值，显示计数会误导 —— 改为提示等待。
+ */
+function renderReadyCount(st) {
+  var el = document.getElementById('ready-count');
+  if (!el) {
+    var hud = $('#hud');
+    if (!hud) return;
+    el = document.createElement('div');
+    el.id = 'ready-count';
+    hud.appendChild(el);
+  }
+  var mine = Core.allUnits(st, 'own');
+  if (st.active !== 'own' || st.winner) {
+    el.className = 'is-wait';
+    el.innerHTML = '⏳ 对手回合 —— 我的单位暂不可行动';
+    return;
+  }
+  var ready = mine.filter(function (r) { return Core.canAttack(st, 'own', r.row, r.col).ok; }).length;
+  var skills = mine.filter(function (r) {
+    return !Core.canAttack(st, 'own', r.row, r.col).ok
+      && Core.canUseUnitSkill(st, 'own', r.row, r.col).ok;
+  }).length;
+  el.className = ready ? 'is-ok' : 'is-none';
+  el.innerHTML = '⚔ 可攻击 <b>' + ready + '</b> / ' + mine.length
+    + (skills ? '　⚙ 仅技可用 ' + skills : '')
+    + (ready ? '' : '　（都动过了）');
+}
+
 function renderAll() {
   var st = session.state;
   bindBoardClick();
@@ -152,6 +184,7 @@ function renderAll() {
   renderBoard(st);
   renderLanes(st);
   renderHand(st);
+  renderReadyCount(st);
   reportSizes();
 }
 
@@ -268,6 +301,20 @@ function renderBoard(st) {
               onUnitSkillClick(row, col, skill);
             });
           }
+          // 「本回合能不能动」要在卡上直接看得出来（ADR-078）：
+          // 只有**当前行动方**的单位才标绿/置灰 —— 非行动方的 attackedThisTurn 是上一轮
+          // 残留值，标出来反而是错的。
+          var actState = null;
+          if (side === st.active && !st.winner) {
+            actState = Core.canAttack(st, side, row, col);
+            // 三种状态：能动 / 不能攻击但技可用 / 完全不能动（ADR-078）。
+            // 中间态很重要：谋臣往往"入场当回合不能攻击、但主动技立刻能用"，
+            // 整卡压暗会让人以为它这回合什么都干不了。
+            var canSkill = Core.canUseUnitSkill(st, side, row, col).ok;
+            wrap.classList.add(actState.ok ? 'is-ready' : (canSkill ? 'is-skillready' : 'is-spent'));
+            wrap.dataset.actWhy = actState.ok ? ''
+              : (canSkill ? '本回合不能攻击，但可以使用主动技' : (actState.reason || '不可行动'));
+          }
           if (side === 'own') {
             wrap.addEventListener('pointerdown', function (e) {
               if (e.target.closest('.cr-skillbtn')) return;   // 「技」按钮不拖拽
@@ -279,6 +326,21 @@ function renderBoard(st) {
           wrap.addEventListener('pointerenter', function () {
             if (busy || drag) return;
             showCardDetail(u);
+            // 不能行动时，把**原因**一起说清楚（入场当回合 / 已攻击过 / 被震慑…）
+            if (actState && !actState.ok) {
+              var canSk = Core.canUseUnitSkill(st, side, row, col).ok;
+              var d = document.createElement('div');
+              d.className = 'why act-why';
+              d.textContent = canSk
+                ? '⚙ 本回合不能攻击（' + (actState.reason || '') + '），但「技」可用'
+                : '⛔ 本回合不能行动：' + (actState.reason || '');
+              $('#detail').appendChild(d);
+            } else if (actState && actState.ok) {
+              var d2 = document.createElement('div');
+              d2.className = 'why act-why is-ok';
+              d2.textContent = '⚔ 本回合可以攻击（点选或拖到目标）';
+              $('#detail').appendChild(d2);
+            }
           });
           wrap.addEventListener('click', function (e) {
             e.stopPropagation();
