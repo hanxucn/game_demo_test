@@ -329,8 +329,11 @@ window.CardRender = (function () {
     var live = el.querySelectorAll(':scope > .cr-float');
     var stack = Math.min(live.length, 4);
     if (stack) n.style.setProperty('--stack', String(stack));
+    // 动画时长必须跟着 life 走，否则"放慢节奏"对飘字毫无作用（见 floatRise 的注释）
+    var ms = life || 960;
+    n.style.setProperty('--float-life', ms + 'ms');
     el.appendChild(n);
-    setTimeout(function () { n.remove(); }, life || 960);
+    setTimeout(function () { n.remove(); }, ms + 80);
   }
 
   /** 技能释放：目标处爆开光环；wholeBoard=true 时整块战场闪一下（群体技） */

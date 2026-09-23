@@ -131,6 +131,7 @@ function newGame() {
 
 function renderAll() {
   var st = session.state;
+  bindBoardClick();
   if (drawnThisAction) highlightNewHandCard();
   renderLords(st);
   renderPanel(st);
@@ -260,8 +261,10 @@ function renderBoard(st) {
           });
           wrap.addEventListener('click', function (e) {
             e.stopPropagation();
-            // 点选已在 onDragEnd 里处理（见那里的注释）——这里只作兜底，避免重复
-            if (Date.now() - tapHandledAt < 300) return;
+            // 点选已在 onDragEnd 里处理（见那里的注释）——这里只作兜底，避免重复。
+            // ⚠️ 让路判定必须**认元素**：原先只看时间戳，于是"点自己人选中 → 立刻点敌人"
+            //    会被这条兜底吞掉（实测三个攻击路径全部打不出去）。ADR-076 修。
+            if (tapHandledEl === wrap && Date.now() - tapHandledAt < 400) return;
             onUnitClick(side, row, col, e);
           });
           slot.appendChild(wrap);
@@ -269,7 +272,7 @@ function renderBoard(st) {
           slot.classList.add('empty');
           slot.addEventListener('click', function (e) {
             e.stopPropagation();
-            onSlotClick();
+            onSlotClick(e);
           });
         }
         rowEl.appendChild(slot);
@@ -282,16 +285,71 @@ function renderBoard(st) {
  * 目标高亮（ADR-051：列概念已取消，原先的「列光束」作废）。
  * 选中自己的单位后，把所有合法目标（含主将）描边高亮。
  */
+/* ---------- 攻击目标命中缓存（ADR-076）----------
+   原先每次 pointermove / pointerup 都要跑一遍
+   `document.elementFromPoint` + 向上遍历 DOM 找 `.unit-wrap` + 全文档
+   `querySelectorAll` 抹 class。战场卡只有 42×59、格间距 4px，指针偏几个像素
+   就落进"缝隙"，于是表现为「选不到敌人和主公」「点自己人经常失败」。
+   现在：选中时把合法目标的位置**算一次**缓存下来，之后只做坐标比较，
+   并给每个目标一个吸附半径 —— 落点靠近谁就命中谁。 */
+var hitTargets = [];   // [{kind,side,row,col,left,top,right,bottom,cx,cy}]
+var hitPad = 18;       // 吸附半径（屏幕像素）
+
+function rectOf(el, t) {
+  var r = el.getBoundingClientRect();
+  return {
+    kind: t.kind, side: t.side, row: t.row, col: t.col,
+    left: r.left, top: r.top, right: r.right, bottom: r.bottom,
+    cx: r.left + r.width / 2, cy: r.top + r.height / 2,
+  };
+}
+
+/** 离 (x,y) 最近的合法目标；超出吸附半径则返回 null */
+function nearestHit(x, y) {
+  var best = null, bestD = Infinity;
+  hitTargets.forEach(function (t) {
+    // 点到矩形的距离：落在矩形内为 0
+    var dx = Math.max(t.left - x, 0, x - t.right);
+    var dy = Math.max(t.top - y, 0, y - t.bottom);
+    var d = Math.sqrt(dx * dx + dy * dy);
+    if (d < bestD) { bestD = d; best = t; }
+  });
+  return (best && bestD <= hitPad) ? best : null;
+}
+
+/** 精确命中（点到哪张卡就是哪张，不吸附）—— 点击路径用 */
+function exactHit(side, row, col) {
+  for (var i = 0; i < hitTargets.length; i++) {
+    var t = hitTargets[i];
+    if (t.side === side && t.kind === 'unit' && t.row === row && t.col === col) return t;
+    if (t.side === side && t.kind === 'lord' && row === undefined) return t;
+  }
+  return null;
+}
+
+/** 给战场背景挂一次吸附处理器（DOM 稳定，只挂一次） */
+function bindBoardClick() {
+  var boards = $('#boards');
+  if (!boards || boards.dataset.snapBound) return;
+  boards.dataset.snapBound = '1';
+  boards.addEventListener('click', function (e) { onBoardClick(e); });
+}
+
 function renderLanes(st) {
   $all('.unit-wrap.is-target').forEach(function (el) { el.classList.remove('is-target'); });
   $('#lord-enemy').classList.remove('is-target');
+  hitTargets = [];
   if (!sel) return;
   var res = Core.legalTargets(st, 'own', sel.row, sel.col);
   res.targets.forEach(function (t) {
-    if (t.kind === 'lord') { $('#lord-enemy').classList.add('is-target'); return; }
-    var slot = document.querySelector('.row[data-side="' + t.side + '"][data-row="' + t.row + '"] .slot[data-col="' + t.col + '"]');
-    var wrap = slot && slot.querySelector('.unit-wrap');
-    if (wrap) wrap.classList.add('is-target');
+    var el = t.kind === 'lord' ? $('#lord-enemy')
+      : (function () {
+          var slot = document.querySelector('.row[data-side="' + t.side + '"][data-row="' + t.row + '"] .slot[data-col="' + t.col + '"]');
+          return slot && slot.querySelector('.unit-wrap');
+        })();
+    if (!el) return;
+    el.classList.add('is-target');
+    hitTargets.push(rectOf(el, t));
   });
 }
 
@@ -514,8 +572,10 @@ function startUnitDrag(e, row, col, wrap) {
   ghost.classList.add('drag-ghost');
   ghost.style.width = rect.width + 'px';
   ghost.style.height = rect.height + 'px';
-  ghost.style.left = rect.left + 'px';
-  ghost.style.top = rect.top + 'px';
+  ghost.style.left = '0px';
+  ghost.style.top = '0px';
+  // 用 transform 移动幽灵：改 left/top 每帧都会触发布局，是"拖起来卡顿"的主因之一
+  ghost.style.transform = 'translate3d(' + rect.left + 'px,' + rect.top + 'px,0)';
   document.body.appendChild(ghost);
   wrap.classList.add('is-dragging');
 
@@ -523,15 +583,27 @@ function startUnitDrag(e, row, col, wrap) {
     kind: 'unit',
     row: row, col: col, wrap: wrap, ghost: ghost,
     dx: e.clientX - rect.left, dy: e.clientY - rect.top,
-    sx: e.clientX, sy: e.clientY,        // 起点：用于区分「点选」和「拖拽」
+    sx: e.clientX, sy: e.clientY,
+    origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },  // 箭头起点，算一次
+    arrowTo: null,          // 当前悬停的合法目标
+    raf: 0, pending: null,
   };
+  drag.arrowFrom = wrap;
 
-  sel = { row: row, col: col };
-  renderLanes(session.state);            // 复用点击选中时的高亮（函数名是 renderLanes）
-  arrowTo(wrap, e.clientX, e.clientY, false);   // 立刻出现指向箭头
+  // ⚠️ 关键改动（ADR-076）：**按下就选中**。
+  // 原先要等到 pointerup 且位移 < 8px 才判为"点选"，而真人点击的抖动常超过 8px →
+  // 被当成拖拽、松手不在目标上就被判"取消攻击"，于是"选自己人经常失败、要慢慢点"。
+  // 现在选中与位移无关，拖拽只是"选好之后顺手打出去"的加速路径。
+  // ⚠️ 必须带 kind:'unit'：`onUnitClick` / `onSlotClick` 的攻击分支都靠它判断
+  //    （原先这个赋值发生在 onUnitClick 里，搬到 pointerdown 时漏了 kind，
+  //      结果"选中了却打不出去"——实测时三个攻击路径全部 0 命中）
+  sel = { kind: 'unit', row: row, col: col };
+  renderLanes(session.state);
+  arrowTo(wrap, e.clientX, e.clientY, false);
   var u = session.state.sides.own.rows[row][col];
-  showDetail('拖到目标发起攻击', u.name + ' ' + u.atk + '/' + u.hp,
-    '可拖到高亮的敌方人物卡或其主将上');
+  showDetail('已选中 ' + u.name, '攻击力 ' + Core.effectiveAttack(session.state, 'own', row, col)
+    + '　生命 ' + u.hp + '/' + u.maxHp,
+    '点（或拖到）高亮的敌人/敌方主公发起攻击；点空白处取消');
 
   bindDragEvents();
 }
@@ -544,24 +616,45 @@ function bindDragEvents() {
 
 function onDragMove(e) {
   if (!drag) return;
-  drag.ghost.style.left = (e.clientX - drag.dx) + 'px';
-  drag.ghost.style.top = (e.clientY - drag.dy) + 'px';
+  // rAF 节流：pointermove 在 120Hz 触控板上可以一帧来好几次，全部处理就是"卡顿"
+  drag.pending = { x: e.clientX, y: e.clientY };
+  if (drag.raf) return;
+  drag.raf = requestAnimationFrame(function () {
+    drag.raf = 0;
+    var p = drag.pending;
+    if (!drag || !p) return;
+    drag.ghost.style.transform =
+      'translate3d(' + (p.x - drag.dx) + 'px,' + (p.y - drag.dy) + 'px,0)';
 
-  $all('.slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover').forEach(function (el) {
-    el.classList.remove('is-hover');
-  });
-  var t = dropAt(e.clientX, e.clientY);
-  if (t) {
-    if (drag.kind === 'card' && drag.isUnit && t.kind === 'slot' && t.el.classList.contains('is-placeable')) {
-      t.el.classList.add('is-hover');
-    } else if (drag.kind === 'card' && !drag.isUnit && t.kind === 'board') {
-      t.el.classList.add('is-hover');
-    } else if (drag.kind === 'unit' && (t.kind === 'unit' || t.kind === 'lord')) {
-      if (t.el.classList.contains('is-target')) t.el.classList.add('is-hover');
+    if (drag.kind === 'unit') {
+      // 拖拽攻击：命中判定走缓存坐标（不再 elementFromPoint），并给吸附半径
+      var t = nearestHit(p.x, p.y);
+      var el = t ? hitEl(t) : null;
+      if (drag.hoverEl && drag.hoverEl !== el) drag.hoverEl.classList.remove('is-hover');
+      if (el) el.classList.add('is-hover');
+      drag.hoverEl = el;
+      arrowToCached(drag.arrowFrom, p.x, p.y, !!t);
+      return;
     }
-  }
-  // 攻击拖拽全程跟着一条指向箭头，命中合法目标变绿
-  if (drag.kind === 'unit') arrowTo(drag.wrap, e.clientX, e.clientY, dropIsValid(e.clientX, e.clientY));
+
+    // 出牌拖拽：保持原有落点判定
+    $all('.slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover')
+      .forEach(function (x) { x.classList.remove('is-hover'); });
+    var d = dropAt(p.x, p.y);
+    if (!d) return;
+    if (drag.kind === 'card' && drag.isUnit && d.kind === 'slot' && d.el.classList.contains('is-placeable')) {
+      d.el.classList.add('is-hover');
+    } else if (drag.kind === 'card' && !drag.isUnit && d.kind === 'board') {
+      d.el.classList.add('is-hover');
+    }
+  });
+}
+
+/** 由缓存项取回 DOM 元素（悬停高亮用） */
+function hitEl(t) {
+  if (t.kind === 'lord') return $('#lord-enemy');
+  var slot = document.querySelector('.row[data-side="' + t.side + '"][data-row="' + t.row + '"] .slot[data-col="' + t.col + '"]');
+  return slot && slot.querySelector('.unit-wrap');
 }
 
 function onDragEnd(e) {
@@ -606,25 +699,29 @@ function onDragEnd(e) {
     return;
   }
 
-  // 攻击拖拽：落点必须是高亮过的合法目标，合法性一律由 Core.legalTargets 判定
-  if (dropUnit) {
-    doAction({
-      type: 'ATTACK', from: { row: d.row, col: d.col },
-      to: { kind: 'unit', row: dropUnit.dataset.row, col: Number(dropUnit.dataset.col) },
-    });
-  } else if (dropLord) {
-    doAction({ type: 'ATTACK', from: { row: d.row, col: d.col }, to: { kind: 'lord' } });
-  } else if (d.kind === 'unit' && Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) < 8) {
-    // 原地松手 = 点选该单位。
-    // 不能靠 click 事件：startUnitDrag 里的 preventDefault() 会抑制浏览器的
-    // 兼容鼠标事件，真实点击时 click 根本不触发 —— 结果「点了单位没反应」。
-    // （合成 click 却能触发，所以只测合成事件会漏掉这个 bug。）
-    tapHandledAt = Date.now();
-    onUnitClick('own', d.row, d.col, e);
-  } else {
-    clearMarks();
-    sel = null;
-    showDetail('取消攻击', '', '拖到高亮的敌方人物卡或其主将上才能攻击');
+  // 攻击拖拽：合法性一律由 Core.legalTargets 判定（缓存里就是它算出来的）
+  if (d.kind === 'unit') {
+    if (d.raf) { cancelAnimationFrame(d.raf); d.raf = 0; }
+    if (d.hoverEl) { d.hoverEl.classList.remove('is-hover'); d.hoverEl = null; }
+    var hit = nearestHit(e.clientX, e.clientY);
+    if (hit) {
+      tapHandledAt = Date.now(); tapHandledEl = d.wrap;
+      doAction(hit.kind === 'lord'
+        ? { type: 'ATTACK', from: { row: d.row, col: d.col }, to: { kind: 'lord' } }
+        : { type: 'ATTACK', from: { row: d.row, col: d.col },
+            to: { kind: 'unit', row: hit.row, col: hit.col } });
+    } else {
+      // ⚠️ ADR-076：松手没落在目标上**不再取消选中**。
+      // 原先这里 clearMarks() + sel = null，等于"手抖一下就得重新点一次"，
+      // 是"选自己卡牌攻击经常失败"的第二大来源。选中已经在 pointerdown 时完成，
+      // 这里只提示"还没打出去"，玩家可以接着点目标；要取消就点空白处。
+      tapHandledAt = Date.now(); tapHandledEl = d.wrap;
+      var u2 = session.state.sides.own.rows[d.row][d.col];
+      showDetail('已选中 ' + (u2 ? u2.name : ''),
+        '还没选择攻击目标',
+        '点（或拖到）高亮的敌人/敌方主公发起攻击；点空白处取消');
+    }
+    return;
   }
 }
 
@@ -633,6 +730,8 @@ function onDragEnd(e) {
    用视口坐标（指针事件给的就是视口坐标），所以 SVG 层是 position:fixed。 */
 var arrowShown = false;
 var tapHandledAt = 0;
+/** 上一次被 pointerup 处理掉的单位元素 —— 点击兜底只对**它自己**让路（ADR-076） */
+var tapHandledEl = null;
 var dragHandledAt = 0;   // 上一次拖拽已处理的时间戳（避免随后的 click 重复触发）   // 上一次「点选」被 onDragEnd 处理的时间戳
 
 function arrowEl() { return document.getElementById('arrow-layer'); }
@@ -642,6 +741,20 @@ function arrowPathEl() { return document.getElementById('arrow-path'); }
 function arrowOrigin(el) {
   var r = el.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+/** 箭头（起点已缓存版）：拖拽过程中每帧调用，避免重复 getBoundingClientRect */
+function arrowToCached(fromEl, x, y, ok) {
+  var layer = arrowEl(), path = arrowPathEl();
+  if (!layer || !path || !fromEl || !drag || !drag.origin) { arrowTo(fromEl, x, y, ok); return; }
+  var o = drag.origin;
+  var mx = (o.x + x) / 2;
+  var my = Math.min(o.y, y) - Math.abs(x - o.x) * 0.18 - 14;
+  path.setAttribute('d', 'M' + o.x + ',' + o.y + ' Q' + mx + ',' + my + ' ' + x + ',' + y);
+  path.setAttribute('marker-end', ok ? 'url(#arrow-head-ok)' : 'url(#arrow-head)');
+  layer.classList.toggle('is-valid', !!ok);
+  layer.classList.add('show');
+  arrowShown = true;
 }
 
 /** 显示/更新箭头；ok=true 时变绿（命中合法目标） */
@@ -889,12 +1002,42 @@ function showDetail(title, sub, why) {
   d.classList.add('show');
 }
 
-function onSlotClick() {
+/**
+ * 已选中单位时，把一次"落在空白处"的点击**吸附**到最近的合法目标上（ADR-076）。
+ * @returns true = 已经打出去了（调用方不要再做取消选中的动作）
+ */
+function trySnapAttack(ev) {
+  if (!sel || sel.kind !== 'unit' || !ev) return false;
+  var hit = nearestHit(ev.clientX, ev.clientY);
+  if (!hit) return false;
+  doAction(hit.kind === 'lord'
+    ? { type: 'ATTACK', from: { row: sel.row, col: sel.col }, to: { kind: 'lord' } }
+    : { type: 'ATTACK', from: { row: sel.row, col: sel.col },
+        to: { kind: 'unit', row: hit.row, col: hit.col } });
+  return true;
+}
+
+function onSlotClick(ev) {
   if (busy) return;
   if (pendingPlay) { cancelPlay(); return; }   // 点空白 = 放弃这次出牌
+  // 空格子 / 卡与卡之间的缝隙：只要**靠近**合法目标就打过去。
+  // 这是"点不到敌人"最直接的兜底 —— 格间距只有 4px，真人很难精准点中卡面。
+  if (trySnapAttack(ev)) return;
   clearMarks();
   sel = null;
   pendingSkill = null;
+}
+
+/**
+ * 战场背景（含卡与卡之间的缝隙、行间空白）的兜底（ADR-076）。
+ *
+ * 原先只有**空格子**绑了 click，`.boards` 这层背景没有任何处理器 ——
+ * 于是"点两敌人卡中间那道缝"什么都不会发生，玩家只觉得"点不到人"。
+ * 这里同样先试吸附；没吸附到也不清选中（背景点击太容易误触，不该当成取消）。
+ */
+function onBoardClick(ev) {
+  if (busy || pendingPlay) return;
+  trySnapAttack(ev);
 }
 
 /** 谋臣主动技：点卡上的「技」按钮。合法性由 Core.canUseUnitSkill 判定 */
@@ -962,14 +1105,12 @@ function onUnitClick(side, row, col, ev) {
     }
   }
 
-  // ② 已选中我方单位 + 点敌方单位 → 攻击
+  // ② 已选中我方单位 + 点敌方单位 → 攻击（精确命中；不做吸附，
+  //    否则玩家点了一个"打不到的敌人"却被自动改打到别人，规则上无法解释）
   if (sel && sel.kind === 'unit' && side === 'enemy') {
-    var hit = $all('.unit-wrap.is-target').some(function (el) {
-      var d = el.parentElement.dataset;
-      return d.side === side && d.row === row && Number(d.col) === col;   // ← dataset 是字符串，必须转数字
-    });
-    if (hit) {
-      doAction({ type: 'ATTACK', from: { row: sel.row, col: sel.col }, to: { kind: 'unit', row: row, col: col } });
+    if (exactHit(side, row, col)) {
+      doAction({ type: 'ATTACK', from: { row: sel.row, col: sel.col },
+                 to: { kind: 'unit', row: row, col: col } });
       return;
     }
   }
@@ -1092,6 +1233,20 @@ function onLordSkillClick(side) {
   }
 
   doAction({ type: 'USE_LORD_SKILL' });
+}
+
+/**
+ * Esc 取消当前操作（ADR-076）
+ *
+ * 之所以不做"再点一次选中单位 = 取消"：选中已经改到 **pointerdown**，
+ * 再点一次会先取消、于是"按住同一单位拖到目标"这个最顺的手势就被抢掉了。
+ * 取消改走 Esc（以及点空格子），两条路都不会和拖拽冲突。
+ */
+function onEscape() {
+  if (busy) return;
+  if (pendingPlay) { cancelPlay(); return; }
+  if (pendingSkill) { pendingSkill = null; clearMarks(); showDetail('已取消', '', ''); return; }
+  if (sel) { sel = null; clearMarks(); arrowHide(); showDetail('已取消选择', '', ''); }
 }
 
 function onEndTurn() {
@@ -1337,7 +1492,6 @@ function hideSkillToast() {
 }
 
 function playEvents(events, done) {
-  logEvents(events);
   lastAttack = null;
   drawnThisAction = false;
   var queue = events.slice();
@@ -1345,9 +1499,26 @@ function playEvents(events, done) {
   (function next() {
     if (!queue.length) { hideSkillToast(); done(); return; }
     var e = queue.shift();
+    // ⚠️ ADR-076：日志**逐条**写，和动画同步。
+    // 原先进结算前就把整段结果一次性写进日志 —— 玩家想"回看刚才为什么掉血"时，
+    // 日志里早就写着结局，反而对不上正在播的动画。
+    logOne(e);
     var wait = animate(e);
     if (wait > 0) setTimeout(next, paced(wait)); else next();
   })();
+}
+
+/** 追加一条日志并高亮（与动画同步用） */
+function logOne(e) {
+  var el = $('#log');
+  if (!el) return;
+  var d = describeEvent(e);
+  if (!d) return;
+  el.insertAdjacentHTML('beforeend', '<div class="le fresh ' + (d.cls || '') + '">' + d.text + '</div>');
+  var last = el.lastElementChild;
+  if (last) setTimeout(function () { last.classList.remove('fresh'); }, paced(700));
+  while (el.children.length > LOG_MAX) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
 }
 
 /** 读卡面上某个数字（攻/血），用于判断"会不会有反击" */
@@ -1794,6 +1965,9 @@ window.addEventListener('pointermove', function (e) {
   arrowTo(wrap, e.clientX, e.clientY, dropIsValid(e.clientX, e.clientY));
 });
 window.addEventListener('resize', reportSizes);
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' || e.key === 'Esc') onEscape();
+});
 
 // 倒计时：每方回合 1 分钟（ADR-065）
 timerReset();
