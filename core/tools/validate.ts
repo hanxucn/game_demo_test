@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path';
 
 import { ACTIONS, CARD_TYPES, FORBIDDEN_KEYWORD_COMBOS, KEYWORDS, STATUSES, TAGS } from '../src/constants.ts';
 import { IMPLEMENTED_ACTIONS } from '../src/effects.ts';
-import type { CardDef, CardEffect, SkillDef, TargetSelector } from '../src/types.ts';
+import type { CardDef, CardEffect, EffectCondition, SkillDef, TargetSelector } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -42,6 +42,37 @@ const KEYWORD_VALUE: Record<string, number> = {
  *          带 condition 的效果按 CONDITION_RATE 打折（条件越苛刻价值越低）。
  */
 const CONDITION_RATE = 0.7;
+
+/**
+ * 条件折扣（ADR-033 → ADR-074 细化）
+ *
+ * 原先无论条件多复杂，一律 `v *= 0.7` —— 于是「张氏三兄弟同时在场才多召 2 个」
+ * 这种组合技被按"基本必中"计价（张宝算到 +4.4，直接超差）。
+ * 现在按**子句连乘**：
+ *   · 每个条件子句 ×0.7；
+ *   · 子句指名了**具体某张卡**（`filter.card_id`）再 ×0.5 —— 那是组合技要求；
+ *   · `all_of` 连乘（都要满足，更难）；`any_of` 取**最宽**的一支（满足其一即可）。
+ */
+const COMBO_RATE = 0.5;
+function conditionRate(cond: EffectCondition): number {
+  let rate = 1;
+  const clause = (sel?: TargetSelector): void => {
+    rate *= CONDITION_RATE;
+    if (sel?.filter?.card_id) rate *= COMBO_RATE;   // 指名某张卡 = 组合技
+  };
+  if (cond.exists) clause(cond.exists);
+  if (cond.count) clause(cond.count.selector);
+  if (cond.count_vs) { clause(cond.count_vs.left); clause(cond.count_vs.right); }
+  if (cond.event) rate *= CONDITION_RATE;
+  if (cond.chosen_side) rate *= CONDITION_RATE;
+  if (cond.turn_max !== undefined) rate *= CONDITION_RATE;
+  if (cond.victim_type) rate *= CONDITION_RATE;
+  if (cond.acted_this_turn !== undefined) rate *= CONDITION_RATE;
+  if (cond.dealt_damage_this_turn !== undefined) rate *= CONDITION_RATE;
+  for (const c of cond.all_of ?? []) rate *= conditionRate(c);
+  if (cond.any_of?.length) rate *= Math.max(...cond.any_of.map((c) => conditionRate(c)));
+  return rate;
+}
 
 /**
  * AOE（`target.count: 'all'`）的期望命中数。
@@ -161,6 +192,8 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
     case 'attack_each': return 3;
     //   draw_until：名义值 ≈ 比抽 1 张多拿到半张（策略密度决定）。
     case 'draw_until': return 3;
+    //   mill：弃掉对手牌库一张 ≈ 半个干扰收益（对方本来也不一定抽到它）。
+    case 'mill': return (eff.count ?? 1) * 1.5;
     case 'transform': {
       // 进化：价值 = (进化后总价值 − 进化前总价值) × 受影响单位数
       // 固定给 4 分会把「+1 攻」和「+1/2 攻且带每回合 2 伤技能」算成一样，方向都可能反（ADR-046）
@@ -215,7 +248,7 @@ function effectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
       : v;
   }
   if (typeof eff.chance === 'number') v *= eff.chance;        // 概率打折
-  if (eff.condition) v *= CONDITION_RATE;                     // 条件打折
+  if (eff.condition) v *= conditionRate(eff.condition);       // 条件打折（ADR-074：按子句连乘）
   return v;
 }
 

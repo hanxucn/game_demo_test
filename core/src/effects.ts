@@ -25,6 +25,7 @@ import {
 registerOnDrawResolver((state, cards, side, card, events, rng) => {
   const sk = (card.skills ?? []).find((k) => k.trigger === 'on_draw');
   if (!sk) return false;
+  emitSkillTriggered(state, side, null, sk, 'trigger', events);
   runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
   return true;
 });
@@ -32,6 +33,7 @@ registerOnDrawResolver((state, cards, side, card, events, rng) => {
 /** 亡语解析器：把 on_death 技能交给 DSL 解释器（ADR-050） */
 registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) => {
   for (const sk of skills) {
+    emitSkillTriggered(state, side, unit, sk, 'trigger', events);
     runEffects(state, cards, sk.effects ?? [],
       { side, source: unit, killer: killer ?? undefined }, rng, events);
   }
@@ -44,6 +46,7 @@ registerOnKillResolver((state, cards, killer, victim, events, rng) => {
   const card = cards.get(k.cardId);
   const killSkills = (card?.skills ?? []).filter((sk) => sk.trigger === 'on_kill');
   for (const sk of killSkills) {
+    emitSkillTriggered(state, killer.side, k, sk, 'trigger', events);
     runEffects(state, cards, sk.effects ?? [],
       { side: killer.side, source: k, eventVictim: victim, victimType: victim.type } as EffectContext,
       rng, events);
@@ -161,6 +164,18 @@ function checkCondition(
   state: MatchState, cond: EffectCondition | undefined, ctx: EffectContext, rng: Rng,
 ): boolean {
   if (!cond) return true;
+  // 条件的与 / 或组合（ADR-074）：先判组合，再与其余字段相与
+  if (cond.all_of?.length && !cond.all_of.every((c) => checkCondition(state, c, ctx, rng))) return false;
+  if (cond.any_of?.length && !cond.any_of.some((c) => checkCondition(state, c, ctx, rng))) return false;
+  // 来源单位本回合的行为（ADR-074，司马懿「谋定后动」）
+  if (cond.acted_this_turn !== undefined) {
+    const src = ctx.source;
+    if (!src || !!src.actedThisTurn !== cond.acted_this_turn) return false;
+  }
+  if (cond.dealt_damage_this_turn !== undefined) {
+    const src = ctx.source;
+    if (!src || !!src.dealtDamageThisTurn !== cond.dealt_damage_this_turn) return false;
+  }
   if (cond.exists) {
     return resolveTargets(state, { ...cond.exists, count: 'all' }, ctx, rng).length > 0;
   }
@@ -193,6 +208,34 @@ function checkCondition(
 }
 
 /**
+ * 发一条「技能发动」事件（ADR-074）
+ *
+ * 客户端原先只能从 DAMAGE / STATUS_APPLIED 这些**效果**事件反推，
+ * 「咆哮」「五雷轰顶」这种技能生效时玩家看不出发生了什么。
+ * 引擎在技能真正执行的前一刻发这条事件，客户端据此播技能名提示。
+ */
+export function emitSkillTriggered(
+  state: MatchState,
+  side: Side,
+  source: Unit | null,
+  sk: SkillDef,
+  from: 'on_play' | 'active' | 'trigger' | 'aura' | 'lord_skill' | 'card',
+  events: GameEvent[],
+): void {
+  let row: Row | undefined;
+  let col: number | undefined;
+  if (source) {
+    const pos = findPos(state, side, source.uid);
+    if (pos) { row = pos.row; col = pos.col; }
+  }
+  events.push({
+    type: 'SKILL_TRIGGERED', side, row, col,
+    unitName: source?.name ?? '', skillName: sk.name || sk.id || '(技能)',
+    skillId: sk.id || '', kind: sk.kind, timing: sk.trigger, from,
+  });
+}
+
+/**
  * 执行某一方所有单位的指定时机触发技（ADR-031）
  *
  * 时机表见 docs/gdd/10-skills-statuses.md §4：
@@ -212,7 +255,8 @@ export function runTriggerSkills(
     const u = ref.unit;
     if (u.hp <= 0) continue;
     for (const sk of (u.skills ?? []).filter((s) => s.trigger === trigger)) {
-      runEffects(state, cards, sk.effects, { side, source: u }, rng, events);
+      emitSkillTriggered(state, side, u, sk, 'trigger', events);
+      runEffects(state, cards, effectsOf(sk), { side, source: u }, rng, events);
     }
   }
 }
@@ -261,7 +305,13 @@ export function recomputeAuras(
       const u = ref.unit;
       if (u.hp <= 0) continue;
       for (const sk of (u.skills ?? []).filter((s) => s.kind === 'aura')) {
-        runEffects(state, cards, sk.effects,
+        // 每个单位生命周期只播报一次（见 Unit.auraAnnounced 的说明），否则光环重算会刷屏
+        u.auraAnnounced = u.auraAnnounced ?? [];
+        if (!u.auraAnnounced.includes(sk.id)) {
+          u.auraAnnounced.push(sk.id);
+          emitSkillTriggered(state, side, u, sk, 'aura', events);
+        }
+        runEffects(state, cards, effectsOf(sk),
           { side, source: u, auraId: `${u.uid}#${sk.id}` }, rng, events);
       }
     }
@@ -288,7 +338,8 @@ export function runCardPlayedTriggers(
         if (want === 'character') {
           if (!['troop', 'general', 'strategist'].includes(played.type)) continue;
         } else if (want && played.type !== want) continue;
-        runEffects(state, cards, sk.effects, { side, source: u }, rng, events);
+        emitSkillTriggered(state, side, u, sk, 'trigger', events);
+        runEffects(state, cards, effectsOf(sk), { side, source: u }, rng, events);
       }
     }
   }
@@ -350,7 +401,8 @@ export function runUnitTrigger(
   const side = findSide(state, unit.uid);
   if (!side) return;
   for (const sk of (unit.skills ?? []).filter((x) => x.trigger === trigger)) {
-    runEffects(state, cards, sk.effects, { side, source: unit }, rng, events);
+    emitSkillTriggered(state, side, unit, sk, 'trigger', events);
+    runEffects(state, cards, effectsOf(sk), { side, source: unit }, rng, events);
   }
 }
 
@@ -585,6 +637,7 @@ export function runOnAttackPhase(
         ? e.condition?.event === 'killed'
         : e.condition?.event !== 'killed');
     if (!effs.length) continue;
+    emitSkillTriggered(state, side, attacker, sk, 'trigger', events);
     runEffects(state, cards, effs,
       { side, source: attacker, flags: killed ? ['killed'] : [] }, rng, events);
   }
@@ -636,10 +689,13 @@ export function resolveAttack(
 
   // 本次普攻有没有**击杀**目标 —— 8½-after 的击杀奖励据此判定（ADR-072）
   let killed = false;
+  /** 本次普攻实际造成的伤害合计（ADR-074：司马懿② 要判"有没有对敌方造成伤害"） */
+  let dealtTotal = 0;
 
   if (to.kind === 'lord') {
     const dealt = dealDamage(state, cards, lordRef(foe), dmg, events, me.name, 0,
       { side, row: from.row, col: from.col });
+    dealtTotal += dealt;
     killed = state.sides[foe].lord.hp <= 0;
     if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
   } else {
@@ -652,6 +708,7 @@ export function resolveAttack(
 
     const dealt = dealDamage(state, cards, unitRef(foe, tRow, tCol), dmg, events, me.name, 0,
       { side, row: from.row, col: from.col });
+    dealtTotal += dealt;
 
     // 时机表第 16 步：受到伤害触发技（on_damaged）
     const hit = getUnit(state, foe, tRow, tCol);
@@ -676,6 +733,8 @@ export function resolveAttack(
   const after = getUnit(state, side, from.row, from.col);
   if (after) {
     if (opts.consumeAttack !== false) after.attackedThisTurn += 1;
+    after.actedThisTurn = true;                    // ADR-074：司马懿要判"本回合有没有行动"
+    if (dealtTotal > 0) after.dealtDamageThisTurn = true;
 
     // 奇袭：攻击后失去隐身（ADR-054 的新定义还要求"上场自动隐身"，尚未实现，见 Q-06-*）
     if (hasTrait(after, 'qi_xi')) {
@@ -716,7 +775,7 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<string> = new Set([
   'discard', 'return_to_hand', 'clash', 'flip', 'scry', 'ban_play', 'steal_card', 'survive',
   'extra_attack', 'take_control', 'copy_skill', 'force_attack',
   'add_to_deck', 'send_to_deck', 'cycle_to_deck',
-  'sacrifice', 'attack_each', 'draw_until',
+  'sacrifice', 'attack_each', 'draw_until', 'mill',
 ]);
 
 /**
@@ -1194,6 +1253,23 @@ export function runEffects(
           if (!getUnit(state, t.side, t.row, t.col)) continue;  // 目标已被前一次攻击带走
           resolveAttack(state, cards, ctx.side, pos,
             { kind: 'unit', row: t.row, col: t.col }, events, rng, { consumeAttack: false });
+        }
+        break;
+      }
+      case 'mill': {
+        // 弃掉目标方**牌库**的 N 张（ADR-074，司马懿「谋定后动」②"使敌方卡池随机丢弃一张"）。
+        // 与 discard 的区别：discard 动的是**手牌**，mill 动的是还没抽到的牌。
+        const who: Side = eff.target?.side === 'self' || eff.target?.side === 'ally'
+          ? ctx.side : other(ctx.side);
+        const deck = state.sides[who].deck;
+        const n = dynVal ?? eff.count ?? 1;
+        const fromDeck = eff.from_deck ?? 'random';
+        for (let i = 0; i < n && deck.length; i++) {
+          const at = fromDeck === 'top' ? 0 : rng.int(deck.length);
+          const [id] = deck.splice(at, 1);
+          const def = id ? cards.get(id) : undefined;
+          if (def) state.sides[who].discard.push(def);
+          events.push({ type: 'CARD_MILLED', side: who, cardId: id ?? '', from: fromDeck });
         }
         break;
       }

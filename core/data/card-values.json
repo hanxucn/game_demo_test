@@ -29,11 +29,11 @@
  "shu_guanping": {
   "stats": 6,
   "keywords": 0,
-  "skills": 2.6,
-  "total": 8.6,
+  "skills": 1.9,
+  "total": 7.9,
   "budget": 7,
-  "diff": 1.6,
-  "level": "watch"
+  "diff": 0.9,
+  "level": "ok"
  },
  "shu_madai": {
   "stats": 6,
@@ -101,10 +101,10 @@
  "shu_machao": {
   "stats": 10,
   "keywords": -1,
-  "skills": 1.12,
-  "total": 10.12,
+  "skills": 0.78,
+  "total": 9.78,
   "budget": 11,
-  "diff": -0.88,
+  "diff": -1.22,
   "level": "ok"
  },
  "shu_zhangfei": {
@@ -146,11 +146,11 @@
  "shu_huanghao": {
   "stats": 3,
   "keywords": 0,
-  "skills": 1,
-  "total": 4,
+  "skills": 4,
+  "total": 7,
   "budget": 5,
-  "diff": -1,
-  "level": "ok"
+  "diff": 2,
+  "level": "watch"
  },
  "shu_xiangchong": {
   "stats": 5,
@@ -407,10 +407,10 @@
  "wei_simayi": {
   "stats": 7,
   "keywords": 0,
-  "skills": 1.05,
-  "total": 8.05,
+  "skills": 1.47,
+  "total": 8.47,
   "budget": 11,
-  "diff": -2.95,
+  "diff": -2.53,
   "level": "watch"
  },
  "wei_xunyu": {
@@ -677,19 +677,19 @@
  "qun_zhangbao": {
   "stats": 3,
   "keywords": 0,
-  "skills": 4.2,
-  "total": 7.2,
+  "skills": 2.83,
+  "total": 5.83,
   "budget": 7,
-  "diff": 0.2,
+  "diff": -1.17,
   "level": "ok"
  },
  "qun_zhangliang": {
   "stats": 4,
   "keywords": 0,
-  "skills": 4.2,
-  "total": 8.2,
+  "skills": 2.83,
+  "total": 6.83,
   "budget": 7,
-  "diff": 1.2,
+  "diff": -0.17,
   "level": "ok"
  },
  "qun_gaoshun": {
@@ -1019,20 +1019,20 @@
  "tactic_kongchengji": {
   "stats": 0,
   "keywords": 0,
-  "skills": 0,
-  "total": 0,
+  "skills": 1.4,
+  "total": 1.4,
   "budget": 11,
-  "diff": -11,
+  "diff": -9.6,
   "level": "off"
  },
  "tactic_xiushengyangxi": {
   "stats": 0,
   "keywords": 0,
-  "skills": 12.6,
-  "total": 12.6,
+  "skills": 15.8,
+  "total": 15.8,
   "budget": 11,
-  "diff": 1.6,
-  "level": "watch"
+  "diff": 4.8,
+  "level": "off"
  },
  "tactic_caochuanjiejian": {
   "stats": 0,

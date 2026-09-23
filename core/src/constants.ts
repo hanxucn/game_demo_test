@@ -118,7 +118,8 @@ export type StatusCap =
   | 'extra_lord_skill'   // 该方主帅每回合主公技次数 +stacks（ADR-040）
   | 'block_draw'         // 该方不能抽牌（灾年，ADR-041）
   | 'duel_lock'          // 单挑锁定：不可被第三方选中（许褚，ADR-041）
-  | 'mark_damage';       // 被标记：受到伤害时触发标记者的联动（法正，ADR-041）
+  | 'mark_damage'        // 被标记：受到伤害时触发标记者的联动（法正，ADR-041）
+  | 'skip_turn';         // 该方整个回合被跳过（ADR-074，休养生息「下一回合不进行任何活动」）
 
 export interface StatusDef {
   name: string;
@@ -169,6 +170,12 @@ export const STATUSES: Record<string, StatusDef> = {
   hu_zhu:     { name: '护主', kind: 'buff',   numeric: false, duration: 'turns', caps: ['redirect_damage'],
                 guard_scope: 'lord',
                 note: '只把**该方主帅**受到的伤害转给守护者（祖茂「替主」，ADR-071）' },
+  kong_cheng: { name: '空城', kind: 'buff',   numeric: false, duration: 'turns', scope: 'lord',
+                caps: ['untargetable'],
+                note: '该方主帅**不能被普通攻击指定为目标**（空城计，ADR-074）。只挡攻击，不挡效果' },
+  xiu_zheng:  { name: '休整', kind: 'debuff', numeric: false, duration: 'until_consumed', scope: 'lord',
+                caps: ['skip_turn'],
+                note: '该方下一个回合整个被跳过（休养生息「下一回合不进行任何活动」，ADR-074）' },
   jin_yong:   { name: '禁用', kind: 'debuff', numeric: false, duration: 'turns', caps: ['block_skill'],
                 note: '不能使用主动技与触发技（silence）' },
   jin_gu:     { name: '禁锢', kind: 'debuff', numeric: false, duration: 'turns',
@@ -211,6 +218,7 @@ export const ACTIONS = [
   'sacrifice',     // 牺牲一个己方单位，把它的 maxHp/hp 写进 flags（ADR-071，程昱）
   'attack_each',   // 挨个发动**真正的普攻**（含反击），自己阵亡即停（ADR-071，张苞）
   'draw_until',    // 一直抽到抽出一张「非某类型」的牌为止（ADR-071，姜维）
+  'mill',          // 弃掉目标方牌库的 N 张牌（ADR-074，司马懿「谋定后动」②）
 ] as const;
 
 /** 稀有度（ADR-068）：普通 / 精英。精英卡允许强于同费预算 */
