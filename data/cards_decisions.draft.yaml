@@ -3375,8 +3375,10 @@ dsl_effects:
         type: strategist
       count: all
   tactic_xiushengyangxi:
-  # ADR-074：补上卡面漏掉的两句 ——「包括主帅」与「下一回合不进行任何活动」。
-  # 后者是这张 5 费卡的**代价**：己方下一个回合整个被跳过（引擎的 skip_turn）。
+  # ADR-075（设计者裁定）：**改为「己方全体 +3 血，然后抽 1 张牌」**。
+  #   · 「己方全体」= 场上人物 + 主帅（保留 ADR-074 补的"包括主帅"）
+  #   · 去掉原来的「下一回合不进行任何活动」（skip_turn）与抽 3 张
+  # ⚠️ 随之 `xiu_zheng` / `skip_turn` 暂时没有卡在用（能力与测试都保留，随时可挂回来）。
   - action: heal
     value: 3
     target:
@@ -3384,18 +3386,13 @@ dsl_effects:
       filter:
         type: character
       count: all
-  - action: heal            # 卡面：「恢复全体人员(包括主帅)」
+  - action: heal            # 「己方全体」含主帅
     value: 3
-    target:
-      side: ally
-      lord: true
-  - action: apply_status    # 卡面：「下一回合不进行任何活动」
-    status: xiu_zheng
     target:
       side: ally
       lord: true
   - action: draw
-    value: 3
+    value: 1
   tactic_yuqin_guzong:
   - action: clash
     clashMode: roll
@@ -3585,10 +3582,11 @@ card_keywords:
   - xian_gong        # 凌统「国士之风」：获得先攻，攻击时半数概率震慑
   token_jixie_shouwei:
   - jia_dun          # 机械守卫：「打开架盾效果」，漏了关键词 → 原先只是个 1/2 白板
-skill_name_only:
-  shu_chendao:
-    name: 白毦兵
-    note: 手写稿写了技能名，正文区空白，效果待设计
+card_no_skill:
+  # ADR-075：设计者裁定「陈到先作为无技能的武将加入卡牌里」。
+  # 手写稿只写了技能名「白毦兵」、正文区空白；与其留一条 pending 的空技能，
+  # 不如先当**白板武将**进卡池，技能名等效果设计好再加回来。
+  - shu_chendao
   # wei_caozhang「猛袭」已于 ADR-071 补上效果（抉择：抽 1 张 / 本回合攻击 +1），
   # 不再列在这里 —— 留在名单里会被 gen-cards-v1 静默跳过 DSL（陷阱 #4）
 card_rarity:
@@ -3631,7 +3629,7 @@ card_memo:
   # memo 是"一句话记忆点"，用于卡面详情与组卡浏览；不参与任何结算。
   shu_dongjue: 2 费带架盾的矮墙，替后排挡刀
   shu_liufeng: 一半概率整回合发呆 —— 便宜但会掉链子
-  shu_chendao: 3 费 2/2，技能「白毦兵」效果待设计
+  shu_chendao: 3 费 2/2 的白板武将（技能名「白毦兵」等效果设计好再加）
   shu_guanping: 关羽在场才 +1/+1；阵亡把圣盾交给关羽
   shu_madai: 先攻；西凉全家的 +1/+1 旗手
   shu_zhoucang: 身板够厚的架盾，跟着关羽扛线
@@ -3735,7 +3733,7 @@ card_memo:
   tactic_zhuchengjiliang: 召唤两个 1/1 盾兵并抽 2 张
   tactic_chenhuodajie: 混乱中的敌人会打自己人，顺便抽对手一张牌
   tactic_kongchengji: 己方场上无人时，对手一回合打不了主帅
-  tactic_xiushengyangxi: 歇一回合，全体（含主帅）回血并抽 3 张
+  tactic_xiushengyangxi: 己方全体（含主帅）回 3 血并抽 1 张
   tactic_caochuanjiejian: 让两名敌人去打我方最肉的单位，敌将阵亡就抽 2
   event_fengnian: 双方各抽 2 张
   event_zainian: 全体停止抽牌一回合（含技能与计策引发的抽牌）
@@ -3744,6 +3742,11 @@ card_memo:
   event_shichangshi: 指定一方下回合主帅统率上限 −2
   event_huoshaoluoyang: 敌方全体 1 点火伤持续 2 回合，代价是弃 1 张手牌
   status_jia_dun: 状态卡：装备者只能攻击带此状态的敌人
+
+card_text:
+  # ADR-075：卡级 effects 的卡（战法/事件）没有 `skills[].dsl` 可以挂 text，
+  # 卡面显示的一直是手写稿原文 —— 设计者改了效果后就对不上了。这里按卡 id 覆盖。
+  tactic_xiushengyangxi: 恢复己方全体（含主帅）3 点生命，并抽 1 张牌。
 
 card_troopkind:
   neutral_infantry: infantry

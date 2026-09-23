@@ -79,16 +79,9 @@
     "cost": 3,
     "attack": 2,
     "health": 2,
-    "memo": "3 费 2/2，技能「白毦兵」效果待设计",
+    "memo": "3 费 2/2 的白板武将（技能名「白毦兵」等效果设计好再加）",
     "gender": "male",
     "keywords": [],
-    "skills": [
-      {
-        "id": "",
-        "name": "白毦兵",
-        "pending": true
-      }
-    ],
     "flavor": "",
     "value": {
       "stats": 4,
@@ -5432,14 +5425,14 @@
     "faction": "neutral",
     "type": "tactic",
     "cost": 5,
-    "memo": "歇一回合，全体（含主帅）回血并抽 3 张",
+    "memo": "己方全体（含主帅）回 3 血并抽 1 张",
     "gender": "unknown",
     "keywords": [],
     "skills": [
       {
         "id": "",
         "name": "",
-        "text": "下一回合不进行任何活动, 恢复全体人员(包括主帅)3-4点血量, 抽三张牌。"
+        "text": "恢复己方全体（含主帅）3 点生命，并抽 1 张牌。"
       }
     ],
     "effects": [
@@ -5463,26 +5456,18 @@
         }
       },
       {
-        "action": "apply_status",
-        "status": "xiu_zheng",
-        "target": {
-          "side": "ally",
-          "lord": true
-        }
-      },
-      {
         "action": "draw",
-        "value": 3
+        "value": 1
       }
     ],
     "flavor": "",
     "value": {
       "stats": 0,
       "keywords": 0,
-      "skills": 15.8,
-      "total": 15.8,
+      "skills": 7.8,
+      "total": 7.8,
       "budget": 11,
-      "diff": 4.8,
+      "diff": -3.2,
       "level": "off"
     }
   },

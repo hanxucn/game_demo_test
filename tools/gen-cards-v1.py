@@ -64,6 +64,10 @@ def gender_of(cid: str, typ: str) -> str:
         return CARD_GENDER[cid]
     return 'unknown' if typ in NON_UNIT_TYPES else 'male'
 NAME_ONLY = dec.get('skill_name_only') or {}
+# ADR-075：设计者裁定"先当白板武将"的卡 —— 从照片稿带过来的技能名一并丢掉
+NO_SKILL = set(dec.get('card_no_skill') or [])
+# ADR-075：覆盖卡面显示文案（卡级 effects 的卡没有 skills[].dsl 可挂 text）
+CARD_TEXT = dec.get('card_text') or {}
 # 平衡调优：按卡 id 覆盖 cost/attack/health（值一律来自设计决策，见 docs/balance-backlog.md）
 STATS = dec.get('card_stats') or {}
 # ADR-072：按卡 id 覆盖**最终**类型（ADR-018 是在照片稿攻击力上推的，数值改过就失效）
@@ -185,6 +189,19 @@ for card in out:
         if field in ov:
             card[f'{field}_original'] = card.get(field)
             card[field] = ov[field]
+
+# 剥掉技能（ADR-075）：手写稿只写了技能名、正文空白的卡，先当白板进卡池
+for card in out:
+    if card['id'] in NO_SKILL:
+        card.pop('skills', None)
+        card['no_skill_reason'] = '设计者裁定：先作为无技能武将加入（技能名保留在设计文档里）'
+
+# 卡面文案覆盖（ADR-075）
+for card in out:
+    if card['id'] in CARD_TEXT:
+        if not card.get('skills'):
+            card['skills'] = [{'name': '', 'text': '', 'dsl': None, 'note': ''}]
+        card['skills'][0]['text'] = CARD_TEXT[card['id']]
 
 # memo 覆盖（ADR-073）：照片稿的 memo 栏基本没写，统一由 card_memo 段补齐
 for card in out:
