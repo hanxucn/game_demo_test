@@ -96,6 +96,9 @@ function viewCard(c) {
    对局生命周期
    ============================================================ */
 
+/** 页面初始化：恢复上次选的速度档 */
+function bootSpeed() { loadSpeed(); renderSpeedCtl(); }
+
 function newGame() {
   // 开局流程（阵营 → 构筑 → 换牌）；规则全部由 Core 判定
   Setup.open({
@@ -1144,6 +1147,19 @@ function statusName(id) {
 function describeEvent(e) {
   var who = SIDE_NAME[e.side] || e.side || '';
   switch (e.type) {
+    // ADR-074：技能发动单独成行并高亮 —— 做卡牌测试时"哪个技能生效了"是第一条信息
+    case 'SKILL_TRIGGERED': {
+      var when = SKILL_WHEN[e.timing] || SKILL_FROM[e.from] || '';
+      return {
+        cls: e.from === 'aura' ? 'skill aura' : 'skill',
+        text: '✦ ' + (e.unitName ? '<b>' + e.unitName + '</b> ' : '')
+          + (when ? '<i>' + when + '</i> ' : '') + '〈<b>' + e.skillName + '</b>〉',
+      };
+    }
+    case 'CARD_MILLED':
+      return { cls: 'mill', text: who + ' 牌库被弃掉一张（' + (e.cardId || '') + '）' };
+    case 'TURN_SKIPPED':
+      return { cls: 'turn', text: who + ' 的回合被跳过（' + (e.reason || '') + '）' };
     // e.turn 现在是**完整回合数**（双方都行动完才 +1，ADR-064），
     // 不再是半回合计数 —— 原先这里要 Math.ceil(e.turn / 2)，现在直接用。
     case 'TURN_START': return { cls: 'turn', text: '—— 第 ' + e.turn + ' 回合 · ' + who + '（统率 ' + e.command.cur + '/' + e.command.max + '）——' };
@@ -1220,16 +1236,117 @@ function logEvents(events) {
   el.scrollTop = el.scrollHeight;
 }
 
+/* ============================================================
+   结算节奏（ADR-074）
+   ------------------------------------------------------------
+   设计者反馈："有些技能看不出来发动了，伤害等数值跳动太快，看不清发生了什么"。
+   两个原因：
+     ① 触发技 / 光环 / 亡语原先**没有事件**，客户端无从表现（现在引擎发 SKILL_TRIGGERED）；
+     ② 事件之间的间隔太短（220~340ms），一串 AOE 或五雷轰顶一闪而过。
+   这里给出三档速度，并把"读得清"作为默认档。
+   ============================================================ */
+
+/** 触发时机 → 中文（SKILL_TRIGGERED 横幅上的"什么时候"） */
+var SKILL_WHEN = {
+  on_play: '战吼', on_death: '亡语', on_attack: '攻击时', on_damaged: '受到伤害时',
+  turn_start: '回合开始', turn_end: '回合结束', on_card_played: '出牌触发',
+  on_kill: '击杀时', on_lethal: '濒死时', on_draw: '抽到时释放',
+  on_mark_damaged: '仇敌受伤', on_mark_death: '仇敌阵亡',
+};
+var SKILL_FROM = { aura: '光环', active: '主动技', lord_skill: '主公技', trigger: '触发技', card: '卡牌' };
+
+/** 大伤害时的震屏：让"这一下很疼"有个体感 */
+function screenShake() {
+  var st = document.getElementById('stage');
+  if (!st) return;
+  st.classList.add('is-shake');
+  setTimeout(function () { st.classList.remove('is-shake'); }, paced(280));
+}
+
+/** 每档的时长倍率：慢 / 正常 / 快 */
+var SPEED_STEPS = [
+  { key: 'slow', label: '慢', rate: 2.0 },
+  { key: 'normal', label: '正常', rate: 1.35 },
+  { key: 'fast', label: '快', rate: 0.7 },
+];
+var speedIdx = 1;                    // 默认「正常」，但比原先慢 35%
+
+function speedRate() { return SPEED_STEPS[speedIdx].rate; }
+/** 把一个时长按当前档位换算成实际毫秒 */
+function paced(ms) { return Math.round(ms * speedRate()); }
+
+function setSpeed(i) {
+  speedIdx = Math.max(0, Math.min(SPEED_STEPS.length - 1, i));
+  try { localStorage.setItem('jh3g.speed', SPEED_STEPS[speedIdx].key); } catch (e) { /* 隐私模式 */ }
+  renderSpeedCtl();
+}
+function loadSpeed() {
+  try {
+    var k = localStorage.getItem('jh3g.speed');
+    var i = SPEED_STEPS.findIndex(function (x) { return x.key === k; });
+    if (i >= 0) speedIdx = i;
+  } catch (e) { /* 忽略 */ }
+}
+/** 速度切换按钮：挂在 HUD 右上角，必须是 <body> 里的固定定位元素 */
+function renderSpeedCtl() {
+  var box = document.getElementById('speed-ctl');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'speed-ctl';
+    box.innerHTML = '<span class="lb">节奏</span>';
+    SPEED_STEPS.forEach(function (st, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.i = String(i);
+      b.textContent = st.label;
+      b.addEventListener('click', function (e) { e.stopPropagation(); setSpeed(i); });
+      box.appendChild(b);
+    });
+    document.body.appendChild(box);
+  }
+  $all('#speed-ctl button').forEach(function (b) {
+    b.classList.toggle('is-on', Number(b.dataset.i) === speedIdx);
+  });
+}
+
+/**
+ * 屏幕中央的「技能发动」大提示（ADR-074）
+ *
+ * 卡面太小、战场太挤，只靠卡上的小字玩家会漏掉"是谁的哪个技能在生效"。
+ * 每次技能发动都在中央打一条 时机 + 单位 + 〈技能名〉的横幅。
+ */
+var skillToastTimer = null;
+function skillToast(title, sub, tone) {
+  var el = document.getElementById('skill-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'skill-toast';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<i>' + title + '</i><b>' + sub + '</b>';
+  el.className = 'show ' + (tone || '');
+  clearTimeout(skillToastTimer);
+  // 不按固定时长关：横幅要**跟着这次结算一起存在**，否则技能还在结算、提示已经没了。
+  // 由 playEvents 播完队列时收起；这里的定时器只是兜底（万一队列异常中断）。
+  skillToastTimer = setTimeout(hideSkillToast, paced(4000));
+}
+function hideSkillToast() {
+  var el = document.getElementById('skill-toast');
+  if (el) el.className = '';
+  clearTimeout(skillToastTimer);
+}
+
 function playEvents(events, done) {
   logEvents(events);
   lastAttack = null;
   drawnThisAction = false;
   var queue = events.slice();
+  hideSkillToast();
   (function next() {
-    if (!queue.length) { done(); return; }
+    if (!queue.length) { hideSkillToast(); done(); return; }
     var e = queue.shift();
     var wait = animate(e);
-    if (wait > 0) setTimeout(next, wait); else next();
+    if (wait > 0) setTimeout(next, paced(wait)); else next();
   })();
 }
 
@@ -1377,21 +1494,24 @@ function animate(e) {
       if (e.source === '反击' && lastAttack) lastAttack.seen = true;
       if (el) {
         el.classList.add('cr-hit');
-        setTimeout(function () { el.classList.remove('cr-hit'); }, 320);
+        setTimeout(function () { el.classList.remove('cr-hit'); }, paced(320));
         CR.spell(el, f.cls === 'is-skill' ? 'rgba(200,150,255,.9)' : null);
-        CR.float(el, '-' + e.amount, f.cls + (e.amount >= 4 ? ' is-big' : ''), f.label);
+        // 飘字带出处（普攻 / 反击 / 技能名 / 中毒…），≥4 点加大，
+        // 停留时间随节奏档位拉长，避免"数字一闪而过"
+        CR.float(el, '-' + e.amount, f.cls + (e.amount >= 4 ? ' is-big' : ''), f.label, paced(1150));
         CR.tickHp(el, -e.amount);          // 卡面血量当场掉下来
+        if (e.amount >= 5) screenShake();
       }
-      return 300;
+      return 330;
     }
     case 'HEAL': {
       var he = e.target.kind === 'lord' ? lordEl(e.target.side)
              : unitEl(e.target.side, e.target.row, e.target.col);
       if (he) {
-        CR.float(he, '+' + e.amount, 'is-heal', '治疗');
+        CR.float(he, '+' + e.amount, 'is-heal', '治疗', paced(1000));
         CR.tickHp(he, e.amount);
       }
-      return 260;
+      return 300;
     }
     case 'ARMOR_GAINED': {
       var le = lordEl(e.side);
@@ -1399,18 +1519,50 @@ function animate(e) {
       return 240;
     }
     case 'STATUS_APPLIED': {
-      var se = unitEl(e.side, e.row, e.col);
-      if (se) CR.float(se, statusName(e.status) + (e.stacks > 1 ? '×' + e.stacks : ''), 'is-status', '状态');
-      return 220;
+      var se = unitEl(e.side, e.row, e.col) || (e.row === undefined ? lordEl(e.side) : null);
+      if (se) CR.float(se, statusName(e.status) + (e.stacks > 1 ? '×' + e.stacks : ''), 'is-status', '状态', paced(950));
+      return 260;
     }
     case 'STAT_MODIFIED': {
       var me = unitEl(e.side, e.row, e.col);
       if (me) {
         var txt = (e.attack ? '攻' + (e.attack > 0 ? '+' : '') + e.attack : '')
                 + (e.health ? ' 血' + (e.health > 0 ? '+' : '') + e.health : '');
-        CR.float(me, txt.trim() || '属性变化', (e.attack > 0 || e.health > 0) ? 'is-buff' : 'is-nerf');
+        CR.float(me, txt.trim() || '属性变化', (e.attack > 0 || e.health > 0) ? 'is-buff' : 'is-nerf', '', paced(950));
       }
-      return 220;
+      return 240;
+    }
+    case 'SKILL_TRIGGERED': {
+      // 引擎在技能真正执行前一刻发的（ADR-074）——玩家必须看得见"谁发动了什么"
+      var from = e.from || 'trigger';
+      var tone = from === 'aura' ? 'is-aura' : 'is-cast';
+      var when = SKILL_WHEN[e.timing] || SKILL_FROM[from] || '';
+      var el = e.row !== undefined ? unitEl(e.side, e.row, e.col) : null;
+      if (el) {
+        el.classList.add('cr-skill-cast');
+        setTimeout(function () { el.classList.remove('cr-skill-cast'); }, paced(700));
+        CR.spell(el, from === 'aura' ? 'rgba(255,215,130,.85)' : 'rgba(180,150,255,.9)');
+        // 卡上再飘一条小字，方便"对上号"；光环只留描边（它是持续状态，每次都飘会刷屏）
+        if (from !== 'aura') CR.float(el, '〈' + e.skillName + '〉', 'is-skillname', when, paced(1150));
+      }
+      // 中央横幅：即使单位在角落也能看见
+      skillToast((e.unitName ? e.unitName + ' · ' : '') + (when || '技能'),
+        '〈' + e.skillName + '〉', tone);
+      return 300;                     // 横幅会一直留到结算结束，单事件不必等太久
+    }
+    case 'CARD_MILLED': {
+      var mp = $(e.side === 'own' ? '#own-deck-pile' : '#foe-deck-pile');
+      if (mp) {
+        mp.classList.add('is-milled');
+        setTimeout(function () { mp.classList.remove('is-milled'); }, paced(520));
+        CR.float(mp, '−1', 'is-nerf', '牌库被拆');
+      }
+      return 260;
+    }
+    case 'TURN_SKIPPED': {
+      var skipName = SIDE_NAME[e.side] || e.side;
+      banner('回合被跳过', skipName + '因「' + (e.reason || '') + '」本回合无法行动');
+      return 900;
     }
     case 'STATUS_EXPIRED': {
       // 圣盾（immune_damage）触发时 dealDamage 直接返回 0、只发 STATUS_EXPIRED，
@@ -1651,5 +1803,11 @@ if (location.search.indexOf('clean') >= 0) {
   document.getElementById('hud').style.display = 'none';
   document.getElementById('detail').style.display = 'none';
 }
+
+// 节奏档位（ADR-074）：恢复上次选择，并把切换按钮挂上
+bootSpeed();
+
+// 双 AI 对打（?autoboth）：整局自动跑，用于连续观察机制与动画
+if (location.search.indexOf('autoboth') >= 0) { /* 由 shouldAuto() 处理 */ }
 
 newGame();
