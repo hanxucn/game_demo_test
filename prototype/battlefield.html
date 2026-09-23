@@ -429,6 +429,78 @@
   .hcard-wrap { touch-action: none; }
   .hcard-wrap.is-dragging { opacity: .25; }
   /* ---------- 悬浮技能弹窗 ---------- */
+  /* ===== ADR-074：战斗表现（看得清"谁发动了什么、掉了多少血"）===== */
+
+  /* 中央「技能发动」横幅：卡面太小、战场太挤，只靠卡上小字会漏看 */
+  #skill-toast {
+    position: fixed; left: 50%; top: 16%; transform: translate(-50%, -8px) scale(.96);
+    z-index: 640; pointer-events: none; opacity: 0;
+    padding: 10px 30px; border-radius: 14px; text-align: center;
+    background: linear-gradient(180deg, rgba(38,28,14,.96), rgba(20,15,8,.96));
+    border: 1px solid #8a7048; box-shadow: 0 8px 26px rgba(0,0,0,.6);
+    transition: opacity .16s ease, transform .16s ease;
+    max-width: 70vw;
+  }
+  #skill-toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  #skill-toast i { display: block; font-style: normal; font-size: 12px; color: #c8b58a; letter-spacing: .16em; margin-bottom: 2px; }
+  #skill-toast b { display: block; font-size: 22px; color: #ffd98a; letter-spacing: .06em;
+    text-shadow: 0 0 14px rgba(255,200,90,.5); }
+  #skill-toast.is-aura { border-color: #d8b45c; }
+  #skill-toast.is-aura b { color: #ffe6a0; }
+  #skill-toast.is-cast { border-color: #9d7ee0; }
+  #skill-toast.is-cast b { color: #d9c2ff; text-shadow: 0 0 14px rgba(170,130,255,.55); }
+
+  /* 发动技能的单位：金色描边脉冲，一眼看出"是这张卡在生效" */
+  .cr-skill-cast { animation: skillCast .7s ease-out; }
+  @keyframes skillCast {
+    0%   { box-shadow: 0 0 0 0 rgba(255,220,140,.95), 0 0 22px 6px rgba(255,210,120,.75); }
+    100% { box-shadow: 0 0 0 9px rgba(255,220,140,0), 0 0 0 0 rgba(255,210,120,0); }
+  }
+  .cr-float.is-skillname { color: #ffd98a; font-size: 13px; letter-spacing: .02em; }
+  .cr-float.is-skillname .cr-src { color: #b9a06a; }
+
+  /* 飘字堆叠错开：同一张卡连着吃伤害时不至于叠成一坨 */
+  .cr-float { --stack: 0; margin-top: calc(var(--stack) * -15px); }
+
+  /* 牌库被拆 */
+  #own-deck-pile.is-milled, #foe-deck-pile.is-milled {
+    animation: millFlash .52s ease-out;
+  }
+  @keyframes millFlash {
+    0%   { box-shadow: 0 0 0 0 rgba(200,170,255,.9); filter: brightness(1.6); }
+    100% { box-shadow: 0 0 0 10px rgba(200,170,255,0); filter: brightness(1); }
+  }
+
+  /* 大伤害震屏 */
+  #stage.is-shake { animation: stageShake .28s ease-in-out; }
+  @keyframes stageShake {
+    0%, 100% { transform: translate(0, 0); }
+    25%      { transform: translate(-3px, 2px); }
+    50%      { transform: translate(3px, -2px); }
+    75%      { transform: translate(-2px, -1px); }
+  }
+
+  /* 节奏档位：挂在 body 上的固定元素（放进 #canvas 会被 transform 二次缩放） */
+  #speed-ctl {
+    position: fixed; right: 10px; top: 8px; z-index: 620;
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 999px;
+    background: rgba(20,16,10,.86); border: 1px solid #4a4034;
+  }
+  #speed-ctl .lb { font-size: 10px; color: var(--dim); letter-spacing: .1em; }
+  #speed-ctl button {
+    font: inherit; font-size: 11px; padding: 3px 9px; cursor: pointer;
+    color: #cbbf9f; background: transparent; border: 1px solid transparent; border-radius: 999px;
+  }
+  #speed-ctl button:hover { color: #f6ecd8; border-color: #6b5730; }
+  #speed-ctl button.is-on { color: #1b1409; background: linear-gradient(180deg, #e8c877, #b9932f); font-weight: 700; }
+
+  /* 日志：技能发动 / 牌库被拆 单独着色 */
+  #log .le.skill b { color: #ffd98a; }
+  #log .le.skill i { color: #9c8a63; font-style: normal; font-size: 10px; }
+  #log .le.skill.aura b { color: #ffe6a0; }
+  #log .le.mill { color: #b9a6e0; }
+
   /* 抉择分支选择器（ADR-071 曹彰「猛袭」）。
      必须是 <body> 直属节点：放进 #canvas 会被 transform: scale() 二次缩放（踩过的坑） */
   #play-modes {

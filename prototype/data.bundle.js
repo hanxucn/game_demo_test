@@ -163,11 +163,11 @@ window.GameData = {
       "value": {
         "stats": 6,
         "keywords": 0,
-        "skills": 2.6,
-        "total": 8.6,
+        "skills": 1.9,
+        "total": 7.9,
         "budget": 7,
-        "diff": 1.6,
-        "level": "watch"
+        "diff": 0.9,
+        "level": "ok"
       }
     },
     {
@@ -577,10 +577,10 @@ window.GameData = {
       "value": {
         "stats": 10,
         "keywords": -1,
-        "skills": 1.12,
-        "total": 10.12,
+        "skills": 0.78,
+        "total": 9.78,
         "budget": 11,
-        "diff": -0.88,
+        "diff": -1.22,
         "level": "ok"
       }
     },
@@ -817,27 +817,33 @@ window.GameData = {
           "name": "谮言",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "战吼：己方主公本回合统率 −1，并随机封锁敌方手中一张卡（被封的牌无法打出）。",
           "effects": [
             {
-              "action": "discard",
-              "count": 1,
+              "action": "gain_command",
+              "value": -1
+            },
+            {
+              "action": "ban_play",
               "target": {
-                "side": "enemy"
+                "side": "enemy",
+                "zone": "hand",
+                "count": 1,
+                "mode": "random"
               }
             }
-          ],
-          "text": "有黄皓在场时，降低己方主公一点统率，敌方随机封锁手中一张卡。"
+          ]
         }
       ],
       "flavor": "",
       "value": {
         "stats": 3,
         "keywords": 0,
-        "skills": 1,
-        "total": 4,
+        "skills": 4,
+        "total": 7,
         "budget": 5,
-        "diff": -1,
-        "level": "ok"
+        "diff": 2,
+        "level": "watch"
       }
     },
     {
@@ -2224,6 +2230,7 @@ window.GameData = {
           "name": "谋定后动",
           "kind": "trigger",
           "trigger": "turn_end",
+          "text": "回合结束时，若司马懿本回合没有任何行动，对所有敌方人物造成 1 点伤害；若行动且造成过伤害，则弃掉对方牌库一张；场上只剩司马懿时后者同时生效。",
           "effects": [
             {
               "action": "damage",
@@ -2234,20 +2241,49 @@ window.GameData = {
                   "type": "character"
                 },
                 "count": "all"
+              },
+              "condition": {
+                "acted_this_turn": false
+              }
+            },
+            {
+              "action": "mill",
+              "count": 1,
+              "target": {
+                "side": "enemy"
+              },
+              "condition": {
+                "any_of": [
+                  {
+                    "acted_this_turn": true,
+                    "dealt_damage_this_turn": true
+                  },
+                  {
+                    "count": {
+                      "selector": {
+                        "side": "ally",
+                        "filter": {
+                          "type": "character"
+                        }
+                      },
+                      "op": "==",
+                      "value": 1
+                    }
+                  }
+                ]
               }
             }
-          ],
-          "text": "①如果当前回合司马懿没有任何行动,回合结束时对所有敌方人物卡牌造成一点伤害.②如果行动且对敌方造成伤害,则使敌方卡池随机丢弃一张卡牌.③当场上只剩司马懿时,效果同时包含②."
+          ]
         }
       ],
       "flavor": "",
       "value": {
         "stats": 7,
         "keywords": 0,
-        "skills": 1.05,
-        "total": 8.05,
+        "skills": 1.47,
+        "total": 8.47,
         "budget": 11,
-        "diff": -2.95,
+        "diff": -2.53,
         "level": "watch"
       }
     },
@@ -3609,6 +3645,7 @@ window.GameData = {
           "name": "黄天当立",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。",
           "effects": [
             {
               "action": "summon",
@@ -3616,27 +3653,55 @@ window.GameData = {
               "count": 2,
               "position": "random",
               "condition": {
-                "exists": {
-                  "side": "ally",
-                  "filter": {
-                    "type": "character",
-                    "tag": "huang_jin"
+                "all_of": [
+                  {
+                    "exists": {
+                      "side": "ally",
+                      "filter": {
+                        "card_id": "qun_zhangliang"
+                      }
+                    }
                   }
-                }
+                ]
+              }
+            },
+            {
+              "action": "summon",
+              "unit": "token_huangjin_bing",
+              "count": 2,
+              "position": "random",
+              "condition": {
+                "all_of": [
+                  {
+                    "exists": {
+                      "side": "ally",
+                      "filter": {
+                        "card_id": "qun_zhangliang"
+                      }
+                    }
+                  },
+                  {
+                    "exists": {
+                      "side": "ally",
+                      "filter": {
+                        "card_id": "qun_zhangjiao"
+                      }
+                    }
+                  }
+                ]
               }
             }
-          ],
-          "text": "当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。"
+          ]
         }
       ],
       "flavor": "",
       "value": {
         "stats": 3,
         "keywords": 0,
-        "skills": 4.2,
-        "total": 7.2,
+        "skills": 2.83,
+        "total": 5.83,
         "budget": 7,
-        "diff": 0.2,
+        "diff": -1.17,
         "level": "ok"
       }
     },
@@ -3660,6 +3725,7 @@ window.GameData = {
           "name": "黄天当立",
           "kind": "trigger",
           "trigger": "on_play",
+          "text": "战吼：张宝与张梁同时在场时召唤 2 个黄巾兵；张氏三兄弟同时在场时再召唤 2 个（共 4 个）。",
           "effects": [
             {
               "action": "summon",
@@ -3667,27 +3733,55 @@ window.GameData = {
               "count": 2,
               "position": "random",
               "condition": {
-                "exists": {
-                  "side": "ally",
-                  "filter": {
-                    "type": "character",
-                    "tag": "huang_jin"
+                "all_of": [
+                  {
+                    "exists": {
+                      "side": "ally",
+                      "filter": {
+                        "card_id": "qun_zhangbao"
+                      }
+                    }
                   }
-                }
+                ]
+              }
+            },
+            {
+              "action": "summon",
+              "unit": "token_huangjin_bing",
+              "count": 2,
+              "position": "random",
+              "condition": {
+                "all_of": [
+                  {
+                    "exists": {
+                      "side": "ally",
+                      "filter": {
+                        "card_id": "qun_zhangbao"
+                      }
+                    }
+                  },
+                  {
+                    "exists": {
+                      "side": "ally",
+                      "filter": {
+                        "card_id": "qun_zhangjiao"
+                      }
+                    }
+                  }
+                ]
               }
             }
-          ],
-          "text": "当张宝与张梁同时在场时，那回合可召唤 2 个 1/1 的黄巾军；当张氏三兄弟同时在场时，可额外召唤 2 个 1/1 的黄巾军（共 4 个）。"
+          ]
         }
       ],
       "flavor": "",
       "value": {
         "stats": 4,
         "keywords": 0,
-        "skills": 4.2,
-        "total": 8.2,
+        "skills": 2.83,
+        "total": 6.83,
         "budget": 7,
-        "diff": 1.2,
+        "diff": -0.17,
         "level": "ok"
       }
     },
@@ -5302,10 +5396,11 @@ window.GameData = {
       ],
       "effects": [
         {
-          "action": "damage",
-          "value": 0,
+          "action": "apply_status",
+          "status": "kong_cheng",
+          "duration": 2,
           "target": {
-            "side": "enemy",
+            "side": "ally",
             "lord": true
           },
           "condition": {
@@ -5326,10 +5421,10 @@ window.GameData = {
       "value": {
         "stats": 0,
         "keywords": 0,
-        "skills": 0,
-        "total": 0,
+        "skills": 1.4,
+        "total": 1.4,
         "budget": 11,
-        "diff": -11,
+        "diff": -9.6,
         "level": "off"
       }
     },
@@ -5362,6 +5457,22 @@ window.GameData = {
           }
         },
         {
+          "action": "heal",
+          "value": 3,
+          "target": {
+            "side": "ally",
+            "lord": true
+          }
+        },
+        {
+          "action": "apply_status",
+          "status": "xiu_zheng",
+          "target": {
+            "side": "ally",
+            "lord": true
+          }
+        },
+        {
           "action": "draw",
           "value": 3
         }
@@ -5370,11 +5481,11 @@ window.GameData = {
       "value": {
         "stats": 0,
         "keywords": 0,
-        "skills": 12.6,
-        "total": 12.6,
+        "skills": 15.8,
+        "total": 15.8,
         "budget": 11,
-        "diff": 1.6,
-        "level": "watch"
+        "diff": 4.8,
+        "level": "off"
       }
     },
     {
@@ -5996,6 +6107,32 @@ window.GameData = {
       ],
       "guard_scope": "lord",
       "memo": "只把该方**主帅**受到的伤害转由本单位承担（祖茂「替主」，ADR-071）"
+    },
+    {
+      "id": "kong_cheng",
+      "name": "空城",
+      "kind": "buff",
+      "numeric": false,
+      "scope": "lord",
+      "timing": 9,
+      "duration": "turns",
+      "caps": [
+        "untargetable"
+      ],
+      "memo": "该方主帅不能被**普通攻击**指定为目标；效果伤害仍可命中（空城计，ADR-074）"
+    },
+    {
+      "id": "xiu_zheng",
+      "name": "休整",
+      "kind": "debuff",
+      "numeric": false,
+      "scope": "lord",
+      "timing": 1,
+      "duration": "until_consumed",
+      "caps": [
+        "skip_turn"
+      ],
+      "memo": "该方下一个回合整个被跳过（休养生息「下一回合不进行任何活动」，ADR-074）"
     },
     {
       "id": "duan_chou",
