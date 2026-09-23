@@ -576,7 +576,7 @@ function cardDetailHTML(c) {
         + (sk.trigger ? '·' + (TRIGGER_NAME[sk.trigger] || sk.trigger) : '') + '</span>' : '')
       + '<div class="why">' + (sk.text || '（无文案）') + '</div></div>');
   });
-  if (c.memo) rows.push('<div class="sub" style="margin-top:6px">记忆点：' + c.memo + '</div>');
+  // 「记忆点」是给设计/校对用的内部字段，不面向玩家 —— 详情面板不再展示（ADR-079）
   return rows.join('');
 }
 
@@ -1011,7 +1011,7 @@ function cardSkillText(card) {
     return nm + (sk.text || '');
   }).filter(Boolean);
   if (list.length) return list.join('；');
-  if (card.memo) return card.memo;
+  // 没有技能就老实说没有 —— 不要拿「记忆点」冒充技能描述（ADR-079）
   return '（无技能）';
 }
 
