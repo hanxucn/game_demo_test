@@ -892,14 +892,32 @@ function arrowOrigin(el) {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
+/**
+ * 把坐标夹进视口（留 10px 边距）—— ADR-081
+ *
+ * 箭头原先直接用指针坐标 + 一个按水平距离上拱的控制点：
+ * 横向跨度大时 `my = min(y) - |dx|*0.18 - 14` 会拱到视口上方；
+ * 指针拖出窗口时指针坐标本身也会变成负数/超界 → 箭头整条飞出屏幕。
+ */
+function clampToViewport(x, y) {
+  var m = 10;
+  return {
+    x: Math.max(m, Math.min(x, window.innerWidth - m)),
+    y: Math.max(m, Math.min(y, window.innerHeight - m)),
+  };
+}
+
 /** 箭头（起点已缓存版）：拖拽过程中每帧调用，避免重复 getBoundingClientRect */
 function arrowToCached(fromEl, x, y, ok) {
   var layer = arrowEl(), path = arrowPathEl();
   if (!layer || !path || !fromEl || !drag || !drag.origin) { arrowTo(fromEl, x, y, ok); return; }
   var o = drag.origin;
+  var e2 = clampToViewport(x, y);
+  x = e2.x; y = e2.y;
   var mx = (o.x + x) / 2;
   var my = Math.min(o.y, y) - Math.abs(x - o.x) * 0.18 - 14;
-  path.setAttribute('d', 'M' + o.x + ',' + o.y + ' Q' + mx + ',' + my + ' ' + x + ',' + y);
+  var c = clampToViewport(mx, my);          // 控制点也要夹住，否则弧线顶部会拱出屏幕
+  path.setAttribute('d', 'M' + o.x + ',' + o.y + ' Q' + c.x + ',' + c.y + ' ' + x + ',' + y);
   path.setAttribute('marker-end', ok ? 'url(#arrow-head-ok)' : 'url(#arrow-head)');
   layer.classList.toggle('is-valid', !!ok);
   layer.classList.add('show');
@@ -911,10 +929,13 @@ function arrowTo(fromEl, x, y, ok) {
   var layer = arrowEl(), path = arrowPathEl();
   if (!layer || !path || !fromEl) return;
   var o = arrowOrigin(fromEl);
+  var e2 = clampToViewport(x, y);
+  x = e2.x; y = e2.y;
   // 轻微上拱的二次曲线，比直线更接近炉石的"指向感"
-  var mx = (o.x + x) / 2;
+  var mx = (x + o.x) / 2;
   var my = Math.min(o.y, y) - Math.abs(x - o.x) * 0.18 - 14;
-  path.setAttribute('d', 'M' + o.x + ',' + o.y + ' Q' + mx + ',' + my + ' ' + x + ',' + y);
+  var c = clampToViewport(mx, my);
+  path.setAttribute('d', 'M' + o.x + ',' + o.y + ' Q' + c.x + ',' + c.y + ' ' + x + ',' + y);
   path.setAttribute('marker-end', ok ? 'url(#arrow-head-ok)' : 'url(#arrow-head)');
   layer.classList.toggle('is-valid', !!ok);
   layer.classList.add('show');
@@ -1728,12 +1749,27 @@ function hideSkillToast() {
  */
 function skipAnimation() {
   if (!busy) return;
+  var skipped = animQueue ? animQueue.slice() : [];
   animToken += 1;          // 让旧的播放链失效（它自己会 return）
   animQueue = null;
   hideSkillToast();
   arrowHide();
   busy = false;
+  // ⚠️ ADR-081：被跳过的事件**不能就这么丢掉**。
+  // 原先直接 renderAll()，于是那批事件既没播动画、也没进日志 ——
+  // 如果里面有阵亡，玩家看到的就是"人凭空消失、日志里也查不到"。
+  skipped.forEach(function (e) { logOne(e); });
   renderAll();
+  // 阵亡单独给一个短暂提示：卡已经不在了，但至少要让人看见"谁死了"
+  skipped.forEach(function (e) {
+    if (e.type === 'UNIT_DIED') flashDeath(e.side, e.row, e.col, e.unit);
+  });
+}
+
+/** 阵亡提示：卡面找不到（已被跳过/同格被占）时，至少在格子上标一下（ADR-081） */
+function flashDeath(side, row, col, unit) {
+  var slot = document.querySelector('.slot[data-side="' + side + '"][data-row="' + row + '"][data-col="' + col + '"]');
+  if (slot) CR.float(slot, '✝ ' + (unit ? unit.name : ''), 'is-dmg', '阵亡', paced(1600));
 }
 
 function playEvents(events, done) {
@@ -2059,7 +2095,10 @@ function animate(e) {
         if (lastAttack && lastAttack.targetEl === de) lastAttack.killed = true;
         return 520;
       }
-      return 0;
+      // ADR-081：找不到卡面时**不能静默 return 0**（玩家会觉得"人凭空消失了"）。
+      // 常见于该格已被同批新召唤的单位占用，或这一批刚被跳过。
+      flashDeath(e.side, e.row, e.col, e.unit);
+      return 380;
     }
     case 'TURN_START': {
       banner('第 ' + e.turn + ' 回合', e.side === 'own' ? '我方' : '敌方');
