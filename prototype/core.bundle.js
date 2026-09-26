@@ -1177,7 +1177,8 @@ var Core = (() => {
     const sk = (card.skills ?? []).find((k) => k.trigger === "on_draw");
     if (!sk) return false;
     emitSkillTriggered(state, side, null, sk, "trigger", events);
-    runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
+    const effs = sk.effects?.length ? sk.effects : card.effects ?? [];
+    runEffects(state, cards, effs, { side }, rng, events);
     return true;
   });
   registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) => {
@@ -1573,7 +1574,7 @@ var Core = (() => {
     const bags = ref.kind === "unit" ? getUnit(state, ref.side, ref.row, ref.col)?.statuses : ref.kind === "lord" ? state.sides[ref.side].lord.statuses : void 0;
     return Object.entries(bags ?? {}).filter(([id, inst]) => inst.stacks > 0 && STATUSES[id]?.kind === kind).map(([id]) => id);
   }
-  function runOnAttackPhase(state, cards, attacker, phase, killed, rng, events) {
+  function runOnAttackPhase(state, cards, attacker, phase, killed, rng, events, overflow = 0) {
     if (attacker.hp <= 0) return;
     const side = findSide(state, attacker.uid);
     if (!side) return;
@@ -1581,14 +1582,9 @@ var Core = (() => {
       const effs = (sk.effects ?? []).filter((e) => phase === "after" ? e.condition?.event === "killed" : e.condition?.event !== "killed");
       if (!effs.length) continue;
       emitSkillTriggered(state, side, attacker, sk, "trigger", events);
-      runEffects(
-        state,
-        cards,
-        effs,
-        { side, source: attacker, flags: killed ? ["killed"] : [] },
-        rng,
-        events
-      );
+      const flags = killed ? ["killed"] : [];
+      if (killed && overflow > 0) flags.push(`overflow:${overflow}`);
+      runEffects(state, cards, effs, { side, source: attacker, flags }, rng, events);
     }
   }
   function resolveAttack(state, cards, side, from, to, events, rng, opts = {}) {
@@ -1602,6 +1598,7 @@ var Core = (() => {
     const dmg = effectiveAttack(state, side, from.row, from.col);
     const hasYinXue = hasTrait(me, "yin_xue");
     let killed = false;
+    let overflow = 0;
     let dealtTotal = 0;
     if (to.kind === "lord") {
       const dealt = dealDamage(
@@ -1621,6 +1618,7 @@ var Core = (() => {
       const tRow = to.row;
       const tCol = to.col;
       const targetUnit = getUnit(state, foe, tRow, tCol);
+      const hpBefore = targetUnit ? targetUnit.hp : 0;
       const retaliate = effectiveAttack(state, foe, tRow, tCol);
       const dealt = dealDamage(
         state,
@@ -1644,6 +1642,7 @@ var Core = (() => {
       if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);
       const hitAfter = getUnit(state, foe, tRow, tCol);
       killed = !hitAfter || hitAfter.hp <= 0;
+      if (killed) overflow = Math.max(0, dmg - hpBefore);
     }
     const after = getUnit(state, side, from.row, from.col);
     if (after) {
@@ -1662,7 +1661,7 @@ var Core = (() => {
     }
     const survivor = getUnit(state, side, from.row, from.col);
     if (survivor && survivor.hp > 0) {
-      runOnAttackPhase(state, cards, survivor, "after", killed, rng, events);
+      runOnAttackPhase(state, cards, survivor, "after", killed, rng, events, overflow);
     }
     return true;
   }

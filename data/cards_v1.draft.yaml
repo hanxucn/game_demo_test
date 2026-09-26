@@ -397,13 +397,12 @@ cards:
       trigger: on_attack
       effects:
       - action: damage
-        value: 2
+        value_from_flag: overflow
         condition:
           event: killed
         target:
           side: enemy
-          count: 1
-          mode: first
+          lord: true
     note: DSL 已翻译
   keywords:
   - xian_gong
@@ -4192,22 +4191,22 @@ cards:
       name: 万箭齐发
       kind: trigger
       trigger: on_draw
-      effects:
-      - action: damage
-        value: 1
-        target:
-          side: enemy
-          filter:
-            type: character
-          count: all
       text: 抽到时释放：对所有敌方人物造成 1 点伤害。
-    note: DSL 已翻译
+    note: DSL 已翻译（卡级 effects）
   keywords: []
   gender: unknown
   memo: 抽到时自动释放：敌方全体 1 伤（袁绍专属）
   flavor: ''
   source:
     new: 设计者新增
+  effects:
+  - action: damage
+    value: 1
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: all
 - id: qun_zhangjiao
   name: 张角
   faction: qun

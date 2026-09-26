@@ -389,10 +389,10 @@
  "wei_zhangliao": {
   "stats": 9,
   "keywords": -1,
-  "skills": 0.56,
-  "total": 8.56,
+  "skills": 0.84,
+  "total": 8.84,
   "budget": 11,
-  "diff": -2.44,
+  "diff": -2.16,
   "level": "watch"
  },
  "wei_dianwei": {
@@ -920,10 +920,10 @@
  "tactic_wanjianqifa": {
   "stats": 0,
   "keywords": 0,
-  "skills": 1.2,
-  "total": 1.2,
+  "skills": 1.5,
+  "total": 1.5,
   "budget": 1,
-  "diff": 0.2,
+  "diff": 0.5,
   "level": "ok"
  },
  "tactic_bishi_ruiqi": {

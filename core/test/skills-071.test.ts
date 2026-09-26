@@ -645,25 +645,29 @@ test('playTargetPlan：plan 给出的目标一定能被引擎接受（闭环）'
    击杀条件在伤害后。
    ============================================================ */
 
-test("ADR-072：击杀条件在伤害之后判定 —— 张辽斩杀后溢出伤害真的打出来了", () => {
+test("ADR-086：击杀条件在伤害之后判定 —— 张辽斩杀后的**溢出伤害**转打敌方主将", () => {
   const zhang = realCard('wei_zhangliao');
   assert.equal(zhang.attack, 5, '张辽卡面攻击力（回归：本测试按相对值断言，改数值不受影响）');
 
   const { state, ctx } = scenario({ own: { front: ['wei_zhangliao'] } });
   const atk = getUnit(state, 'own', 'front', 0)!.atk;
-  // 目标：血量正好被打死（相对卡面攻击力，不写死数值）
-  const victim = mk('victim', 1, atk);
+  // 目标只有 2 血 → 溢出 = 攻击力 − 2（相对卡面攻击力，不写死数值）
+  const victim = mk('victim', 0, 2);
   setUnit(state, 'enemy', 'front', 0, victim);
   const bystander = mk('bystander', 1, 30);
   setUnit(state, 'enemy', 'front', 1, bystander);
+  const lordBefore = state.sides.enemy.lord.hp;
 
   const r = applyAction(state, ctx, {
     type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 },
   });
   assert.ok(r.ok, `攻击应成功：${r.error}`);
   assert.equal(getUnit(r.state, 'enemy', 'front', 0), null, '目标应被斩杀');
-  assert.equal(bystander.maxHp - getUnit(r.state, 'enemy', 'front', 1)!.hp, 2,
-    '斩杀后应再对另一名敌人造成 2 点（溢出伤害）');
+  // ADR-086（设计者实机纠正）：溢出伤害由**敌方主将**承受，
+  // 不是"再对另一名敌人造成写死的 2 点"
+  assert.equal(lordBefore - r.state.sides.enemy.lord.hp, atk - 2,
+    `溢出 ${atk - 2} 点应由敌方主将承受`);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 1)!.hp, 30, '不该误伤旁边的敌人');
 });
 
 test('ADR-072：没杀死就不该触发击杀分支', () => {
@@ -674,6 +678,7 @@ test('ADR-072：没杀死就不该触发击杀分支', () => {
   setUnit(state, 'enemy', 'front', 0, tough);
   const bystander = mk('bystander', 1, 30);
   setUnit(state, 'enemy', 'front', 1, bystander);
+  const lordBefore = state.sides.enemy.lord.hp;
 
   const r = applyAction(state, ctx, {
     type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 },
@@ -681,6 +686,7 @@ test('ADR-072：没杀死就不该触发击杀分支', () => {
   assert.ok(r.ok, `攻击应成功：${r.error}`);
   assert.equal(getUnit(r.state, 'enemy', 'front', 0)!.hp, 5, '目标应存活');
   assert.equal(getUnit(r.state, 'enemy', 'front', 1)!.hp, 30, '没杀死 → 不该有溢出伤害');
+  assert.equal(r.state.sides.enemy.lord.hp, lordBefore, '没杀死 → 主将也不掉血');
 });
 
 test('ADR-072：关兴击杀后获得额外行动（extra_attack 真的重置了攻击次数）', () => {

@@ -591,3 +591,52 @@ test('范围伤害默认打主将；卡面写 include_lord: false 才不打', ()
   const r3 = applyAction(sc.state, sc.ctx, { type: 'END_TURN' });
   assert.equal(r3.state.sides.enemy.lord.hp, 30, '单体指定目标不受"范围默认含主公"影响');
 });
+
+/* ================= ADR-086：万箭齐发从手牌打出 / 张辽溢出伤害 ================= */
+
+test('万箭齐发：从手牌打出也结算伤害（原先只有 on_draw，手牌那张打出去毫无反应）', () => {
+  realCard('tactic_wanjianqifa');
+  const { state, ctx } = scenario({ ownHand: ['tactic_wanjianqifa'] });
+  state.sides.enemy.deck = Array(4).fill('neutral_infantry');
+  setUnit(state, 'enemy', 'front', 0, u('foe1', 1, 5));
+  setUnit(state, 'enemy', 'front', 1, u('foe2', 1, 5));
+  const lordBefore = state.sides.enemy.lord.hp;
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
+  assert.ok(r.ok, `应能打出：${r.error}`);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.hp, 4, '敌方人物 −1');
+  assert.equal(getUnit(r.state, 'enemy', 'front', 1)?.hp, 4, '全体结算，不是只打一个');
+  assert.equal(lordBefore - r.state.sides.enemy.lord.hp, 1, '范围伤害默认含主公（ADR-085）');
+});
+
+test('张辽 冲锋陷阵：斩杀后的**溢出伤害**打在敌方主将身上（原先写死 2 点且打错目标）', () => {
+  const zl = realCard('wei_zhangliao');
+  const { state, ctx } = scenario({ ownHand: [] });
+  state.sides.enemy.deck = Array(4).fill('neutral_infantry');
+  setUnit(state, 'own', 'front', 0, makeUnit(zl, 0, 900));       // 张辽 5 攻（带先攻）
+  setUnit(state, 'enemy', 'front', 0, u('victim', 0, 2));        // 2 血靶子：5 − 2 = 溢出 3
+  setUnit(state, 'enemy', 'front', 1, u('bystander', 0, 9));     // 用来证明"不再打第一个敌人"
+  const lordBefore = state.sides.enemy.lord.hp;
+
+  const r = applyAction(state, ctx, {
+    type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 },
+  });
+  assert.ok(r.ok, `应能攻击：${r.error}`);
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null, '目标应被斩杀');
+  assert.equal(lordBefore - r.state.sides.enemy.lord.hp, 3, '溢出 3 点应由主将承受');
+  assert.equal(getUnit(r.state, 'enemy', 'front', 1)?.hp, 9, '旁边的敌人不该被误伤');
+});
+
+test('张辽 冲锋陷阵：没打死人就没有溢出伤害', () => {
+  const zl = realCard('wei_zhangliao');
+  const { state, ctx } = scenario({ ownHand: [] });
+  state.sides.enemy.deck = Array(4).fill('neutral_infantry');
+  setUnit(state, 'own', 'front', 0, makeUnit(zl, 0, 901));
+  setUnit(state, 'enemy', 'front', 0, u('tank', 0, 20));         // 打不死 → 无溢出
+  const lordBefore = state.sides.enemy.lord.hp;
+  const r = applyAction(state, ctx, {
+    type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 },
+  });
+  assert.ok(r.ok);
+  assert.equal(r.state.sides.enemy.lord.hp, lordBefore, '未击杀 → 主将不掉血');
+});

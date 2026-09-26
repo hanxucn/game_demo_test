@@ -2116,14 +2116,13 @@ window.GameData = {
           "effects": [
             {
               "action": "damage",
-              "value": 2,
+              "value_from_flag": "overflow",
               "condition": {
                 "event": "killed"
               },
               "target": {
                 "side": "enemy",
-                "count": 1,
-                "mode": "first"
+                "lord": true
               }
             }
           ],
@@ -2134,10 +2133,10 @@ window.GameData = {
       "value": {
         "stats": 9,
         "keywords": -1,
-        "skills": 0.56,
-        "total": 8.56,
+        "skills": 0.84,
+        "total": 8.84,
         "budget": 11,
-        "diff": -2.44,
+        "diff": -2.16,
         "level": "watch"
       }
     },
@@ -4988,30 +4987,30 @@ window.GameData = {
           "name": "万箭齐发",
           "kind": "trigger",
           "trigger": "on_draw",
-          "effects": [
-            {
-              "action": "damage",
-              "value": 1,
-              "target": {
-                "side": "enemy",
-                "filter": {
-                  "type": "character"
-                },
-                "count": "all"
-              }
-            }
-          ],
           "text": "抽到时释放：对所有敌方人物造成 1 点伤害。"
+        }
+      ],
+      "effects": [
+        {
+          "action": "damage",
+          "value": 1,
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": "all"
+          }
         }
       ],
       "flavor": "",
       "value": {
         "stats": 0,
         "keywords": 0,
-        "skills": 1.2,
-        "total": 1.2,
+        "skills": 1.5,
+        "total": 1.5,
         "budget": 1,
-        "diff": 0.2,
+        "diff": 0.5,
         "level": "ok"
       }
     },
