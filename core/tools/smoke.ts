@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { applyAction, startMatch } from '../src/engine.ts';
-import { chooseAction } from '../src/ai.ts';
+import { chooseAction } from '../src/ai/index.ts';
 import { loadData } from '../src/loader.ts';
 import { autoDeck } from '../src/deck.ts';
 import { setupMatch } from '../src/setup.ts';

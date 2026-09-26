@@ -16,7 +16,8 @@
     "validate": "node --experimental-strip-types tools/validate.ts",
     "verify:dsl": "node --experimental-strip-types tools/verify-dsl.ts",
     "smoke": "node --experimental-strip-types tools/smoke.ts",
-    "build:browser": "esbuild src/index.ts --bundle --format=iife --global-name=Core --outfile=../prototype/core.bundle.js --log-level=warning"
+    "build:browser": "esbuild src/index.ts --bundle --format=iife --global-name=Core --outfile=../prototype/core.bundle.js --log-level=warning",
+    "ai:report": "node --experimental-strip-types tools/ai-report.ts"
   },
   "engines": {
     "node": ">=20"

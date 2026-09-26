@@ -44,6 +44,7 @@ var Core = (() => {
     TIMING: () => TIMING,
     UNIQUE_COPIES: () => UNIQUE_COPIES,
     activeStatuses: () => activeStatuses,
+    aiMulligan: () => aiMulligan,
     allUnits: () => allUnits,
     applyAction: () => applyAction,
     applyMods: () => applyMods,
@@ -51,6 +52,7 @@ var Core = (() => {
     autoDeck: () => autoDeck,
     canAttack: () => canAttack,
     canPlayCard: () => canPlayCard,
+    canUseLordSkill: () => canUseLordSkill,
     canUseUnitSkill: () => canUseUnitSkill,
     capStacks: () => capStacks,
     cardPool: () => cardPool,
@@ -61,6 +63,7 @@ var Core = (() => {
     createMatch: () => createMatch,
     createRng: () => createRng,
     dealDamage: () => dealDamage,
+    decide: () => decide,
     discardOverflow: () => discardOverflow,
     drawCard: () => drawCard,
     effectiveAttack: () => effectiveAttack,
@@ -679,6 +682,18 @@ var Core = (() => {
       return { ok: false, reason: "\u672C\u56DE\u5408\u5DF2\u7528\u8FC7" };
     }
     if (state.sides[side].command.cur < (skill.cost ?? 0)) return { ok: false, reason: "\u7EDF\u7387\u503C\u4E0D\u8DB3" };
+    return { ok: true, skill };
+  }
+  function canUseLordSkill(state, side) {
+    const lord = state.sides[side].lord;
+    const skill = lord.skillDef;
+    if (!skill || skill.kind !== "active") return { ok: false, reason: "\u6CA1\u6709\u4E3B\u52A8\u578B\u4E3B\u516C\u6280" };
+    if (hasCapOn(lord.statuses, "block_lord_skill")) return { ok: false, reason: "\u4E3B\u516C\u6280\u88AB\u5C01\u9501\uFF08\u8FDB\u8A00\uFF09" };
+    if (lord.skillUsedThisTurn && capStacks(lord.statuses, "extra_lord_skill") <= 0) {
+      return { ok: false, reason: "\u672C\u56DE\u5408\u5DF2\u7528\u8FC7" };
+    }
+    const cost = skill.cost ?? LORD_SKILL_COST;
+    if (state.sides[side].command.cur < cost) return { ok: false, reason: "\u7EDF\u7387\u503C\u4E0D\u8DB3" };
     return { ok: true, skill };
   }
   function canAttack(state, side, row, col) {
@@ -2114,12 +2129,10 @@ var Core = (() => {
   function useLordSkill(state, ctx, action, events, rng) {
     const side = state.active;
     const lord = state.sides[side].lord;
-    const skill = lord.skillDef;
-    if (!skill || skill.kind !== "active") return false;
-    if (hasCapOn(lord.statuses, "block_lord_skill")) return false;
-    if (lord.skillUsedThisTurn && capStacks(lord.statuses, "extra_lord_skill") <= 0) return false;
+    const gate = canUseLordSkill(state, side);
+    if (!gate.ok || !gate.skill) return false;
+    const skill = gate.skill;
     const cost = skill.cost ?? LORD_SKILL_COST;
-    if (state.sides[side].command.cur < cost) return false;
     const target = action.target ? action.target.row !== void 0 ? unitRef(action.target.side, action.target.row, action.target.col) : lordRef(action.target.side) : void 0;
     state.sides[side].command.cur -= cost;
     if (capStacks(lord.statuses, "extra_lord_skill") > 0 && lord.skillUsedThisTurn) {
@@ -2238,28 +2251,36 @@ var Core = (() => {
       if (r.kind === "lord") targets.push({ kind: "lord", side: r.side });
       else if (r.kind === "unit") targets.push({ kind: "unit", side: r.side, row: r.row, col: r.col });
     }
-    return { pick, label: choiceLabel(t), targets, includesHand: pool.some((r) => r.kind === "hand") };
+    const sides = [...new Set(pool.map((r) => r.side))];
+    return {
+      pick,
+      action: eff.action,
+      sides,
+      targets,
+      label: choiceLabel(t),
+      includesHand: pool.some((r) => r.kind === "hand")
+    };
   }
   var LORD_PREVIEW = { cost: 0, atk: 0 };
-  function unitSkillTargetPlan(state, side, row, col) {
+  function unitSkillTargetPlan(state, side, row, col, modeIndex = 0) {
     const plan = { modes: [], choices: [] };
     const u = getUnit(state, side, row, col);
     if (!u) return plan;
     const sk = (u.skills ?? []).find((x) => x.kind === "active");
     if (!sk) return plan;
     if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `\u9009\u9879 ${i + 1}`);
-    for (const eff of effectsOf(sk, 0)) {
+    for (const eff of effectsOf(sk, modeIndex)) {
       const c = choiceOf(state, side, eff, { cost: u.cost, atk: u.atk });
       if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
     }
     return plan;
   }
-  function lordSkillTargetPlan(state, side) {
+  function lordSkillTargetPlan(state, side, modeIndex = 0) {
     const plan = { modes: [], choices: [] };
     const sk = state.sides[side].lord.skillDef;
     if (!sk) return plan;
     if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `\u9009\u9879 ${i + 1}`);
-    for (const eff of effectsOf(sk, 0)) {
+    for (const eff of effectsOf(sk, modeIndex)) {
       const c = choiceOf(state, side, eff, LORD_PREVIEW);
       if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
     }
@@ -2339,14 +2360,14 @@ var Core = (() => {
     if (isBanned(hc)) return false;
     const card = hc.card;
     const cost = effectiveCost(hc, costRuleDelta(state, card, side, rng));
-    const isCharacter2 = ["troop", "general", "strategist"].includes(card.type);
-    const slot = isCharacter2 ? { row: action.row, col: action.col } : void 0;
+    const isCharacter = ["troop", "general", "strategist"].includes(card.type);
+    const slot = isCharacter ? { row: action.row, col: action.col } : void 0;
     const check = canPlayCard(state, side, card, slot, cost);
     if (!check.ok) return false;
     s.command.cur -= cost;
     s.hand.splice(action.cardIndex, 1);
     events.push({ type: "CARD_PLAYED", side, card, row: slot?.row, col: slot?.col, handIndex: action.cardIndex });
-    if (isCharacter2 && slot) {
+    if (isCharacter && slot) {
       const u = makeUnit(card, state.turn, nextUidSeq(state));
       setUnit(state, side, slot.row, slot.col, u);
       events.push({ type: "UNIT_SUMMONED", side, row: slot.row, col: slot.col, unit: u });
@@ -2705,94 +2726,476 @@ var Core = (() => {
     return deck.slice(0, DECK.SIZE);
   }
 
-  // src/ai.ts
-  function chooseAction(state, ctx) {
+  // src/ai/cards.ts
+  var CHARACTER_TYPES = ["troop", "general", "strategist"];
+  var isCharacterCard = (c) => CHARACTER_TYPES.includes(c.type);
+  function skillEffects(sk) {
+    if (sk.modes?.length) return sk.modes.flatMap((m) => m.effects ?? []);
+    return sk.effects ?? [];
+  }
+  function allEffects(card) {
+    const out = [...card.effects ?? []];
+    for (const sk of card.skills ?? []) out.push(...skillEffects(sk));
+    return out;
+  }
+  var cardBudget = (cost) => 2 * cost + 1;
+  var KEYWORD_VALUE = {
+    jia_dun: 1.2,
+    // 架盾：逼对手先打它，等于给全队挡刀
+    sheng_dun: 1.1,
+    // 圣盾：免疫一次伤害
+    lian_ji: 1,
+    // 连击：每回合两次普攻
+    xian_gong: 0.9,
+    // 先攻：入场即可攻击
+    yi_ji: 0.7,
+    // 遗计：亡语
+    yin_xue: 0.6
+    // 饮血：伤害转治疗
+  };
+  function keywordValueOf(has) {
+    let v = 0;
+    for (const [kw, w] of Object.entries(KEYWORD_VALUE)) if (has(kw)) v += w;
+    return v;
+  }
+  function unitValueOf(u, has, skillWeight = 0.6) {
+    const body = u.atk + Math.max(0, u.hp);
+    const kw = keywordValueOf(has);
+    const residual = Math.max(0, cardBudget(u.cost) - (u.baseAtk + u.baseMaxHp) - kw);
+    return body + kw + residual * skillWeight + cardEquityOf(u);
+  }
+  var CARD_EQUITY = 2;
+  function cardEquityOf(u) {
+    return NON_DECK_TYPES.includes(u.type) ? 0 : CARD_EQUITY;
+  }
+  var handCardValue = (hc, ratio = 0.5) => cardBudget(hc.card.cost ?? 0) * ratio;
+  var OFFENSIVE = /* @__PURE__ */ new Set([
+    "damage",
+    "destroy",
+    "sacrifice",
+    "ban_play",
+    "steal_card",
+    "take_control",
+    "return_to_hand",
+    "flip",
+    "force_attack",
+    "mill",
+    "clash"
+  ]);
+  function picksEnemySide(action, sides) {
+    if (OFFENSIVE.has(action)) return "enemy";
+    if (action === "heal" || action === "survive" || action === "copy_skill") return "ally";
+    if (action === "modify") return "ally";
+    if (action === "remove_status") return "ally";
+    if (action === "apply_status") return "enemy";
+    const has = (s) => sides.includes(s);
+    if (has("ally") && !has("enemy")) return "ally";
+    if (has("enemy") && !has("ally")) return "enemy";
+    return "either";
+  }
+  function cardReachesLord(card) {
+    return allEffects(card).some((e) => OFFENSIVE.has(e.action) && (e.target?.lord === true || e.target?.side === "enemy" || e.target?.filter?.include_lord === true || e.action === "damage" && e.target === void 0));
+  }
+
+  // src/ai/eval.ts
+  var WIN = 1e6;
+  var finisherScale = (foeEff) => 1 + Math.max(0, 20 - foeEff) / 20;
+  function evaluate(state, side, w) {
+    if (state.winner === side) return WIN;
+    if (state.winner) return -WIN;
+    const foe = other(side);
+    const me = state.sides[side];
+    const them = state.sides[foe];
+    let score = 0;
+    const myEff = me.lord.hp + me.lord.armor;
+    const foeEff = them.lord.hp + them.lord.armor;
+    score += (myEff - foeEff) * w.face * finisherScale(foeEff);
+    const mine = allUnits(state, side);
+    const theirs = allUnits(state, foe);
+    let myBoard = 0;
+    let foeBoard = 0;
+    let incoming = 0;
+    for (const r of mine) myBoard += unitValueOf(r.unit, (k) => hasTrait(r.unit, k));
+    for (const r of theirs) {
+      foeBoard += unitValueOf(r.unit, (k) => hasTrait(r.unit, k));
+      incoming += effectiveAttack(state, foe, r.row, r.col);
+    }
+    score += (myBoard - foeBoard) * w.board;
+    score += (mine.length - theirs.length) * w.width;
+    let handVal = 0;
+    for (const hc of me.hand) handVal += handCardValue(hc);
+    score += handVal * w.hand;
+    score += me.command.cur * w.mana;
+    let ready = 0;
+    for (const r of mine) {
+      if (canAttack(state, side, r.row, r.col).ok) ready += effectiveAttack(state, side, r.row, r.col);
+    }
+    score += ready * w.ready;
+    const overkill = incoming - myEff;
+    if (overkill >= 0 && incoming > 0) score -= (overkill + 4) * w.threat;
+    else if (overkill > -6) score -= (6 + overkill) * 0.25 * w.threat;
+    if (me.deck.length === 0) score -= (me.fatigue + 1) * 1.5 * w.fatigue;
+    if (them.deck.length === 0) score += (them.fatigue + 1) * 1.5 * w.fatigue;
+    return score;
+  }
+
+  // src/ai/options.ts
+  var CAP = { attack: 32, play: 28, skill: 24, lord: 6 };
+  var PICK1_CAP = 4;
+  var PICK2_CAP = 3;
+  var toActionTarget = (t) => t.kind === "lord" ? { side: t.side } : { side: t.side, row: t.row, col: t.col };
+  function attackOptions(state, w) {
     const side = state.active;
     const foe = other(side);
-    const lordHp = state.sides[foe].lord.hp;
-    const armor = state.sides[foe].lord.armor;
+    const out = [];
+    const lordEff = state.sides[foe].lord.hp + state.sides[foe].lord.armor;
     for (const ref of allUnits(state, side)) {
       if (!canAttack(state, side, ref.row, ref.col).ok) continue;
-      const res = legalTargets(state, side, ref.row, ref.col);
-      const canHitLord = res.targets.some((t) => t.kind === "lord");
-      if (canHitLord && effectiveAttack(state, side, ref.row, ref.col) >= lordHp + armor) {
-        return { type: "ATTACK", from: { row: ref.row, col: ref.col }, to: { kind: "lord" } };
+      const dmg = effectiveAttack(state, side, ref.row, ref.col);
+      const me = ref.unit;
+      const myValue = unitValueOf(me, (k) => hasTrait(me, k));
+      for (const t of legalTargets(state, side, ref.row, ref.col).targets) {
+        if (t.kind === "lord") {
+          const lethal = dmg >= lordEff;
+          out.push({
+            kind: "attack",
+            action: { type: "ATTACK", from: { row: ref.row, col: ref.col }, to: { kind: "lord" } },
+            label: `${me.name} \u2192 \u4E3B\u5C06 ${dmg}`,
+            quick: lethal ? 1e6 : dmg * w.face * 2
+          });
+          continue;
+        }
+        const target = getUnit(state, foe, t.row, t.col);
+        if (!target) continue;
+        const tv = unitValueOf(target, (k) => hasTrait(target, k));
+        const kills = dmg >= target.hp;
+        const retaliate = effectiveAttack(state, foe, t.row, t.col);
+        const iDie = retaliate >= me.hp;
+        let quick = kills ? iDie ? tv * 0.35 : tv * 1.5 : dmg * 1.1 - Math.min(dmg, target.hp) * 0.1;
+        if (!kills && iDie) quick -= myValue * 0.5;
+        if (kills && !iDie) quick += 3;
+        out.push({
+          kind: "attack",
+          action: {
+            type: "ATTACK",
+            from: { row: ref.row, col: ref.col },
+            to: { kind: "unit", row: t.row, col: t.col }
+          },
+          label: `${me.name} \u2192 ${target.name}${kills ? "\uFF08\u51FB\u6740\uFF09" : ""}`,
+          quick
+        });
       }
     }
-    for (const ref of allUnits(state, side)) {
-      if (!canAttack(state, side, ref.row, ref.col).ok) continue;
-      const res = legalTargets(state, side, ref.row, ref.col);
-      if (res.targets.some((t) => t.kind === "lord")) {
-        return { type: "ATTACK", from: { row: ref.row, col: ref.col }, to: { kind: "lord" } };
+    return out.sort((a, b) => b.quick - a.quick).slice(0, CAP.attack);
+  }
+  function slotsFor(state, side, card) {
+    const spots = legalPlacements(state, side);
+    if (!spots.length) return [];
+    const adjacencySensitive = (card.skills ?? []).some((sk) => effectsOfSkill(sk).some((e) => e.target?.filter?.adjacent_to === "self"));
+    return adjacencySensitive ? spots : [spots[0]];
+  }
+  var effectsOfSkill = (sk) => sk.modes?.length ? sk.modes.flatMap((m) => m.effects ?? []) : sk.effects ?? [];
+  function rankTarget(state, side, choice, w, t) {
+    const dir = picksEnemySide(choice.action, choice.sides);
+    if (choice.action === "heal" || choice.action === "survive") {
+      if (t.kind === "lord") return 1;
+      const u2 = getUnit(state, t.side, t.row, t.col);
+      if (!u2) return 0;
+      return (u2.maxHp - u2.hp) * 3 + unitValueOf(u2, (k) => hasTrait(u2, k)) * 0.2;
+    }
+    if (t.kind === "lord") {
+      const lord = state.sides[t.side].lord;
+      const eff = lord.hp + lord.armor;
+      if (dir === "ally") return 0;
+      return t.side === side ? -eff : (40 - eff) * 0.5 * w.face;
+    }
+    const u = getUnit(state, t.side, t.row, t.col);
+    if (!u) return 0;
+    const v = unitValueOf(u, (k) => hasTrait(u, k));
+    if (dir === "ally") return v;
+    if (dir === "enemy") return t.side === side ? -v : v;
+    return v;
+  }
+  function brief(t, self) {
+    const who = t.side === self ? "\u6211" : "\u654C";
+    return t.col === void 0 ? `${who}\xB7\u4E3B\u5C06` : `${who}\xB7\u7B2C${t.col + 1}\u683C`;
+  }
+  function combosOf(state, side, planFor, w, modeCount) {
+    const modeIndexes = modeCount > 1 ? Array.from({ length: modeCount }, (_, i) => i) : [void 0];
+    const out = [];
+    const rankAndCap = (c, cap) => {
+      const ranked = [...c.targets].map((t) => ({ t, s: rankTarget(state, side, c, w, t) })).sort((a, b) => b.s - a.s).slice(0, cap).map((x) => toActionTarget(x.t));
+      if (!ranked.length && c.includesHand) return [void 0];
+      return ranked;
+    };
+    for (const mi of modeIndexes) {
+      const plan = planFor(mi);
+      const c1 = plan.choices.find((c) => c.pick === 1);
+      const c2 = plan.choices.find((c) => c.pick === 2);
+      const picks1 = c1 ? rankAndCap(c1, PICK1_CAP) : [void 0];
+      const picks2 = c2 ? rankAndCap(c2, PICK2_CAP) : [void 0];
+      for (const p1 of picks1) {
+        for (const p2 of picks2) {
+          const parts = [];
+          if (mi !== void 0) parts.push(plan.modes[mi] ?? `#${mi}`);
+          if (p1) parts.push(`${c1?.action ?? "?"}\u2192${brief(p1, side)}`);
+          if (p2) parts.push(`${c2?.action ?? "?"}\u2192${brief(p2, side)}`);
+          out.push({ modeIndex: mi, target: p1, target2: p2, label: parts.join(" ") });
+        }
       }
+    }
+    return out;
+  }
+  function playOptions(state, w) {
+    const side = state.active;
+    const s = state.sides[side];
+    const out = [];
+    const rng = createRng(state.rngState);
+    s.hand.forEach((hc, i) => {
+      if (isBanned(hc)) return;
+      const card = hc.card;
+      const cost = effectiveCost(hc, costRuleDelta(state, card, side, rng));
+      const isChar = isCharacterCard(card);
+      const slots = isChar ? slotsFor(state, side, card) : [void 0];
+      if (isChar && !slots.length) return;
+      const base = -cost * w.mana + cardBudget(cost) * 0.35;
+      for (const slot of slots) {
+        const check = canPlayCard(state, side, card, slot, cost);
+        if (!check.ok) continue;
+        const p0 = playTargetPlan(state, side, card, 0);
+        const modeCount = p0.modes.length || 1;
+        const combos = combosOf(state, side, (mi) => playTargetPlan(state, side, card, mi), w, modeCount);
+        for (const cb of combos) {
+          out.push({
+            kind: "play",
+            action: {
+              type: "PLAY_CARD",
+              cardIndex: i,
+              ...slot ? { row: slot.row, col: slot.col } : {},
+              ...cb.target ? { target: cb.target } : {},
+              ...cb.target2 ? { target2: cb.target2 } : {},
+              ...cb.modeIndex !== void 0 ? { modeIndex: cb.modeIndex } : {}
+            },
+            label: `\u51FA ${card.name}${slot ? ` \u2192 \u7B2C${slot.col + 1}\u683C` : ""}${cb.label ? ` [${cb.label}]` : ""}`,
+            quick: base + (isChar ? 2 : 0)
+          });
+        }
+      }
+    });
+    return out.sort((a, b) => b.quick - a.quick).slice(0, CAP.play);
+  }
+  function skillOptions(state, w) {
+    const side = state.active;
+    const out = [];
+    for (const ref of allUnits(state, side)) {
+      const gate = canUseUnitSkill(state, side, ref.row, ref.col);
+      if (!gate.ok || !gate.skill) continue;
+      const sk = gate.skill;
+      const p0 = unitSkillTargetPlan(state, side, ref.row, ref.col, 0);
+      const modeCount = p0.modes.length || 1;
+      const combos = combosOf(
+        state,
+        side,
+        (mi) => unitSkillTargetPlan(state, side, ref.row, ref.col, mi ?? 0),
+        w,
+        modeCount
+      );
+      const handPicks = needsHandIndex(sk) ? handPickCandidates(state, side) : [void 0];
+      for (const cb of combos) {
+        for (const hi of handPicks) {
+          out.push({
+            kind: "skill",
+            action: {
+              type: "USE_SKILL",
+              row: ref.row,
+              col: ref.col,
+              ...cb.target ? { target: cb.target } : {},
+              ...cb.modeIndex !== void 0 ? { modeIndex: cb.modeIndex } : {},
+              ...hi !== void 0 ? { handIndex: hi } : {}
+            },
+            label: `${ref.unit.name}\xB7${sk.name || "\u4E3B\u52A8\u6280"}${cb.label ? ` [${cb.label}]` : ""}` + (hi !== void 0 ? ` [\u5F03\u7B2C${hi + 1}\u5F20]` : ""),
+            quick: 2 + (sk.cost ?? 0) * 0.1
+          });
+        }
+      }
+    }
+    return out.sort((a, b) => b.quick - a.quick).slice(0, CAP.skill);
+  }
+  function lordOptions(state, w) {
+    const side = state.active;
+    const gate = canUseLordSkill(state, side);
+    if (!gate.ok || !gate.skill) return [];
+    const sk = gate.skill;
+    const out = [];
+    const p0 = lordSkillTargetPlan(state, side, 0);
+    const modeCount = p0.modes.length || 1;
+    const handPicks = needsHandIndex(sk) ? handPickCandidates(state, side) : [void 0];
+    for (const cb of combosOf(state, side, (mi) => lordSkillTargetPlan(state, side, mi ?? 0), w, modeCount)) {
+      for (const hi of handPicks) {
+        out.push({
+          kind: "lord",
+          action: {
+            type: "USE_LORD_SKILL",
+            ...cb.target ? { target: cb.target } : {},
+            ...cb.modeIndex !== void 0 ? { modeIndex: cb.modeIndex } : {},
+            ...hi !== void 0 ? { handIndex: hi } : {}
+          },
+          label: `\u4E3B\u516C\u6280 ${sk.name || ""}${cb.label ? ` [${cb.label}]` : ""}` + (hi !== void 0 ? ` [\u5F03\u7B2C${hi + 1}\u5F20]` : ""),
+          quick: 1
+        });
+      }
+    }
+    return out.slice(0, CAP.lord);
+  }
+  function needsHandIndex(sk) {
+    return effectsOfSkill(sk).some((e) => e.action === "discard" && e.mode === "choose" || e.action === "cycle_to_deck");
+  }
+  function handPickCandidates(state, side) {
+    const hand = state.sides[side].hand;
+    if (!hand.length) return [void 0];
+    const byCost = hand.map((hc, i) => ({ i, cost: hc.card.cost ?? 0 })).sort((a, b) => a.cost - b.cost || a.i - b.i);
+    const picks = /* @__PURE__ */ new Set();
+    picks.add(byCost[0].i);
+    picks.add(byCost[byCost.length - 1].i);
+    picks.add(byCost[Math.floor(byCost.length / 2)].i);
+    return [...picks].sort((a, b) => a - b);
+  }
+  function generateOptions(state, w) {
+    if (state.winner) return [];
+    const attacks = attackOptions(state, w);
+    const plays = playOptions(state, w);
+    const skills = skillOptions(state, w);
+    const lords = lordOptions(state, w);
+    return [...attacks, ...plays, ...skills, ...lords].sort((a, b) => b.quick - a.quick);
+  }
+
+  // src/ai/profile.ts
+  var STYLE_WEIGHTS = {
+    // 速攻：打脸优先，场面价值打折，手牌不值钱（抢的是回合数，不是卡差）
+    aggro: { face: 0.7, board: 0.85, ready: 0.35, width: 0.3, hand: 0.4, mana: 0.06, threat: 0.5, fatigue: 0.8 },
+    // 中速：换牌与打脸并重，略微偏向解场
+    midrange: { face: 0.45, board: 1, ready: 0.22, width: 0.5, hand: 0.55, mana: 0.06, threat: 0.9, fatigue: 1 },
+    // 后期：站场与卡差优先，打脸只在不亏的前提下做
+    control: { face: 0.32, board: 1.15, ready: 0.16, width: 0.7, hand: 0.75, mana: 0.06, threat: 1.2, fatigue: 1 }
+  };
+  function fullDeckOf(state, side, ctx) {
+    const s = state.sides[side];
+    const out = [];
+    const push = (id) => {
+      const c = ctx.cards.get(id);
+      if (c) out.push(c);
+    };
+    for (const id of s.deck) push(id);
+    for (const hc of s.hand) out.push(hc.card);
+    for (const c of s.discard) out.push(c);
+    for (const row of Object.keys(s.rows)) {
+      for (const u of s.rows[row]) if (u) out.push(ctx.cards.get(u.cardId) ?? { id: u.cardId });
+    }
+    return out;
+  }
+  function profileCards(cards) {
+    const n = Math.max(1, cards.length);
+    const cost = cards.reduce((a, c) => a + (c.cost ?? 0), 0) / n;
+    const cheap = cards.filter((c) => (c.cost ?? 0) <= 2).length / n;
+    const heavy = cards.filter((c) => (c.cost ?? 0) >= 5).length / n;
+    const reach = cards.filter(cardReachesLord).length;
+    const removal = cards.filter((c) => !isCharacterCard(c) && allEffects(c).some((e) => e.action === "destroy" || e.action === "damage" && e.target?.side !== "ally" && e.target?.side !== "self")).length;
+    const units = cards.filter(isCharacterCard).length;
+    let style = "midrange";
+    if (cost <= 2.5 || cheap >= 0.5) style = "aggro";
+    else if (cost >= 3.6 || heavy >= 0.32) style = "control";
+    return {
+      style,
+      avgCost: cost,
+      cheapRatio: cheap,
+      heavyRatio: heavy,
+      reach,
+      removal,
+      units,
+      weights: { ...STYLE_WEIGHTS[style] }
+    };
+  }
+  function profileFor(state, side, ctx) {
+    return profileCards(fullDeckOf(state, side, ctx));
+  }
+
+  // src/ai/index.ts
+  var SIM_BUDGET = 160;
+  var PASS_EPS = 0.01;
+  function decide(state, ctx) {
+    const side = state.active;
+    const profile = profileFor(state, side, ctx);
+    const w = profile.weights;
+    const baseline = evaluate(state, side, w);
+    const empty = { action: null, profile, sims: 0, score: null, candidates: 0 };
+    if (state.winner) return empty;
+    let options;
+    try {
+      options = generateOptions(state, w);
+    } catch {
+      return { ...empty, action: fallbackAction(state, ctx) };
     }
     let best = null;
     let bestScore = -Infinity;
+    let sims = 0;
+    for (const opt of options) {
+      if (sims >= SIM_BUDGET) break;
+      let after;
+      try {
+        const res = applyAction(state, ctx, opt.action);
+        if (!res.ok) continue;
+        after = res.state;
+      } catch {
+        continue;
+      }
+      sims += 1;
+      if (after.winner === side) {
+        return { action: opt.action, profile, sims, score: Infinity, candidates: options.length, label: opt.label };
+      }
+      const score = evaluate(after, side, w);
+      if (score > bestScore) {
+        bestScore = score;
+        best = opt;
+      }
+    }
+    if (!best || bestScore <= baseline + PASS_EPS) return { ...empty, sims, candidates: options.length };
+    return {
+      action: best.action,
+      profile,
+      sims,
+      score: bestScore,
+      candidates: options.length,
+      label: best.label
+    };
+  }
+  function chooseAction(state, ctx) {
+    return decide(state, ctx).action;
+  }
+  function fallbackAction(state, ctx) {
+    const side = state.active;
     for (const ref of allUnits(state, side)) {
       if (!canAttack(state, side, ref.row, ref.col).ok) continue;
-      const res = legalTargets(state, side, ref.row, ref.col);
-      const dmg = effectiveAttack(state, side, ref.row, ref.col);
-      for (const t of res.targets) {
-        if (t.kind !== "unit") continue;
-        const target = getUnit(state, foe, t.row, t.col);
-        if (!target) continue;
-        const score = (dmg >= target.hp ? 100 : 0) + (10 - target.hp) + target.atk * 0.1;
-        if (score > bestScore) {
-          bestScore = score;
-          best = { type: "ATTACK", from: { row: ref.row, col: ref.col }, to: { kind: "unit", row: t.row, col: t.col } };
-        }
-      }
-    }
-    if (best) return best;
-    for (const ref of allUnits(state, side)) {
-      if (!canUseUnitSkill(state, side, ref.row, ref.col).ok) continue;
-      const target = allUnits(state, foe).sort((a, b) => a.unit.hp - b.unit.hp)[0];
-      if (target) {
-        return { type: "USE_SKILL", row: ref.row, col: ref.col, target: { side: foe, row: target.row, col: target.col } };
-      }
-    }
-    const lord = state.sides[side].lord;
-    const lsk = lord.skillDef;
-    if (lsk && !lord.skillUsedThisTurn && state.sides[side].command.cur >= (lsk.cost ?? 2)) {
-      const effs = lsk.effects ?? [];
-      const healEff = effs.find((e) => e.action === "heal");
-      const selfDmg = effs.find((e) => e.action === "damage" && e.target?.lord && (e.target?.side === "self" || e.target?.side === "ally"));
-      const draws = effs.filter((e) => e.action === "draw").reduce((a, e) => a + (e.value ?? 1), 0);
-      const selfDiscard = effs.some((e) => e.action === "discard" && (e.target?.side === "self" || e.target?.side === "ally"));
-      const hand = state.sides[side].hand;
-      if (healEff) {
-        const wounded = allUnits(state, side).filter((r) => r.unit.hp < r.unit.maxHp).sort((a, b) => a.unit.hp - b.unit.hp)[0];
-        if (wounded) {
-          return { type: "USE_LORD_SKILL", target: { side, row: wounded.row, col: wounded.col } };
-        }
-      } else if (selfDmg) {
-        const dmg = selfDmg.value ?? 0;
-        const safe = lord.hp - dmg > 12;
-        const room = hand.length < 10 && state.sides[side].deck.length > 0;
-        if (safe && room) return { type: "USE_LORD_SKILL" };
-      } else if (selfDiscard && draws === 0) {
-      } else if (selfDiscard && draws > 0) {
-        const worst = hand.map((hc, i) => ({ hc, i })).sort((a, b) => a.hc.card.cost - b.hc.card.cost)[0];
-        const avg = hand.reduce((a, hc) => a + hc.card.cost, 0) / Math.max(1, hand.length);
-        if (worst && hand.length > 3 && worst.hc.card.cost < avg - 0.5 && state.sides[side].deck.length > 0) {
-          return { type: "USE_LORD_SKILL", handIndex: worst.i };
-        }
-      } else {
-        return { type: "USE_LORD_SKILL" };
+      const targets = legalTargets(state, side, ref.row, ref.col).targets;
+      if (targets.length) {
+        return { type: "ATTACK", from: { row: ref.row, col: ref.col }, to: { kind: "lord" } };
       }
     }
     const spots = legalPlacements(state, side);
-    const slotFor = (c) => {
-      if (!isCharacter(c)) return void 0;
-      return spots[0];
-    };
-    const playable = state.sides[side].hand.map((hc, i) => ({ hc, c: hc.card, i })).filter(({ hc }) => !isBanned(hc)).map((x) => ({ ...x, slot: slotFor(x.c) })).filter(({ c, slot }) => canPlayCard(state, side, c, slot).ok).sort((a, b) => b.c.cost - a.c.cost);
-    for (const { c, i, slot } of playable) {
-      return slot ? { type: "PLAY_CARD", cardIndex: i, row: slot.row, col: slot.col } : { type: "PLAY_CARD", cardIndex: i };
+    const hand = state.sides[side].hand;
+    for (let i = 0; i < hand.length; i++) {
+      const hc = hand[i];
+      if (!hc || isBanned(hc)) continue;
+      if (isCharacterCard(hc.card)) {
+        const slot = spots[0];
+        if (slot && canPlayCard(state, side, hc.card, slot).ok) {
+          return { type: "PLAY_CARD", cardIndex: i, row: slot.row, col: slot.col };
+        }
+      } else if (canPlayCard(state, side, hc.card).ok) {
+        return { type: "PLAY_CARD", cardIndex: i };
+      }
     }
     return null;
   }
-  var isCharacter = (c) => ["troop", "general", "strategist"].includes(c.type);
   function takeTurn(state, ctx, apply, maxActions = 40) {
     let cur = state;
     const actions = [];
@@ -2807,6 +3210,18 @@ var Core = (() => {
     }
     const end = apply(cur, ctx, { type: "END_TURN" });
     return { state: end.ok ? end.state : cur, actions };
+  }
+  function aiMulligan(state, side, ctx) {
+    const hand = state.sides[side].hand;
+    if (!hand.length) return [];
+    const profile = profileFor(state, side, ctx);
+    const tooExpensive = profile.style === "aggro" ? 4 : 5;
+    const keep = hand.map((hc) => (hc.card.cost ?? 0) <= 3);
+    let out = hand.map((hc, i) => ({ i, cost: hc.card.cost ?? 0, keep: keep[i] })).filter((x) => !x.keep && x.cost >= tooExpensive).map((x) => x.i);
+    if (!out.length && keep.every((k) => !k)) {
+      out = hand.map((hc, i) => ({ i, cost: hc.card.cost ?? 0 })).sort((a, b) => b.cost - a.cost).slice(0, 2).map((x) => x.i);
+    }
+    return out;
   }
 
   // src/index.ts
