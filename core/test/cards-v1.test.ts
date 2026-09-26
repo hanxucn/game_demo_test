@@ -18,8 +18,9 @@ import { dirname, join } from 'node:path';
 import { applyAction } from '../src/engine.ts';
 import { getUnit, makeUnit, setUnit } from '../src/state.ts';
 import { effectiveCost } from '../src/mutate.ts';
+import { STATUSES } from '../src/constants.ts';
 import { TEST_CARDS, scenario } from './fixtures.ts';
-import type { Action, CardDef, Unit } from '../src/types.ts';
+import type { Action, CardDef, GameEvent, Unit } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards_v1.json'), 'utf8'));
@@ -48,6 +49,10 @@ function realCard(id: string): CardDef {
 }
 
 const base = (id: string) => TEST_CARDS.find((x) => x.id === id)!;
+const statusName = (id: string) => STATUSES[id]?.name ?? id;
+/** 类型安全的伤害事件筛选（GameEvent 是联合类型，`.filter` 里带 `&&` 无法收窄） */
+const dmgEvents = (evs: readonly GameEvent[]) =>
+  evs.filter((e): e is Extract<GameEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE');
 const u = (id: string, atk: number, hp: number, tags: string[] = [], faction: 'shu' | 'wei' = 'wei') =>
   makeUnit({ id, name: id, faction, type: 'general', cost: 2, attack: atk, health: hp, keywords: [], tags, memo: '' } as CardDef, 1, 1);
 
@@ -126,8 +131,11 @@ test('程昱 审时度势：牺牲己方人物 → 按「血量上限」回血�
   assert.ok(healed.hp > 2, `治疗对象应被治疗（1 → ${healed.hp}）`);
 
   // 伤害量 = 牺牲时的**当前血量** = 2（不是上限 5）
-  const enemy = getUnit(r.state, 'enemy', 'front', 0)!;
-  assert.equal(enemy.maxHp - enemy.hp, 2, '伤害应等于牺牲者的当前血量（受伤后更小）');
+  // ADR-085：随机伤害默认含主公，所以按事件统计总伤害，而不是只看那一个人物
+  const dealt = r.events
+    .filter((e) => e.type === 'DAMAGE' && e.source !== 'fatigue')
+    .reduce((a, e) => a + (e.type === 'DAMAGE' ? e.amount : 0), 0);
+  assert.equal(dealt, 2, '伤害应等于牺牲者的当前血量（受伤后更小）');
 });
 
 test('程昱 审时度势：牺牲满血人物时，伤害量等于其血量上限', () => {
@@ -143,8 +151,11 @@ test('程昱 审时度势：牺牲满血人物时，伤害量等于其血量上�
     target: { side: 'own', row: 'front', col: 0 },
   });
   assert.ok(r.ok, `打出应成功：${r.error}`);
-  const enemy = getUnit(r.state, 'enemy', 'front', 0)!;
-  assert.equal(enemy.maxHp - enemy.hp, 4, '满血牺牲 → 伤害 = 血量上限');
+  // ADR-085：随机伤害默认含主公 —— 按事件统计总伤害
+  const dealt = r.events
+    .filter((e) => e.type === 'DAMAGE' && e.source !== 'fatigue')
+    .reduce((a, e) => a + (e.type === 'DAMAGE' ? e.amount : 0), 0);
+  assert.equal(dealt, 4, '满血牺牲 → 伤害 = 血量上限');
 });
 
 /* ================= 贾诩：控制权转移 ================= */
@@ -286,16 +297,70 @@ test('灾年：双方主帅获得「断抽」，抽牌被拦截', () => {
 
 /* ================= 草船借箭：强制敌方攻击 + 阵亡标记 ================= */
 
-test('草船借箭：迫使敌方人物攻击其友军，并打上阵亡标记', () => {
+test('草船借箭：敌人来打我方「血量最高」的单位，被反击阵亡后离场并抽 2 张（ADR-085）', () => {
   realCard('tactic_caochuanjiejian');
   const { state, ctx } = scenario({ ownHand: ['tactic_caochuanjiejian'] });
-  setUnit(state, 'enemy', 'front', 0, u('e1', 3, 3));
-  setUnit(state, 'enemy', 'front', 1, u('e2', 3, 3));
-  setUnit(state, 'own', 'front', 0, u('mine', 2, 6, [], 'shu'));   // 强制攻击需要己方目标存在
+  state.sides.own.deck = Array(8).fill('neutral_infantry');
+  // 我方：血最多的那个也最能打 —— 来犯者会被反杀
+  setUnit(state, 'own', 'front', 0, u('tank', 5, 6, [], 'shu'));
+  setUnit(state, 'own', 'front', 1, u('small', 1, 2, [], 'shu'));
+  // 敌方两个 2/1 来犯
+  setUnit(state, 'enemy', 'front', 0, u('e1', 2, 1));
+  setUnit(state, 'enemy', 'front', 1, u('e2', 2, 1));
+
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
-  assert.ok(r.ok, '应能打出');
-  assert.ok(r.events.some((e) => e.type === 'FORCED_ATTACK'), '应产生强制攻击事件');
-  assert.ok(r.events.some((e) => e.type === 'STATUS_APPLIED'), '应打上阵亡标记');
+  assert.ok(r.ok, `应能打出：${r.error}`);
+
+  // ① 这是**真打**：有攻击宣告、有反击（原先只 dealDamage 一下，没有反击也不移除）
+  assert.ok(r.events.some((e) => e.type === 'ATTACK_DECLARED'), '强制攻击必须走真实攻击结算');
+  assert.equal(r.events.filter((e) => e.type === 'FORCED_ATTACK').length, 2, '两名敌人都应被强制');
+
+  // ② 只打「血量最高」的那个：tank 6 血吃 2+2，small 一根汗毛都没掉
+  assert.equal(getUnit(r.state, 'own', 'front', 0)?.hp, 2, '血量最高的单位承受两次 2 点（6 - 4）');
+  assert.equal(getUnit(r.state, 'own', 'front', 1)?.hp, 2, '血量较低的单位不该被打');
+
+  // ③ 来犯者被反击打死并**离场**（原先"阵亡了还在场上"）
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null, '第一个来犯者应被反杀离场');
+  assert.equal(getUnit(r.state, 'enemy', 'front', 1), null, '第二个同样');
+  assert.equal(r.events.filter((e) => e.type === 'UNIT_DIED').length, 2, '应产生两次阵亡');
+
+  // ④ 阵亡标记兑现：每阵亡一个武将，己方抽 2 张（原先标记挂不上单位 → 一次都没生效）
+  assert.equal(r.events.filter((e) => e.type === 'CARD_DRAWN').length, 4, '两个武将阵亡 → 抽 4 张');
+});
+
+test('草船借箭：标记是「阵亡标记」而不是「阵亡」—— 活着的单位不该显示成已阵亡（ADR-085）', () => {
+  realCard('tactic_caochuanjiejian');
+  const { state, ctx } = scenario({ ownHand: ['tactic_caochuanjiejian'] });
+  setUnit(state, 'own', 'front', 0, u('tank', 5, 9, [], 'shu'));
+  setUnit(state, 'enemy', 'front', 0, u('survivor', 1, 9));      // 打不死，会留在场上
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
+  assert.ok(r.ok);
+  const marked = getUnit(r.state, 'enemy', 'front', 0);
+  assert.ok(marked, '被打不死的敌人应还在场上');
+  assert.ok(marked.statuses.zhen_wang, '应带着阵亡标记');
+  assert.notEqual(statusName('zhen_wang'), '阵亡',
+    `活着的单位挂着名为「阵亡」的状态会被读成"已经死了"（实际显示名：${statusName('zhen_wang')}）`);
+});
+
+test('趁火打劫：混乱的敌人打的是**自己人**（attack_side: own）', () => {
+  realCard('tactic_chenhuodajie');
+  const { state, ctx } = scenario({ ownHand: ['tactic_chenhuodajie'] });
+  state.sides.enemy.deck = Array(6).fill('neutral_infantry');
+  // 敌方两个混乱单位：一个 3/1 打手 + 一个 0/4 沙包（同阵营内讧）
+  const a = u('p1', 3, 1);
+  const b = u('p2', 0, 4);
+  a.statuses.hun_luan = { stacks: 1 };
+  b.statuses.hun_luan = { stacks: 1 };
+  setUnit(state, 'enemy', 'front', 0, a);
+  setUnit(state, 'enemy', 'front', 1, b);
+  setUnit(state, 'own', 'front', 0, u('mine', 2, 4, [], 'shu'));
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
+  assert.ok(r.ok, `应能打出：${r.error}`);
+  const hurt = dmgEvents(r.events).filter((e) => e.target.kind === 'unit');
+  assert.ok(hurt.length > 0, '应有伤害产生');
+  assert.ok(hurt.every((e) => e.target.side === 'enemy'), '内讧的伤害只该落在敌方自己人身上');
+  assert.equal(getUnit(r.state, 'own', 'front', 0)?.hp, 4, '我方单位不该被碰');
 });
 
 /* ================= ADR-042：进化卡（召唤 + 兵种进化） ================= */
@@ -427,4 +492,102 @@ test('进化规则：只影响己方对应兵种，不碰敌方同兵种', () =>
   setUnit(state, 'enemy', 'front', 0, troop('enemy_archer', 'archer', 0, 1));
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 2 });
   assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.cardId, 'enemy_archer', '敌方弓兵不该被进化');
+});
+
+/* ================= 张飞 咆哮（ADR-085）：在场光环 + 全体 1 伤 ================= */
+
+test('张飞 咆哮：−1 攻是在场光环（张飞阵亡即消失），1 伤打敌方全体且不含主公', () => {
+  const zf = realCard('shu_zhangfei');
+  const { state, ctx } = scenario({ ownHand: ['shu_zhangfei'] });
+  state.sides.own.deck = Array(8).fill('neutral_infantry');
+  state.sides.enemy.deck = Array(8).fill('neutral_infantry');
+  const weak = u('weak', 3, 3);       // 3 < 张飞 5 攻 → 吃 −1
+  const strong = u('strong', 6, 8);   // 6 ≥ 5 → 不受 −1 影响，但照样吃 1 伤
+  setUnit(state, 'enemy', 'front', 0, weak);
+  setUnit(state, 'enemy', 'front', 1, strong);
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
+  assert.ok(r.ok, `应能打出：${r.error}`);
+
+  // ① −1 攻只给"攻低于张飞"的（strong 不受影响）
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.atk, 2, '攻低于张飞者 −1');
+  assert.equal(getUnit(r.state, 'enemy', 'front', 1)?.atk, 6, '攻不低于张飞者不受 −1 影响');
+  // ② 1 伤打敌方全体人物，与对方攻击力无关（strong 也挨）
+  assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.hp, 2, '3/3 挨 1 伤');
+  assert.equal(getUnit(r.state, 'enemy', 'front', 1)?.hp, 7, '6/8 同样挨 1 伤（与攻击力无关）');
+  // ③ 卡面写明「不含主公」
+  assert.equal(r.state.sides.enemy.lord.hp, 30, '咆哮打不到主将（卡面：不含主公）');
+
+  // ④ 光环跨回合仍在（不是"本回合"就结束）
+  let after = applyAction(r.state, ctx, { type: 'END_TURN' }).state;      // → 敌方回合
+  assert.equal(getUnit(after, 'enemy', 'front', 0)?.atk, 2, '换手后光环依然生效');
+  after = applyAction(after, ctx, { type: 'END_TURN' }).state;            // → 我方回合
+  after = applyAction(after, ctx, { type: 'END_TURN' }).state;            // → 敌方回合（完整回合 +1）
+  assert.equal(getUnit(after, 'enemy', 'front', 0)?.atk, 2, '过了一个完整回合依然 −1');
+
+  // ⑤ 张飞阵亡 → 光环消失（这是设计者强调的关键点）
+  const r2 = applyAction(after, ctx, {
+    type: 'ATTACK', from: { row: 'front', col: 1 }, to: { kind: 'unit', row: 'front', col: 1 },
+  });
+  assert.ok(r2.ok, `敌方反击应能执行：${r2.error}`);
+  assert.equal(getUnit(r2.state, 'own', 'front', 1), null, '张飞应被 6 攻打阵亡（5 血）');
+  assert.equal(getUnit(r2.state, 'enemy', 'front', 0)?.atk, 3, '张飞一死，−1 攻应立即消失');
+  void zf;
+});
+
+/* ================= 范围伤害默认含主公（ADR-085） ================= */
+
+test('范围伤害默认打主将；卡面写 include_lord: false 才不打', () => {
+  const mk = (includeLord: boolean | undefined) => {
+    const aoe: CardDef = {
+      id: 't_aoe', name: '测试AOE', faction: 'qun', type: 'strategist',
+      cost: 5, attack: 1, health: 5, keywords: [], memo: '',
+      skills: [{
+        id: 'aoe', name: 'AOE', kind: 'trigger', trigger: 'turn_end',
+        effects: [{
+          action: 'damage', value: 2,
+          target: {
+            side: 'enemy',
+            filter: { type: 'character', ...(includeLord === undefined ? {} : { include_lord: includeLord }) },
+            count: 'all',
+          },
+        }],
+      }],
+    };
+    const sc = scenario({ ownHand: [] });
+    sc.state.sides.own.deck = Array(5).fill('neutral_infantry');
+    sc.state.sides.enemy.deck = Array(5).fill('neutral_infantry');
+    setUnit(sc.state, 'own', 'front', 0, makeUnit(aoe, 1, 90));
+    setUnit(sc.state, 'enemy', 'front', 0, u('target', 1, 9));
+    return sc;
+  };
+
+  // 默认（没写 include_lord）：主将也吃 2 点
+  const d = mk(undefined);
+  const r1 = applyAction(d.state, d.ctx, { type: 'END_TURN' });
+  assert.equal(r1.state.sides.enemy.lord.hp, 28, '默认口径：范围伤害打主将');
+  assert.equal(getUnit(r1.state, 'enemy', 'front', 0)?.hp, 7, '人物同时挨打');
+
+  // 显式 false：只打人物
+  const f = mk(false);
+  const r2 = applyAction(f.state, f.ctx, { type: 'END_TURN' });
+  assert.equal(r2.state.sides.enemy.lord.hp, 30, 'include_lord: false → 打不到主将');
+  assert.equal(getUnit(r2.state, 'enemy', 'front', 0)?.hp, 7, '人物照样挨打');
+
+  // 单点指定（非范围/随机）不受这条默认影响
+  const single: CardDef = {
+    id: 't_single', name: '单体', faction: 'qun', type: 'strategist',
+    cost: 5, attack: 1, health: 5, keywords: [], memo: '',
+    skills: [{
+      id: 's', name: '单体', kind: 'trigger', trigger: 'turn_end',
+      effects: [{ action: 'damage', value: 2, target: { side: 'enemy', filter: { type: 'character' }, count: 1, mode: 'choose' } }],
+    }],
+  };
+  const sc = scenario({ ownHand: [] });
+  sc.state.sides.own.deck = Array(5).fill('neutral_infantry');
+  sc.state.sides.enemy.deck = Array(5).fill('neutral_infantry');
+  setUnit(sc.state, 'own', 'front', 0, makeUnit(single, 1, 91));
+  setUnit(sc.state, 'enemy', 'front', 0, u('t2', 1, 9));
+  const r3 = applyAction(sc.state, sc.ctx, { type: 'END_TURN' });
+  assert.equal(r3.state.sides.enemy.lord.hp, 30, '单体指定目标不受"范围默认含主公"影响');
 });

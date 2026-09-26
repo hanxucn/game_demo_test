@@ -82,7 +82,8 @@ test('两个 AI 能打完一局：无异常、有胜负或达到回合上限', (
   let turns = 0;
   const allActions: Action[] = [];
 
-  while (!cur.winner && turns < 60) {
+  // 起手手牌从 3/5 改为 3/3（ADR-085）后，纯基础兵种的对局更长 —— 放宽到 120 个半回合
+  while (!cur.winner && turns < 120) {
     const res = takeTurn(cur, ctx, (s, c, a) => {
       const r = applyAction(s, c, a);
       return { ok: r.ok, state: r.state };

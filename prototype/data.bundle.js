@@ -586,21 +586,20 @@ window.GameData = {
       "cost": 5,
       "attack": 5,
       "health": 5,
-      "memo": "战吼削弱并烫伤所有攻低于自己的敌人",
+      "memo": "在场就压制攻低于自己的敌人；入场再烫伤敌方全体",
+      "rarity": "elite",
       "gender": "male",
       "keywords": [],
       "skills": [
         {
           "id": "pao_xiao",
           "name": "咆哮",
-          "kind": "trigger",
-          "trigger": "on_play",
-          "text": "战吼：所有攻击力低于张飞的敌军（不含主公）本回合攻击力 −1，并受到 1 点伤害。",
+          "kind": "aura",
+          "text": "光环：攻击力低于张飞的敌军攻击力 −1（不含主公）。张飞阵亡后失效。",
           "effects": [
             {
               "action": "modify",
               "attack": -1,
-              "duration": "this_turn",
               "target": {
                 "side": "enemy",
                 "filter": {
@@ -609,7 +608,16 @@ window.GameData = {
                 },
                 "count": "all"
               }
-            },
+            }
+          ]
+        },
+        {
+          "id": "pao_xiao_hou",
+          "name": "咆哮（入场）",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：对敌方所有人物造成 1 点伤害（不含主公），与对方攻击力无关。",
+          "effects": [
             {
               "action": "damage",
               "value": 1,
@@ -617,7 +625,7 @@ window.GameData = {
                 "side": "enemy",
                 "filter": {
                   "type": "character",
-                  "attack_below_source": true
+                  "include_lord": false
                 },
                 "count": "all"
               }
@@ -629,11 +637,11 @@ window.GameData = {
       "value": {
         "stats": 10,
         "keywords": 0,
-        "skills": 3.6,
-        "total": 13.6,
+        "skills": 4.5,
+        "total": 14.5,
         "budget": 11,
-        "diff": 2.6,
-        "level": "watch"
+        "diff": 3.5,
+        "level": "off"
       }
     },
     {
@@ -5614,6 +5622,7 @@ window.GameData = {
       "effects": [
         {
           "action": "force_attack",
+          "attack_side": "own",
           "condition": {
             "exists": {
               "side": "enemy",
@@ -5771,7 +5780,27 @@ window.GameData = {
       ],
       "effects": [
         {
+          "action": "apply_status",
+          "status": "zhen_wang",
+          "status_source": "self",
+          "on_death": [
+            {
+              "action": "draw",
+              "value": 2
+            }
+          ],
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": "all"
+          }
+        },
+        {
           "action": "force_attack",
+          "attack_side": "foe",
+          "victim_mode": "highest_health",
           "count": 2,
           "target": {
             "side": "enemy",
@@ -5780,18 +5809,6 @@ window.GameData = {
             },
             "count": 2,
             "mode": "choose"
-          }
-        },
-        {
-          "action": "apply_status",
-          "status": "zhen_wang",
-          "status_source": "self",
-          "target": {
-            "side": "enemy",
-            "filter": {
-              "type": "character"
-            },
-            "count": "all"
           }
         }
       ],
@@ -5942,8 +5959,7 @@ window.GameData = {
           "target": {
             "side": "both",
             "filter": {
-              "type": "character",
-              "include_lord": true
+              "type": "character"
             },
             "count": "all"
           }
@@ -6624,7 +6640,7 @@ window.GameData = {
     },
     {
       "id": "zhen_wang",
-      "name": "阵亡",
+      "name": "阵亡标记",
       "kind": "debuff",
       "numeric": false,
       "scope": "character",

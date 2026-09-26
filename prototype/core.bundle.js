@@ -108,6 +108,8 @@ var Core = (() => {
     playTargetPlan: () => playTargetPlan,
     refAlive: () => refAlive,
     refHp: () => refHp,
+    registerAfterDeathResolver: () => registerAfterDeathResolver,
+    registerMarkDeathResolver: () => registerMarkDeathResolver,
     registerOnDeathResolver: () => registerOnDeathResolver,
     registerOnDrawResolver: () => registerOnDrawResolver,
     registerOnKillResolver: () => registerOnKillResolver,
@@ -183,8 +185,11 @@ var Core = (() => {
   var LORD_SKILL_COST = 2;
   var DECK = {
     SIZE: 30,
+    /** 起手张数（ADR-085，设计者裁定）：**先手与后手同为 3 张**，
+     *  各自在自己回合开始时再抽 1 张 → 双方第一次行动时都是 4 张手牌。
+     *  原先后手 4 张 + 「后手补偿多抽 1 张」= 6 张，比先手多 2 张，实测明显偏多。 */
     HAND_START_FIRST: 3,
-    HAND_START_SECOND: 4,
+    HAND_START_SECOND: 3,
     HAND_LIMIT: 10,
     DRAW_PER_TURN: 1
   };
@@ -511,11 +516,12 @@ var Core = (() => {
   }
   function createMatch(opts) {
     const {
+      // 后手补偿默认关闭（ADR-085）：起手双方同为 3 张，不再额外多抽
       seed = 1,
       lords,
       decks,
       cards,
-      secondCompensation = "extra_draw"
+      secondCompensation = "none"
     } = opts;
     const rng = createRng(seed);
     const firstSide = opts.rollFirst ? rollFirstSide(rng).side : opts.firstSide ?? "own";
@@ -842,6 +848,14 @@ var Core = (() => {
   function registerOnDeathResolver(fn) {
     onDeathResolver = fn;
   }
+  var markDeathResolver = null;
+  function registerMarkDeathResolver(fn) {
+    markDeathResolver = fn;
+  }
+  var afterDeathResolver = null;
+  function registerAfterDeathResolver(fn) {
+    afterDeathResolver = fn;
+  }
   function drawCard(state, cards, side, events, rng) {
     const s = state.sides[side];
     if (s.deck.length === 0) {
@@ -1061,6 +1075,9 @@ var Core = (() => {
     if (!getUnit(state, side, row, col)) return;
     setUnit(state, side, row, col, null);
     events.push({ type: "UNIT_DIED", side, row, col, unit });
+    if (markDeathResolver) {
+      markDeathResolver(state, cards, unit, createRng(state.rngState), events);
+    }
     if (hasTrait(unit, "yi_ji")) drawCard(state, cards, side, events);
     const card = cards.get(unit.cardId);
     const deathSkills = (card?.skills ?? []).filter((sk) => sk.trigger === "on_death");
@@ -1070,6 +1087,7 @@ var Core = (() => {
     if (killer && onKillResolver) {
       onKillResolver(state, cards, killer, { name: unit.name, side, row, col, type: unit.type }, events, createRng(state.rngState));
     }
+    if (afterDeathResolver) afterDeathResolver(state, cards, events);
   }
   function checkWinner(state, events) {
     if (state.winner) return;
@@ -1174,6 +1192,12 @@ var Core = (() => {
         events
       );
     }
+  });
+  registerAfterDeathResolver((state, cards, events) => {
+    recomputeAuras(state, cards, createRng(state.rngState), events);
+  });
+  registerMarkDeathResolver((state, cards, dead, rng, events) => {
+    runMarkDeath(state, cards, dead, rng, events);
   });
   registerOnKillResolver((state, cards, killer, victim, events, rng) => {
     const k = getUnit(state, killer.side, killer.row, killer.col);
@@ -1389,6 +1413,22 @@ var Core = (() => {
       }
     }
   }
+  function runMarkDeath(state, cards, dead, rng, events) {
+    const inst = dead.statuses.chou_di_shou ?? dead.statuses.zhen_wang;
+    if (inst?.payoff?.length && inst.srcSide) {
+      runEffects(state, cards, inst.payoff, { side: inst.srcSide }, rng, events);
+    }
+    if (!inst?.srcUid) return;
+    for (const side of ["own", "enemy"]) {
+      for (const ref of allUnits(state, side)) {
+        const marker = ref.unit;
+        if (marker.uid !== inst.srcUid || marker.hp <= 0) continue;
+        for (const sk of (marker.skills ?? []).filter((x) => x.trigger === "on_mark_death")) {
+          runEffects(state, cards, sk.effects, { side, source: marker }, rng, events);
+        }
+      }
+    }
+  }
   function runUnitTrigger(state, cards, unit, trigger, rng, events) {
     if (unit.hp <= 0) return;
     const side = findSide(state, unit.uid);
@@ -1554,7 +1594,7 @@ var Core = (() => {
   function resolveAttack(state, cards, side, from, to, events, rng, opts = {}) {
     const attacker = getUnit(state, side, from.row, from.col);
     if (!attacker || attacker.hp <= 0) return false;
-    const foe = other(side);
+    const foe = opts.toSide ?? other(side);
     events.push({ type: "ATTACK_DECLARED", side, from: { ...from }, to });
     runOnAttackPhase(state, cards, attacker, "before", false, rng, events);
     const me = getUnit(state, side, from.row, from.col);
@@ -1633,13 +1673,25 @@ var Core = (() => {
     }
     return sk.effects ?? [];
   }
+  var LORD_DEFAULT_ACTIONS = /* @__PURE__ */ new Set(["damage"]);
+  function withDefaultLordTarget(eff) {
+    const t = eff.target;
+    if (!t) return eff;
+    if (t.filter?.include_lord !== void 0) return eff;
+    if (!LORD_DEFAULT_ACTIONS.has(eff.action)) return eff;
+    if (t.count !== "all" && t.mode !== "random") return eff;
+    const side = t.side ?? "enemy";
+    if (side === "self" || side === "ally") return eff;
+    return { ...eff, target: { ...t, filter: { ...t.filter ?? {}, include_lord: true } } };
+  }
   function runEffects(state, cards, effects, ctx, rng, events) {
     if (!effects?.length) return;
     const chosenFor = (sel) => {
       const p = pickOf(ctx, sel);
       return p ? [p] : [];
     };
-    for (const eff of effects) {
+    for (const rawEff of effects) {
+      const eff = withDefaultLordTarget(rawEff);
       if (typeof eff.chance === "number" && rng.next() >= eff.chance) continue;
       if (!checkCondition(state, eff.condition, ctx, rng)) continue;
       const dyn = (sel) => sel ? resolveTargets(state, { ...sel, count: "all" }, ctx, rng).length : void 0;
@@ -1937,22 +1989,26 @@ var Core = (() => {
           break;
         }
         case "force_attack": {
+          const toFoe = eff.attack_side === "foe";
           for (const t of targets) {
             if (t.kind !== "unit") continue;
             const u = getUnit(state, t.side, t.row, t.col);
             if (!u || u.hp <= 0) continue;
-            const foes = allUnits(state, other(t.side)).filter((x) => x.unit.hp > 0);
-            if (!foes.length) continue;
-            const victim = foes[rng.int(foes.length)];
-            dealDamage(
+            const targetSide = toFoe ? other(t.side) : t.side;
+            const pool = allUnits(state, targetSide).filter((x) => x.unit.hp > 0 && x.unit.uid !== u.uid);
+            if (!pool.length) continue;
+            const victim = eff.victim_mode === "highest_health" ? pool.reduce((a, b) => b.unit.hp > a.unit.hp ? b : a) : pool[rng.int(pool.length)];
+            events.push({ type: "FORCED_ATTACK", side: t.side, row: t.row, col: t.col });
+            resolveAttack(
               state,
               cards,
-              unitRef(victim.side, victim.row, victim.col),
-              u.atk,
+              t.side,
+              { row: t.row, col: t.col },
+              { kind: "unit", row: victim.row, col: victim.col },
               events,
-              u.name
+              rng,
+              { consumeAttack: false, toSide: targetSide }
             );
-            events.push({ type: "FORCED_ATTACK", side: t.side, row: t.row, col: t.col });
           }
           break;
         }
@@ -2010,6 +2066,14 @@ var Core = (() => {
             const list = i === 0 ? targets.length ? targets : chosenFor(eff.target) : eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target);
             for (const t of list) {
               applyStatus(state, t, eff.status, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+              if (eff.on_death?.length) {
+                const bags = t.kind === "unit" ? getUnit(state, t.side, t.row, t.col)?.statuses : t.kind === "lord" ? state.sides[t.side].lord.statuses : void 0;
+                const inst = bags?.[eff.status];
+                if (inst) {
+                  inst.payoff = structuredClone(eff.on_death);
+                  inst.srcSide = ctx.side;
+                }
+              }
             }
           }
           break;

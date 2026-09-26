@@ -235,10 +235,46 @@ target:
     exclude_source: true                 # 排除来源自身（ADR-071，陆抗）
     adjacent_to: self                    # 相邻
     has_status: zhen_she
-    include_lord: true                   # 候选池额外纳入主将
+    include_lord: true                   # 候选池额外纳入主将（范围/随机伤害**默认 true**，见下）
   count: 1 | all | 2                    # 数量
   mode: choose | random | first | lowest_health
   require_empty: true                   # 是否要求空格
+```
+
+#### 范围 / 随机伤害默认含主公（ADR-085，设计者裁定）
+
+> 「还有一些范围伤害和随机伤害，如果没有说只能针对非主公的，默认就是主公也在攻击目标内也能被选择。」
+
+引擎在结算前会自动补 `include_lord: true`，条件是**同时**满足：
+
+1. 动作是 `damage`；
+2. 选择器是**范围**（`count: 'all'`）或**随机**（`mode: 'random'`）；
+3. 打的是敌方或双方（`side` 缺省即敌方；写 `self` / `ally` 的"打自己人"不吃这条）；
+4. 卡面**没有**显式写 `include_lord`。
+
+因此：
+* **要打主将** —— 什么都不用写（万箭齐发 / 关羽水淹七军 / 司马懿 / 陆逊 / 火烧洛阳 / 张角 / 程昱）；
+* **不打主将** —— 卡面显式写 `include_lord: false`（张飞「咆哮」，卡面写明「不含主公」）；
+* **单点指定目标**（`count: 1` + `mode: choose`）**不受影响** —— 它本来就要玩家点人，点不到主将。
+
+#### force_attack 的两个语义字段（ADR-085）
+
+| 字段 | 取值 | 含义 |
+|---|---|---|
+| `attack_side` | `'own'`（缺省）/ `'foe'` | 被强制者打**自己人**（混乱内讧，趁火打劫）/ 打**施法方**（草船借箭） |
+| `victim_mode` | `'random'`（缺省）/ `'highest_health'` | 挨打的人怎么挑 |
+
+#### 标记的阵亡结算 `on_death`（ADR-085）
+
+写在 `apply_status` 上：被标记者阵亡时，由**施法方**结算这组效果。
+草船借箭「敌方每阵亡一个武将，己方抽取两张卡」原先靠 `status_source: self` 挂单位的
+`on_mark_death` 技能，但**卡牌没有来源单位**，一次都没生效过。
+
+```yaml
+- action: apply_status
+  status: zhen_wang
+  on_death: [{ action: draw, value: 2 }]
+  target: { side: enemy, filter: { type: character }, count: all }
 ```
 
 `mode: choose` 的取值顺序：**先看玩家给的选择**（`pick` 指定用哪个），
