@@ -1026,6 +1026,8 @@
   health: 3
   keywords:
   - jia_dun
+  tags:
+  - cao_clan
   memo: 1 攻 3 血还带架盾，纯肉盾
   gender: male
   type_explicit: true
@@ -1046,20 +1048,181 @@
   name: 曹休
   faction: wei
   type: general
-  cost: 3
+  cost: 4
   attack: 2
   health: 3
-  memo: 3 费 2/3 白板，靠身材吃饭
+  tags:
+  - cao_clan
+  memo: 抽到时立刻召唤上场
   gender: male
   keywords: []
+  skills:
+  - id: qian_li_zhi_ju
+    name: 千里之驹
+    kind: trigger
+    trigger: on_draw
+    effects:
+    - action: summon
+      unit: wei_caoxiu
+      count: 1
+      position: random
+    text: 被抽到时，立刻召唤曹休上场。
   flavor: ''
   value:
     stats: 5
     keywords: 0
-    skills: 0
-    total: 5
+    skills: 2.4
+    total: 7.4
+    budget: 9
+    diff: -1.6
+    level: ok
+- id: wei_caozhi
+  name: 曹植
+  faction: wei
+  type: strategist
+  cost: 4
+  attack: 1
+  health: 4
+  tags:
+  - cao_clan
+  memo: 战法连抽，阵亡抽两张
+  gender: male
+  keywords: []
+  skills:
+  - id: cai_gao_ba_dou
+    name: 才高八斗
+    kind: trigger
+    trigger: on_card_played
+    duration: this_turn
+    target:
+      filter:
+        type: tactic
+    effects:
+    - action: draw
+      value: 1
+    text: 本回合每释放一个战法，抽一张牌。
+  - id: luo_shen_fu
+    name: 洛神赋
+    kind: trigger
+    trigger: on_death
+    effects:
+    - action: draw
+      value: 2
+    text: 亡语：抽两张牌。
+  flavor: ''
+  value:
+    stats: 5
+    keywords: 0
+    skills: 6
+    total: 11
+    budget: 9
+    diff: 2
+    level: watch
+- id: wei_liuye
+  name: 刘晔
+  faction: wei
+  type: strategist
+  cost: 3
+  attack: 1
+  health: 4
+  memo: 战吼：手牌不超过一张时抽一张
+  gender: male
+  keywords: []
+  skills:
+  - id: kong_shi_na_xian
+    name: 空室纳贤
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: draw
+      value: 1
+      condition:
+        count:
+          selector:
+            side: self
+            zone: hand
+          op: '<='
+          value: 1
+    text: 战吼：手牌少于等于 1 张时，抽一张牌。
+  flavor: ''
+  value:
+    stats: 5
+    keywords: 0
+    skills: 2.1
+    total: 7.1
     budget: 7
+    diff: 0.1
+    level: ok
+- id: wei_caohong
+  name: 曹洪
+  faction: wei
+  type: general
+  cost: 5
+  attack: 3
+  health: 5
+  keywords:
+  - jia_dun
+  tags:
+  - cao_clan
+  memo: 架盾并使主公恢复 5 点生命
+  gender: male
+  skills:
+  - id: jiu_ji
+    name: 救急
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: heal
+      value: 5
+      target:
+        side: self
+        lord: true
+    text: 战吼：使己方主公恢复 5 点生命。
+  flavor: ''
+  value:
+    stats: 8
+    keywords: -1
+    skills: 2
+    total: 9
+    budget: 11
     diff: -2
+    level: watch
+- id: wei_caozhen
+  name: 曹真
+  faction: wei
+  type: general
+  cost: 5
+  attack: 4
+  health: 5
+  keywords:
+  - jia_dun
+  tags:
+  - cao_clan
+  memo: 架盾并使场上所有角色获得 +1/+1
+  gender: male
+  skills:
+  - id: zhen_guo
+    name: 镇国
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      attack: 1
+      health: 1
+      target:
+        side: both
+        filter:
+          type: character
+        count: all
+    text: 战吼：使场上所有角色攻击力和生命值 +1。
+  flavor: ''
+  value:
+    stats: 9
+    keywords: -1
+    skills: 6
+    total: 14
+    budget: 11
+    diff: 3
     level: watch
 - id: wei_caozhang
   name: 曹彰
@@ -1068,6 +1231,8 @@
   cost: 3
   attack: 3
   health: 3
+  tags:
+  - cao_clan
   memo: 战吼二选一：抽 1 张，或本回合 +1 攻
   gender: male
   keywords: []
@@ -1076,17 +1241,16 @@
     name: 猛袭
     kind: trigger
     trigger: on_play
-    text: 战吼：选择一项 —— ① 抽 1 张牌；② 本回合攻击力 +1。
+    text: 战吼：选择一项 —— ① 抽 1 张牌；② 攻击力 +1。
     modes:
     - name: 蓄势（抽 1 张牌）
       effects:
       - action: draw
         value: 1
-    - name: 奋击（本回合攻击 +1）
+    - name: 奋击（攻击 +1）
       effects:
       - action: modify
         attack: 1
-        duration: this_turn
         target:
           source: true
   flavor: ''
@@ -1159,6 +1323,8 @@
   cost: 4
   attack: 3
   health: 5
+  tags:
+  - cao_clan
   memo: 第一回合免一次伤害，第二回合转为架盾
   gender: male
   keywords: []
@@ -1776,6 +1942,43 @@
     budget: 15
     diff: 2.2
     level: watch
+- id: wei_caopi
+  name: 曹丕
+  faction: wei
+  type: general
+  cost: 8
+  attack: 4
+  health: 8
+  tags:
+  - cao_clan
+  memo: 随机展示三张曹氏宗亲，选择一张并减 1 统帅
+  gender: male
+  skills:
+  - id: yan_ge_gai_ge
+    name: 宗室擢用
+    kind: active
+    cost: 0
+    frequency: once_per_turn
+    text: 一回合一次：从牌库随机展示 3 张曹氏宗亲，由你选择 1 张加入手牌；该牌统帅消耗减少 1 点。
+    effects:
+    - action: discover
+      count: 3
+      value: -1
+      target:
+        side: self
+        filter:
+          tag: cao_clan
+          faction: wei
+          type: character
+  flavor: 魏文帝整顿宗室与朝局，令曹氏人才为魏所用。
+  value:
+    stats: 12
+    keywords: 0
+    skills: 3.6
+    total: 15.6
+    budget: 17
+    diff: -1.4
+    level: ok
 - id: wu_liyi
   name: 李异
   faction: wu
@@ -4265,6 +4468,222 @@
     budget: 9
     diff: -7.5
     level: 'off'
+- id: wei_jiangji
+  name: 蒋济
+  faction: wei
+  type: strategist
+  cost: 4
+  attack: 1
+  health: 4
+  rarity: elite
+  tags: []
+  memo: 战吼限制敌方武将和普通兵种下回合攻击
+  gender: male
+  keywords: []
+  skills:
+  - id: zha_di
+    name: 诈敌
+    kind: trigger
+    trigger: on_play
+    text: 战吼：选择一个敌方武将，使其和所有敌方普通兵种下个回合无法攻击。
+    effects:
+    - action: apply_status
+      status: jin_gong
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: general
+        count: 1
+        mode: choose
+    - action: apply_status
+      status: jin_gong
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: troop
+        count: all
+  flavor: ''
+  value:
+    stats: 5
+    keywords: 0
+    skills: 8
+    total: 13
+    budget: 9
+    diff: 4
+    level: off
+- id: wei_lejin
+  name: 乐进
+  faction: wei
+  type: general
+  cost: 5
+  attack: 4
+  health: 4
+  memo: 无其他己方武将时获得先攻
+  gender: male
+  keywords: []
+  skills:
+  - id: xian_deng
+    name: 先登
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: xian_gong_status
+      target:
+        source: true
+      condition:
+        count:
+          selector:
+            side: ally
+            filter:
+              type: general
+              exclude_source: true
+          op: ==
+          value: 0
+    text: 自己场上没有其他武将时，获得先攻。
+  flavor: ''
+  value:
+    stats: 8
+    keywords: 0
+    skills: 1.4
+    total: 9.4
+    budget: 11
+    diff: -1.6
+    level: watch
+- id: wei_dengai
+  name: 邓艾
+  faction: wei
+  type: general
+  cost: 5
+  attack: 4
+  health: 5
+  memo: 不攻击就屯田抽牌
+  gender: male
+  keywords: []
+  skills:
+  - id: tun_tian
+    name: 屯田
+    kind: trigger
+    trigger: turn_end
+    effects:
+    - action: draw
+      value: 1
+      condition:
+        acted_this_turn: false
+    text: 回合结束时，若本回合没有攻击，抽 1 张牌。
+  flavor: ''
+  value:
+    stats: 9
+    keywords: 0
+    skills: 1.47
+    total: 10.47
+    budget: 11
+    diff: -0.53
+    level: ok
+- id: wei_yujin
+  name: 于禁
+  faction: wei
+  type: general
+  cost: 5
+  attack: 3
+  health: 3
+  memo: 光环强化所有 5 费角色
+  gender: male
+  keywords: []
+  skills:
+  - id: chi_jun_yan_zheng
+    name: 持军严整
+    kind: aura
+    effects:
+    - action: modify
+      attack: 2
+      health: 2
+      target:
+        side: both
+        filter:
+          type: character
+          cost_min: 5
+          cost_max: 5
+        count: all
+    text: 所有统率为 5 的角色获得 +2 攻击力和 +2 生命值。
+  flavor: ''
+  value:
+    stats: 6
+    keywords: 0
+    skills: 4
+    total: 10
+    budget: 11
+    diff: -1
+    level: ok
+- id: wei_xiahoushang
+  name: 夏侯尚
+  faction: wei
+  type: general
+  cost: 4
+  attack: 2
+  health: 2
+  memo: 战吼发现一张战法牌
+  gender: male
+  keywords: []
+  skills:
+  - id: fu_zheng
+    name: 辅政
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: discover
+      count: 3
+      target:
+        side: self
+        filter:
+          type: tactic
+    text: 战吼：从牌库发现三张战法，选择一张加入手牌。
+  flavor: ''
+  value:
+    stats: 4
+    keywords: 0
+    skills: 4.5
+    total: 8.5
+    budget: 9
+    diff: -0.5
+    level: ok
+- id: wei_zhonghui
+  name: 钟会
+  faction: wei
+  type: general
+  cost: 6
+  attack: 4
+  health: 5
+  memo: 战吼混乱一个敌方人物
+  gender: male
+  keywords: []
+  skills:
+  - id: luan_ju
+    name: 乱局
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: hun_luan
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
+    text: 战吼：使一个敌方人物混乱 1 回合。
+  flavor: ''
+  value:
+    stats: 9
+    keywords: 0
+    skills: 2
+    total: 11
+    budget: 13
+    diff: -2
+    level: watch
 - id: status_jia_dun
   name: 架盾
   faction: neutral

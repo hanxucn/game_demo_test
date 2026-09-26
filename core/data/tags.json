@@ -41,6 +41,20 @@
         "qun_yuanshao",
         "qun_yuanshao_lord"
       ]
+    },
+    {
+      "id": "cao_clan",
+      "name": "曹氏宗亲",
+      "value": 0,
+      "memo": "曹操宗族人物：曹昂、曹休、曹彰、曹仁、曹丕等",
+    "used_by": [
+      "wei_caogang",
+      "wei_caoxiu",
+      "wei_caozhi",
+        "wei_caozhang",
+        "wei_caoren",
+        "wei_caopi"
+      ]
     }
   ]
 }

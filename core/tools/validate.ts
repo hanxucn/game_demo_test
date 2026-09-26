@@ -170,6 +170,7 @@ function baseEffectValue(eff: CardEffect, ctx: ValueCtx = {}): number {
     // ADR-033~042 新增动作的价值估算
     case 'clash': return 2;                                   // 拼点：中等收益
     case 'scry': return (eff.count ?? 1) * 2.5;               // 卡池操作 + 信息优势
+    case 'discover': return (eff.count ?? 3) * 1.5;           // 随机展示候选并选择一张：定向检索 + 选择收益
     case 'flip': return 2.5;                                  // 翻面：既是保护也是封锁
     case 'ban_play': return (eff.count ?? 1) * 4.0;           // 禁止上场：与单体震慑(5)同级的硬控
     case 'steal_card': return (eff.count ?? 1) * 3.5;         // 夺取手牌

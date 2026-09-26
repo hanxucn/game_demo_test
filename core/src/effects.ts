@@ -10,6 +10,7 @@ import { allUnits, applyMods, getUnit, hasCap, hasTrait, makeUnit, nextUidSeq, o
 import { handRef, removeStatus } from './mutate.ts';
 import { effectiveAttack } from './rules.ts';
 import type { Rng } from './rng.ts';
+import { type OnDrawResult } from './mutate.ts';
 import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchState, Row, Side, SkillDef, TargetSelector, Unit } from './types.ts';
 import {
   applyStatus, dealDamage, drawCard, gainArmor, healTarget, killUnit, lordRef, registerOnDeathResolver,
@@ -22,13 +23,27 @@ import {
  * 「抽到时释放」（ADR-050）：带 `trigger: 'on_draw'` 技能的卡被抽到时不进手牌，
  * 直接结算其效果并进弃牌堆。由 mutate.drawCard 通过挂载点回调。
  */
-registerOnDrawResolver((state, cards, side, card, events, rng) => {
+export function resolveDrawTrigger(state: MatchState, cards: Map<string, CardDef>, side: Side,
+  card: CardDef, events: GameEvent[], rng: Rng): OnDrawResult {
   const sk = (card.skills ?? []).find((k) => k.trigger === 'on_draw');
   if (!sk) return false;
+
+  // 人物牌的“抽到时”技能是自动召唤：占用第一个空置前军格。
+  // 战场已满时不消耗技能，回退为普通手牌，避免卡牌凭空消失。
+  if (['troop', 'general', 'strategist'].includes(card.type)) {
+    const col = state.sides[side].rows.front.findIndex((unit) => unit === null);
+    if (col < 0) return false;
+    emitSkillTriggered(state, side, null, sk, 'trigger', events);
+    runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
+    return { discard: false };
+  }
+
   emitSkillTriggered(state, side, null, sk, 'trigger', events);
   runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
-  return true;
-});
+  return { discard: true };
+}
+
+registerOnDrawResolver(resolveDrawTrigger);
 
 /** 亡语解析器：把 on_death 技能交给 DSL 解释器（ADR-050） */
 registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) => {
@@ -335,6 +350,7 @@ export function runCardPlayedTriggers(
       const u = ref.unit;
       if (u.hp <= 0) continue;
       for (const sk of (u.skills ?? []).filter((x) => x.trigger === 'on_card_played')) {
+        if (sk.duration === 'this_turn' && u.enteredTurn !== state.turn) continue;
         // 条件里可用 played_type 过滤：只有指定类型的牌被打出时才触发
         const want: string | undefined = sk.target?.filter?.type;
         if (want === 'character') {
@@ -778,6 +794,7 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<string> = new Set([
   'extra_attack', 'take_control', 'copy_skill', 'force_attack',
   'add_to_deck', 'send_to_deck', 'cycle_to_deck',
   'sacrifice', 'attack_each', 'draw_until', 'mill',
+  'discover',
 ]);
 
 /**
@@ -869,6 +886,30 @@ export function runEffects(
       }
       case 'draw': {
         for (let i = 0; i < (dynVal ?? eff.value ?? 1); i++) drawCard(state, cards, ctx.side, events);
+        break;
+      }
+      case 'discover': {
+        // 从当前方牌库中筛选候选，随机展示最多 count 张；真正取牌由 CHOOSE_DISCOVER 完成。
+        const filter = eff.target?.filter;
+        const candidates = state.sides[ctx.side].deck.filter((id) => {
+          const card = cards.get(id);
+          if (!card) return false;
+          if (filter?.faction && card.faction !== filter.faction) return false;
+          if (filter?.type && filter.type !== 'character' && card.type !== filter.type) return false;
+          if (filter?.type === 'character' && !['troop', 'general', 'strategist'].includes(card.type)) return false;
+          if (filter?.tag && !(card.tags ?? []).includes(filter.tag)) return false;
+          return true;
+        });
+        const pool = [...candidates];
+        const shown: string[] = [];
+        const count = Math.min(eff.count ?? 3, pool.length);
+        for (let i = 0; i < count; i++) shown.push(pool.splice(rng.int(pool.length), 1)[0]!);
+        if (!shown.length) break;
+        state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value };
+        events.push({
+          type: 'DISCOVER_OPTIONS', side: ctx.side,
+          cards: shown.map((id) => cards.get(id)!).filter(Boolean),
+        });
         break;
       }
       case 'summon': {

@@ -340,6 +340,7 @@ condition: { event: killed }        # killed | clash_won | clash_lost
 | `return_to_hand` | target | 返回手牌（"收回手中""回到对方手牌"）|
 | `clash` | target, then | **拼点**：双方各翻一张，比点数；结果写入 `event` 供条件判定 |
 | `scry` | target, count, to | 查看/移动卡池顶或底（"查看卡池第一张牌""放到最底层"）|
+| `discover` | target.filter, count, value | 从己方牌库随机展示最多 `count` 张满足条件的牌，暂停等待玩家选择；选择后加入手牌，`value` 为该牌的费用修正 |
 | `silence` | target, duration | 禁用技能（"技能禁用一回合"）|
 | `flip` | target | 翻面（"将卡牌翻面"，翻面期间不可被选中）|
 | `sacrifice` | target | 牺牲己方单位并记下它的血量（ADR-071） |

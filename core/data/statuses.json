@@ -296,5 +296,18 @@
       "block_skill"
     ],
     "memo": "不能普通攻击，也不能使用主动技（陈宫「忠烈」对敌军的效果）"
+  },
+  {
+    "id": "jin_gong",
+    "name": "无法攻击",
+    "kind": "debuff",
+    "numeric": false,
+    "scope": "character",
+    "timing": 5,
+    "duration": "turns",
+    "caps": [
+      "block_attack"
+    ],
+    "memo": "本回合不能普通攻击"
   }
 ]

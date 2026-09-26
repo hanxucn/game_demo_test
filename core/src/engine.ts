@@ -66,6 +66,7 @@ import {
 } from './mutate.ts';
 import {
   costRuleDelta, effectsOf, emitSkillTriggered, recomputeAuras, resolveAttack, resolveTargets,
+  resolveDrawTrigger,
   runCardPlayedTriggers, runEffects, runTriggerSkills,
 } from './effects.ts';
 import type {
@@ -95,8 +96,12 @@ export function applyAction(state: MatchState, ctx: EngineContext, action: Actio
   let error: string | undefined;
 
   try {
+    if (next.pendingDiscover && action.type !== 'CHOOSE_DISCOVER') {
+      throw new Error('请先选择发现的牌');
+    }
     switch (action.type) {
       case 'PLAY_CARD': ok = playCard(next, ctx, action, events, rng); break;
+      case 'CHOOSE_DISCOVER': ok = chooseDiscover(next, ctx, action, events, rng); break;
       case 'ATTACK': ok = attack(next, ctx, action, events, rng); break;
       case 'USE_LORD_SKILL': ok = useLordSkill(next, ctx, action, events, rng); break;
       case 'USE_SKILL': ok = useUnitSkill(next, ctx, action, events, rng); break;
@@ -116,6 +121,34 @@ export function applyAction(state: MatchState, ctx: EngineContext, action: Actio
 
   next.rngState = rng.getState();
   return { ok: true, state: next, events };
+}
+
+function chooseDiscover(
+  state: MatchState, ctx: EngineContext,
+  action: Extract<Action, { type: 'CHOOSE_DISCOVER' }>,
+  events: GameEvent[], rng: ReturnType<typeof createRng>,
+): boolean {
+  const pending = state.pendingDiscover;
+  if (!pending || state.active !== pending.side || !pending.candidates.includes(action.cardId)) return false;
+  const index = state.sides[pending.side].deck.indexOf(action.cardId);
+  if (index < 0) return false;
+  const [id] = state.sides[pending.side].deck.splice(index, 1);
+  const card = ctx.cards.get(id);
+  if (!card) return false;
+  delete state.pendingDiscover;
+  events.push({ type: 'CARD_DISCOVERED', side: pending.side, card, costModifier: pending.costModifier });
+  // 发现到带“抽到时”技能的牌时，沿用抽牌触发规则；例如曹休会立即召唤。
+  const auto = resolveDrawTrigger(state, ctx.cards, pending.side, card, events, rng);
+  if (auto) {
+    if (auto.discard) state.sides[pending.side].discard.push(card);
+    events.push({ type: 'CARD_AUTO_CAST', side: pending.side, card });
+    return true;
+  }
+  state.sides[pending.side].hand.push({
+    card,
+    mods: pending.costModifier ? [{ id: 'discover', kind: 'cost', value: pending.costModifier }] : [],
+  });
+  return true;
 }
 
 /* ============================================================
