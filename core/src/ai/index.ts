@@ -1,5 +1,5 @@
 /**
- * 《酒话三国》对战 AI（ADR-084）
+ * 《酒话三国》对战 AI（ADR-086）
  *
  * 设计思想：**不在 AI 里重写规则**。
  *
@@ -117,7 +117,7 @@ export function chooseAction(state: MatchState, ctx: EngineContext): Action | nu
 }
 
 /**
- * 兜底动作（ADR-084）
+ * 兜底动作（ADR-086）
  *
  * 只在候选生成阶段抛异常时使用：保证 AI 永远能给出一个**引擎会接受**的动作，
  * 而不是把异常抛进原型的动画循环里让整个回合卡死。不做任何评估。

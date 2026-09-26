@@ -141,7 +141,7 @@ test('程昱 审时度势：牺牲己方人物 → 按「血量上限」回血�
   assert.ok(healed.hp > 2, `治疗对象应被治疗（1 → ${healed.hp}）`);
 
   // 伤害量 = 牺牲时的**当前血量** = 2（不是上限 5）
-  // ADR-085：随机伤害默认含主公，所以按事件统计总伤害，而不是只看那一个人物
+  // ADR-087：随机伤害默认含主公，所以按事件统计总伤害，而不是只看那一个人物
   const dealt = r.events
     .filter((e) => e.type === 'DAMAGE' && e.source !== 'fatigue')
     .reduce((a, e) => a + (e.type === 'DAMAGE' ? e.amount : 0), 0);
@@ -161,7 +161,7 @@ test('程昱 审时度势：牺牲满血人物时，伤害量等于其血量上�
     target: { side: 'own', row: 'front', col: 0 },
   });
   assert.ok(r.ok, `打出应成功：${r.error}`);
-  // ADR-085：随机伤害默认含主公 —— 按事件统计总伤害
+  // ADR-087：随机伤害默认含主公 —— 按事件统计总伤害
   const dealt = r.events
     .filter((e) => e.type === 'DAMAGE' && e.source !== 'fatigue')
     .reduce((a, e) => a + (e.type === 'DAMAGE' ? e.amount : 0), 0);
@@ -305,7 +305,7 @@ test('灾年：双方主帅获得「断抽」，抽牌被拦截', () => {
   assert.ok(r.state.sides.enemy.lord.statuses?.duan_chou, '敌方主帅应被断抽');
 });
 
-/* ================= 草船借箭（ADR-088 改版）：按敌方人数抽牌 + 扎两个假人 ================= */
+/* ================= 草船借箭（ADR-090 改版）：按敌方人数抽牌 + 扎两个假人 ================= */
 
 test('草船借箭：敌方每有一名人物抽一张，并召唤两个 0/1 架盾假人', () => {
   realCard('tactic_caochuanjiejian');
@@ -490,7 +490,7 @@ test('进化规则：只影响己方对应兵种，不碰敌方同兵种', () =>
   assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.cardId, 'enemy_archer', '敌方弓兵不该被进化');
 });
 
-/* ================= 张飞 咆哮（ADR-085）：在场光环 + 全体 1 伤 ================= */
+/* ================= 张飞 咆哮（ADR-087）：在场光环 + 全体 1 伤 ================= */
 
 test('张飞 咆哮：−1 攻是在场光环（张飞阵亡即消失），1 伤打敌方全体且不含主公', () => {
   const zf = realCard('shu_zhangfei');
@@ -531,7 +531,7 @@ test('张飞 咆哮：−1 攻是在场光环（张飞阵亡即消失），1 伤
   void zf;
 });
 
-/* ================= 范围伤害默认含主公（ADR-085） ================= */
+/* ================= 范围伤害默认含主公（ADR-087） ================= */
 
 test('范围伤害默认打主将；卡面写 include_lord: false 才不打', () => {
   const mk = (includeLord: boolean | undefined) => {
@@ -588,7 +588,7 @@ test('范围伤害默认打主将；卡面写 include_lord: false 才不打', ()
   assert.equal(r3.state.sides.enemy.lord.hp, 30, '单体指定目标不受"范围默认含主公"影响');
 });
 
-/* ================= ADR-086：万箭齐发从手牌打出 / 张辽溢出伤害 ================= */
+/* ================= ADR-088：万箭齐发从手牌打出 / 张辽溢出伤害 ================= */
 
 test('万箭齐发：从手牌打出也结算伤害（原先只有 on_draw，手牌那张打出去毫无反应）', () => {
   realCard('tactic_wanjianqifa');
@@ -602,7 +602,7 @@ test('万箭齐发：从手牌打出也结算伤害（原先只有 on_draw，手
   assert.ok(r.ok, `应能打出：${r.error}`);
   assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.hp, 4, '敌方人物 −1');
   assert.equal(getUnit(r.state, 'enemy', 'front', 1)?.hp, 4, '全体结算，不是只打一个');
-  assert.equal(lordBefore - r.state.sides.enemy.lord.hp, 1, '范围伤害默认含主公（ADR-085）');
+  assert.equal(lordBefore - r.state.sides.enemy.lord.hp, 1, '范围伤害默认含主公（ADR-087）');
 });
 
 test('张辽 冲锋陷阵：斩杀后的**溢出伤害**打在敌方主将身上（原先写死 2 点且打错目标）', () => {
@@ -637,7 +637,7 @@ test('张辽 冲锋陷阵：没打死人就没有溢出伤害', () => {
   assert.equal(r.state.sides.enemy.lord.hp, lordBefore, '未击杀 → 主将不掉血');
 });
 
-/* ================= ADR-087：陈宫守护时长 / 许褚决斗锁定 / 蔡文姬减费 ================= */
+/* ================= ADR-089：陈宫守护时长 / 许褚决斗锁定 / 蔡文姬减费 ================= */
 
 test('陈宫 忠烈：守护要撑过**对手回合**，伤害由陈宫承担', () => {
   realCard('qun_chengong');
@@ -712,8 +712,8 @@ test('蔡文姬 曲名才艺：打出回合人物卡与战法卡各减 1 费，�
 });
 
 test('阵亡标记（ADR-041/085）：标记的 payoff 在阵亡时由施法方结算，显示名不是「阵亡」', () => {
-  // 草船借箭在 ADR-088 改版后不再用标记机制了，这里用一张合成卡守住引擎侧的行为，
-  // 免得 ADR-085 修好的 runMarkDeath / on_death 又悄悄烂掉。
+  // 草船借箭在 ADR-090 改版后不再用标记机制了，这里用一张合成卡守住引擎侧的行为，
+  // 免得 ADR-087 修好的 runMarkDeath / on_death 又悄悄烂掉。
   const synthetic: CardDef = {
     id: 'test_mark_card', name: '测试标记', faction: 'neutral', type: 'tactic', cost: 0,
     keywords: [], memo: '', flavor: '', attack: 0, health: 0,

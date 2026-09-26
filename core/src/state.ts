@@ -51,7 +51,7 @@ export function rollFirstSide(rng: ReturnType<typeof createRng>): { side: Side; 
  */
 export function createMatch(opts: CreateMatchOptions): MatchState {
   const {
-    // 后手补偿默认关闭（ADR-085）：起手双方同为 3 张，不再额外多抽
+    // 后手补偿默认关闭（ADR-087）：起手双方同为 3 张，不再额外多抽
     seed = 1, lords, decks, cards, secondCompensation = 'none',
   } = opts;
   const rng = createRng(seed);

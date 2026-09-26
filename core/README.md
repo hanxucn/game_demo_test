@@ -118,7 +118,7 @@ core/
 │   ├── mutate.ts      状态变更原语（伤害/治疗/死亡/抽牌）
 │   ├── effects.ts     效果 DSL 解释器
 │   ├── engine.ts      applyAction 主循环
-│   ├── ai/            对战 AI（ADR-084）：cards / profile / eval / options / index
+│   ├── ai/            对战 AI（ADR-086）：cards / profile / eval / options / index
 │   ├── loader.ts      数据加载与自动组卡
 │   └── index.ts       公共导出
 ├── test/              254 个测试（含 test/ai.test.ts）

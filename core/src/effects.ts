@@ -10,7 +10,7 @@ import { allUnits, applyMods, getUnit, hasCap, hasTrait, makeUnit, nextUidSeq, o
 import { handRef, removeStatus } from './mutate.ts';
 import { effectiveAttack } from './rules.ts';
 // 合并说明（rebase 到 main 时）：两边各加了一个 import —— main 把「抽到时释放」
-// 重构成返回 OnDrawResult 的具名函数，我这边（ADR-085 的死亡后光环重算）需要 createRng。
+// 重构成返回 OnDrawResult 的具名函数，我这边（ADR-087 的死亡后光环重算）需要 createRng。
 // 两个都要留。
 import { createRng, type Rng } from './rng.ts';
 import { type OnDrawResult } from './mutate.ts';
@@ -42,7 +42,7 @@ export function resolveDrawTrigger(state: MatchState, cards: Map<string, CardDef
   }
 
   emitSkillTriggered(state, side, null, sk, 'trigger', events);
-  // 技能自己没写效果时，按**卡级效果**释放（ADR-086）
+  // 技能自己没写效果时，按**卡级效果**释放（ADR-088）
   // —— 「抽到时释放」= 释放这张牌，与从手牌打出走的是同一组效果，
   //    免得同一段伤害在 on_draw 与 effects 两处各写一份、迟早漂移。
   //    ⚠️ 只作用于**非人物卡**这条路径：人物卡的卡级效果是"打出时"的战吼，
@@ -63,12 +63,12 @@ registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) 
   }
 });
 
-// 「死亡后光环重算」挂载点（ADR-085，时机表第 19 步）
+// 「死亡后光环重算」挂载点（ADR-087，时机表第 19 步）
 registerAfterDeathResolver((state, cards, events) => {
   recomputeAuras(state, cards, createRng(state.rngState), events);
 });
 
-// 「标记阵亡」挂载点（ADR-085）：仇敌 / 阵亡标记的结算（runMarkDeath 从此真正被调用）
+// 「标记阵亡」挂载点（ADR-087）：仇敌 / 阵亡标记的结算（runMarkDeath 从此真正被调用）
 registerMarkDeathResolver((state, cards, dead, rng, events) => {
   runMarkDeath(state, cards, dead, rng, events);
 });
@@ -410,7 +410,7 @@ export function runMarkDeath(
   state: MatchState, cards: Map<string, CardDef>, dead: Unit, rng: Rng, events: GameEvent[],
 ): void {
   const inst = dead.statuses.chou_di_shou ?? dead.statuses.zhen_wang;
-  // ① 卡牌级标记（ADR-085）：结算写在标记上，由施法方执行 —— 不依赖任何单位
+  // ① 卡牌级标记（ADR-087）：结算写在标记上，由施法方执行 —— 不依赖任何单位
   if (inst?.payoff?.length && inst.srcSide) {
     runEffects(state, cards, inst.payoff, { side: inst.srcSide }, rng, events);
   }
@@ -669,7 +669,7 @@ export function runOnAttackPhase(
   killed: boolean,
   rng: Rng,
   events: GameEvent[],
-  /** 本次击杀的溢出伤害（ADR-086）——以 `overflow:N` 事件标记交给 DSL 的 `value_from_flag` */
+  /** 本次击杀的溢出伤害（ADR-088）——以 `overflow:N` 事件标记交给 DSL 的 `value_from_flag` */
   overflow = 0,
 ): void {
   if (attacker.hp <= 0) return;
@@ -703,7 +703,7 @@ export function runOnAttackPhase(
  * @param opts.toSide 被打的是哪一方，缺省 = 攻击者的对面。
  *        **内讧类效果必须显式给**（混乱 / 趁火打劫「使其攻击己方单位」）——
  *        原先这里写死 `other(side)`，于是同阵营的强制攻击会**按坐标去对面抓人**，
- *        打出"打自己人却伤了对方那个人"的静默错位（ADR-085）。
+ *        打出"打自己人却伤了对方那个人"的静默错位（ADR-087）。
  */
 export function resolveAttack(
   state: MatchState,
@@ -739,7 +739,7 @@ export function resolveAttack(
   // 本次普攻有没有**击杀**目标 —— 8½-after 的击杀奖励据此判定（ADR-072）
   let killed = false;
   /**
-   * 击杀时的**溢出伤害**（ADR-086，张辽「冲锋陷阵」）
+   * 击杀时的**溢出伤害**（ADR-088，张辽「冲锋陷阵」）
    *
    * 卡面写「如若斩杀敌人人物卡牌，溢出伤害由对方主将承受」——
    * 原实现给的是写死的 2 点、而且是打"敌方第一个单位"，两处都错。
@@ -854,7 +854,7 @@ export function effectsOf(sk: SkillDef, modeIndex?: number): CardEffect[] {
 }
 
 /**
- * 「范围伤害 / 随机伤害**默认把主公算进目标**」（ADR-085，设计者裁定）
+ * 「范围伤害 / 随机伤害**默认把主公算进目标**」（ADR-087，设计者裁定）
  *
  * 设计者原话：「还有一些范围伤害和随机伤害，如果没有说只能针对非主公的，
  * 默认就是主公也在攻击目标内也能被选择。」
@@ -896,7 +896,7 @@ export function runEffects(
   };
 
   for (const rawEff of effects) {
-    // 范围/随机伤害默认含主公（ADR-085）—— 归一化后再走后面所有分支
+    // 范围/随机伤害默认含主公（ADR-087）—— 归一化后再走后面所有分支
     const eff = withDefaultLordTarget(rawEff);
     // 概率：掷一次骰子，不中则跳过（ADR-033）
     if (typeof eff.chance === 'number' && rng.next() >= eff.chance) continue;
@@ -1256,7 +1256,7 @@ export function runEffects(
         break;
       }
       case 'force_attack': {
-        // 强制攻击（ADR-041 / ADR-085）：令目标单位**真的打一次**。
+        // 强制攻击（ADR-041 / ADR-087）：令目标单位**真的打一次**。
         //
         // 走 resolveAttack（与普攻、张苞「父子将风」同一条结算路径），于是反击、圣盾、
         // 饮血、攻击时触发技、阵亡移除全部自动与普攻一致。
@@ -1318,7 +1318,7 @@ export function runEffects(
         // 张角「五雷轰顶」需要「5 次雷击各 50% 概率震慑」——原先 count 被忽略，
         // 而估值公式（ADR-046）却已按次数计价，两边不一致，此处补齐。
         const times = eff.count ?? 1;
-        // duration: 'until_next_turn' = 1 回合，但**施加当回合不递减**（ADR-087）
+        // duration: 'until_next_turn' = 1 回合，但**施加当回合不递减**（ADR-089）
         const untilNext = eff.duration === 'until_next_turn';
         const turns = typeof eff.duration === 'number' ? eff.duration
           : eff.duration === 'this_turn' || untilNext ? 1 : undefined;
@@ -1329,7 +1329,7 @@ export function runEffects(
             : (eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target));
           for (const t of list) {
             applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId, untilNext);
-            // 卡牌级标记的阵亡结算（ADR-085，草船借箭）：把"该结算什么"记在标记上
+            // 卡牌级标记的阵亡结算（ADR-087，草船借箭）：把"该结算什么"记在标记上
             if (eff.on_death?.length) {
               const bags = t.kind === 'unit'
                 ? getUnit(state, t.side, t.row, t.col)?.statuses

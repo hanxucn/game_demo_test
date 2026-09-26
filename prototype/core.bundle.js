@@ -185,7 +185,7 @@ var Core = (() => {
   var LORD_SKILL_COST = 2;
   var DECK = {
     SIZE: 30,
-    /** 起手张数（ADR-085，设计者裁定）：**先手与后手同为 3 张**，
+    /** 起手张数（ADR-087，设计者裁定）：**先手与后手同为 3 张**，
      *  各自在自己回合开始时再抽 1 张 → 双方第一次行动时都是 4 张手牌。
      *  原先后手 4 张 + 「后手补偿多抽 1 张」= 6 张，比先手多 2 张，实测明显偏多。 */
     HAND_START_FIRST: 3,
@@ -258,7 +258,8 @@ var Core = (() => {
     xi_liang: { name: "\u897F\u51C9", note: "\u897F\u51C9\u51FA\u8EAB\uFF1A\u9A6C\u817E\u3001\u9A6C\u8D85\u3001\u9A6C\u5CB1" },
     man_zu: { name: "\u86EE\u65CF", note: "\u5357\u65B9\u5F02\u65CF\uFF1A\u6C99\u6469\u67EF" },
     huang_jin: { name: "\u9EC4\u5DFE", note: "\u9EC4\u5DFE\u519B\u51FA\u8EAB\u6216\u5176\u65E7\u90E8" },
-    shi_zu: { name: "\u58EB\u65CF", note: "\u58EB\u65CF\u95E8\u9600\uFF1A\u8881\u7ECD\u53CA\u5176\u58EB\u65CF\u5175" }
+    shi_zu: { name: "\u58EB\u65CF", note: "\u58EB\u65CF\u95E8\u9600\uFF1A\u8881\u7ECD\u53CA\u5176\u58EB\u65CF\u5175" },
+    cao_clan: { name: "\u66F9\u6C0F\u5B97\u4EB2", note: "\u66F9\u64CD\u5B97\u65CF\u4EBA\u7269\uFF1A\u66F9\u6602\u3001\u66F9\u4F11\u3001\u66F9\u5F70\u3001\u66F9\u4EC1\u3001\u66F9\u4E15\u7B49" }
   };
   var FORBIDDEN_KEYWORD_COMBOS = [
     ["jia_dun", "qi_xi"]
@@ -401,12 +402,12 @@ var Core = (() => {
       note: "\u4E0D\u80FD\u666E\u653B\u4E5F\u4E0D\u80FD\u7528\u4E3B\u52A8\u6280\uFF08\u9648\u5BAB\u300C\u5FE0\u70C8\u300D\u5BF9\u654C\u519B\u5206\u652F\uFF0CADR-069\uFF09"
     },
     jin_gong: {
-      name: "无法攻击",
+      name: "\u65E0\u6CD5\u653B\u51FB",
       kind: "debuff",
       numeric: false,
       duration: "turns",
       caps: ["block_attack"],
-      note: "本回合不能普通攻击"
+      note: "\u672C\u56DE\u5408\u4E0D\u80FD\u666E\u901A\u653B\u51FB"
     },
     mian_yi: {
       name: "\u514D\u75AB",
@@ -484,8 +485,9 @@ var Core = (() => {
     "draw_until",
     // 一直抽到抽出一张「非某类型」的牌为止（ADR-071，姜维）
     "mill",
-    "discover"
     // 弃掉目标方牌库的 N 张牌（ADR-074，司马懿「谋定后动」②）
+    "discover"
+    // 从牌库随机展示候选牌并由玩家选择（曹丕）
   ];
   var RARITIES = ["common", "elite"];
   var CARD_TYPES = [
@@ -516,7 +518,7 @@ var Core = (() => {
   }
   function createMatch(opts) {
     const {
-      // 后手补偿默认关闭（ADR-085）：起手双方同为 3 张，不再额外多抽
+      // 后手补偿默认关闭（ADR-087）：起手双方同为 3 张，不再额外多抽
       seed = 1,
       lords,
       decks,
@@ -875,8 +877,9 @@ var Core = (() => {
     events.push({ type: "CARD_DRAWN", side, card, deckLeft: s.deck.length });
     if (onDrawResolver) {
       const r = rng ?? createRng(state.rngState);
-      if (onDrawResolver(state, cards, side, card, events, r)) {
-        s.discard.push(card);
+      const result = onDrawResolver(state, cards, side, card, events, r);
+      if (result) {
+        if (result.discard) s.discard.push(card);
         events.push({ type: "CARD_AUTO_CAST", side, card });
         return;
       }
@@ -1189,14 +1192,22 @@ var Core = (() => {
   }
 
   // src/effects.ts
-  registerOnDrawResolver((state, cards, side, card, events, rng) => {
+  function resolveDrawTrigger(state, cards, side, card, events, rng) {
     const sk = (card.skills ?? []).find((k) => k.trigger === "on_draw");
     if (!sk) return false;
+    if (["troop", "general", "strategist"].includes(card.type)) {
+      const col = state.sides[side].rows.front.findIndex((unit) => unit === null);
+      if (col < 0) return false;
+      emitSkillTriggered(state, side, null, sk, "trigger", events);
+      runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
+      return { discard: false };
+    }
     emitSkillTriggered(state, side, null, sk, "trigger", events);
     const effs = sk.effects?.length ? sk.effects : card.effects ?? [];
     runEffects(state, cards, effs, { side }, rng, events);
-    return true;
-  });
+    return { discard: true };
+  }
+  registerOnDrawResolver(resolveDrawTrigger);
   registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) => {
     for (const sk of skills) {
       emitSkillTriggered(state, side, unit, sk, "trigger", events);
@@ -1400,6 +1411,7 @@ var Core = (() => {
         const u = ref.unit;
         if (u.hp <= 0) continue;
         for (const sk of (u.skills ?? []).filter((x) => x.trigger === "on_card_played")) {
+          if (sk.duration === "this_turn" && u.enteredTurn !== state.turn) continue;
           const want = sk.target?.filter?.type;
           if (want === "character") {
             if (!["troop", "general", "strategist"].includes(played.type)) continue;
@@ -1751,6 +1763,30 @@ var Core = (() => {
           for (let i = 0; i < (dynVal ?? eff.value ?? 1); i++) drawCard(state, cards, ctx.side, events);
           break;
         }
+        case "discover": {
+          const filter = eff.target?.filter;
+          const candidates = state.sides[ctx.side].deck.filter((id) => {
+            const card = cards.get(id);
+            if (!card) return false;
+            if (filter?.faction && card.faction !== filter.faction) return false;
+            if (filter?.type && filter.type !== "character" && card.type !== filter.type) return false;
+            if (filter?.type === "character" && !["troop", "general", "strategist"].includes(card.type)) return false;
+            if (filter?.tag && !(card.tags ?? []).includes(filter.tag)) return false;
+            return true;
+          });
+          const pool = [...candidates];
+          const shown = [];
+          const count = Math.min(eff.count ?? 3, pool.length);
+          for (let i = 0; i < count; i++) shown.push(pool.splice(rng.int(pool.length), 1)[0]);
+          if (!shown.length) break;
+          state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value };
+          events.push({
+            type: "DISCOVER_OPTIONS",
+            side: ctx.side,
+            cards: shown.map((id) => cards.get(id)).filter(Boolean)
+          });
+          break;
+        }
         case "summon": {
           const empties = [];
           for (const r of BOARD.ROWS) {
@@ -2053,26 +2089,6 @@ var Core = (() => {
           }
           break;
         }
-        case "discover": {
-          const filter = eff.target?.filter;
-          const candidates = state.sides[ctx.side].deck.filter((id) => {
-            const card = cards.get(id);
-            if (!card) return false;
-            if (filter?.faction && card.faction !== filter.faction) return false;
-            if (filter?.type === "character" && !["troop", "general", "strategist"].includes(card.type)) return false;
-            if (filter?.type && filter.type !== "character" && card.type !== filter.type) return false;
-            if (filter?.tag && !(card.tags ?? []).includes(filter.tag)) return false;
-            return true;
-          });
-          const pool = [...candidates];
-          const shown = [];
-          const count = Math.min(eff.count ?? 3, pool.length);
-          for (let i = 0; i < count; i++) shown.push(pool.splice(rng.int(pool.length), 1)[0]);
-          if (!shown.length) break;
-          state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value };
-          events.push({ type: "DISCOVER_OPTIONS", side: ctx.side, cards: shown.map((id) => cards.get(id)).filter(Boolean) });
-          break;
-        }
         case "apply_status": {
           const times = eff.count ?? 1;
           const untilNext = eff.duration === "until_next_turn";
@@ -2280,35 +2296,16 @@ var Core = (() => {
     let ok = true;
     let error;
     try {
-      if (next.pendingDiscover && action.type !== "CHOOSE_DISCOVER") throw new Error("请先选择发现的牌");
+      if (next.pendingDiscover && action.type !== "CHOOSE_DISCOVER") {
+        throw new Error("\u8BF7\u5148\u9009\u62E9\u53D1\u73B0\u7684\u724C");
+      }
       switch (action.type) {
         case "PLAY_CARD":
           ok = playCard(next, ctx, action, events, rng);
           break;
-        case "CHOOSE_DISCOVER": {
-          const pending = next.pendingDiscover;
-          if (!pending || next.active !== pending.side || !pending.candidates.includes(action.cardId)) { ok = false; break; }
-          const index = next.sides[pending.side].deck.indexOf(action.cardId);
-          const card = index >= 0 ? ctx.cards.get(next.sides[pending.side].deck[index]) : void 0;
-          if (index < 0 || !card) { ok = false; break; }
-          next.sides[pending.side].deck.splice(index, 1);
-          delete next.pendingDiscover;
-          events.push({ type: "CARD_DISCOVERED", side: pending.side, card, costModifier: pending.costModifier });
-          const drawSkill = (card.skills ?? []).find((skill) => skill.trigger === "on_draw");
-          if (drawSkill) {
-            const isCharacter = ["troop", "general", "strategist"].includes(card.type);
-            const emptyCol = isCharacter ? next.sides[pending.side].rows.front.findIndex((unit) => unit === null) : 0;
-            if (!isCharacter || emptyCol >= 0) {
-              emitSkillTriggered(next, pending.side, null, drawSkill, "trigger", events);
-              runEffects(next, ctx.cards, drawSkill.effects ?? [], { side: pending.side }, rng, events);
-              if (!isCharacter) next.sides[pending.side].discard.push(card);
-              events.push({ type: "CARD_AUTO_CAST", side: pending.side, card });
-              break;
-            }
-          }
-          next.sides[pending.side].hand.push({ card, mods: pending.costModifier ? [{ id: "discover", kind: "cost", value: pending.costModifier }] : [] });
+        case "CHOOSE_DISCOVER":
+          ok = chooseDiscover(next, ctx, action, events, rng);
           break;
-        }
         case "ATTACK":
           ok = attack(next, ctx, action, events, rng);
           break;
@@ -2335,6 +2332,28 @@ var Core = (() => {
     }
     next.rngState = rng.getState();
     return { ok: true, state: next, events };
+  }
+  function chooseDiscover(state, ctx, action, events, rng) {
+    const pending = state.pendingDiscover;
+    if (!pending || state.active !== pending.side || !pending.candidates.includes(action.cardId)) return false;
+    const index = state.sides[pending.side].deck.indexOf(action.cardId);
+    if (index < 0) return false;
+    const [id] = state.sides[pending.side].deck.splice(index, 1);
+    const card = ctx.cards.get(id);
+    if (!card) return false;
+    delete state.pendingDiscover;
+    events.push({ type: "CARD_DISCOVERED", side: pending.side, card, costModifier: pending.costModifier });
+    const auto = resolveDrawTrigger(state, ctx.cards, pending.side, card, events, rng);
+    if (auto) {
+      if (auto.discard) state.sides[pending.side].discard.push(card);
+      events.push({ type: "CARD_AUTO_CAST", side: pending.side, card });
+      return true;
+    }
+    state.sides[pending.side].hand.push({
+      card,
+      mods: pending.costModifier ? [{ id: "discover", kind: "cost", value: pending.costModifier }] : []
+    });
+    return true;
   }
   var TYPE_CN = {
     troop: "\u5175\u79CD",
@@ -3196,6 +3215,15 @@ var Core = (() => {
   }
   function generateOptions(state, w) {
     if (state.winner) return [];
+    if (state.pendingDiscover) {
+      return state.pendingDiscover.candidates.map((cardId) => ({
+        action: { type: "CHOOSE_DISCOVER", cardId },
+        kind: "play",
+        label: `\u53D1\u73B0\uFF1A${cardId}`,
+        quick: 0
+        // 预排序不表态，交给模拟层按"这张牌值多少"取舍
+      }));
+    }
     const attacks = attackOptions(state, w);
     const plays = playOptions(state, w);
     const skills = skillOptions(state, w);
