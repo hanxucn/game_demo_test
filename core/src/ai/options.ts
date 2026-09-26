@@ -1,5 +1,5 @@
 /**
- * 候选动作生成（ADR-084）
+ * 候选动作生成（ADR-086）
  *
  * 这一层的**唯一职责**是：把当前局面下所有「引擎会接受」的动作列出来，并给每个动作
  * 一个廉价的预排序分（`quick`），好让搜索层把模拟次数花在最像样的候选上。
@@ -343,6 +343,19 @@ function handPickCandidates(state: MatchState, side: Side): Array<number | undef
 /** 当前局面下全部候选动作（已按 `quick` 预排序、按类别限量） */
 export function generateOptions(state: MatchState, w: EvalWeights): AiOption[] {
   if (state.winner) return [];
+
+  // 「发现」待选（main 00f4fc7 的 discover 动作）：引擎在 applyAction 里对**其它任何动作**
+  // 一律抛「请先选择发现的牌」，所以此刻唯一的合法动作就是从候选里挑一张。
+  // 旧版 AI 不知道这件事，照旧出牌/结束回合 → 每次都被引擎拒绝，
+  // 表现为 AI 卡死到超时（core/test/ai.test.ts 的「候选 100% 引擎合法」当场抓到）。
+  if (state.pendingDiscover) {
+    return state.pendingDiscover.candidates.map((cardId) => ({
+      action: { type: 'CHOOSE_DISCOVER', cardId } as Action,
+      kind: 'play' as OptionKind,
+      label: `发现：${cardId}`,
+      quick: 0,          // 预排序不表态，交给模拟层按"这张牌值多少"取舍
+    }));
+  }
   const attacks = attackOptions(state, w);
   const plays = playOptions(state, w);
   const skills = skillOptions(state, w);
