@@ -229,6 +229,11 @@
   color: #33240d; font-size: 8px; font-weight: 900;
   flex: 0 0 auto;
 }
+.cr-costnum.is-discounted {
+  background: radial-gradient(circle at 35% 28%, #d9ffd0, #4fbf5a 55%, #175c22 100%);
+  color: #06280d;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.8), 0 0 6px rgba(96,224,122,.75);
+}
 .cr-costnum.is-unaffordable {
   background: radial-gradient(circle at 35% 28%, #ffd0c4, #d34a36 55%, #71170d 100%);
   color: #fff4ee;

@@ -1133,6 +1133,15 @@ cards:
           filter:
             type: character
           count: all
+      - action: cost_modifier
+        value: -1
+        duration: 1
+        target:
+          side: self
+          zone: hand
+          filter:
+            type: tactic
+          count: all
     note: DSL 已翻译
   keywords: []
   gender: female
@@ -1255,7 +1264,7 @@ cards:
           chosen_side: enemy
       - action: apply_status
         status: shou_hu
-        duration: 1
+        duration: until_next_turn
         status_source: self
         target:
           side: both

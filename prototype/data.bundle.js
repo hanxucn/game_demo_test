@@ -4373,6 +4373,19 @@ window.GameData = {
                 },
                 "count": "all"
               }
+            },
+            {
+              "action": "cost_modifier",
+              "value": -1,
+              "duration": 1,
+              "target": {
+                "side": "self",
+                "zone": "hand",
+                "filter": {
+                  "type": "tactic"
+                },
+                "count": "all"
+              }
             }
           ],
           "text": "使当前一回合使 自己一名武将和一张非令牌中武将牌 统帅消耗一."
@@ -4382,10 +4395,10 @@ window.GameData = {
       "value": {
         "stats": 2,
         "keywords": 0,
-        "skills": 2,
-        "total": 4,
+        "skills": 4,
+        "total": 6,
         "budget": 5,
-        "diff": -1,
+        "diff": 1,
         "level": "ok"
       }
     },
@@ -4469,7 +4482,7 @@ window.GameData = {
             {
               "action": "apply_status",
               "status": "shou_hu",
-              "duration": 1,
+              "duration": "until_next_turn",
               "status_source": "self",
               "target": {
                 "side": "both",

@@ -2747,6 +2747,9 @@ dsl:
         count: 1
         mode: random
   qun_caiwenji:
+  # ADR-087（设计者实机：「人物统率消耗和战法统率消耗没有实际当前回合暂时降低」）：
+  # 战吼要同时给**人物卡**与**战法卡**减 1 费，原先只写了 `type: character`，战法卡没被覆盖。
+  # 选择器的 `type` 只支持单个值，故拆成两条（value / duration 完全一致）。
   - id: qu_ming_cai_yi
     name: 曲名才艺
     kind: trigger
@@ -2760,6 +2763,15 @@ dsl:
         zone: hand
         filter:
           type: character
+        count: all
+    - action: cost_modifier
+      value: -1
+      duration: 1
+      target:
+        side: self
+        zone: hand
+        filter:
+          type: tactic
         count: all
   qun_chengong:
   - id: zhong_lie
@@ -2779,9 +2791,13 @@ dsl:
         mode: choose
       condition:
         chosen_side: enemy      # 选到的是敌军 → 禁攻禁技
+    # ADR-087（设计者实机：「选择的人物进行攻击时还是会自己受到伤害，而不是陈宫」）：
+    # 友军分支必须用 `until_next_turn` —— 守护要挡的恰恰是**对手回合**的伤害，
+    # 按 `duration: 1` 会在自己回合结束时就减到 0 被清掉，等于形同虚设。
+    # 敌方分支（禁锢）不受影响：状态挂在敌方单位上，本就在他们自己的回合末才递减。
     - action: apply_status
       status: shou_hu
-      duration: 1
+      duration: until_next_turn
       status_source: self       # 记下陈宫为守护者 → 伤害转由陈宫承担
       target:
         side: both
@@ -3736,6 +3752,7 @@ dsl_effects:
         type: character
       count: 2
       mode: choose
+
   neutral_chuanguo_yuxi:
   - action: gain_command
     value: 1

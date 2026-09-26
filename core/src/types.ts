@@ -250,6 +250,15 @@ export interface StatusInstance {
   payoff?: CardEffect[];
   /** `payoff` 属于哪一方 */
   srcSide?: Side;
+  /**
+   * 施加当回合**不递减**（ADR-087，`duration: 'until_next_turn'`）
+   *
+   * 「友军受到的伤害由陈宫承担」这类守护，要挡的恰恰是**对手回合**的伤害，
+   * 而状态是在自己回合施加的 —— 按常规在自己回合结束时就减到 0 被清掉，等于形同虚设
+   * （ADR-071 给「护主」记过同一笔账，那次是靠光环接管生命周期绕过去的）。
+   * 置位后：本回合结束跳过第一次递减，从下一次起正常计时。
+   */
+  skipTick?: boolean;
 }
 
 /** 属性修正项（ADR-037）：最终属性 = 基础值 + Σ mods */

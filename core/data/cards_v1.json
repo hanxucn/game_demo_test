@@ -1599,6 +1599,19 @@
          },
          "count": "all"
         }
+       },
+       {
+        "action": "cost_modifier",
+        "value": -1,
+        "duration": 1,
+        "target": {
+         "side": "self",
+         "zone": "hand",
+         "filter": {
+          "type": "tactic"
+         },
+         "count": "all"
+        }
        }
       ]
      }
@@ -1777,7 +1790,7 @@
        {
         "action": "apply_status",
         "status": "shou_hu",
-        "duration": 1,
+        "duration": "until_next_turn",
         "status_source": "self",
         "target": {
          "side": "both",

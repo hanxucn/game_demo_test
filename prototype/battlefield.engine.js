@@ -577,14 +577,18 @@ function renderHand(st) {
     }
     wrap.classList.toggle('is-playable', playable);
     wrap.dataset.playable = playable ? '1' : '';
-    wrap.appendChild(CR.big(viewCard(displayCard), { desc: true, affordable: affordable }));   // desc: 卡面显示技能名+文案
+    // 卡面费用显示：main 的 displayCard（把 cost 覆盖成实付费用）已经解决了
+    // 「减了费卡面还印原价」这件事，ADR-087 只再加一个**绿宝石标记**说明"这张被减费了"。
+    // 两边讲的是同一件事，合成一处，不再各留一个 viewHandCard。
+    var view = viewCard(displayCard);
+    view.costDiscounted = cost !== (c.cost != null ? c.cost : 0);
+    wrap.appendChild(CR.big(view, { desc: true, affordable: affordable, discounted: view.costDiscounted }));
 
     // 悬停 → 贴卡弹出技能详情（卡面太小放不下全文，详情面板又在右下角太远）
     wrap.addEventListener('pointerenter', function () {
       if (busy || drag) return;
       $('#cmd-num').classList.toggle('is-warning', !affordable);
-      showCardTip(viewCard(displayCard), wrap);
-    });
+      showCardTip(view, wrap);    });
     wrap.addEventListener('pointerleave', function () {
       hideCardTip();
       $('#cmd-num').classList.remove('is-warning');
