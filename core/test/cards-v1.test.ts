@@ -17,7 +17,8 @@ import { dirname, join } from 'node:path';
 
 import { applyAction } from '../src/engine.ts';
 import { getUnit, makeUnit, setUnit } from '../src/state.ts';
-import { effectiveCost } from '../src/mutate.ts';
+import { dealDamage, effectiveCost } from '../src/mutate.ts';
+import { legalTargets } from '../src/rules.ts';
 import { STATUSES } from '../src/constants.ts';
 import { TEST_CARDS, scenario } from './fixtures.ts';
 import type { Action, CardDef, GameEvent, Unit } from '../src/types.ts';
@@ -55,6 +56,15 @@ const dmgEvents = (evs: readonly GameEvent[]) =>
   evs.filter((e): e is Extract<GameEvent, { type: 'DAMAGE' }> => e.type === 'DAMAGE');
 const u = (id: string, atk: number, hp: number, tags: string[] = [], faction: 'shu' | 'wei' = 'wei') =>
   makeUnit({ id, name: id, faction, type: 'general', cost: 2, attack: atk, health: hp, keywords: [], tags, memo: '' } as CardDef, 1, 1);
+
+/**
+ * 同 `u()`，但 `enteredTurn = 0` —— 也就是"上一回合就在场"的单位。
+ * `u()` 给的是 `enteredTurn = 1`，而 fixture 的 `state.turn` 也是 1，按规则属于
+ * 「本回合入场」→ 不能攻击（`canAttack` 的入场当回合判定）。测试里要让某个单位**能打**
+ * （比如"敌方回合来打我"、"第三方来打决斗中的人"）时用它。
+ */
+const uReady = (id: string, atk: number, hp: number, faction: 'shu' | 'wei' = 'wei') =>
+  makeUnit({ id, name: id, faction, type: 'general', cost: 2, attack: atk, health: hp, keywords: [], tags: [], memo: '' } as CardDef, 0, 1);
 
 /* ================= 黄权：光环为主帅加主公技次数 ================= */
 
@@ -339,7 +349,7 @@ test('草船借箭：标记是「阵亡标记」而不是「阵亡」—— 活�
   assert.ok(marked, '被打不死的敌人应还在场上');
   assert.ok(marked.statuses.zhen_wang, '应带着阵亡标记');
   assert.notEqual(statusName('zhen_wang'), '阵亡',
-    `活着的单位挂着名为「阵亡」的状态会被读成"已经死了"（实际显示名：${statusName('zhen_wang')}）`);
+    '标记的显示名不能就叫「阵亡」—— 那会让活着的单位在卡头显示成已阵亡');
 });
 
 test('趁火打劫：混乱的敌人打的是**自己人**（attack_side: own）', () => {
@@ -639,4 +649,109 @@ test('张辽 冲锋陷阵：没打死人就没有溢出伤害', () => {
   });
   assert.ok(r.ok);
   assert.equal(r.state.sides.enemy.lord.hp, lordBefore, '未击杀 → 主将不掉血');
+});
+
+/* ================= ADR-087：陈宫守护时长 / 许褚决斗锁定 / 蔡文姬减费 ================= */
+
+test('陈宫 忠烈：守护要撑过**对手回合**，伤害由陈宫承担', () => {
+  realCard('qun_chengong');
+  const { state, ctx } = scenario({ ownHand: ['qun_chengong'] });
+  state.sides.own.deck = Array(6).fill('neutral_infantry');
+  state.sides.enemy.deck = Array(6).fill('neutral_infantry');
+  setUnit(state, 'own', 'front', 0, uReady('护卫', 3, 6, 'shu'));
+  setUnit(state, 'enemy', 'front', 0, uReady('敌人', 2, 9));
+
+  const r = applyAction(state, ctx, {
+    type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1,
+    target: { side: 'own', row: 'front', col: 0 },          // 选友军 → 守护分支
+  });
+  assert.ok(r.ok, `应能打出：${r.error}`);
+  assert.ok(getUnit(r.state, 'own', 'front', 0)!.statuses.shou_hu, '友军应获得守护');
+
+  // 换手到敌方回合：守护**不能**在自己回合结束时被清掉（原先 duration: 1 就是这样失效的）
+  const s2 = applyAction(r.state, ctx, { type: 'END_TURN' }).state;
+  assert.ok(getUnit(s2, 'own', 'front', 0)!.statuses.shou_hu, '守护必须活过自己回合的结束');
+
+  // 敌方来打被守护者 → 伤害转给陈宫
+  const r2 = applyAction(s2, ctx, {
+    type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'unit', row: 'front', col: 0 },
+  });
+  assert.ok(r2.ok, `敌方应能攻击：${r2.error}`);
+  assert.equal(getUnit(r2.state, 'own', 'front', 0)!.hp, 6, '被守护者不该掉血');
+  assert.equal(getUnit(r2.state, 'own', 'front', 1)!.hp, 3, '陈宫应承担 2 点（5 → 3）');
+  assert.ok(r2.events.some((e) => e.type === 'DAMAGE_REDIRECTED'), '应有伤害转移事件');
+});
+
+test('许褚 虎痴：单挑锁定连**普通攻击**也挡（原先只挡了技能指向）', () => {
+  realCard('wei_xuchu');
+  const { state, ctx } = scenario({ ownHand: ['wei_xuchu'] });
+  setUnit(state, 'own', 'front', 0, uReady('帮手', 2, 2, 'shu'));   // 第三方
+  setUnit(state, 'enemy', 'front', 0, uReady('敌将', 3, 3));
+
+  const r0 = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 1 });
+  assert.ok(r0.ok, `应能打出许褚：${r0.error}`);
+  const r = applyAction(r0.state, ctx, {
+    type: 'USE_SKILL', row: 'front', col: 1, target: { side: 'enemy', row: 'front', col: 0 },
+  });
+  assert.ok(r.ok, `虎痴应能使用：${r.error}`);
+  assert.ok(getUnit(r.state, 'own', 'front', 1)!.statuses.jue_dou, '许褚应进入决斗');
+  assert.ok(getUnit(r.state, 'enemy', 'front', 0)!.statuses.jue_dou, '敌将应进入决斗');
+
+  const targets = legalTargets(r.state, 'own', 'front', 0).targets;
+  assert.ok(!targets.some((t) => t.kind === 'unit' && t.col === 0),
+    '第三方不能攻击决斗中的单位');
+  assert.ok(targets.some((t) => t.kind === 'lord'), '主将不受决斗影响，仍可攻击');
+});
+
+test('蔡文姬 曲名才艺：打出回合人物卡与战法卡各减 1 费，换手后恢复', () => {
+  realCard('qun_caiwenji');
+  const { state, ctx } = scenario({ ownHand: ['qun_caiwenji', 'shu_zhangfei', 'tactic_huogong'] });
+  state.sides.own.deck = Array(6).fill('neutral_infantry');
+  state.sides.enemy.deck = Array(6).fill('neutral_infantry');
+  const before = state.sides.own.hand.map((h) => effectiveCost(h));
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 0 });
+  assert.ok(r.ok, `应能打出：${r.error}`);
+  const hand = r.state.sides.own.hand;
+  const find = (id: string) => hand.find((h) => h.card.id === id)!;
+  assert.equal(effectiveCost(find('shu_zhangfei')), 5 - 1, '人物卡应 −1 费');
+  assert.equal(effectiveCost(find('tactic_huogong')), 3 - 1, '战法卡同样应 −1 费');
+
+  // 只持续本回合
+  const s2 = applyAction(r.state, ctx, { type: 'END_TURN' }).state;
+  const hand2 = s2.sides.own.hand;
+  assert.equal(effectiveCost(hand2.find((h) => h.card.id === 'shu_zhangfei')!), 5, '换手后恢复原费');
+  assert.equal(effectiveCost(hand2.find((h) => h.card.id === 'tactic_huogong')!), 3, '战法卡同样恢复');
+  assert.ok(before.length >= 3);
+});
+
+test('阵亡标记（ADR-041/085）：标记的 payoff 在阵亡时由施法方结算，显示名不是「阵亡」', () => {
+  // 标记机制（ADR-041/085）目前没有卡在用，这里用一张合成卡守住引擎侧的行为，
+  // 免得 ADR-085 修好的 runMarkDeath / on_death 又悄悄烂掉。
+  const synthetic: CardDef = {
+    id: 'test_mark_card', name: '测试标记', faction: 'neutral', type: 'tactic', cost: 0,
+    keywords: [], memo: '', flavor: '', attack: 0, health: 0,
+    effects: [{
+      action: 'apply_status', status: 'zhen_wang', status_source: 'self',
+      on_death: [{ action: 'draw', value: 2 }],
+      target: { side: 'enemy', count: 'all' },
+    }],
+  } as unknown as CardDef;
+  if (!TEST_CARDS.some((c) => c.id === synthetic.id)) TEST_CARDS.push(synthetic);
+
+  const { state, ctx } = scenario({ ownHand: ['test_mark_card'] });
+  state.sides.own.deck = Array(8).fill('neutral_infantry');
+  state.sides.enemy.deck = Array(8).fill('neutral_infantry');
+  setUnit(state, 'enemy', 'front', 0, u('靶子', 0, 1));
+
+  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
+  assert.ok(r.ok, `应能打出：${r.error}`);
+  assert.ok(getUnit(r.state, 'enemy', 'front', 0)!.statuses.zhen_wang, '应被标记');
+  assert.equal(statusName('zhen_wang'), '阵亡标记', '标记的显示名不能就叫「阵亡」');
+
+  // 打死它 → payoff 由**施法方**结算（抽 2 张）
+  const events: GameEvent[] = [];
+  dealDamage(r.state, ctx.cards, { kind: 'unit', side: 'enemy', row: 'front', col: 0 }, 5, events, '测试');
+  assert.ok(events.some((e) => e.type === 'UNIT_DIED'), '应阵亡');
+  assert.equal(events.filter((e) => e.type === 'CARD_DRAWN').length, 2, '标记 payoff 应抽 2 张');
 });

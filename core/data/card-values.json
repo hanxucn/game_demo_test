@@ -785,10 +785,10 @@
  "qun_caiwenji": {
   "stats": 2,
   "keywords": 0,
-  "skills": 2,
-  "total": 4,
+  "skills": 4,
+  "total": 6,
   "budget": 5,
-  "diff": -1,
+  "diff": 1,
   "level": "ok"
  },
  "qun_zuoci": {

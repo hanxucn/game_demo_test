@@ -140,9 +140,14 @@ export function legalTargets(state: MatchState, side: Side, row: Row, col: numbe
   }
 
   // 规则② 无架盾 → 可自由攻击任意敌方人物（翻面/奇袭者不可被指定）
+  // ADR-087：决斗锁定（许褚「虎痴」）—— 单挑中的两人第三方碰不到。
+  // 原先只有效果选目标（resolveTargets）挡了这一条，**普通攻击漏了**，
+  // 于是"分出胜负前其他人无法对两人进行攻击"完全没生效。
+  const iAmDuelist = hasCap(u, 'duel_lock');
   const targets: Target[] = allUnits(state, foe)
     .filter(({ unit }) => unit.hp > 0                    // 已阵亡但尚未移出场的（结算中途）不算
-      && !hasCap(unit, 'untargetable') && !hasTrait(unit, 'qi_xi'))
+      && !hasCap(unit, 'untargetable') && !hasTrait(unit, 'qi_xi')
+      && !(hasCap(unit, 'duel_lock') && !iAmDuelist))
     .map(({ row: r, col: c }) => ({ kind: 'unit' as const, side: foe, row: r, col: c }));
 
   // 规则③ 也可以直接攻击主将（ADR-051：取消「必须先清空一列」的破阵限制）

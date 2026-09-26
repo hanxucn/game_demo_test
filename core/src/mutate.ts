@@ -445,6 +445,8 @@ export function applyStatus(
   turns?: number,
   srcUid?: string,
   auraId?: string,
+  /** 施加当回合不递减（ADR-087）—— 见 StatusInstance.skipTick */
+  skipTick = false,
 ): void {
   if (ref.kind === 'hand') return;                    // 手牌用 HandMod（ADR-038）
   const def = STATUSES[status];
@@ -466,6 +468,7 @@ export function applyStatus(
     lord.statuses[status] = {
       stacks: numericL ? (prevL?.stacks ?? 0) + stacks : Math.max(1, stacks),
       turns: turnsL, srcUid, auraId,
+      ...(skipTick && turnsL !== undefined ? { skipTick: true } : {}),
     };
     events.push({ type: 'STATUS_APPLIED', side: ref.side, status, stacks, turns: turnsL });
     return;
@@ -491,7 +494,10 @@ export function applyStatus(
     : def?.duration === 'permanent' || def?.duration === 'until_consumed' ? undefined
     : def?.duration === 'turns' || def?.duration === 'this_turn' ? 1
     : undefined;
-  u.statuses[status] = { stacks: nextStacks, turns: nextTurns, srcUid, auraId };
+  u.statuses[status] = {
+    stacks: nextStacks, turns: nextTurns, srcUid, auraId,
+    ...(skipTick && nextTurns !== undefined ? { skipTick: true } : {}),
+  };
   events.push({ type: 'STATUS_APPLIED', side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
 }
 
@@ -661,6 +667,7 @@ export function expireStatuses(
   if (lord.statuses) {
     for (const [id, inst] of Object.entries(lord.statuses)) {
       if (inst.turns === undefined) continue;
+      if (inst.skipTick) { inst.skipTick = false; continue; }
       inst.turns -= 1;
       if (inst.turns <= 0) {
         delete lord.statuses[id];
@@ -671,6 +678,8 @@ export function expireStatuses(
   for (const ref of allUnits(state, side)) {
     for (const [id, inst] of Object.entries(ref.unit.statuses)) {
       if (inst.turns === undefined) continue;               // 永久 / 直到消耗
+      // 施加当回合不递减（ADR-087）：守护类状态要撑过**对手回合**才有意义
+      if (inst.skipTick) { inst.skipTick = false; continue; }
       inst.turns -= 1;
       if (inst.turns <= 0) {
         delete ref.unit.statuses[id];

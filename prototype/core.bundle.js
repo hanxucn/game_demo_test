@@ -747,7 +747,8 @@ var Core = (() => {
         why: `\u654C\u65B9\u5B58\u5728\u300C\u67B6\u76FE\u300D${shields.map((sh) => `\u7B2C${sh.col + 1}\u683C`).join("\u3001")} \u2192 \u5FC5\u987B\u5148\u653B\u51FB\u5B83\uFF08\u5632\u8BBD\uFF09`
       };
     }
-    const targets = allUnits(state, foe).filter(({ unit }) => unit.hp > 0 && !hasCap(unit, "untargetable") && !hasTrait(unit, "qi_xi")).map(({ row: r, col: c }) => ({ kind: "unit", side: foe, row: r, col: c }));
+    const iAmDuelist = hasCap(u, "duel_lock");
+    const targets = allUnits(state, foe).filter(({ unit }) => unit.hp > 0 && !hasCap(unit, "untargetable") && !hasTrait(unit, "qi_xi") && !(hasCap(unit, "duel_lock") && !iAmDuelist)).map(({ row: r, col: c }) => ({ kind: "unit", side: foe, row: r, col: c }));
     if (!hasCapOn(state.sides[foe].lord.statuses, "untargetable")) {
       targets.push({ kind: "lord", side: foe });
     }
@@ -1029,7 +1030,7 @@ var Core = (() => {
     }
     return removed;
   }
-  function applyStatus(state, ref, status, stacks, events, turns, srcUid, auraId) {
+  function applyStatus(state, ref, status, stacks, events, turns, srcUid, auraId, skipTick = false) {
     if (ref.kind === "hand") return;
     const def = STATUSES[status];
     if (ref.kind === "lord") {
@@ -1043,7 +1044,8 @@ var Core = (() => {
         stacks: numericL ? (prevL?.stacks ?? 0) + stacks : Math.max(1, stacks),
         turns: turnsL,
         srcUid,
-        auraId
+        auraId,
+        ...skipTick && turnsL !== void 0 ? { skipTick: true } : {}
       };
       events.push({ type: "STATUS_APPLIED", side: ref.side, status, stacks, turns: turnsL });
       return;
@@ -1058,7 +1060,13 @@ var Core = (() => {
     const prev = u.statuses[status];
     const nextStacks = numeric ? (prev?.stacks ?? 0) + stacks : Math.max(1, stacks);
     const nextTurns = auraId !== void 0 && turns === void 0 ? void 0 : turns !== void 0 ? turns : prev?.turns !== void 0 ? Math.max(prev.turns, 1) : def?.duration === "permanent" || def?.duration === "until_consumed" ? void 0 : def?.duration === "turns" || def?.duration === "this_turn" ? 1 : void 0;
-    u.statuses[status] = { stacks: nextStacks, turns: nextTurns, srcUid, auraId };
+    u.statuses[status] = {
+      stacks: nextStacks,
+      turns: nextTurns,
+      srcUid,
+      auraId,
+      ...skipTick && nextTurns !== void 0 ? { skipTick: true } : {}
+    };
     events.push({ type: "STATUS_APPLIED", side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
   }
   function summonUnit(state, cards, side, row, col, cardId, events) {
@@ -1141,6 +1149,10 @@ var Core = (() => {
     if (lord.statuses) {
       for (const [id, inst] of Object.entries(lord.statuses)) {
         if (inst.turns === void 0) continue;
+        if (inst.skipTick) {
+          inst.skipTick = false;
+          continue;
+        }
         inst.turns -= 1;
         if (inst.turns <= 0) {
           delete lord.statuses[id];
@@ -1151,6 +1163,10 @@ var Core = (() => {
     for (const ref of allUnits(state, side)) {
       for (const [id, inst] of Object.entries(ref.unit.statuses)) {
         if (inst.turns === void 0) continue;
+        if (inst.skipTick) {
+          inst.skipTick = false;
+          continue;
+        }
         inst.turns -= 1;
         if (inst.turns <= 0) {
           delete ref.unit.statuses[id];
@@ -2059,12 +2075,13 @@ var Core = (() => {
         }
         case "apply_status": {
           const times = eff.count ?? 1;
-          const turns = typeof eff.duration === "number" ? eff.duration : eff.duration === "this_turn" ? 1 : void 0;
+          const untilNext = eff.duration === "until_next_turn";
+          const turns = typeof eff.duration === "number" ? eff.duration : eff.duration === "this_turn" || untilNext ? 1 : void 0;
           const srcUid = eff.status_source === "self" ? ctx.source?.uid : void 0;
           for (let i = 0; i < times; i++) {
             const list = i === 0 ? targets.length ? targets : chosenFor(eff.target) : eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target);
             for (const t of list) {
-              applyStatus(state, t, eff.status, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+              applyStatus(state, t, eff.status, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId, untilNext);
               if (eff.on_death?.length) {
                 const bags = t.kind === "unit" ? getUnit(state, t.side, t.row, t.col)?.statuses : t.kind === "lord" ? state.sides[t.side].lord.statuses : void 0;
                 const inst = bags?.[eff.status];

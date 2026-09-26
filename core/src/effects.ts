@@ -1318,15 +1318,17 @@ export function runEffects(
         // 张角「五雷轰顶」需要「5 次雷击各 50% 概率震慑」——原先 count 被忽略，
         // 而估值公式（ADR-046）却已按次数计价，两边不一致，此处补齐。
         const times = eff.count ?? 1;
+        // duration: 'until_next_turn' = 1 回合，但**施加当回合不递减**（ADR-087）
+        const untilNext = eff.duration === 'until_next_turn';
         const turns = typeof eff.duration === 'number' ? eff.duration
-          : eff.duration === 'this_turn' ? 1 : undefined;
+          : eff.duration === 'this_turn' || untilNext ? 1 : undefined;
         const srcUid = eff.status_source === 'self' ? ctx.source?.uid : undefined;
         for (let i = 0; i < times; i++) {
           const list = i === 0
             ? (targets.length ? targets : chosenFor(eff.target))
             : (eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target));
           for (const t of list) {
-            applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+            applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId, untilNext);
             // 卡牌级标记的阵亡结算（ADR-085，草船借箭）：把"该结算什么"记在标记上
             if (eff.on_death?.length) {
               const bags = t.kind === 'unit'
