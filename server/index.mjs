@@ -75,7 +75,14 @@ function cardRows(faction, withOwnership = false) {
   return db.prepare(sql).all(...args).map((row) => {
     const definition = JSON.parse(row.definition_json);
     const { definition_json: _, ...summary } = row;
-    return { ...summary, skills: definition.skills || [], keywords: definition.keywords || [], memo: definition.memo || '' };
+    return {
+      ...summary,
+      attack: definition.attack,
+      health: definition.health,
+      skills: definition.skills || [],
+      keywords: definition.keywords || [],
+      memo: definition.memo || '',
+    };
   });
 }
 function deckRows(deckId) {

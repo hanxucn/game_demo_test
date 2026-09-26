@@ -8,6 +8,8 @@
 |---|---|
 | `battlefield.html` | 战场演示：引擎驱动的完整对局（出牌 / 攻击 / 主公技 / AI 对手） |
 | `battlefield.engine.js` | 渲染 + 动画 + 输入 → Action（**不含任何规则判断**） |
+| `card-test.html` | 从全阵营卡池选 1～10 张，进入战场实测出牌与技能 |
+| `card-test.js` / `card-test-page.js` | 测试模式开局数据与选卡界面 |
 | `deck-builder.html` | 独立卡组构筑页：收藏卡牌筛选、效果查看、卡组保存/读取（需要 `server/index.mjs`） |
 | `deck-builder.js` | 卡组构筑页 API 调用与交互 |
 | `setup.js` | 战场开局：阵营选择、手动/已保存卡组、换牌 |
@@ -45,6 +47,7 @@ $node = "C:\Users\86188\.cache\codex-runtimes\codex-primary-runtime\dependencies
 ```text
 http://127.0.0.1:8099/prototype/deck-builder.html
 http://127.0.0.1:8099/prototype/battlefield.html
+http://127.0.0.1:8099/prototype/card-test.html
 ```
 
 仅运行 `tools/serve.sh` 只能预览静态页面，不提供卡组 API。
@@ -56,6 +59,8 @@ http://127.0.0.1:8099/prototype/battlefield.html
        ↓
 战场页：选择阵营 → 手动/载入已保存卡组 → 换牌 → 开始对局
 ```
+
+卡牌测试页可跨阵营选 1～10 张已实现卡牌。开始后这些牌直接进入手牌，后续也只会抽到所选卡牌；统率为 10，我方有一名、敌方有五名基础兵供技能选目标。敌方回合默认跳过，也可勾选敌方 AI 测受击等效果。战场“重开”会用同一组选卡重新开始，“卡牌测试”链接可返回选卡页。该模式不保存卡组，也不改变正式对局的组卡规则。
 
 当前使用固定 `demo-user`，数据库文件为 `server/game.db`。规则校验仍由 `core/src/deck.ts` 和 `Core.validateDeck()` 负责。
 

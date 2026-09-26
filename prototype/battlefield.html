@@ -1147,6 +1147,7 @@
   <div class="tiny" id="size-report"></div>
   <div class="toggle">
     <a href="deck-builder.html" style="display:inline-block;color:#d5b16a;border:1px solid #6d5a35;border-radius:4px;padding:4px 7px;text-decoration:none">卡组构筑</a>
+    <a href="card-test.html" style="display:inline-block;color:#9ed8b1;border:1px solid #58876a;border-radius:4px;padding:4px 7px;text-decoration:none">卡牌测试</a>
     <button id="btn-bg">切换背景</button>
     <button id="btn-coords">坐标</button>
     <button id="btn-reset">重开</button>
@@ -1164,7 +1165,7 @@
   // 同上：逐一带时间戳，保证每次刷新都拿到最新的引擎与原型代码
   (function () {
     var v = '?v=' + Date.now();
-    ['core.bundle.js', 'data.bundle.js', 'card-render.js', 'setup.js', 'battlefield.engine.js']
+    ['core.bundle.js', 'data.bundle.js', 'card-render.js', 'setup.js', 'card-test.js', 'battlefield.engine.js']
       .forEach(function (f) { document.write('<script src="' + f + v + '"><\/script>'); });
   })();
 </script>

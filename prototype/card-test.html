@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>酒话三国 · 卡牌测试</title>
+  <style>
+    :root { color-scheme: dark; --bg:#171b1a; --panel:#242a27; --line:#52605a; --text:#f0f2ed; --muted:#aeb8ad; --gold:#e1bc74; --green:#9ed8b1; --red:#e99b8e; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui,"Microsoft YaHei",sans-serif; }
+    button,select,input { font:inherit; color:inherit; }
+    button { cursor:pointer; border:1px solid var(--line); background:#303a34; border-radius:4px; padding:7px 10px; }
+    button:hover:not(:disabled) { border-color:var(--gold); }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .app { max-width:1280px; margin:auto; padding:22px; }
+    .head { display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); padding-bottom:14px; }
+    h1 { margin:0; font-size:23px; color:var(--gold); }
+    h2 { margin:0 0 10px; font-size:17px; }
+    .head a { color:var(--muted); text-decoration:none; }
+    .head a:hover { color:var(--gold); }
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:18px; margin-top:20px; }
+    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .filters input,.filters select,.side select { border:1px solid var(--line); border-radius:4px; background:#303a34; padding:8px 10px; }
+    .filters input { flex:1 1 190px; min-width:0; }
+    .filters select { flex:0 1 120px; }
+    .count { color:var(--muted); margin-bottom:10px; }
+    .pool { display:grid; grid-template-columns:repeat(auto-fill,minmax(225px,1fr)); gap:8px; max-height:calc(100vh - 195px); min-height:260px; overflow:auto; align-content:start; }
+    .card { border:1px solid var(--line); background:var(--panel); border-radius:5px; padding:10px; display:flex; flex-direction:column; min-height:122px; }
+    .card.selected { border-color:var(--green); background:#263b31; }
+    .card-head { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    .card-head strong { font-size:15px; }
+    .cost { color:var(--gold); white-space:nowrap; }
+    .tags { display:flex; gap:5px; margin:6px 0; }
+    .tag { border:1px solid #6b786d; border-radius:3px; padding:1px 5px; font-size:11px; color:#d8e2d7; }
+    .tag.faction { border-color:#94784a; color:#f2d29a; }
+    .description { font-size:12px; color:var(--muted); flex:1; overflow-wrap:anywhere; }
+    .card-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; }
+    .stats { color:var(--gold); font-weight:700; }
+    .card-foot button { min-width:52px; padding:4px 7px; }
+    .side { align-self:start; border:1px solid var(--line); border-radius:5px; background:var(--panel); padding:14px; }
+    .selected-list { min-height:72px; max-height:280px; overflow:auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:7px 0; }
+    .selected-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; gap:8px; }
+    .selected-row button { border:0; background:transparent; color:var(--red); font-size:18px; padding:0 6px; }
+    .empty { color:var(--muted); padding:15px 0; }
+    .side label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px; }
+    .side select { width:115px; }
+    .side .ai-toggle { justify-content:flex-start; }
+    .ai-toggle input { accent-color:var(--green); }
+    .start { width:100%; margin-top:16px; padding:11px; background:#70542c; border-color:#b99055; color:#fff4d9; font-weight:700; }
+    .status { min-height:20px; margin-top:8px; color:var(--red); }
+    @media(max-width:800px) { .app { padding:12px; } .layout { grid-template-columns:1fr; } .side { grid-row:1; } .pool { max-height:none; } .head h1 { font-size:19px; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="head"><h1>卡牌测试</h1><a href="battlefield.html">返回对局</a></header>
+    <div class="layout">
+      <section>
+        <div class="filters">
+          <input id="search" type="search" placeholder="搜索卡牌或效果" aria-label="搜索卡牌">
+          <select id="faction" aria-label="筛选阵营"><option value="">全部阵营</option><option value="shu">蜀</option><option value="wei">魏</option><option value="wu">吴</option><option value="qun">群雄</option><option value="neutral">中立</option></select>
+          <select id="type" aria-label="筛选类型"><option value="">全部类型</option><option value="troop">兵种</option><option value="general">武将</option><option value="strategist">谋臣</option><option value="tactic">战法</option><option value="event">事件</option></select>
+          <select id="cost" aria-label="筛选费用"><option value="">全部费用</option><option value="0">0费</option><option value="1">1费</option><option value="2">2费</option><option value="3">3费</option><option value="4">4费</option><option value="5">5费</option><option value="6">6费</option><option value="7">7费</option><option value="8">8费</option></select>
+        </div>
+        <div id="count" class="count"></div>
+        <div id="cards" class="pool"></div>
+      </section>
+      <aside class="side">
+        <h2>待测卡牌 <span id="selected-count">0 / 10</span></h2>
+        <div id="selected" class="selected-list"></div>
+        <label>我方主公<select id="own"><option value="shu">刘备 · 蜀</option><option value="wei">曹操 · 魏</option><option value="wu">孙权 · 吴</option></select></label>
+        <label>敌方主公<select id="enemy"><option value="wei">曹操 · 魏</option><option value="shu">刘备 · 蜀</option><option value="wu">孙权 · 吴</option></select></label>
+        <label class="ai-toggle"><input id="enemy-ai" type="checkbox">敌方 AI 行动</label>
+        <button id="start" class="start" disabled>开始测试</button>
+        <div id="status" class="status" role="status"></div>
+      </aside>
+    </div>
+  </main>
+  <script src="core.bundle.js"></script>
+  <script src="data.bundle.js"></script>
+  <script src="card-test.js"></script>
+  <script src="card-test-page.js"></script>
+</body>
+</html>

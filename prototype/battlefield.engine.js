@@ -23,6 +23,8 @@ var data = Core.loadData(
   { cards: GD.cards, heroes: GD.heroes },
   { own: 'shu_liubei', enemy: 'wei_caocao' },
 );
+var IS_CARD_TEST = new URLSearchParams(location.search).has('test');
+var TEST_CONFIG = IS_CARD_TEST ? CardTest.parseConfig(location.search, Core, GD) : null;
 
 var session = null;      // { state, ctx }
 var sel = null;          // 已选中的我方单位 { row, col }
@@ -114,6 +116,18 @@ function viewCard(c) {
 function bootSpeed() { loadSpeed(); renderSpeedCtl(); }
 
 function newGame() {
+  if (IS_CARD_TEST) {
+    if (!TEST_CONFIG) { location.replace('card-test.html'); return; }
+    if (busy) skipAnimation();
+    var test = CardTest.createSession(Core, GD, TEST_CONFIG);
+    session = { state: test.state, ctx: test.ctx, meta: test.meta };
+    sel = null; drag = null; pendingSkill = null; pendingPick = null; pendingPlay = null; busy = false;
+    logClear();
+    logEvents(test.events);
+    renderAll();
+    banner('卡牌测试', '所选卡牌已进入手牌');
+    return;
+  }
   // 开局流程（阵营 → 构筑 → 换牌）；规则全部由 Core 判定
   Setup.open({
     data: data,
@@ -2249,6 +2263,7 @@ function renderTimer() {
 }
 
 function timerTick() {
+  if (IS_CARD_TEST) return;
   // 结算动画播放中不扣时间，避免"看着动画就被判超时"
   if (busy || !session || session.state.winner) return;
   turnLeft -= 1;
@@ -2279,7 +2294,7 @@ function autoEndTurn() {
 
 /** 双 AI 对打：我方也交给 AI。用于自动跑完整局，
  *  连续触发普攻/反击/技能/阵亡动画，也方便观察机制与平衡。 */
-var AUTO_BOTH = location.search.indexOf('autoboth') >= 0;
+var AUTO_BOTH = !IS_CARD_TEST && location.search.indexOf('autoboth') >= 0;
 
 /** 当前该由 AI 接管吗（敌方回合恒为真；我方仅双 AI 模式） */
 function shouldAuto() {
@@ -2288,7 +2303,7 @@ function shouldAuto() {
 
 function runAiTurn(forceEnd) {
   if (busy || session.state.winner || !shouldAuto()) return;
-  var action = forceEnd ? { type: 'END_TURN' }
+  var action = forceEnd || (IS_CARD_TEST && !TEST_CONFIG.enemyAi) ? { type: 'END_TURN' }
     : (Core.chooseAction(session.state, session.ctx) || { type: 'END_TURN' });
   var res = Core.applyAction(session.state, session.ctx, action);
   if (!res.ok) {
@@ -2350,6 +2365,13 @@ function reportSizes() {
 
 document.querySelector('.panel .btn').addEventListener('click', onEndTurn);
 $('#btn-reset').addEventListener('click', function () { newGame(); });
+if (IS_CARD_TEST) {
+  $('#btn-reset').title = '按当前选卡重新测试';
+  $('#btn-ai').style.display = 'none';
+  $('#btn-auto').style.display = 'none';
+  document.querySelector('.timer-row').style.display = 'none';
+  document.querySelector('.timer-bar').style.display = 'none';
+}
 $('#btn-ai').addEventListener('click', function () {
   if (session.state.active === 'enemy') runAiTurn();
 });
