@@ -280,7 +280,7 @@ target:
 
 | 字段 | 取值 | 含义 |
 |---|---|---|
-| `attack_side` | `'own'`（缺省）/ `'foe'` | 被强制者打**自己人**（混乱内讧，趁火打劫）/ 打**施法方**（草船借箭） |
+| `attack_side` | `'own'`（缺省）/ `'foe'` | 被强制者打**自己人**（混乱内讧，趁火打劫）/ 打**施法方**（当前没有卡在用 `'foe'`，草船借箭已在 ADR-088 改版） |
 | `victim_mode` | `'random'`（缺省）/ `'highest_health'` | 挨打的人怎么挑 |
 
 #### 攻击事件的溢出量标记 `overflow`（ADR-086）
@@ -323,8 +323,8 @@ tactic_wanjianqifa:
 #### 标记的阵亡结算 `on_death`（ADR-085）
 
 写在 `apply_status` 上：被标记者阵亡时，由**施法方**结算这组效果。
-草船借箭「敌方每阵亡一个武将，己方抽取两张卡」原先靠 `status_source: self` 挂单位的
-`on_mark_death` 技能，但**卡牌没有来源单位**，一次都没生效过。
+（草船借箭原本用它做「敌方每阵亡一个武将，己方抽两张」，ADR-088 改版后已不用；
+机制本身留在引擎里备用，`core/test/cards-v1.test.ts` 有一条合成卡的回归测试守着。）
 
 ```yaml
 - action: apply_status

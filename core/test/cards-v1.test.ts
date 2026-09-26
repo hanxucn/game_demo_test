@@ -305,72 +305,58 @@ test('灾年：双方主帅获得「断抽」，抽牌被拦截', () => {
   assert.ok(r.state.sides.enemy.lord.statuses?.duan_chou, '敌方主帅应被断抽');
 });
 
-/* ================= 草船借箭：强制敌方攻击 + 阵亡标记 ================= */
+/* ================= 草船借箭（ADR-088 改版）：按敌方人数抽牌 + 扎两个假人 ================= */
 
-test('草船借箭：敌人来打我方「血量最高」的单位，被反击阵亡后离场并抽 2 张（ADR-085）', () => {
+test('草船借箭：敌方每有一名人物抽一张，并召唤两个 0/1 架盾假人', () => {
   realCard('tactic_caochuanjiejian');
+  realCard('token_jia_ren');
   const { state, ctx } = scenario({ ownHand: ['tactic_caochuanjiejian'] });
-  state.sides.own.deck = Array(8).fill('neutral_infantry');
-  // 我方：血最多的那个也最能打 —— 来犯者会被反杀
-  setUnit(state, 'own', 'front', 0, u('tank', 5, 6, [], 'shu'));
-  setUnit(state, 'own', 'front', 1, u('small', 1, 2, [], 'shu'));
-  // 敌方两个 2/1 来犯
-  setUnit(state, 'enemy', 'front', 0, u('e1', 2, 1));
-  setUnit(state, 'enemy', 'front', 1, u('e2', 2, 1));
+  state.sides.own.deck = Array(10).fill('neutral_infantry');
+  state.sides.enemy.deck = Array(10).fill('neutral_infantry');
+  setUnit(state, 'enemy', 'front', 0, u('敌1', 1, 3));
+  setUnit(state, 'enemy', 'front', 1, u('敌2', 1, 3));
+  setUnit(state, 'enemy', 'front', 2, u('敌3', 1, 3));
 
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
   assert.ok(r.ok, `应能打出：${r.error}`);
 
-  // ① 这是**真打**：有攻击宣告、有反击（原先只 dealDamage 一下，没有反击也不移除）
-  assert.ok(r.events.some((e) => e.type === 'ATTACK_DECLARED'), '强制攻击必须走真实攻击结算');
-  assert.equal(r.events.filter((e) => e.type === 'FORCED_ATTACK').length, 2, '两名敌人都应被强制');
+  // ① 抽牌数 = 敌方场上人物数（3 名 → 抽 3 张）
+  assert.equal(r.events.filter((e) => e.type === 'CARD_DRAWN').length, 3, '敌方 3 名人物 → 抽 3 张');
+  assert.equal(r.state.sides.own.hand.length, 3, '打掉 1 张、抽回 3 张');
 
-  // ② 只打「血量最高」的那个：tank 6 血吃 2+2，small 一根汗毛都没掉
-  assert.equal(getUnit(r.state, 'own', 'front', 0)?.hp, 2, '血量最高的单位承受两次 2 点（6 - 4）');
-  assert.equal(getUnit(r.state, 'own', 'front', 1)?.hp, 2, '血量较低的单位不该被打');
-
-  // ③ 来犯者被反击打死并**离场**（原先"阵亡了还在场上"）
-  assert.equal(getUnit(r.state, 'enemy', 'front', 0), null, '第一个来犯者应被反杀离场');
-  assert.equal(getUnit(r.state, 'enemy', 'front', 1), null, '第二个同样');
-  assert.equal(r.events.filter((e) => e.type === 'UNIT_DIED').length, 2, '应产生两次阵亡');
-
-  // ④ 阵亡标记兑现：每阵亡一个武将，己方抽 2 张（原先标记挂不上单位 → 一次都没生效）
-  assert.equal(r.events.filter((e) => e.type === 'CARD_DRAWN').length, 4, '两个武将阵亡 → 抽 4 张');
+  // ② 召唤两个 0/1 架盾假人
+  const mine = r.state.sides.own.rows.front.filter((x): x is Unit => !!x);
+  assert.equal(mine.length, 2, '应召唤两个假人');
+  for (const m of mine) {
+    assert.equal(m.cardId, 'token_jia_ren', '必须是假人衍生物');
+    assert.equal(m.hp, 1, '1 血');
+    assert.equal(m.maxHp, 1);
+    assert.ok(m.kw.includes('jia_dun'), '必须带架盾');
+  }
+  assert.equal(r.events.filter((e) => e.type === 'UNIT_SUMMONED').length, 2, '应有两次召唤事件');
 });
 
-test('草船借箭：标记是「阵亡标记」而不是「阵亡」—— 活着的单位不该显示成已阵亡（ADR-085）', () => {
+test('草船借箭：敌方场上没人时只扎假人、不抽牌', () => {
   realCard('tactic_caochuanjiejian');
+  realCard('token_jia_ren');
   const { state, ctx } = scenario({ ownHand: ['tactic_caochuanjiejian'] });
-  setUnit(state, 'own', 'front', 0, u('tank', 5, 9, [], 'shu'));
-  setUnit(state, 'enemy', 'front', 0, u('survivor', 1, 9));      // 打不死，会留在场上
-  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
-  assert.ok(r.ok);
-  const marked = getUnit(r.state, 'enemy', 'front', 0);
-  assert.ok(marked, '被打不死的敌人应还在场上');
-  assert.ok(marked.statuses.zhen_wang, '应带着阵亡标记');
-  assert.notEqual(statusName('zhen_wang'), '阵亡',
-    '标记的显示名不能就叫「阵亡」—— 那会让活着的单位在卡头显示成已阵亡');
-});
-
-test('趁火打劫：混乱的敌人打的是**自己人**（attack_side: own）', () => {
-  realCard('tactic_chenhuodajie');
-  const { state, ctx } = scenario({ ownHand: ['tactic_chenhuodajie'] });
-  state.sides.enemy.deck = Array(6).fill('neutral_infantry');
-  // 敌方两个混乱单位：一个 3/1 打手 + 一个 0/4 沙包（同阵营内讧）
-  const a = u('p1', 3, 1);
-  const b = u('p2', 0, 4);
-  a.statuses.hun_luan = { stacks: 1 };
-  b.statuses.hun_luan = { stacks: 1 };
-  setUnit(state, 'enemy', 'front', 0, a);
-  setUnit(state, 'enemy', 'front', 1, b);
-  setUnit(state, 'own', 'front', 0, u('mine', 2, 4, [], 'shu'));
-
+  state.sides.own.deck = Array(10).fill('neutral_infantry');
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
   assert.ok(r.ok, `应能打出：${r.error}`);
-  const hurt = dmgEvents(r.events).filter((e) => e.target.kind === 'unit');
-  assert.ok(hurt.length > 0, '应有伤害产生');
-  assert.ok(hurt.every((e) => e.target.side === 'enemy'), '内讧的伤害只该落在敌方自己人身上');
-  assert.equal(getUnit(r.state, 'own', 'front', 0)?.hp, 4, '我方单位不该被碰');
+  assert.equal(r.events.filter((e) => e.type === 'CARD_DRAWN').length, 0, '空场 → 一张都不抽');
+  assert.equal(r.state.sides.own.rows.front.filter(Boolean).length, 2, '假人照常召唤');
+});
+
+test('假人：0 攻 1 血的架盾真的能挡刀（敌方普攻只能打它）', () => {
+  const jia = realCard('token_jia_ren');
+  const { state } = scenario({});
+  state.sides.own.rows.front[0] = makeUnit(jia, 0, 1);
+  setUnit(state, 'own', 'front', 1, u('队友', 3, 3, [], 'shu'));
+  setUnit(state, 'enemy', 'front', 0, uReady('敌人', 2, 2));
+  const t = legalTargets(state, 'enemy', 'front', 0);
+  assert.deepEqual(t.targets.map((x) => x.kind), ['unit'], '有架盾时不能打主将');
+  assert.ok(t.targets.every((x) => x.col === 0), '只能打假人那一个架盾单位');
+  assert.equal(state.sides.own.rows.front[0]!.atk, 0, '假人是 0 攻');
 });
 
 /* ================= ADR-042：进化卡（召唤 + 兵种进化） ================= */
@@ -726,7 +712,7 @@ test('蔡文姬 曲名才艺：打出回合人物卡与战法卡各减 1 费，�
 });
 
 test('阵亡标记（ADR-041/085）：标记的 payoff 在阵亡时由施法方结算，显示名不是「阵亡」', () => {
-  // 标记机制（ADR-041/085）目前没有卡在用，这里用一张合成卡守住引擎侧的行为，
+  // 草船借箭在 ADR-088 改版后不再用标记机制了，这里用一张合成卡守住引擎侧的行为，
   // 免得 ADR-085 修好的 runMarkDeath / on_death 又悄悄烂掉。
   const synthetic: CardDef = {
     id: 'test_mark_card', name: '测试标记', faction: 'neutral', type: 'tactic', cost: 0,

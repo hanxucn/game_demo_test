@@ -48,8 +48,8 @@
 
 ```yaml
 skills:
-  - id: caochuan
-    name: 草船借箭
+  - id: some_active_skill      # 示例用（别和真卡 id 混：tactic_caochuanjiejian 是卡级效果）
+    name: 示例主动技
     kind: active                # active | trigger | aura
     cost: 2                     # 仅 active
     frequency: once_per_turn    # once_per_turn | unlimited | once
