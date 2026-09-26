@@ -890,6 +890,15 @@
   "diff": 1,
   "level": "ok"
  },
+ "token_jia_ren": {
+  "stats": 1,
+  "keywords": -1,
+  "skills": 0,
+  "total": 0,
+  "budget": 1,
+  "diff": -1,
+  "level": "ok"
+ },
  "token_jixie_shaobing": {
   "stats": 3,
   "keywords": 0,
@@ -1082,11 +1091,11 @@
  "tactic_caochuanjiejian": {
   "stats": 0,
   "keywords": 0,
-  "skills": 10,
-  "total": 10,
+  "skills": 9,
+  "total": 9,
   "budget": 13,
-  "diff": -3,
-  "level": "watch"
+  "diff": -4,
+  "level": "off"
  },
  "event_fengnian": {
   "stats": 0,

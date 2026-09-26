@@ -4900,6 +4900,30 @@ window.GameData = {
       }
     },
     {
+      "id": "token_jia_ren",
+      "name": "假人",
+      "faction": "neutral",
+      "type": "token",
+      "cost": 0,
+      "attack": 0,
+      "health": 1,
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "草船借箭扎的草人 —— 0/1 架盾，纯粹用来替己方挨打",
+      "flavor": "草人借箭，箭尽而归。",
+      "gender": "male",
+      "value": {
+        "stats": 1,
+        "keywords": -1,
+        "skills": 0,
+        "total": 0,
+        "budget": 1,
+        "diff": -1,
+        "level": "ok"
+      }
+    },
+    {
       "id": "token_jixie_shaobing",
       "name": "机械哨兵",
       "faction": "neutral",
@@ -5780,59 +5804,40 @@ window.GameData = {
       "faction": "neutral",
       "type": "tactic",
       "cost": 6,
-      "memo": "让两名敌人去打我方最肉的单位，敌将阵亡就抽 2",
+      "memo": "敌方场上每有一名人物就抽一张，再扎两个 0/1 架盾假人挡刀",
       "gender": "unknown",
       "keywords": [],
       "skills": [
         {
           "id": "",
           "name": "",
-          "text": "使敌方场上指定两名敌人攻击我方场上血量最高单位；敌方每阵亡一个武将，己方抽取两张卡。"
+          "text": "敌方场上每有一名人物，己方抽一张卡；随后召唤两个 0/1 架盾假人。"
         }
       ],
       "effects": [
         {
-          "action": "apply_status",
-          "status": "zhen_wang",
-          "status_source": "self",
-          "on_death": [
-            {
-              "action": "draw",
-              "value": 2
-            }
-          ],
-          "target": {
+          "action": "draw",
+          "value_from": {
             "side": "enemy",
-            "filter": {
-              "type": "character"
-            },
             "count": "all"
           }
         },
         {
-          "action": "force_attack",
-          "attack_side": "foe",
-          "victim_mode": "highest_health",
+          "action": "summon",
+          "unit": "token_jia_ren",
           "count": 2,
-          "target": {
-            "side": "enemy",
-            "filter": {
-              "type": "character"
-            },
-            "count": 2,
-            "mode": "choose"
-          }
+          "position": "random"
         }
       ],
       "flavor": "",
       "value": {
         "stats": 0,
         "keywords": 0,
-        "skills": 10,
-        "total": 10,
+        "skills": 9,
+        "total": 9,
         "budget": 13,
-        "diff": -3,
-        "level": "watch"
+        "diff": -4,
+        "level": "off"
       }
     },
     {
