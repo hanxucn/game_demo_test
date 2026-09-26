@@ -101,7 +101,7 @@ export interface CardEffect {
    */
   from_deck?: 'top' | 'random';
   /**
-   * force_attack 专用（ADR-085）：被强制者去打**哪一方**。
+   * force_attack 专用（ADR-087）：被强制者去打**哪一方**。
    *
    *   · `'own'`（缺省）= 打自己人 —— 混乱内讧（趁火打劫「使其随机攻击己方单位」）
    *   · `'foe'`        = 打施法方 —— 草船借箭「使其攻击我方场上血量最高单位」
@@ -112,7 +112,7 @@ export interface CardEffect {
   /** force_attack 专用：被攻击者怎么挑（缺省 `'random'`；草船借箭要「血量最高」） */
   victim_mode?: 'random' | 'highest_health';
   /**
-   * apply_status 专用（ADR-085）：被标记者**阵亡时由施法方结算**的效果。
+   * apply_status 专用（ADR-087）：被标记者**阵亡时由施法方结算**的效果。
    *
    * 草船借箭「敌方每阵亡一个武将，己方抽取两张卡」原先用 `status_source: self` 挂标记，
    * 但**卡牌没有来源单位**（`ctx.source` 为空）→ `srcUid` 是 undefined →
@@ -246,12 +246,12 @@ export interface StatusInstance {
   turns?: number;                // 剩余回合数；undefined = 永久
   srcUid?: string;               // 状态来源单位（守护类状态据此找到「谁替我挨打」，ADR-039）
   auraId?: string;               // 由哪个光环施加（重算时先清后加，避免累加，ADR-041）
-  /** 卡牌级标记的阵亡结算（ADR-085）：持有者阵亡时由 `srcSide` 一方结算 */
+  /** 卡牌级标记的阵亡结算（ADR-087）：持有者阵亡时由 `srcSide` 一方结算 */
   payoff?: CardEffect[];
   /** `payoff` 属于哪一方 */
   srcSide?: Side;
   /**
-   * 施加当回合**不递减**（ADR-087，`duration: 'until_next_turn'`）
+   * 施加当回合**不递减**（ADR-089，`duration: 'until_next_turn'`）
    *
    * 「友军受到的伤害由陈宫承担」这类守护，要挡的恰恰是**对手回合**的伤害，
    * 而状态是在自己回合施加的 —— 按常规在自己回合结束时就减到 0 被清掉，等于形同虚设

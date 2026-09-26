@@ -563,11 +563,11 @@ function renderHand(st) {
     // 费用不足仍保留正常卡面；实际出牌仍由 Core 校验，资源提示显示在统率值上。
     // 费用一律走 Core.effectiveCost（含手牌级费用修正，蔡文姬/郭嘉/庞统的减费要算进去）
     // ⚠️ 合并说明：main 也修了「卡面印原价」这件事（displayCard 覆盖 cost），
-    //    这里与 ADR-086 的绿框判定并存 —— 判定问 Core，显示用覆盖后的费用。
+    //    这里与 ADR-088 的绿框判定并存 —— 判定问 Core，显示用覆盖后的费用。
     var cost = Core.effectiveCost ? Core.effectiveCost(hc) : (c.cost != null ? c.cost : 0);
     var affordable = cmd >= cost;
     var displayCard = Object.assign({}, c, { cost: cost });
-    // 「能不能打出」一律问 Core（ADR-086）—— 与拖拽出牌走的是同一个判定，
+    // 「能不能打出」一律问 Core（ADR-088）—— 与拖拽出牌走的是同一个判定，
     // 免得出现"绿框了却放不下去"。被封锁（酒令/谮言）与战场已满也算不能出。
     var isChar = ['troop', 'general', 'strategist'].indexOf(c.type) >= 0;
     var playable = false;
@@ -578,7 +578,7 @@ function renderHand(st) {
     wrap.classList.toggle('is-playable', playable);
     wrap.dataset.playable = playable ? '1' : '';
     // 卡面费用显示：main 的 displayCard（把 cost 覆盖成实付费用）已经解决了
-    // 「减了费卡面还印原价」这件事，ADR-087 只再加一个**绿宝石标记**说明"这张被减费了"。
+    // 「减了费卡面还印原价」这件事，ADR-089 只再加一个**绿宝石标记**说明"这张被减费了"。
     // 两边讲的是同一件事，合成一处，不再各留一个 viewHandCard。
     var view = viewCard(displayCard);
     view.costDiscounted = cost !== (c.cost != null ? c.cost : 0);
@@ -920,7 +920,7 @@ function bindDragEvents() {
 }
 
 /**
- * 轻点一个单位时，若它这一手有**可用的指向性主动技** → 进入技能指向（ADR-086）
+ * 轻点一个单位时，若它这一手有**可用的指向性主动技** → 进入技能指向（ADR-088）
  *
  * 设计者：「长按就是人本体攻击，点击一下出来箭头就是指向性技能攻击」。
  * 所以：拖拽始终是普通攻击；轻点（几乎没位移）优先走技能。
@@ -1135,7 +1135,7 @@ function onDragEnd(e) {
         : { type: 'ATTACK', from: { row: d.row, col: d.col },
             to: { kind: 'unit', row: hit.row, col: hit.col } });
     } else {
-      // 轻点（几乎没位移）落在有指向性主动技的单位上 → 改成释放技能（ADR-086）
+      // 轻点（几乎没位移）落在有指向性主动技的单位上 → 改成释放技能（ADR-088）
       var moved = Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy);
       if (moved < 10 && trySkillTargeting(d.row, d.col)) {
         tapHandledAt = Date.now(); tapHandledEl = d.wrap;
@@ -1714,7 +1714,7 @@ function onUnitClick(side, row, col, ev) {
     return;
   }
 
-  // ③.5 轻点：有可用的指向性主动技 → 直接进入技能指向（ADR-086）
+  // ③.5 轻点：有可用的指向性主动技 → 直接进入技能指向（ADR-088）
   //      （"不能攻击、只能放技"的单位走不到拖拽那条路，只能靠这里）
   if (trySkillTargeting(row, col)) return;
 
@@ -2130,7 +2130,7 @@ function skipAnimation() {
   skipped.forEach(function (e) {
     if (e.type === 'UNIT_DIED') flashDeath(e.side, e.row, e.col, e.unit);
   });
-  // ⚠️ ADR-086：跳过动画会把 playEvents 的 done 回调一并丢掉，
+  // ⚠️ ADR-088：跳过动画会把 playEvents 的 done 回调一并丢掉，
   // 而 AI 的续跑正挂在那个回调上 —— 敌方回合里若有人点了一下（哪怕只是看卡），
   // AI 就会**永远停住**，一直干等到 60 秒超时自动结束回合。
   // 这里自己把 AI 循环接回来（runAiTurn 内部有 busy / winner 判定，重复调度无害）。
@@ -2591,14 +2591,14 @@ var aiTurnKey = '';
 function runAiTurn(forceEnd) {
   if (busy || session.state.winner || !shouldAuto()) return;
   // 同一个 AI 回合最多走 40 步（与 core 的 takeTurn 上限一致）——
-  // 兜底防"AI 反复做无效动作"把回合拖到超时（ADR-086）
+  // 兜底防"AI 反复做无效动作"把回合拖到超时（ADR-088）
   var turnKey = session.state.halfTurn + ':' + session.state.active;
   if (aiTurnKey !== turnKey) { aiTurnKey = turnKey; aiActionsThisTurn = 0; }
   aiActionsThisTurn += 1;
   if (aiActionsThisTurn > 40) forceEnd = true;
 
   // ⚠️ 合并说明：main 新增了卡牌测试模式（测试页里不需要敌方 AI 行动），
-  //    与 ADR-086 的「本回合步数上限」并存 —— 两个短路条件写在一起。
+  //    与 ADR-088 的「本回合步数上限」并存 —— 两个短路条件写在一起。
   var action = forceEnd || (IS_CARD_TEST && !TEST_CONFIG.enemyAi) ? { type: 'END_TURN' }
     : (Core.chooseAction(session.state, session.ctx) || { type: 'END_TURN' });
   var res = Core.applyAction(session.state, session.ctx, action);

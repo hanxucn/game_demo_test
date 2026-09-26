@@ -103,7 +103,7 @@ test('起手：掷点定先手，且结果确定可复现', () => {
   assert.notEqual(a.own, a.enemy, '平局应重掷');
 });
 
-test('起手：双方都是 3 张；各自回合开始抽 1 张后都是 4 张（ADR-085）', () => {
+test('起手：双方都是 3 张；各自回合开始抽 1 张后都是 4 张（ADR-087）', () => {
   const { state } = setupMatch({
     seed: 3, cards: data.cards, lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
@@ -482,7 +482,7 @@ test('后手补偿·多抽 1 张：机制确实生效（后手第 1 回合抽 2 
     };
   };
   const a = run('none'), b = run('extra_draw');
-  assert.equal(a.hand0, 3, '后手起手 3 张（ADR-085：与先手相同）');
+  assert.equal(a.hand0, 3, '后手起手 3 张（ADR-087：与先手相同）');
   // ADR-064：后手第 1 回合仍属**第 1 个完整回合**（它只是第 2 个半回合）
   assert.equal(a.halfTurn, 2, '后手是该完整回合的第 2 个半回合');
   assert.equal(a.turn, 1, '后手第 1 回合的 turn 仍是 1');
@@ -699,7 +699,7 @@ test('阵亡：血量归 0 → UNIT_DIED 且移出战场；打死目标仍受其
   const s = startMatch(base, ctx).state;
   // ⚠️ ADR-063 的老坑：改属性必须**连 baseAtk / baseMaxHp 一起改**，
   // 否则下一次光环重算（applyMods 按 base + mods 重算）会把它们打回原形。
-  // 以前这条测试侥幸通过 —— 因为"防守方阵亡"从不会触发光环重算（ADR-085 已修）。
+  // 以前这条测试侥幸通过 —— 因为"防守方阵亡"从不会触发光环重算（ADR-087 已修）。
   const a = makeUnit(d.cards.get('qun_yuanshao')!, 0, 840);
   a.baseAtk = 3; a.atk = 3; a.baseMaxHp = 20; a.maxHp = 20; a.hp = 20;
   const t = makeUnit(d.cards.get('neutral_infantry')!, 0, 841);

@@ -61,7 +61,7 @@ export function canUseUnitSkill(
 }
 
 /**
- * 能否使用主公技（ADR-040 / ADR-049 / ADR-084）
+ * 能否使用主公技（ADR-040 / ADR-049 / ADR-086）
  *
  * 与 `canUseUnitSkill` 同源的理由：**AI 与引擎必须共用同一份门控**。
  * 原先这套判定只写在 `engine.useLordSkill` 里，AI 自己另抄了一份"看着差不多"的，
@@ -140,7 +140,7 @@ export function legalTargets(state: MatchState, side: Side, row: Row, col: numbe
   }
 
   // 规则② 无架盾 → 可自由攻击任意敌方人物（翻面/奇袭者不可被指定）
-  // ADR-087：决斗锁定（许褚「虎痴」）—— 单挑中的两人第三方碰不到。
+  // ADR-089：决斗锁定（许褚「虎痴」）—— 单挑中的两人第三方碰不到。
   // 原先只有效果选目标（resolveTargets）挡了这一条，**普通攻击漏了**，
   // 于是"分出胜负前其他人无法对两人进行攻击"完全没生效。
   const iAmDuelist = hasCap(u, 'duel_lock');

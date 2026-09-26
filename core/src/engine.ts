@@ -5,7 +5,7 @@ function useLordSkill(
 ): boolean {
   const side = state.active;
   const lord = state.sides[side].lord;
-  // 门控统一在 rules.canUseLordSkill（ADR-084）——AI 与引擎共用，不可能再漂移
+  // 门控统一在 rules.canUseLordSkill（ADR-086）——AI 与引擎共用，不可能再漂移
   const gate = canUseLordSkill(state, side);
   if (!gate.ok || !gate.skill) return false;
   const skill = gate.skill;
@@ -155,7 +155,7 @@ export interface PlayTargetChoice {
   /**
    * 发起该选择的效果动作（`damage` / `heal` / `modify` / `apply_status`…）。
    *
-   * ADR-084：AI 要靠它判断「这个选择该选敌人还是自己人」——
+   * ADR-086：AI 要靠它判断「这个选择该选敌人还是自己人」——
    * 只看 `label` 里的"敌方/己方"会被 `side: 'both'`（仁德、程昱）这类选择器骗到，
    * 而动作名是**语义真源**：damage/destroy 选敌人，heal/modify 选自己人。
    */

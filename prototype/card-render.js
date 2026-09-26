@@ -147,7 +147,7 @@ window.CardRender = (function () {
     var html = portraitHTML(card);
     var costInline = opts.board ? '' :
       '<b class="cr-costnum">' + (card.cost != null ? card.cost : 0) + '</b>';
-    // ADR-087：目标定的"减费"要在卡面上看得出来 —— 绿色费用宝石（红=费用不够，绿=已被减费）
+    // ADR-089：目标定的"减费"要在卡面上看得出来 —— 绿色费用宝石（红=费用不够，绿=已被减费）
     var costCls = opts.affordable === false ? 'cr-costnum is-unaffordable'
       : opts.discounted ? 'cr-costnum is-discounted' : 'cr-costnum';
     html += '<div class="cr-name">' + costInline.replace('cr-costnum', costCls) + (card.name || '') + '</div>';

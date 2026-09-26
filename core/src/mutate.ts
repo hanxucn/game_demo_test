@@ -160,7 +160,7 @@ export function registerOnDeathResolver(fn: OnDeathResolver): void {
 }
 
 /**
- * 「标记阵亡」解算器（ADR-085）
+ * 「标记阵亡」解算器（ADR-087）
  *
  * `runMarkDeath`（effects.ts）从 ADR-041 起就写好了，**却从来没有人调用** ——
  * 于是「仇敌」标记与「阵亡标记」的阵亡结算一直是死代码：
@@ -179,7 +179,7 @@ export function registerMarkDeathResolver(fn: MarkDeathResolver): void {
 }
 
 /**
- * 「死亡后光环重算」解算器（ADR-085，时机表第 19 步）
+ * 「死亡后光环重算」解算器（ADR-087，时机表第 19 步）
  *
  * 原先只有**攻击者自己被打死**这一条路径会重算光环（`resolveAttack` 里那一处），
  * 被反击打死的**防守方**则不会 —— 于是张飞阵亡后「攻低于他的敌人 −1 攻」还在，
@@ -445,7 +445,7 @@ export function applyStatus(
   turns?: number,
   srcUid?: string,
   auraId?: string,
-  /** 施加当回合不递减（ADR-087）—— 见 StatusInstance.skipTick */
+  /** 施加当回合不递减（ADR-089）—— 见 StatusInstance.skipTick */
   skipTick = false,
 ): void {
   if (ref.kind === 'hand') return;                    // 手牌用 HandMod（ADR-038）
@@ -540,7 +540,7 @@ export function killUnit(
   setUnit(state, side, row, col, null);
   events.push({ type: 'UNIT_DIED', side, row, col, unit });
 
-  // 标记阵亡（ADR-041 / ADR-085）：仇敌标记、阵亡标记的结算。
+  // 标记阵亡（ADR-041 / ADR-087）：仇敌标记、阵亡标记的结算。
   // 放在亡语之前 —— 标记是"别人挂在我身上的账"，先结账再走自己的亡语。
   if (markDeathResolver) {
     markDeathResolver(state, cards, unit, createRng(state.rngState), events);
@@ -565,7 +565,7 @@ export function killUnit(
     onKillResolver(state, cards, killer, { name: unit.name, side, row, col, type: unit.type }, events, createRng(state.rngState));
   }
 
-  // 第 19 步：死亡后光环重算（ADR-085）—— 放在最后，让亡语/标记都结算完再重算一次
+  // 第 19 步：死亡后光环重算（ADR-087）—— 放在最后，让亡语/标记都结算完再重算一次
   if (afterDeathResolver) afterDeathResolver(state, cards, events);
 }
 
@@ -678,7 +678,7 @@ export function expireStatuses(
   for (const ref of allUnits(state, side)) {
     for (const [id, inst] of Object.entries(ref.unit.statuses)) {
       if (inst.turns === undefined) continue;               // 永久 / 直到消耗
-      // 施加当回合不递减（ADR-087）：守护类状态要撑过**对手回合**才有意义
+      // 施加当回合不递减（ADR-089）：守护类状态要撑过**对手回合**才有意义
       if (inst.skipTick) { inst.skipTick = false; continue; }
       inst.turns -= 1;
       if (inst.turns <= 0) {

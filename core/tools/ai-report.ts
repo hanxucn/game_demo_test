@@ -1,5 +1,5 @@
 /**
- * AI 对局统计报表（ADR-084）
+ * AI 对局统计报表（ADR-086）
  *
  * 用法：
  *   npm run ai:report                 # 默认 20 局，蜀 vs 魏
