@@ -264,6 +264,43 @@ target:
 | `attack_side` | `'own'`（缺省）/ `'foe'` | 被强制者打**自己人**（混乱内讧，趁火打劫）/ 打**施法方**（草船借箭） |
 | `victim_mode` | `'random'`（缺省）/ `'highest_health'` | 挨打的人怎么挑 |
 
+#### 攻击事件的溢出量标记 `overflow`（ADR-086）
+
+`resolveAttack` 在**击杀**目标时把溢出量写成事件标记 `overflow:N`，
+DSL 侧用 `value_from_flag: overflow` 取值（张辽「冲锋陷阵」：
+斩杀后溢出伤害转打敌方主将）。
+
+```yaml
+- action: damage
+  value_from_flag: overflow      # 5 攻打 2 血 → 3
+  condition: { event: killed }   # 只有击杀那一趟才带这个标记
+  target: { side: enemy, lord: true }
+```
+
+只在**攻击人物**时产生（打主将本身就没有「溢出」的意义）。没击杀 → 没有该标记 →
+`value_from_flag` 取不到值，退回 `eff.value ?? 0`，即不掉血。
+
+#### 抽到时释放的卡，效果只写一份（ADR-086）
+
+`on_draw` 技能的卡若**自己没写 effects**，引擎在「抽到时释放」时改用**卡级 effects**。
+于是「打出」与「抽到」共用同一组效果，不会两处各写一份而漂移：
+
+```yaml
+tactic_wanjianqifa:
+  effects:                      # ← 打出时结算（也是抽到时用的那份）
+  - action: damage
+    value: 1
+    target: { side: enemy, filter: { type: character }, count: all }
+  skills:
+  - id: wan_jian_qi_fa
+    kind: trigger
+    trigger: on_draw            # ← 只声明「抽到时释放」，不重复写效果
+    text: 抽到时释放：对所有敌方人物造成 1 点伤害。
+```
+
+> 背景：袁绍战吼会往**手牌**塞一张万箭齐发（`add_to_deck: to hand`）。
+> 原先效果只挂在 `on_draw` 技能上，那张手牌打出去什么都不会发生。
+
 #### 标记的阵亡结算 `on_death`（ADR-085）
 
 写在 `apply_status` 上：被标记者阵亡时，由**施法方**结算这组效果。

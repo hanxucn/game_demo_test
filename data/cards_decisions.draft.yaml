@@ -2197,19 +2197,21 @@ dsl:
     - action: draw
       value: 2
   wei_zhangliao:
+  # ADR-086（设计者实机：「击败后溢出的伤害有主公承受，现在是给第一个敌人造成 2 点伤害」）：
+  #   ① 伤害量 = **本次击杀的溢出量**（引擎以 `overflow:N` 事件标记传出，走 value_from_flag）；
+  #   ② 落点是**敌方主将**，不是"敌方第一个单位"。
   - id: chong_feng_xian_zhen
     name: 冲锋陷阵
     kind: trigger
     trigger: on_attack
     effects:
     - action: damage
-      value: 2
+      value_from_flag: overflow
       condition:
         event: killed
       target:
         side: enemy
-        count: 1
-        mode: first
+        lord: true
   wei_xuhuang:
   - id: ya_fu_zhi_feng
     name: 亚夫之风
@@ -3162,14 +3164,8 @@ dsl:
     name: 万箭齐发
     kind: trigger
     trigger: on_draw
-    effects:
-    - action: damage
-      value: 1
-      target:
-        side: enemy
-        filter:
-          type: character
-        count: all
+    # 效果**只写在卡级**（见 dsl_effects）——技能这里不再重复一遍，
+    # 否则同一段伤害被计价两次（实测 total 1.2 → 2.7）。ADR-086
     text: 抽到时释放：对所有敌方人物造成 1 点伤害。
   shu_huangzhong:
   - id: bai_bu_chuan_yang
@@ -3697,6 +3693,19 @@ dsl_effects:
     target:
       side: both
       lord: true
+  tactic_wanjianqifa:
+  # ADR-086：袁绍战吼会往**手牌**里塞一张万箭齐发，而它原先只有 on_draw 技能、
+  # 没有任何卡级效果 —— 于是那张手牌打出去**什么都不会发生**（设计者实机：
+  # 「万箭齐发还是不是打出就对敌人造成伤害」）。
+  # 现在效果写在卡级（打出即结算）；on_draw 技能不再重复写一遍 ——
+  # 「抽到时释放」= 释放这张牌，两条路径共用同一组效果（引擎在技能无效果时回退到卡级）。
+  - action: damage
+    value: 1
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: all
   tactic_caochuanjiejian:
   # ADR-085：原先 force_attack 只是「对挨打方 dealDamage 一下」——
   # 没有反击、不走阵亡移除，于是敌人白打我一下、自己永远死不了

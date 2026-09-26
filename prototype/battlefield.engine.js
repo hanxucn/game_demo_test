@@ -364,7 +364,12 @@ function renderBoard(st) {
             } else if (actState && actState.ok) {
               var d2 = document.createElement('div');
               d2.className = 'why act-why is-ok';
-              d2.textContent = '⚔ 本回合可以攻击（点选或拖到目标）';
+              // ADR-088 修订：有指向性主动技时，点击与长按是两条路，提示要说清楚
+              var hasSkill = Core.canUseUnitSkill(st, side, row, col).ok
+                && (Core.unitSkillTargetPlan(st, side, row, col).choices || []).some(function (ch) { return ch.targets.length; });
+              d2.textContent = hasSkill
+                ? '⚙ 点一下 = 放技能；长按拖动 = 普通攻击'
+                : '⚔ 本回合可以攻击（点选或拖到目标）';
               $('#detail').appendChild(d2);
             }
           });
@@ -473,24 +478,66 @@ function bindBoardClick() {
   boards.addEventListener('click', function (e) { onBoardClick(e); });
 }
 
-function renderLanes(st) {
-  $all('.unit-wrap.is-target').forEach(function (el) { el.classList.remove('is-target'); });
-  $('#lord-enemy').classList.remove('is-target');
+/** 目标高亮复位（ADR-088 修订）：红框（可选）/ 灰（不可选）都要清干净 */
+function clearTargetMarks() {
+  $all('.unit-wrap.is-target, .unit-wrap.is-notarget').forEach(function (el) {
+    el.classList.remove('is-target', 'is-notarget', 'is-ally');
+  });
+  ['own', 'enemy'].forEach(function (sd) {
+    var bar = lordEl(sd);
+    if (bar) bar.classList.remove('is-target', 'is-ally');
+  });
   hitTargets = [];
+}
+
+/**
+ * 给一个目标描边（ADR-088 修订）
+ *
+ * 设计者：「能被选择攻击的要显示成红色边框，不能被攻击的就是默认的灰色的」。
+ * 打敌方 → 红框；选自己人（仁德 / 青囊 / 援护这类）→ 绿框，
+ * 免得"红 = 危险"的直觉在选友军时误导。
+ */
+function markTarget(el, t) {
+  el.classList.add('is-target');
+  if (t.side === 'own') el.classList.add('is-ally');
+  hitTargets.push(rectOf(el, t));      // 主将也要进缓存（吸附兜底要用）
+}
+
+/**
+ * 把**没被选中**的单位压成灰色。
+ * 只在"正在选目标"的时候调用 —— 平时整片灰掉反而看不出谁站场。
+ */
+function markNonTargets(targets) {
+  var legal = {};
+  targets.forEach(function (t) {
+    if (t.kind === 'unit') legal[t.side + ':' + t.row + ':' + t.col] = 1;
+  });
+  $all('.unit-wrap').forEach(function (el) {
+    if (el.classList.contains('is-target')) return;
+    var slot = el.closest('.slot');
+    if (!slot || !slot.dataset.side) return;
+    if (legal[slot.dataset.side + ':' + slot.dataset.row + ':' + slot.dataset.col]) return;
+    el.classList.add('is-notarget');
+  });
+}
+
+function renderLanes(st) {
+  clearTargetMarks();
   // 正在选技能目标时，高亮与命中缓存归它管，别被普攻目标覆盖（ADR-077）
   if (pendingPick) { highlightPickTargets(); return; }
   if (!sel) return;
   var res = Core.legalTargets(st, 'own', sel.row, sel.col);
   res.targets.forEach(function (t) {
-    var el = t.kind === 'lord' ? $('#lord-enemy')
+    // ⚠️ 主公条要按**目标那一方**取（仁德可以给自己主帅 —— 原先写死 #lord-enemy，自己主将被高亮时看不到）
+    var el = t.kind === 'lord' ? lordEl(t.side)
       : (function () {
           var slot = document.querySelector('.row[data-side="' + t.side + '"][data-row="' + t.row + '"] .slot[data-col="' + t.col + '"]');
           return slot && slot.querySelector('.unit-wrap');
         })();
     if (!el) return;
-    el.classList.add('is-target');
-    hitTargets.push(rectOf(el, t));
+    markTarget(el, t);
   });
+  markNonTargets(res.targets);
 }
 
 function renderHand(st) {
@@ -514,10 +561,22 @@ function renderHand(st) {
     wrap.style.zIndex = 10 + i;
 
     // 费用不足仍保留正常卡面；实际出牌仍由 Core 校验，资源提示显示在统率值上。
+    // 费用一律走 Core.effectiveCost（含手牌级费用修正，蔡文姬/郭嘉/庞统的减费要算进去）
+    // ⚠️ 合并说明：main 也修了「卡面印原价」这件事（displayCard 覆盖 cost），
+    //    这里与 ADR-086 的绿框判定并存 —— 判定问 Core，显示用覆盖后的费用。
     var cost = Core.effectiveCost ? Core.effectiveCost(hc) : (c.cost != null ? c.cost : 0);
     var affordable = cmd >= cost;
-    var playable = myTurn && affordable;
     var displayCard = Object.assign({}, c, { cost: cost });
+    // 「能不能打出」一律问 Core（ADR-086）—— 与拖拽出牌走的是同一个判定，
+    // 免得出现"绿框了却放不下去"。被封锁（酒令/谮言）与战场已满也算不能出。
+    var isChar = ['troop', 'general', 'strategist'].indexOf(c.type) >= 0;
+    var playable = false;
+    if (myTurn && !Core.isBanned(hc)) {
+      var spots = isChar ? Core.legalPlacements(st, 'own') : [];
+      playable = Core.canPlayCard(st, 'own', c, isChar ? spots[0] : undefined, cost).ok;
+    }
+    wrap.classList.toggle('is-playable', playable);
+    wrap.dataset.playable = playable ? '1' : '';
     wrap.appendChild(CR.big(viewCard(displayCard), { desc: true, affordable: affordable }));   // desc: 卡面显示技能名+文案
 
     // 悬停 → 贴卡弹出技能详情（卡面太小放不下全文，详情面板又在右下角太远）
@@ -710,8 +769,10 @@ function startDrag(e, index, card, wrap) {
   ghost.classList.add('drag-ghost');
   ghost.style.width = rect.width + 'px';
   ghost.style.height = rect.height + 'px';
-  ghost.style.left = rect.left + 'px';
-  ghost.style.top = rect.top + 'px';
+  // ⚠️ 基准必须是 0,0：跟手位置由 onDragMove 每帧写 translate3d(视口坐标) 决定，
+  //    若这里再写 left/top=卡的原位置，两者会叠加、卡飞到屏幕外（ADR-088 修订）
+  ghost.style.left = '0px';
+  ghost.style.top = '0px';
   document.body.appendChild(ghost);
   wrap.classList.add('is-dragging');
 
@@ -741,10 +802,64 @@ function startDrag(e, index, card, wrap) {
 }
 
 /** 攻击拖拽：抓住战场上的单位，拖到敌方人物卡或主将上（与出牌同一套手感） */
-function startUnitDrag(e, row, col, wrap) {
+/**
+ * 按下单位时的「先技能后普攻」判定（ADR-088 修订）
+ *
+ * 设计者实机反馈：**「点一下想放技能，结果变成选中攻击」**。
+ * 旧实现是"按下就进攻击拖拽"，只有松手时指针几乎没动（<10px）才改判成技能 ——
+ * 于是黄忠在**能攻击的回合**里点一下只会高亮攻击目标，手一抖超过 10px 就真的普攻出去了
+ * （入场那回合之所以正常，是因为召召失调不能攻击，压根没进拖拽）。
+ *
+ * 现在按炉石的手感来：
+ *   · **按下 = 立刻进技能指向**（箭头 + 高亮合法目标）；
+ *   · **长按 300ms 或拖动 8px = 切换成普通攻击**（撤掉技能指向，改走攻击拖拽）。
+ *
+ * @returns true 表示这次按下已被接管（调用方不要再走攻击拖拽）
+ */
+function armSkillBeforeAttack(e, row, col, wrap) {
+  var st = session.state;
+  var skill = unitSkillState(st, 'own', row, col);
+  if (!skill || !skill.usable) return false;                  // 没技能／本回合已用过
+  var plan = Core.unitSkillTargetPlan(st, 'own', row, col);
+  var choice = plan.choices && plan.choices[0];
+  if (!choice || !choice.targets.length) return false;         // 没有可选的技能目标
+
+  onUnitSkillClick(row, col, skill);                          // 立刻出箭头 + 高亮
+
+  var sx = e.clientX, sy = e.clientY, settled = false;
+  var HOLD_MS = 300, SLOP = 8;
+  var timer = setTimeout(function () { switchToAttack(); }, HOLD_MS);
+  function cleanup() {
+    clearTimeout(timer);
+    window.removeEventListener('pointermove', onWatchMove);
+    window.removeEventListener('pointerup', onWatchUp);
+    window.removeEventListener('pointercancel', onWatchUp);
+  }
+  function switchToAttack() {
+    if (settled) return;
+    settled = true; cleanup();
+    // 撤掉技能指向，但**不要**走 cancelPick（它会弹"已取消"再被下面的提示覆盖，看着闪）
+    pendingPick = null; hitTargets = []; arrowHide();
+    // 从按下的那一点起手，走原来的攻击拖拽（skipSkill=true 避免又绕回技能）
+    startUnitDrag({ clientX: sx, clientY: sy, button: 0, preventDefault: function () {} }, row, col, wrap, true);
+  }
+  function onWatchMove(ev) {
+    if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) >= SLOP) switchToAttack();
+  }
+  function onWatchUp() { settled = true; cleanup(); }          // 轻点：保持技能指向
+  window.addEventListener('pointermove', onWatchMove);
+  window.addEventListener('pointerup', onWatchUp);
+  window.addEventListener('pointercancel', onWatchUp);
+  return true;
+}
+
+function startUnitDrag(e, row, col, wrap, skipSkill) {
   if (session.state.winner || session.state.active !== 'own') return;
   if (busy) skipAnimation();          // ADR-077：动画中也能直接选下一张卡
   if (e.button !== undefined && e.button !== 0) return;
+
+  // 有可用的指向性主动技 → 按下先给技能（长按/拖动才切普攻）
+  if (!skipSkill && armSkillBeforeAttack(e, row, col, wrap)) return;
 
   var chk = Core.canAttack(session.state, 'own', row, col);
   var legal = Core.legalTargets(session.state, 'own', row, col);
@@ -774,6 +889,7 @@ function startUnitDrag(e, row, col, wrap) {
     raf: 0, pending: null,
   };
   drag.arrowFrom = wrap;
+  wrap.classList.add('is-dragging');          // 原单位压暗（拖起来的幽灵才是"手上那张"）
 
   // ⚠️ 关键改动（ADR-076）：**按下就选中**。
   // 原先要等到 pointerup 且位移 < 8px 才判为"点选"，而真人点击的抖动常超过 8px →
@@ -788,7 +904,7 @@ function startUnitDrag(e, row, col, wrap) {
   var u = session.state.sides.own.rows[row][col];
   showDetail('已选中 ' + u.name, '攻击力 ' + Core.effectiveAttack(session.state, 'own', row, col)
     + '　生命 ' + u.hp + '/' + u.maxHp,
-    '点（或拖到）高亮的敌人/敌方主公发起攻击；点空白处取消');
+    '拖到高亮的敌人/敌方主公发起攻击；点空白处取消');
 
   bindDragEvents();
 }
@@ -799,10 +915,57 @@ function bindDragEvents() {
   window.addEventListener('pointercancel', onDragEnd);
 }
 
+/**
+ * 轻点一个单位时，若它这一手有**可用的指向性主动技** → 进入技能指向（ADR-086）
+ *
+ * 设计者：「长按就是人本体攻击，点击一下出来箭头就是指向性技能攻击」。
+ * 所以：拖拽始终是普通攻击；轻点（几乎没位移）优先走技能。
+ * 不需要选目标的技能（自增益类）不在这里抢，照旧走卡面的「技」按钮。
+ *
+ * @returns true 表示已接管这次点击
+ */
+function trySkillTargeting(row, col) {
+  var st = session.state;
+  if (st.winner || st.active !== 'own') return false;
+  var skill = unitSkillState(st, 'own', row, col);
+  if (!skill || !skill.usable) return false;
+  var plan = Core.unitSkillTargetPlan(st, 'own', row, col);
+  if (!plan.choices || !plan.choices.length) return false;
+  clearMarks();
+  onUnitSkillClick(row, col, skill);
+  return true;
+}
+
 /** 战法/事件的有效落点是整个战场，包含格子、单位和主将，不只背景空白。 */
 function isBattlefieldDrop(drop) {
   if (!drop || !drop.el) return false;
   return drop.kind === 'board' || !!drop.el.closest('.arena-inner');
+}
+
+/** 只在状态真的变化时动 DOM（pointermove 每帧都来） */
+function markGhostValidity(valid) {
+  if (!drag || !drag.ghost) return;
+  var bad = !valid;
+  if (drag.ghostInvalid === bad) return;
+  drag.ghostInvalid = bad;
+  drag.ghost.classList.toggle('is-invalid', bad);
+}
+
+/**
+ * 拖拽收尾：让"手上那张卡"飞向落点、或飞回原位后消失（ADR-088 修订，纯表现）
+ *
+ * 结算时序一行没改：出牌本来就有 180ms 的惯量延迟，攻击则立刻结算 ——
+ * 幽灵只是在这段时间里把"牌打出去了/没打出去"演出来。
+ */
+function flyGhostAway(ghost, targetRect) {
+  if (!ghost) return;
+  if (!targetRect) { ghost.remove(); return; }
+  ghost.classList.remove('is-invalid');
+  ghost.classList.add('is-flying');
+  ghost.style.transform =
+    'translate3d(' + targetRect.left + 'px,' + targetRect.top + 'px,0) scale(.94)';
+  ghost.style.opacity = '0';
+  window.setTimeout(function () { ghost.remove(); }, 190);
 }
 
 function onDragMove(e) {
@@ -818,6 +981,8 @@ function onDragMove(e) {
       'translate3d(' + (p.x - drag.dx) + 'px,' + (p.y - drag.dy) + 'px,0)';
 
     if (drag.kind === 'unit') {
+      var _t0 = nearestHit(p.x, p.y);
+      markGhostValidity(!!_t0);          // 不在合法目标上 → 卡面压灰（炉石手感）
       // 拖拽攻击：命中判定走缓存坐标（不再 elementFromPoint），并给吸附半径
       var t = nearestHit(p.x, p.y);
       var el = t ? hitEl(t) : null;
@@ -832,6 +997,10 @@ function onDragMove(e) {
     $all('.slot.is-hover, .unit-wrap.is-hover, .lord-bar.is-hover, .boards.is-hover, .arena-inner.is-hover')
       .forEach(function (x) { x.classList.remove('is-hover'); });
     var d = dropAt(p.x, p.y);
+    // 落点合法吗？人物卡要落在绿色格子，战法/事件卡落在战场任意处
+    markGhostValidity(!!d && ((drag.kind === 'card' && drag.isUnit
+      && d.kind === 'slot' && d.el.classList.contains('is-placeable'))
+      || (drag.kind === 'card' && !drag.isUnit && isBattlefieldDrop(d))));
     if (!d) return;
     if (drag.kind === 'card' && drag.isUnit && d.kind === 'slot' && d.el.classList.contains('is-placeable')) {
       d.el.classList.add('is-hover');
@@ -840,6 +1009,47 @@ function onDragMove(e) {
       if (spellBoard) spellBoard.classList.add('is-hover');
     }
   });
+}
+
+/**
+ * 指针正下方是什么目标（ADR-088 修订）
+ *
+ * ⚠️ 落点判定**不能只信拖拽开始时缓存的目标矩形**（`hitTargets`）：
+ * 入场动画、状态徽标动画等任何一次重渲染都会走 `renderLanes → clearTargetMarks()` 把它清空，
+ * 清空之后"拖到敌人身上松手"就变成"什么也没拖到"—— 表现为**拖拽打不出伤害**，
+ * 而点击没事（点击走 `exactHit`，按格子坐标反查，不看缓存）。
+ * 所以松手时一律**按指针下的真实 DOM 反查**，再拿 core 的合法清单校验。
+ */
+function hitAtPoint(x, y) {
+  var el = document.elementFromPoint(x, y);
+  while (el) {
+    if (el.classList && el.classList.contains('lord-bar')) {
+      return { kind: 'lord', side: el.id === 'lord-own' ? 'own' : 'enemy' };
+    }
+    if (el.classList && el.classList.contains('slot') && el.dataset.side) {
+      return { kind: 'unit', side: el.dataset.side, row: el.dataset.row, col: Number(el.dataset.col) };
+    }
+    el = el.parentElement;
+  }
+  return null;
+}
+
+/** 两个目标描述是不是同一个（忽略 rect 之类的附带字段） */
+function sameTarget(a, b) {
+  if (!a || !b || a.kind !== b.kind || a.side !== b.side) return false;
+  return a.kind === 'lord' ? true : (a.row === b.row && a.col === b.col);
+}
+
+/** 落点是否在 core 给的**普攻合法目标**里（不自己按 side 猜） */
+function isLegalAttackTarget(row, col, hit) {
+  var res = Core.legalTargets(session.state, 'own', row, col);
+  return (res.targets || []).some(function (t) { return sameTarget(t, hit); });
+}
+
+/** 落点是否在**当前待选清单**里（技能/战吼选目标）；返回清单里那一项（可能带额外字段） */
+function pickTargetFor(hit) {
+  if (!pendingPick) return null;
+  return (pendingPick.targets || []).filter(function (t) { return sameTarget(t, hit); })[0] || null;
 }
 
 /** 由缓存项取回 DOM 元素（悬停高亮用） */
@@ -867,7 +1077,12 @@ function onDragEnd(e) {
   var dropUnit = (t && t.kind === 'unit' && t.el.classList.contains('is-target')) ? t.el : null;
   var dropLord = (t && t.kind === 'lord' && t.el.classList.contains('is-target')) ? t.el : null;
 
-  d.ghost.remove();
+  // 幽灵飞向落点（不合法就飞回原位），而不是"啪"地消失
+  var ghostTarget = null;
+  if (dropSlot) ghostTarget = dropSlot.getBoundingClientRect();
+  else if (dropUnit || dropLord) ghostTarget = (dropUnit || dropLord).getBoundingClientRect();
+  else if (dropBoard && d.kind === 'card' && !d.isUnit) ghostTarget = dropBoard.getBoundingClientRect();
+  flyGhostAway(d.ghost, ghostTarget || d.wrap.getBoundingClientRect());
   d.wrap.classList.remove('is-dragging');
   arrowHide();
   clearDropHighlights();
@@ -898,9 +1113,17 @@ function onDragEnd(e) {
   // 攻击拖拽：合法性一律由 Core.legalTargets 判定（缓存里就是它算出来的）
   if (d.kind === 'unit') {
     if (d.raf) { cancelAnimationFrame(d.raf); d.raf = 0; }
+    if (d.wrap) d.wrap.classList.remove('is-dragging');
     if (d.hoverEl) { d.hoverEl.classList.remove('is-hover'); d.hoverEl = null; }
-    var hit = nearestHit(e.clientX, e.clientY);
-    if (hit && pendingPick) { tapHandledAt = Date.now(); tapHandledEl = d.wrap; finishPick(hit); return; }
+    // 先按指针下的真实 DOM 反查，再用缓存矩形兜住"差一点点"的手抖（吸附）
+    var hit = hitAtPoint(e.clientX, e.clientY) || nearestHit(e.clientX, e.clientY);
+    if (pendingPick) {
+      var pt = hit && pickTargetFor(hit);
+      if (pt) { tapHandledAt = Date.now(); tapHandledEl = d.wrap; finishPick(pt); return; }
+      hit = null;                       // 待选期间：没落在合法项上就不当攻击处理
+    } else if (hit && !isLegalAttackTarget(d.row, d.col, hit)) {
+      hit = null;                       // 不在 core 的合法清单里 → 当作没拖到
+    }
     if (hit) {
       tapHandledAt = Date.now(); tapHandledEl = d.wrap;
       doAction(hit.kind === 'lord'
@@ -908,6 +1131,12 @@ function onDragEnd(e) {
         : { type: 'ATTACK', from: { row: d.row, col: d.col },
             to: { kind: 'unit', row: hit.row, col: hit.col } });
     } else {
+      // 轻点（几乎没位移）落在有指向性主动技的单位上 → 改成释放技能（ADR-086）
+      var moved = Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy);
+      if (moved < 10 && trySkillTargeting(d.row, d.col)) {
+        tapHandledAt = Date.now(); tapHandledEl = d.wrap;
+        return;
+      }
       // ⚠️ ADR-076：松手没落在目标上**不再取消选中**。
       // 原先这里 clearMarks() + sel = null，等于"手抖一下就得重新点一次"，
       // 是"选自己卡牌攻击经常失败"的第二大来源。选中已经在 pointerdown 时完成，
@@ -917,7 +1146,7 @@ function onDragEnd(e) {
       var failedTargets = Core.legalTargets(session.state, 'own', d.row, d.col);
       showDetail('已选中 ' + (u2 ? u2.name : ''),
         '还没选择攻击目标',
-        failedTargets.why || '点（或拖到）高亮的敌人/敌方主公发起攻击；点空白处取消');
+        failedTargets.why || '拖到高亮的敌人/敌方主公发起攻击；点空白处取消');
     }
     return;
   }
@@ -1056,9 +1285,9 @@ function dropAt(x, y) {
    ============================================================ */
 
 function clearMarks() {
-  $all('.unit-wrap.is-selected, .unit-wrap.is-target, .slot.is-placeable, .slot.is-hover, .lord-bar.is-target')
+  $all('.unit-wrap.is-selected, .unit-wrap.is-target, .unit-wrap.is-notarget, .unit-wrap.is-dragging, .slot.is-placeable, .slot.is-hover, .lord-bar.is-target')
     .forEach(function (el) {
-      el.classList.remove('is-selected', 'is-target', 'is-placeable', 'is-hover');
+      el.classList.remove('is-selected', 'is-target', 'is-notarget', 'is-ally', 'is-dragging', 'is-placeable', 'is-hover');
     });
   hitTargets = [];
   $('#detail').classList.remove('show');
@@ -1382,7 +1611,7 @@ function beginTargetPick(targets, resolve, labels) {
 
 function highlightPickTargets() {
   if (!pendingPick) return;
-  hitTargets = [];
+  clearTargetMarks();
   pendingPick.targets.forEach(function (t) {
     var el = t.kind === 'lord' ? lordEl(t.side)
       : (function () {
@@ -1390,9 +1619,9 @@ function highlightPickTargets() {
           return slot && slot.querySelector('.unit-wrap');
         })();
     if (!el) return;
-    el.classList.add('is-target');
-    hitTargets.push(rectOf(el, t));
+    markTarget(el, t);
   });
+  markNonTargets(pendingPick.targets);
 }
 
 function cancelPick() {
@@ -1480,6 +1709,10 @@ function onUnitClick(side, row, col, ev) {
       '攻击 ' + u0.atk + ' / 生命 ' + u0.hp + '/' + u0.maxHp + (u0.kw.length ? '｜' + u0.kw.join('、') : ''));
     return;
   }
+
+  // ③.5 轻点：有可用的指向性主动技 → 直接进入技能指向（ADR-086）
+  //      （"不能攻击、只能放技"的单位走不到拖拽那条路，只能靠这里）
+  if (trySkillTargeting(row, col)) return;
 
   // ④ 选我方单位 → 高亮合法目标
   sel = { kind: 'unit', row: row, col: col };
@@ -1893,6 +2126,13 @@ function skipAnimation() {
   skipped.forEach(function (e) {
     if (e.type === 'UNIT_DIED') flashDeath(e.side, e.row, e.col, e.unit);
   });
+  // ⚠️ ADR-086：跳过动画会把 playEvents 的 done 回调一并丢掉，
+  // 而 AI 的续跑正挂在那个回调上 —— 敌方回合里若有人点了一下（哪怕只是看卡），
+  // AI 就会**永远停住**，一直干等到 60 秒超时自动结束回合。
+  // 这里自己把 AI 循环接回来（runAiTurn 内部有 busy / winner 判定，重复调度无害）。
+  if (session && !session.state.winner && shouldAuto()) {
+    setTimeout(function () { runAiTurn(false); }, 0);
+  }
 }
 
 /** 阵亡提示：卡面找不到（已被跳过/同格被占）时，至少在格子上标一下（ADR-081） */
@@ -2340,8 +2580,21 @@ function shouldAuto() {
   return session.state.active === 'enemy' || AUTO_BOTH;
 }
 
+/** AI 回合内的动作计数（每个 AI 回合重置一次，防死循环；见 runAiTurn） */
+var aiActionsThisTurn = 0;
+var aiTurnKey = '';
+
 function runAiTurn(forceEnd) {
   if (busy || session.state.winner || !shouldAuto()) return;
+  // 同一个 AI 回合最多走 40 步（与 core 的 takeTurn 上限一致）——
+  // 兜底防"AI 反复做无效动作"把回合拖到超时（ADR-086）
+  var turnKey = session.state.halfTurn + ':' + session.state.active;
+  if (aiTurnKey !== turnKey) { aiTurnKey = turnKey; aiActionsThisTurn = 0; }
+  aiActionsThisTurn += 1;
+  if (aiActionsThisTurn > 40) forceEnd = true;
+
+  // ⚠️ 合并说明：main 新增了卡牌测试模式（测试页里不需要敌方 AI 行动），
+  //    与 ADR-086 的「本回合步数上限」并存 —— 两个短路条件写在一起。
   var action = forceEnd || (IS_CARD_TEST && !TEST_CONFIG.enemyAi) ? { type: 'END_TURN' }
     : (Core.chooseAction(session.state, session.ctx) || { type: 'END_TURN' });
   var res = Core.applyAction(session.state, session.ctx, action);

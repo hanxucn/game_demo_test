@@ -30,7 +30,7 @@
     --dim: #a99e8c;
     --gold: #d4af6a;
     --line: #4a4034;
-    --target: #6fbf73;
+    --target: #e2574c;          /* 可被选中的目标 = 红框（ADR-088 修订：能打的红、不能打的灰） */
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #050403; }
@@ -156,6 +156,9 @@
       0 0 18px rgba(111,191,115,.8),
       0 4px 12px rgba(0,0,0,.7);
   }
+  .lord-bar.is-target.is-ally {
+    box-shadow: 0 0 0 1px var(--gold-hi), 0 0 0 3px #6fbf73, 0 0 18px rgba(111,191,115,.6);
+  }
 
   /* 空列通道：整列无阻挡 → 一条通向主公的光束 */
   .lane-beam {
@@ -248,7 +251,18 @@
     box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--gold-hi), 0 0 18px rgba(212,175,106,.85);
   }
   .unit-wrap.is-target .cr-card {
-    box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--target), 0 0 18px rgba(111,191,115,.9);
+    box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--target), 0 0 18px rgba(226,87,76,.85);
+  }
+  /* 选自己人（仁德/青囊/援护…）= 绿框：红框在选友军时会读成「危险」 */
+  .unit-wrap.is-target.is-ally .cr-card {
+    box-shadow: 0 0 0 1px #000, 0 0 0 2px #6fbf73, 0 0 18px rgba(111,191,115,.9);
+  }
+  /* 正在选目标时，**不能选**的单位压成灰（ADR-088 修订）—— 与红框形成对比 */
+  .unit-wrap.is-notarget .cr-card {
+    filter: grayscale(.62) brightness(.62);
+  }
+  .unit-wrap.is-notarget:hover .cr-card {
+    filter: grayscale(.3) brightness(.8);
   }
 
   .mid {
@@ -423,6 +437,25 @@
     margin: 0 -3px;
   }
   .hcard-wrap:hover { transform: rotate(0deg) translateY(-16px) scale(1.1); z-index: 30; }
+  /* 可打出的手牌 = 绿框（ADR-086）：与"本回合可行动的单位"同一套视觉语言。
+     判定完全来自 Core.canPlayCard + effectiveCost —— 费用不够、被封锁、战场已满都不亮。 */
+  .hcard-wrap.is-playable::before {
+    content: ''; position: absolute; inset: -3px; border-radius: 9px;
+    border: 2px solid rgba(111,224,122,.78);
+    box-shadow: 0 0 10px rgba(111,224,122,.35), inset 0 0 8px rgba(111,224,122,.18);
+    pointer-events: none; z-index: 6;
+  }
+  .hcard-wrap.is-playable::after {
+    content: ''; position: absolute; right: -3px; top: -3px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #d6ffdd, #58c96a 70%);
+    box-shadow: 0 0 6px rgba(111,224,122,.9);
+    pointer-events: none; z-index: 7;
+  }
+  .hcard-wrap.is-playable:hover::before {
+    border-color: #9dffab;
+    box-shadow: 0 0 16px rgba(140,255,160,.75), inset 0 0 12px rgba(111,224,122,.3);
+  }
   .hcard-wrap.is-selected { transform: rotate(0deg) translateY(-20px) scale(1.12); z-index: 31; }
   .hcard-wrap.is-played {
     opacity: 0;
@@ -687,13 +720,42 @@
   }
   .panel .timer-bar i.is-low { background: linear-gradient(90deg, #ff8a72, #ff5a3a); }
 
+  /**
+   * 拖拽中"拿在手上"的那张卡（ADR-088 修订）
+   *
+   * ⚠️ 这里**不能**写 `transform: none !important` —— 它属于 important 作者声明，
+   *    会盖掉 JS 每帧写进 style 的 translate3d，于是"拖起来的卡"其实停在原地不动
+   *    （实测：内联 transform 有值、计算后却是 none）。手牌原有的旋转改用 `--rot/--lift` 归零抵消。
+   * 外层只管**跟手位移**（绝不能加 transition，否则拖起来拖泥带水），
+   * 抬起放大与灰化这类"表情"放在**内层卡面**上过渡。
+   */
   .drag-ghost {
     position: fixed; z-index: 500;
     pointer-events: none;
-    transform: none !important;
-    filter: drop-shadow(0 10px 18px rgba(0,0,0,.9));
-    opacity: .96;
+    --rot: 0deg;
+    --lift: 0px;
+    filter: drop-shadow(0 14px 22px rgba(0,0,0,.95));
+    opacity: .97;
+    /* ⚠️ 幽灵是从手牌克隆的，而 .hcard-wrap 自带 `transition: transform .18s`（悬停抬起用的）——
+       不掐掉的话它每帧都在"追"鼠标，拖起来又黏又飘、落点也对不上（实测位移比鼠标慢 180ms）。
+       跟手必须是瞬时的；只有收尾飞行动画才开过渡（见 .is-flying）。 */
+    transition: none !important;
   }
+  .drag-ghost .cr-card {
+    transform: scale(1.06) rotate(-1.5deg);
+    transition: transform .12s ease-out, filter .12s ease-out;
+  }
+  /* 拖到不合法的地方 → 卡面压灰（判定与"能不能放/能不能打"同源，不自己猜） */
+  .drag-ghost.is-invalid .cr-card {
+    filter: grayscale(.55) brightness(.72);
+    transform: scale(1.02) rotate(-1.5deg);
+  }
+  /* 收尾：飞向落点（或飞回原位）后消失 */
+  .drag-ghost.is-flying {
+    transition: transform .16s ease-out, opacity .16s ease-out !important;
+  }
+  /* 被拿起来的单位（战场上的原卡）压暗，表示"正在用它做事" */
+  .unit-wrap.is-dragging .cr-card { opacity: .4; }
   .slot.is-placeable { cursor: grab; }
   .slot.is-hover {
     border-color: #8fe0a8 !important;
@@ -1138,7 +1200,8 @@
   <div class="tiny"><b>开局</b>：阵营 → 构筑 30 张 → 换牌</div>
   <hr>
   <div class="tiny">点手牌 → 点绿格出牌</div>
-  <div class="tiny">点我方单位 → 点高亮目标攻击<br><b style="color:#9dffab">绿框</b> = 本回合可行动，暗卡 = 已动过</div>
+  <div class="tiny">点我方单位：<b>点一下</b> = 放指向性技能，<b>长按拖动</b> = 普通攻击<br>
+    <b style="color:#9dffab">绿框</b> = 本回合可行动，暗卡 = 已动过；选目标时 <b style="color:#e2574c">红框</b> = 可打、<b style="color:#8a8378">灰</b> = 不可打</div>
   <div class="tiny">敌方<b>有架盾</b>时只能打盾；否则可直攻主将</div>
   <div class="tiny">点主公卡 → 发动主公技（2 统率 / 每回合 1 次）</div>
   <div class="tiny">右下角<b>事件日志</b>可查看每次结算细节</div>

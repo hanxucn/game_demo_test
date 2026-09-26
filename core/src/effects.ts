@@ -42,7 +42,13 @@ export function resolveDrawTrigger(state: MatchState, cards: Map<string, CardDef
   }
 
   emitSkillTriggered(state, side, null, sk, 'trigger', events);
-  runEffects(state, cards, sk.effects ?? [], { side }, rng, events);
+  // 技能自己没写效果时，按**卡级效果**释放（ADR-086）
+  // —— 「抽到时释放」= 释放这张牌，与从手牌打出走的是同一组效果，
+  //    免得同一段伤害在 on_draw 与 effects 两处各写一份、迟早漂移。
+  //    ⚠️ 只作用于**非人物卡**这条路径：人物卡的卡级效果是"打出时"的战吼，
+  //       不该在抽到时重放（人物卡那条在上面的自动召唤分支里）。
+  const effs = sk.effects?.length ? sk.effects : (card.effects ?? []);
+  runEffects(state, cards, effs, { side }, rng, events);
   return { discard: true };
 }
 
@@ -663,6 +669,8 @@ export function runOnAttackPhase(
   killed: boolean,
   rng: Rng,
   events: GameEvent[],
+  /** 本次击杀的溢出伤害（ADR-086）——以 `overflow:N` 事件标记交给 DSL 的 `value_from_flag` */
+  overflow = 0,
 ): void {
   if (attacker.hp <= 0) return;
   const side = findSide(state, attacker.uid);
@@ -674,8 +682,9 @@ export function runOnAttackPhase(
         : e.condition?.event !== 'killed');
     if (!effs.length) continue;
     emitSkillTriggered(state, side, attacker, sk, 'trigger', events);
-    runEffects(state, cards, effs,
-      { side, source: attacker, flags: killed ? ['killed'] : [] }, rng, events);
+    const flags = killed ? ['killed'] : [];
+    if (killed && overflow > 0) flags.push(`overflow:${overflow}`);
+    runEffects(state, cards, effs, { side, source: attacker, flags }, rng, events);
   }
 }
 
@@ -729,6 +738,14 @@ export function resolveAttack(
 
   // 本次普攻有没有**击杀**目标 —— 8½-after 的击杀奖励据此判定（ADR-072）
   let killed = false;
+  /**
+   * 击杀时的**溢出伤害**（ADR-086，张辽「冲锋陷阵」）
+   *
+   * 卡面写「如若斩杀敌人人物卡牌，溢出伤害由对方主将承受」——
+   * 原实现给的是写死的 2 点、而且是打"敌方第一个单位"，两处都错。
+   * 溢出量只在**攻击人物**时有意义（打主将时对局已经结束）。
+   */
+  let overflow = 0;
   /** 本次普攻实际造成的伤害合计（ADR-074：司马懿② 要判"有没有对敌方造成伤害"） */
   let dealtTotal = 0;
 
@@ -742,6 +759,7 @@ export function resolveAttack(
     const tRow = to.row;
     const tCol = to.col;
     const targetUnit = getUnit(state, foe, tRow, tCol);
+    const hpBefore = targetUnit ? targetUnit.hp : 0;
     // 反击力 = 目标的**有效**攻击力（含振奋/虚弱等，与攻击方算法对称，ADR-059）。
     // 必须在造成伤害**之前**取值：伤害不改变攻击力，但目标可能被打死而离场。
     const retaliate = effectiveAttack(state, foe, tRow, tCol);
@@ -768,6 +786,7 @@ export function resolveAttack(
     // 目标死了就已被 killUnit 移出战场；免死（survive）留下的 1 血算"没死"
     const hitAfter = getUnit(state, foe, tRow, tCol);
     killed = !hitAfter || hitAfter.hp <= 0;
+    if (killed) overflow = Math.max(0, dmg - hpBefore);
   }
 
   const after = getUnit(state, side, from.row, from.col);
@@ -796,7 +815,7 @@ export function resolveAttack(
   //    立刻又被这次攻击的记账加回去，额外行动等于白给（这条被测试抓到过）。
   const survivor = getUnit(state, side, from.row, from.col);
   if (survivor && survivor.hp > 0) {
-    runOnAttackPhase(state, cards, survivor, 'after', killed, rng, events);
+    runOnAttackPhase(state, cards, survivor, 'after', killed, rng, events, overflow);
   }
   return true;
 }
