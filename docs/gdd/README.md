@@ -26,6 +26,7 @@
 | 13 | [13-balance-data-model](13-balance-data-model.md) | 总价值预算模型、技能定价、schema、DSL | 已定 |
 | 14 | [14-open-questions](14-open-questions.md) | 待决项、待填清单、决策记录 | 持续更新 |
 | 15 | [15-card-visual](15-card-visual.md) | 卡面视觉与动画规范 | 已定 |
+| 16 | [16-ai](16-ai.md) | 对战 AI：三层架构、评估权重、卡组画像、双方平等保证 | 已定 |
 
 ## 术语表
 
