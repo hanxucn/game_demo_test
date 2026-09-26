@@ -38,6 +38,7 @@ const FILES = [
   '13-balance-data-model.md',
   '14-open-questions.md',
   '15-card-visual.md',
+  '16-ai.md',
 ];
 
 // ---------- 工具函数 ----------
