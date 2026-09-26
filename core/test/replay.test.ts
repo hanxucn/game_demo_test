@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 
 import { applyAction, startMatch } from '../src/engine.ts';
 import { createMatch } from '../src/state.ts';
-import { chooseAction, takeTurn } from '../src/ai.ts';
+import { chooseAction, takeTurn } from '../src/ai/index.ts';
 import { loadTestData } from './fixtures.ts';
 import type { Action, EngineContext, MatchState } from '../src/types.ts';
 

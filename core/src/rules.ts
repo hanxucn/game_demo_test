@@ -8,9 +8,10 @@
  *   ④ 架盾最高优先级（可跨列；仅前军生效；不阻挡打主将）
  */
 
-import { BOARD, DECK } from './constants.ts';
+import { BOARD, DECK, LORD_SKILL_COST } from './constants.ts';
 import {
-  allUnits, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, other, shieldUnits, statusStacks, unitCount,
+  allUnits, capStacks, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, other, shieldUnits,
+  statusStacks, unitCount,
 } from './state.ts';
 import type { CardDef, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
@@ -56,6 +57,31 @@ export function canUseUnitSkill(
     return { ok: false, reason: '本回合已用过' };
   }
   if (state.sides[side].command.cur < (skill.cost ?? 0)) return { ok: false, reason: '统率值不足' };
+  return { ok: true, skill };
+}
+
+/**
+ * 能否使用主公技（ADR-040 / ADR-049 / ADR-084）
+ *
+ * 与 `canUseUnitSkill` 同源的理由：**AI 与引擎必须共用同一份门控**。
+ * 原先这套判定只写在 `engine.useLordSkill` 里，AI 自己另抄了一份"看着差不多"的，
+ * 结果漏掉了「进言（`block_lord_skill`）」——AI 每回合都会认真考虑一次被封锁的主公技，
+ * 提出来必然被引擎拒。判定下沉到这里之后，两边不可能再漂移。
+ */
+export function canUseLordSkill(
+  state: MatchState, side: Side,
+): Check & { skill?: SkillDef } {
+  const lord = state.sides[side].lord;
+  const skill = lord.skillDef;
+  // 主公技一律走数据（ADR-049）：heroes.yaml 的 skills[0]，与卡牌同一套 DSL
+  if (!skill || skill.kind !== 'active') return { ok: false, reason: '没有主动型主公技' };
+  if (hasCapOn(lord.statuses, 'block_lord_skill')) return { ok: false, reason: '主公技被封锁（进言）' };
+  // 「参谋」提供额外次数：还有加成层数时，本回合已用过也仍可用
+  if (lord.skillUsedThisTurn && capStacks(lord.statuses, 'extra_lord_skill') <= 0) {
+    return { ok: false, reason: '本回合已用过' };
+  }
+  const cost = skill.cost ?? LORD_SKILL_COST;
+  if (state.sides[side].command.cur < cost) return { ok: false, reason: '统率值不足' };
   return { ok: true, skill };
 }
 
