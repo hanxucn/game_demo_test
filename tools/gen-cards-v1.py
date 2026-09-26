@@ -148,6 +148,11 @@ for nc in dec.get('new_cards') or []:
     if nc.get('skill_text'): card['skills'] = [{'name': nc.get('skill_name',''), 'text': nc['skill_text'],
                                                 'dsl': None, 'note': '效果 DSL 待翻译'}]
     card['keywords'] = list(CARD_KW.get(nc['id'], []))
+    # ⚠️ 陷阱 #3 的又一个实例：`card_rarity` 原先只在**照片卡**那条循环里生效，
+    #    new_cards 这条完全没读它 —— 于是蒋济的 elite 标了等于没标，
+    #    只能手改生成物才看得见（main 00f4fc7 就是这么干的，重建即丢）。
+    if CARD_RARITY.get(nc['id']) and CARD_RARITY[nc['id']] != 'common':
+        card['rarity'] = CARD_RARITY[nc['id']]
     card['gender'] = gender_of(nc['id'], nc['type'])   # ADR-071
     if nc.get('troopKind'): card['troopKind'] = nc['troopKind']
     if nc.get('tags'): card['tags'] = nc['tags']

@@ -1565,6 +1565,14 @@ resolved_notes:
 - O-旧6 与 O-旧2 重复，已合并
 - O-旧5 西凉/蛮族/黄巾标签：设计者确认需要标签系统，已实现（ADR-029 + data/tags.yaml）
 card_tags:
+  # main 00f4fc7：曹氏宗亲标签 —— 曹丕「宗室擢用」的 discover 按它筛选。
+  # 有照片的 4 张按照片号登记（112 曹休 / 113 曹昂 / 116 曹彰 / 117 曹仁）；
+  # 另外 4 张（曹植/曹洪/曹真/曹丕）是 new_cards，标签写在各条 new_cards 里。
+  cao_clan:
+  - 112
+  - 113
+  - 116
+  - 117
   xi_liang:
   - 55
   - 90
@@ -1582,7 +1590,80 @@ card_tags:
   - 122
 card_tags_note: ADR-029 归属标签。待确认：周仓/张燕是否算黄巾、董卓是否算西凉、士族是否必要
 new_cards:
-# ADR-088（设计者 2026-09-26 改版草船借箭）：随草船借箭召唤的 0/1 架盾假人。
+# ⚠️ 迁移说明（rebase 到 main 时）：下面这 5 张魏国人物原先**只存在于 data/cards.yaml**
+# （main 的 00f4fc7 直接改生成物，没回写决策层），重建数据链会把它们整张抹掉。
+# 现按铁律 1 迁回本文件 —— 卡牌数值/技能一律进决策层，改完由 build-cards.sh 重新生成。
+- id: wei_caozhi
+  name: 曹植
+  faction: wei
+  type: strategist
+  cost: 4
+  attack: 1
+  health: 4
+  tags: [cao_clan]
+  skill_name: 才高八斗
+  skill_text: 本回合每释放一个战法，抽一张牌。
+  memo: 战法连抽，阵亡抽两张
+  flavor: ''
+  source: 'main 00f4fc7「新增魏国人物」（原只改生成物，本次迁回决策层）'
+  open: []
+- id: wei_caohong
+  name: 曹洪
+  faction: wei
+  type: general
+  cost: 5
+  attack: 3
+  health: 5
+  tags: [cao_clan]
+  skill_name: 救急
+  skill_text: 战吼：使己方主公恢复 5 点生命。
+  memo: 架盾并使主公恢复 5 点生命
+  flavor: ''
+  source: 'main 00f4fc7「新增魏国人物」（原只改生成物，本次迁回决策层）'
+  open: []
+- id: wei_caozhen
+  name: 曹真
+  faction: wei
+  type: general
+  cost: 5
+  attack: 4
+  health: 5
+  tags: [cao_clan]
+  skill_name: 镇国
+  skill_text: 战吼：使场上所有角色攻击力和生命值 +1。
+  memo: 架盾并使场上所有角色获得 +1/+1
+  flavor: ''
+  source: 'main 00f4fc7「新增魏国人物」（原只改生成物，本次迁回决策层）'
+  open: []
+- id: wei_caopi
+  name: 曹丕
+  faction: wei
+  type: general
+  cost: 8
+  attack: 4
+  health: 8
+  tags: [cao_clan]
+  skill_name: 宗室擢用
+  skill_text: 一回合一次：从牌库随机展示 3 张曹氏宗亲，由你选择 1 张加入手牌；该牌统帅消耗减少 1 点。
+  memo: 随机展示三张曹氏宗亲，选择一张并减 1 统帅
+  flavor: 魏文帝整顿宗室与朝局，令曹氏人才为魏所用。
+  source: 'main 00f4fc7「新增魏国人物」（原只改生成物，本次迁回决策层）'
+  open: []
+- id: wei_liuye
+  name: 刘晔
+  faction: wei
+  type: strategist
+  cost: 3
+  attack: 1
+  health: 4
+  tags: []
+  skill_name: 空室纳贤
+  skill_text: 战吼：手牌少于等于 1 张时，抽一张牌。
+  memo: 战吼：手牌不超过一张时抽一张
+  flavor: ''
+  source: 'main 00f4fc7「新增魏国人物」（原只改生成物，本次迁回决策层）'
+  open: []
+# ADR-090（设计者 2026-09-26 改版草船借箭）：随草船借箭召唤的 0/1 架盾假人。
 # 只由草船借箭产出，不进卡组（type: token → core/src/deck.ts 的 maxCopiesOf 排除）。
 - id: token_jia_ren
   name: 假人
@@ -1596,7 +1677,7 @@ new_cards:
   skill_text: ''
   memo: 草船借箭扎的草人 —— 0/1 架盾，纯粹用来替己方挨打
   flavor: 草人借箭，箭尽而归。
-  source: 'ADR-088：设计者随草船借箭改版新增（非照片来源）'
+  source: 'ADR-090：设计者随草船借箭改版新增（非照片来源）'
   open: []
 - id: neutral_shieldman
   name: 盾兵
@@ -2057,7 +2138,6 @@ dsl:
   - token_jixie_shouwei
   - token_shizu_bing
   - wei_caogang
-  - wei_caoxiu
   - wei_zhangyan
   - wu_liyi
   - wu_quancong
@@ -2214,7 +2294,7 @@ dsl:
     - action: draw
       value: 2
   wei_zhangliao:
-  # ADR-086（设计者实机：「击败后溢出的伤害有主公承受，现在是给第一个敌人造成 2 点伤害」）：
+  # ADR-088（设计者实机：「击败后溢出的伤害有主公承受，现在是给第一个敌人造成 2 点伤害」）：
   #   ① 伤害量 = **本次击杀的溢出量**（引擎以 `overflow:N` 事件标记传出，走 value_from_flag）；
   #   ② 落点是**敌方主将**，不是"敌方第一个单位"。
   - id: chong_feng_xian_zhen
@@ -2710,6 +2790,99 @@ dsl:
         count: 1
         mode: random
     text: 回合结束时，随机对敌方一名人物或主将造成 1 点伤害。
+  # main 00f4fc7 的魏国人物技能（原先只写在生成物 cards.yaml 里，现迁回决策层）
+  wei_caoxiu:
+  - id: qian_li_zhi_ju
+    name: 千里之驹
+    kind: trigger
+    trigger: on_draw
+    text: 被抽到时，立刻召唤曹休上场。
+    effects:
+    - action: summon
+      unit: wei_caoxiu
+      count: 1
+      position: random
+  wei_caozhi:
+  - id: cai_gao_ba_dou
+    name: 才高八斗
+    kind: trigger
+    trigger: on_card_played
+    duration: this_turn
+    target:
+      filter:
+        type: tactic
+    text: 本回合每释放一个战法，抽一张牌。
+    effects:
+    - action: draw
+      value: 1
+  - id: luo_shen_fu
+    name: 洛神赋
+    kind: trigger
+    trigger: on_death
+    text: 亡语：抽两张牌。
+    effects:
+    - action: draw
+      value: 2
+  wei_caohong:
+  - id: jiu_ji
+    name: 救急
+    kind: trigger
+    trigger: on_play
+    text: 战吼：使己方主公恢复 5 点生命。
+    effects:
+    - action: heal
+      value: 5
+      target:
+        side: self
+        lord: true
+  wei_caozhen:
+  - id: zhen_guo
+    name: 镇国
+    kind: trigger
+    trigger: on_play
+    text: 战吼：使场上所有角色攻击力和生命值 +1。
+    effects:
+    - action: modify
+      attack: 1
+      health: 1
+      target:
+        side: both
+        filter:
+          type: character
+        count: all
+  wei_caopi:
+  - id: yan_ge_gai_ge
+    name: 宗室擢用
+    kind: active
+    cost: 0
+    frequency: once_per_turn
+    text: 一回合一次：从牌库随机展示 3 张曹氏宗亲，由你选择 1 张加入手牌；该牌统帅消耗减少 1 点。
+    effects:
+    - action: discover
+      count: 3
+      value: -1
+      target:
+        side: self
+        filter:
+          tag: cao_clan
+          faction: wei
+          type: character
+  wei_liuye:
+  - id: kong_shi_na_xian
+    name: 空室纳贤
+    kind: trigger
+    trigger: on_play
+    text: 战吼：手牌少于等于 1 张时，抽一张牌。
+    effects:
+    - action: draw
+      value: 1
+      condition:
+        count:
+          selector:
+            side: self
+            zone: hand
+          op: <=
+          value: 1
   tactic_caochuanjiejian: []
   shu_liufeng:
   - id: you_yu_bu_jue
@@ -2764,7 +2937,7 @@ dsl:
         count: 1
         mode: random
   qun_caiwenji:
-  # ADR-087（设计者实机：「人物统率消耗和战法统率消耗没有实际当前回合暂时降低」）：
+  # ADR-089（设计者实机：「人物统率消耗和战法统率消耗没有实际当前回合暂时降低」）：
   # 战吼要同时给**人物卡**与**战法卡**减 1 费，原先只写了 `type: character`，战法卡没被覆盖。
   # 选择器的 `type` 只支持单个值，故拆成两条（value / duration 完全一致）。
   - id: qu_ming_cai_yi
@@ -2808,7 +2981,7 @@ dsl:
         mode: choose
       condition:
         chosen_side: enemy      # 选到的是敌军 → 禁攻禁技
-    # ADR-087（设计者实机：「选择的人物进行攻击时还是会自己受到伤害，而不是陈宫」）：
+    # ADR-089（设计者实机：「选择的人物进行攻击时还是会自己受到伤害，而不是陈宫」）：
     # 友军分支必须用 `until_next_turn` —— 守护要挡的恰恰是**对手回合**的伤害，
     # 按 `duration: 1` 会在自己回合结束时就减到 0 被清掉，等于形同虚设。
     # 敌方分支（禁锢）不受影响：状态挂在敌方单位上，本就在他们自己的回合末才递减。
@@ -3198,7 +3371,7 @@ dsl:
     kind: trigger
     trigger: on_draw
     # 效果**只写在卡级**（见 dsl_effects）——技能这里不再重复一遍，
-    # 否则同一段伤害被计价两次（实测 total 1.2 → 2.7）。ADR-086
+    # 否则同一段伤害被计价两次（实测 total 1.2 → 2.7）。ADR-088
     text: 抽到时释放：对所有敌方人物造成 1 点伤害。
   shu_huangzhong:
   - id: bai_bu_chuan_yang
@@ -3216,13 +3389,13 @@ dsl:
         count: 1
         mode: choose
   shu_zhangfei:
-  # ADR-085（设计者裁定，2026-09-26）：
+  # ADR-087（设计者裁定，2026-09-26）：
   #   ① 「攻击力低于张飞的敌军 −1」是**张飞在场就持续生效**的压制，张飞阵亡即消失
   #      → 光环 aura（原先写成战吼 + duration: this_turn，只在入场那一下生效，
   #        之后与张飞死活无关，两条都不对）。
   #   ② 「1 点伤害」打的是**敌方所有人物**，与对方攻击力高低无关
   #      → 去掉 attack_below_source（原先只有攻低于张飞的人挨打）。
-  #   ③ 卡面写明「不含主公」，故显式 include_lord: false（范围伤害默认含主公，ADR-085）。
+  #   ③ 卡面写明「不含主公」，故显式 include_lord: false（范围伤害默认含主公，ADR-087）。
   - id: pao_xiao
     name: 咆哮
     kind: aura
@@ -3665,7 +3838,7 @@ dsl_effects:
   # ADR-073：原先只翻译了「抽对手一张牌」，「使其随机攻击己方单位」整句被漏掉 ——
   # 一张 5 费卡只干了 1 费的事。`force_attack` 的实现正是"令目标立刻攻击其随机友方"。
   - action: force_attack
-    attack_side: own          # 混乱内讧：打他自己人（ADR-085 的缺省值，此处显式写死）
+    attack_side: own          # 混乱内讧：打他自己人（ADR-087 的缺省值，此处显式写死）
     condition:
       exists:
         side: enemy
@@ -3727,7 +3900,7 @@ dsl_effects:
       side: both
       lord: true
   tactic_wanjianqifa:
-  # ADR-086：袁绍战吼会往**手牌**里塞一张万箭齐发，而它原先只有 on_draw 技能、
+  # ADR-088：袁绍战吼会往**手牌**里塞一张万箭齐发，而它原先只有 on_draw 技能、
   # 没有任何卡级效果 —— 于是那张手牌打出去**什么都不会发生**（设计者实机：
   # 「万箭齐发还是不是打出就对敌人造成伤害」）。
   # 现在效果写在卡级（打出即结算）；on_draw 技能不再重复写一遍 ——
@@ -3740,11 +3913,11 @@ dsl_effects:
         type: character
       count: all
   tactic_caochuanjiejian:
-  # ADR-088（设计者 2026-09-26 改版）：效果整体换掉 ——
+  # ADR-090（设计者 2026-09-26 改版）：效果整体换掉 ——
   #   ① 敌方场上每有一名人物，己方抽一张卡（value_from = 该选择器命中的数量）；
   #   ② 召唤两个 0/1 架盾假人（token_jia_ren）。
   #
-  # 旧版（ADR-085 修好 force_attack 之后的那一版）是「强制两名敌人去打我方最肉单位 +
+  # 旧版（ADR-087 修好 force_attack 之后的那一版）是「强制两名敌人去打我方最肉单位 +
   # 敌将阵亡抽 2」，设计者实机后整体改掉，连 zhen_wang 标记一并撤掉。
   - action: draw
     value_from:                  # 动态取值：这个选择器命中几个敌方人物就抽几张
@@ -3789,7 +3962,12 @@ card_keywords:
   - xian_gong
   elite_xianzhen_dun:
   - jia_dun
-  token_jia_ren:      # ADR-088：草船借箭召唤的 0/1 架盾假人
+  token_jia_ren:      # ADR-090：草船借箭召唤的 0/1 架盾假人
+  - jia_dun
+  # main 00f4fc7 的魏国人物（原只写在生成物里）
+  wei_caohong:
+  - jia_dun
+  wei_caozhen:
   - jia_dun
   wei_caogang:
   - jia_dun
@@ -3813,13 +3991,14 @@ card_no_skill:
   # wei_caozhang「猛袭」已于 ADR-071 补上效果（抉择：抽 1 张 / 本回合攻击 +1），
   # 不再列在这里 —— 留在名单里会被 gen-cards-v1 静默跳过 DSL（陷阱 #4）
 card_rarity:
+  wei_jiangji: elite    # main 00f4fc7：蒋济定为精英卡（原只写在生成物里，new_cards 原先读不到本段，已顺带修 gen-cards-v1）
   # ADR-068：精英卡（橙卡）允许强于同费预算 —— 设计者明确"有些卡稍强是预期的"。
   # 这些卡的技能远超估值模型的表达能力，强行按模型改数值会做坏设计。
   shu_guanyu: elite      # 水淹七军：全体技能禁用 + 全体 1 伤
   wei_guohuai: elite     # 据守：相邻 +2 上限 + 相邻架盾
   shu_jiangwei: elite    # 文武双全：普攻 +1 / 抽到非策略牌为止
   wu_zhouyu: elite       # 离间：拼点 + 弃牌 + 按弃牌统帅造成伤害
-  shu_zhangfei: elite    # 咆哮（ADR-085 修正后）：在场持续压制攻低于自己的敌人 + 入场全体 1 伤。
+  shu_zhangfei: elite    # 咆哮（ADR-087 修正后）：在场持续压制攻低于自己的敌人 + 入场全体 1 伤。
                          # 设计者裁定（2026-09-26）：保留 5 费 5/5 与两条机制，用精英位承载超预算部分，
                          # 而不是砍血量 —— 5/5 是设计者显式上调过的数值（原手写稿 5/4）。
 
@@ -3882,7 +4061,7 @@ card_memo:
   neutral_archer: 0 攻，但每回合结束白嫖 1 点伤害
   neutral_infantry: 1 费 1/1 的填线兵
   wei_caogang: 1 攻 3 血还带架盾，纯肉盾
-  wei_caoxiu: 3 费 2/3 白板，靠身材吃饭
+  wei_caoxiu: 抽到时立刻召唤上场（main 00f4fc7 改）
   wei_caozhang: 战吼二选一：抽 1 张，或本回合 +1 攻
   wei_xiahouen: 阵亡时给己方补 1 张牌
   wei_zhangyan: 上场即可攻击的快攻件
@@ -3973,7 +4152,7 @@ card_text:
   # ADR-075：卡级 effects 的卡（战法/事件）没有 `skills[].dsl` 可以挂 text，
   # 卡面显示的一直是手写稿原文 —— 设计者改了效果后就对不上了。这里按卡 id 覆盖。
   tactic_xiushengyangxi: 恢复己方全体（含主帅）3 点生命，并抽 1 张牌。
-  # ADR-088：草船借箭改版 —— 卡面正文跟着换，否则卡上还印着旧效果
+  # ADR-090：草船借箭改版 —— 卡面正文跟着换，否则卡上还印着旧效果
   tactic_caochuanjiejian: 敌方场上每有一名人物，己方抽一张卡；随后召唤两个 0/1 架盾假人。
 
 card_troopkind:
@@ -3987,6 +4166,10 @@ card_gender:
   qun_caiwenji: female      # 蔡文姬
   shu_huangyueying: female  # 黄月英
 card_stats:
+  # main 00f4fc7：曹休从 3 费改成 4 费（配「抽到时召唤」的强度）
+  wei_caoxiu:
+    cost: 4
+    reason: main 00f4fc7「新增魏国人物」的定稿（v1 稿原为 3 费 2/3 白板；加了「抽到时立刻召唤」后上调一费）
   shu_huangquan:
     attack: 0
     reason: 照片稿攻击力缺失（转录 uncertain），补 0 让数据显式；配合 card_type 定型为谋臣（ADR-072）
