@@ -402,10 +402,9 @@
       var indices = Object.keys(mulliganOut).map(Number);
       var res = Core.mulligan(baseState, 'own', indices, data.cards);
       var st = res.ok ? res.state : baseState;
-      // 敌方 AI 也换一次（换掉最贵的 2 张，简单启发式）
-      var foeHand = st.sides.enemy.hand;
-      var foeOut = foeHand.map(function (hc, i) { return { i: i, cost: hc.card.cost }; })
-        .sort(function (a, b) { return b.cost - a.cost; }).slice(0, 2).map(function (x) { return x.i; });
+      // 敌方 AI 也换一次 —— 交给 core 的 aiMulligan（ADR-084）：
+      // 判据是「这张牌我第一个回合能不能用」，而不是"换掉最贵的 2 张"这种拍脑袋规则
+      var foeOut = Core.aiMulligan(st, 'enemy', { cards: matchData.cards, lords: matchData.lords });
       var res2 = Core.mulligan(st, 'enemy', foeOut, data.cards);
       if (res2.ok) st = res2.state;
 

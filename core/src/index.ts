@@ -34,7 +34,10 @@ export {
   PUBLIC_POOL, PLAYABLE_FACTIONS,
   type DeckCheck, type DeckError, type DeckWarning, type DeckStats,
 } from './deck.ts';
-export { chooseAction, takeTurn } from './ai.ts';
+export {
+  chooseAction, takeTurn, decide, aiMulligan,
+  type AiDecision,
+} from './ai/index.ts';
 
 import { createMatch, type CreateMatchOptions } from './state.ts';
 import { startMatch } from './engine.ts';

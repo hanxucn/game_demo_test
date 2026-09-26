@@ -118,10 +118,10 @@ core/
 │   ├── mutate.ts      状态变更原语（伤害/治疗/死亡/抽牌）
 │   ├── effects.ts     效果 DSL 解释器
 │   ├── engine.ts      applyAction 主循环
-│   ├── ai.ts          启发式 AI（PvE）
+│   ├── ai/            对战 AI（ADR-084）：cards / profile / eval / options / index
 │   ├── loader.ts      数据加载与自动组卡
 │   └── index.ts       公共导出
-├── test/              34 个测试
-├── tools/             validate（校验器）、smoke（冒烟）
+├── test/              254 个测试（含 test/ai.test.ts）
+├── tools/             validate（校验器）、smoke（冒烟）、ai-report（AI 对局报表）
 └── data/              YAML 转换后的 JSON（勿手改）
 ```

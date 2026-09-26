@@ -5,19 +5,12 @@ function useLordSkill(
 ): boolean {
   const side = state.active;
   const lord = state.sides[side].lord;
-  const skill = lord.skillDef;
-  // 主公技一律走数据（ADR-049）：heroes.yaml 的 skills[0]，与卡牌同一套 DSL。
-  // 原先按中文技能名硬编码在 LORD_SKILLS 表里，改技能必须改代码。
-  if (!skill || skill.kind !== 'active') return false;
+  // 门控统一在 rules.canUseLordSkill（ADR-084）——AI 与引擎共用，不可能再漂移
+  const gate = canUseLordSkill(state, side);
+  if (!gate.ok || !gate.skill) return false;
+  const skill = gate.skill;
 
-  // 主公技门控（ADR-040）：被「进言」封锁则不可用；「参谋」提升每回合可用次数
-  if (hasCapOn(lord.statuses, 'block_lord_skill')) return false;
-  if (lord.skillUsedThisTurn && capStacks(lord.statuses, 'extra_lord_skill') <= 0) return false;
-
-  // 费用来自数据（ADR-049：三主公统一 2），不再硬编码 1
   const cost = skill.cost ?? LORD_SKILL_COST;
-  if (state.sides[side].command.cur < cost) return false;
-
   const target: TargetRef | undefined = action.target
     ? action.target.row !== undefined
       ? unitRef(action.target.side, action.target.row, action.target.col as number)
@@ -52,12 +45,11 @@ import { COMMAND, LORD_SKILL_COST, MATCH, STATUSES, TIMING } from './constants.t
 import { createRng } from './rng.ts';
 import {
   capStacks,
-  hasCapOn,
   lordStatusStacks,
   allUnits, cloneState, getUnit, makeUnit, nextUidSeq, other, setUnit, statusStacks,
 } from './state.ts';
 import {
-  canPlayCard, canUseUnitSkill, legalTargets,
+  canPlayCard, canUseLordSkill, canUseUnitSkill, legalTargets,
 } from './rules.ts';
 import {
   discardOverflow, drawCard, effectiveCost, expireHandMods, expireMods, expireStatuses,
@@ -127,6 +119,16 @@ export interface PlayTargetChoice {
   /** 1 → `action.target`；2 → `action.target2`（ADR-071） */
   pick: 1 | 2;
   label: string;
+  /**
+   * 发起该选择的效果动作（`damage` / `heal` / `modify` / `apply_status`…）。
+   *
+   * ADR-084：AI 要靠它判断「这个选择该选敌人还是自己人」——
+   * 只看 `label` 里的"敌方/己方"会被 `side: 'both'`（仁德、程昱）这类选择器骗到，
+   * 而动作名是**语义真源**：damage/destroy 选敌人，heal/modify 选自己人。
+   */
+  action: string;
+  /** 候选池实际覆盖的阵营（按池内目标去重），AI 用于兜底排序 */
+  sides: Side[];
   /** 合法目标（场上 / 主将）。手牌类目标不在此列 —— UI 表达不了，交给引擎兜底 */
   targets: Array<{ kind: 'unit' | 'lord'; side: Side; row?: Row; col?: number }>;
   /** 候选池里还含手牌（`zone: 'both'`）→ UI 选不到，引擎会用兜底目标 */
@@ -214,7 +216,12 @@ function choiceOf(
     if (r.kind === 'lord') targets.push({ kind: 'lord', side: r.side });
     else if (r.kind === 'unit') targets.push({ kind: 'unit', side: r.side, row: r.row, col: r.col });
   }
-  return { pick, label: choiceLabel(t), targets, includesHand: pool.some((r) => r.kind === 'hand') };
+  const sides = [...new Set(pool.map((r) => r.side))];
+  return {
+    pick, action: eff.action, sides, targets,
+    label: choiceLabel(t),
+    includesHand: pool.some((r) => r.kind === 'hand'),
+  };
 }
 
 /** 主公技的预览来源：主公不参与普攻，cost/atk 取 0 即可 */
@@ -226,7 +233,7 @@ const LORD_PREVIEW = { cost: 0, atk: 0 };
  * 与 `playTargetPlan` 同一套判定，UI 直接照它高亮即可 —— 不再自己按 side 猜。
  */
 export function unitSkillTargetPlan(
-  state: MatchState, side: Side, row: Row, col: number,
+  state: MatchState, side: Side, row: Row, col: number, modeIndex = 0,
 ): PlayTargetPlan {
   const plan: PlayTargetPlan = { modes: [], choices: [] };
   const u = getUnit(state, side, row, col);
@@ -234,7 +241,7 @@ export function unitSkillTargetPlan(
   const sk = (u.skills ?? []).find((x) => x.kind === 'active');
   if (!sk) return plan;
   if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `选项 ${i + 1}`);
-  for (const eff of effectsOf(sk, 0)) {
+  for (const eff of effectsOf(sk, modeIndex)) {
     const c = choiceOf(state, side, eff, { cost: u.cost, atk: u.atk });
     if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
   }
@@ -242,12 +249,12 @@ export function unitSkillTargetPlan(
 }
 
 /** **主公技**需要玩家选什么（ADR-077） */
-export function lordSkillTargetPlan(state: MatchState, side: Side): PlayTargetPlan {
+export function lordSkillTargetPlan(state: MatchState, side: Side, modeIndex = 0): PlayTargetPlan {
   const plan: PlayTargetPlan = { modes: [], choices: [] };
   const sk = state.sides[side].lord.skillDef;
   if (!sk) return plan;
   if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `选项 ${i + 1}`);
-  for (const eff of effectsOf(sk, 0)) {
+  for (const eff of effectsOf(sk, modeIndex)) {
     const c = choiceOf(state, side, eff, LORD_PREVIEW);
     if (c && !plan.choices.some((x) => x.pick === c.pick)) plan.choices.push(c);
   }

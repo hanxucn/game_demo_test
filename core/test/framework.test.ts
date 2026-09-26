@@ -173,7 +173,7 @@ test('换牌：下标越界被拒绝', () => {
    ============================================================ */
 
 test('全流程：setupMatch → startMatch → 打满一局 → 有胜者', async () => {
-  const { chooseAction } = await import('../src/ai.ts');
+  const { chooseAction } = await import('../src/ai/index.ts');
   const { state } = setupMatch({
     seed: 2026, cards: data.cards, lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
@@ -265,7 +265,7 @@ test('主动技频率：0 费主动技每回合只能用 1 次（GDD 10 §1.1）
 });
 
 test('全流程：0 费主动技在场也不会无限循环（回归 ADR-047）', async () => {
-  const { chooseAction } = await import('../src/ai.ts');
+  const { chooseAction } = await import('../src/ai/index.ts');
   // seed=7 曾让 AI 反复使用 0 费主动技，把对局卡在第 10 回合 4000 步
   for (const seed of [7, 11, 2026, 99]) {
     const { state } = setupMatch({
@@ -489,7 +489,7 @@ test('ADR-054：没有回合上限，也没有平局', async () => {
   const { MATCH } = await import('../src/constants.ts');
   assert.equal(MATCH.TURN_LIMIT, Infinity, '回合上限应为 Infinity（不设上限）');
   // 类型层面已无 draw：长局只能由主将阵亡结束
-  const { chooseAction } = await import('../src/ai.ts');
+  const { chooseAction } = await import('../src/ai/index.ts');
   const { state } = setupMatch({
     seed: 5, cards: data.cards, lords: data.lords,
     decks: { own: autoDeck(data, 'shu'), enemy: autoDeck(data, 'wei') },
