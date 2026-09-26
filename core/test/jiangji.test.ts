@@ -38,7 +38,7 @@ test('蒋济：选择敌方武将后限制该武将和所有普通兵种攻击',
     col: 0,
     target: { side: 'enemy', row: 'front', col: 2 },
   });
-  assert.equal(result.ok, true, result.error);
+  assert.equal(result.ok, true, result.error ?? '');
   for (const col of [0, 1, 2, 3, 4]) {
     assert.equal(result.state.sides.enemy.rows.front[col]?.statuses.jin_gong?.stacks, 1, `列 ${col} 应被禁攻`);
   }
@@ -52,7 +52,7 @@ test('蒋济：选择普通兵种时回退到合法武将目标', () => {
     col: 0,
     target: { side: 'enemy', row: 'front', col: 0 },
   });
-  assert.equal(result.ok, true, result.error);
+  assert.equal(result.ok, true, result.error ?? '');
   assert.equal(result.state.sides.enemy.rows.front[0]?.statuses.jin_gong?.stacks, 1);
   assert.equal(result.state.sides.enemy.rows.front[2]?.statuses.jin_gong?.stacks, 1);
 });
