@@ -109,12 +109,15 @@ export function refAlive(state: MatchState, ref: TargetRef): boolean {
  * 「抽到时释放」解析器（ADR-050）。
  *
  * 依赖方向是 effects → mutate，所以 mutate 不能直接调 runEffects；
- * 这里留一个挂载点，由 effects.ts 在模块加载时注册。返回 true = 已自动释放（不进手牌）。
+ * 这里留一个挂载点，由 effects.ts 在模块加载时注册。返回 false = 交给普通抽牌；
+ * 返回对象则表示已处理，并由 discard 字段决定是否进入弃牌堆。
  */
+export type OnDrawResult = false | { discard: boolean };
+
 export type OnDrawResolver = (
   state: MatchState, cards: Map<string, CardDef>, side: Side,
   card: CardDef, events: GameEvent[], rng: ReturnType<typeof createRng>,
-) => boolean;
+) => OnDrawResult;
 
 let onDrawResolver: OnDrawResolver | null = null;
 
@@ -185,8 +188,9 @@ export function drawCard(
   // rng 未传入时退回由 state.rngState 临时派生——确定可复现，但随机质量略降（见 ADR-050）
   if (onDrawResolver) {
     const r = rng ?? createRng(state.rngState);
-    if (onDrawResolver(state, cards, side, card, events, r)) {
-      s.discard.push(card);
+    const result = onDrawResolver(state, cards, side, card, events, r);
+    if (result) {
+      if (result.discard) s.discard.push(card);
       events.push({ type: 'CARD_AUTO_CAST', side, card });
       return;
     }

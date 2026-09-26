@@ -628,6 +628,11 @@
   }
   #play-modes button:hover { background: #46361d; border-color: var(--gold); }
   #play-modes button.is-cancel { color: var(--dim); background: transparent; border-color: #3a3228; }
+  #discover-pick { position: fixed; z-index: 120; left: 50%; top: 50%; transform: translate(-50%, -50%); min-width: 300px; max-width: 92vw; padding: 14px; background: rgba(29,24,17,.98); border: 1px solid var(--gold); border-radius: 6px; box-shadow: 0 12px 40px rgba(0,0,0,.65); }
+  #discover-pick h4 { margin: 0 0 10px; color: var(--gold-hi); text-align: center; }
+  #discover-pick .discover-list { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #discover-pick button { min-width: 92px; padding: 9px 10px; color: var(--ink); background: #45371f; border: 1px solid #9a7336; border-radius: 4px; cursor: pointer; }
+  #discover-pick button:hover { background: #624b25; border-color: var(--gold-hi); }
 
   #card-tip {
     position: fixed; z-index: 620;   /* 高于拖拽幽灵(500)与箭头(480) */

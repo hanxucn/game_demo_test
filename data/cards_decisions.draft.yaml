@@ -1636,6 +1636,80 @@ new_cards:
   skill_text: 阵亡时，己方抽一张牌。
   source: 设计者 2026-09 定稿新建
   open: []
+- id: wei_jiangji
+  name: 蒋济
+  faction: wei
+  type: strategist
+  cost: 4
+  attack: 1
+  health: 4
+  rarity: elite
+  tags: []
+  skill_name: 诈敌
+  skill_text: 战吼：选择一个敌方武将，使其和所有敌方普通兵种下个回合无法攻击。
+  memo: 战吼限制敌方武将和普通兵种下回合攻击
+  source: 设计者 2026-09 定稿新建
+  open: []
+- id: wei_lejin
+  name: 乐进
+  faction: wei
+  type: general
+  cost: 5
+  attack: 4
+  health: 4
+  skill_name: 先登
+  skill_text: 自己场上没有其他武将时，获得先攻。
+  memo: 无其他己方武将时获得先攻
+  source: 设计者 2026-09 定稿新建
+  open: []
+- id: wei_dengai
+  name: 邓艾
+  faction: wei
+  type: general
+  cost: 5
+  attack: 4
+  health: 5
+  skill_name: 屯田
+  skill_text: 回合结束时，若本回合没有攻击，抽 1 张牌。
+  memo: 不攻击就屯田抽牌
+  source: 设计者 2026-09 定稿新建
+  open: []
+- id: wei_yujin
+  name: 于禁
+  faction: wei
+  type: general
+  cost: 5
+  attack: 3
+  health: 3
+  skill_name: 持军严整
+  skill_text: 所有统率为 5 的角色获得 +2 攻击力和 +2 生命值。
+  memo: 光环强化所有 5 费角色
+  source: 设计者 2026-09 定稿新建
+  open: []
+- id: wei_xiahoushang
+  name: 夏侯尚
+  faction: wei
+  type: general
+  cost: 4
+  attack: 2
+  health: 2
+  skill_name: 辅政
+  skill_text: 战吼：从牌库发现三张战法，选择一张加入手牌。
+  memo: 战吼发现一张战法牌
+  source: 设计者 2026-09 定稿新建
+  open: []
+- id: wei_zhonghui
+  name: 钟会
+  faction: wei
+  type: general
+  cost: 6
+  attack: 4
+  health: 5
+  skill_name: 乱局
+  skill_text: 战吼：使一个敌方人物混乱 1 回合。
+  memo: 战吼混乱一个敌方人物
+  source: 设计者 2026-09 定稿新建
+  open: []
 - id: token_huangjin_bing
   name: 黄巾兵
   faction: neutral
@@ -1859,6 +1933,100 @@ dsl:
         filter:
           type: character
         count: all
+  wei_jiangji:
+  - id: zha_di
+    name: 诈敌
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: jin_gong
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: general
+        count: 1
+        mode: choose
+    - action: apply_status
+      status: jin_gong
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: troop
+        count: all
+  wei_lejin:
+  - id: xian_deng
+    name: 先登
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: xian_gong_status
+      target:
+        source: true
+      condition:
+        count:
+          selector:
+            side: ally
+            filter:
+              type: general
+              exclude_source: true
+          op: ==
+          value: 0
+  wei_dengai:
+  - id: tun_tian
+    name: 屯田
+    kind: trigger
+    trigger: turn_end
+    effects:
+    - action: draw
+      value: 1
+      condition:
+        acted_this_turn: false
+  wei_yujin:
+  - id: chi_jun_yan_zheng
+    name: 持军严整
+    kind: aura
+    effects:
+    - action: modify
+      attack: 2
+      health: 2
+      target:
+        side: both
+        filter:
+          type: character
+          cost_min: 5
+          cost_max: 5
+        count: all
+  wei_xiahoushang:
+  - id: fu_zheng
+    name: 辅政
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: discover
+      count: 3
+      target:
+        side: self
+        filter:
+          type: tactic
+  wei_zhonghui:
+  - id: luan_ju
+    name: 乱局
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: apply_status
+      status: hun_luan
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: character
+        count: 1
+        mode: choose
   _none:
   - neutral_infantry
   - neutral_shieldman

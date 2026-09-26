@@ -184,6 +184,15 @@ test('全流程：setupMatch → startMatch → 打满一局 → 有胜者', asy
 
   let guard = 0;
   while (!s.winner && guard < 4000) {
+    if (s.pendingDiscover) {
+      const choice = s.pendingDiscover.candidates[0];
+      assert.ok(choice, '发现应至少提供一张候选牌');
+      const discovered = applyAction(s, ctx, { type: 'CHOOSE_DISCOVER', cardId: choice });
+      assert.equal(discovered.ok, true, `发现选择被拒：${discovered.error ?? ''}`);
+      s = discovered.state;
+      guard += 1;
+      continue;
+    }
     // chooseAction 返回 null = 无牌可出/无攻击可做 → 结束回合
     const a: Action = chooseAction(s, ctx) ?? { type: 'END_TURN' };
     const r = applyAction(s, ctx, a);
@@ -498,6 +507,15 @@ test('ADR-054：没有回合上限，也没有平局', async () => {
   let s = startMatch(state, ctx).state;
   let n = 0;
   while (!s.winner && n < 4000) {
+    if (s.pendingDiscover) {
+      const choice = s.pendingDiscover.candidates[0];
+      assert.ok(choice, '发现应至少提供一张候选牌');
+      const discovered = applyAction(s, ctx, { type: 'CHOOSE_DISCOVER', cardId: choice });
+      assert.equal(discovered.ok, true, `发现选择被拒：${discovered.error ?? ''}`);
+      s = discovered.state;
+      n += 1;
+      continue;
+    }
     const a: Action = chooseAction(s, ctx) ?? { type: 'END_TURN' };
     const r = applyAction(s, ctx, a);
     assert.equal(r.ok, true);

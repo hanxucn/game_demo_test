@@ -392,6 +392,14 @@ var Core = (() => {
       caps: ["block_attack", "block_skill"],
       note: "\u4E0D\u80FD\u666E\u653B\u4E5F\u4E0D\u80FD\u7528\u4E3B\u52A8\u6280\uFF08\u9648\u5BAB\u300C\u5FE0\u70C8\u300D\u5BF9\u654C\u519B\u5206\u652F\uFF0CADR-069\uFF09"
     },
+    jin_gong: {
+      name: "无法攻击",
+      kind: "debuff",
+      numeric: false,
+      duration: "turns",
+      caps: ["block_attack"],
+      note: "本回合不能普通攻击"
+    },
     mian_yi: {
       name: "\u514D\u75AB",
       kind: "buff",
@@ -467,7 +475,8 @@ var Core = (() => {
     // 挨个发动**真正的普攻**（含反击），自己阵亡即停（ADR-071，张苞）
     "draw_until",
     // 一直抽到抽出一张「非某类型」的牌为止（ADR-071，姜维）
-    "mill"
+    "mill",
+    "discover"
     // 弃掉目标方牌库的 N 张牌（ADR-074，司马懿「谋定后动」②）
   ];
   var RARITIES = ["common", "elite"];
@@ -1958,6 +1967,26 @@ var Core = (() => {
           }
           break;
         }
+        case "discover": {
+          const filter = eff.target?.filter;
+          const candidates = state.sides[ctx.side].deck.filter((id) => {
+            const card = cards.get(id);
+            if (!card) return false;
+            if (filter?.faction && card.faction !== filter.faction) return false;
+            if (filter?.type === "character" && !["troop", "general", "strategist"].includes(card.type)) return false;
+            if (filter?.type && filter.type !== "character" && card.type !== filter.type) return false;
+            if (filter?.tag && !(card.tags ?? []).includes(filter.tag)) return false;
+            return true;
+          });
+          const pool = [...candidates];
+          const shown = [];
+          const count = Math.min(eff.count ?? 3, pool.length);
+          for (let i = 0; i < count; i++) shown.push(pool.splice(rng.int(pool.length), 1)[0]);
+          if (!shown.length) break;
+          state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value };
+          events.push({ type: "DISCOVER_OPTIONS", side: ctx.side, cards: shown.map((id) => cards.get(id)).filter(Boolean) });
+          break;
+        }
         case "apply_status": {
           const times = eff.count ?? 1;
           const turns = typeof eff.duration === "number" ? eff.duration : eff.duration === "this_turn" ? 1 : void 0;
@@ -2158,10 +2187,35 @@ var Core = (() => {
     let ok = true;
     let error;
     try {
+      if (next.pendingDiscover && action.type !== "CHOOSE_DISCOVER") throw new Error("请先选择发现的牌");
       switch (action.type) {
         case "PLAY_CARD":
           ok = playCard(next, ctx, action, events, rng);
           break;
+        case "CHOOSE_DISCOVER": {
+          const pending = next.pendingDiscover;
+          if (!pending || next.active !== pending.side || !pending.candidates.includes(action.cardId)) { ok = false; break; }
+          const index = next.sides[pending.side].deck.indexOf(action.cardId);
+          const card = index >= 0 ? ctx.cards.get(next.sides[pending.side].deck[index]) : void 0;
+          if (index < 0 || !card) { ok = false; break; }
+          next.sides[pending.side].deck.splice(index, 1);
+          delete next.pendingDiscover;
+          events.push({ type: "CARD_DISCOVERED", side: pending.side, card, costModifier: pending.costModifier });
+          const drawSkill = (card.skills ?? []).find((skill) => skill.trigger === "on_draw");
+          if (drawSkill) {
+            const isCharacter = ["troop", "general", "strategist"].includes(card.type);
+            const emptyCol = isCharacter ? next.sides[pending.side].rows.front.findIndex((unit) => unit === null) : 0;
+            if (!isCharacter || emptyCol >= 0) {
+              emitSkillTriggered(next, pending.side, null, drawSkill, "trigger", events);
+              runEffects(next, ctx.cards, drawSkill.effects ?? [], { side: pending.side }, rng, events);
+              if (!isCharacter) next.sides[pending.side].discard.push(card);
+              events.push({ type: "CARD_AUTO_CAST", side: pending.side, card });
+              break;
+            }
+          }
+          next.sides[pending.side].hand.push({ card, mods: pending.costModifier ? [{ id: "discover", kind: "cost", value: pending.costModifier }] : [] });
+          break;
+        }
         case "ATTACK":
           ok = attack(next, ctx, action, events, rng);
           break;

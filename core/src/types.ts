@@ -152,6 +152,8 @@ export interface SkillDef {
   cost?: number;
   frequency?: 'once_per_turn' | 'unlimited' | 'once';
   trigger?: string;              // TIMING 常量
+  /** 触发技能的有效期限；this_turn 表示仅来源单位入场的本回合生效 */
+  duration?: 'this_turn';
   chance?: number;               // 技能级概率（免死等，ADR-039）
   target?: TargetSelector;
   effects?: CardEffect[];
@@ -333,6 +335,12 @@ export interface MatchState {
   winner: Side | 'draw' | null;
   /** 后手补偿方式（ADR-053） */
   secondCompensation?: 'none' | 'extra_draw';
+  /** 发现牌流程：候选牌生成后等待当前玩家选择。 */
+  pendingDiscover?: {
+    side: Side;
+    candidates: string[];
+    costModifier?: number;
+  };
 }
 
 /* ============================================================
@@ -347,6 +355,7 @@ export type Action =
       target2?: { side: Side; row: Row; col: number };
       /** 抉择分支下标（ADR-071，曹彰）：缺省 / 越界一律取 modes[0] */
       modeIndex?: number }
+  | { type: 'CHOOSE_DISCOVER'; cardId: string }
   | { type: 'ATTACK'; from: { row: Row; col: number }; to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' } }
   | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number }; handIndex?: number; modeIndex?: number }
   | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number; modeIndex?: number }
@@ -362,6 +371,8 @@ export type GameEvent =
   | { type: 'CARD_DRAWN'; side: Side; card: CardDef; deckLeft: number }
   | { type: 'CARD_AUTO_CAST'; side: Side; card: CardDef }
   | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number; to?: 'hand' | 'deck' }
+  | { type: 'DISCOVER_OPTIONS'; side: Side; cards: CardDef[] }
+  | { type: 'CARD_DISCOVERED'; side: Side; card: CardDef; costModifier?: number }
   /** 牌库被弃牌（milled）：ADR-074 */
   | { type: 'CARD_MILLED'; side: Side; cardId: string; from: 'top' | 'random' }
   /**

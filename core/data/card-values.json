@@ -263,10 +263,46 @@
  "wei_caoxiu": {
   "stats": 5,
   "keywords": 0,
-  "skills": 0,
-  "total": 5,
+  "skills": 2.4,
+  "total": 7.4,
+  "budget": 9,
+  "diff": -1.6,
+  "level": "watch"
+ },
+ "wei_caozhi": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 6,
+  "total": 11,
+  "budget": 9,
+  "diff": 2,
+  "level": "watch"
+ },
+ "wei_liuye": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 2.1,
+  "total": 7.1,
   "budget": 7,
+  "diff": 0.1,
+  "level": "ok"
+ },
+ "wei_caohong": {
+  "stats": 8,
+  "keywords": -1,
+  "skills": 2,
+  "total": 9,
+  "budget": 11,
   "diff": -2,
+  "level": "watch"
+ },
+ "wei_caozhen": {
+  "stats": 9,
+  "keywords": -1,
+  "skills": 6,
+  "total": 14,
+  "budget": 11,
+  "diff": 3,
   "level": "watch"
  },
  "wei_caozhang": {
@@ -430,6 +466,15 @@
   "budget": 15,
   "diff": 2.2,
   "level": "watch"
+ },
+ "wei_caopi": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 3.6,
+  "total": 8.6,
+  "budget": 9,
+  "diff": -0.4,
+  "level": "ok"
  },
  "wu_liyi": {
   "stats": 4,
@@ -1096,6 +1141,60 @@
   "budget": 9,
   "diff": -7.5,
   "level": "off"
+ },
+ "wei_jiangji": {
+  "stats": 5,
+  "keywords": 0,
+  "skills": 8,
+  "total": 13,
+  "budget": 9,
+  "diff": 4,
+  "level": "off"
+ },
+ "wei_lejin": {
+  "stats": 8,
+  "keywords": 0,
+  "skills": 1.4,
+  "total": 9.4,
+  "budget": 11,
+  "diff": -1.6,
+  "level": "watch"
+ },
+ "wei_dengai": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 1.47,
+  "total": 10.47,
+  "budget": 11,
+  "diff": -0.53,
+  "level": "ok"
+ },
+ "wei_yujin": {
+  "stats": 6,
+  "keywords": 0,
+  "skills": 4,
+  "total": 10,
+  "budget": 11,
+  "diff": -1,
+  "level": "ok"
+ },
+ "wei_xiahoushang": {
+  "stats": 4,
+  "keywords": 0,
+  "skills": 4.5,
+  "total": 8.5,
+  "budget": 9,
+  "diff": -0.5,
+  "level": "ok"
+ },
+ "wei_zhonghui": {
+  "stats": 9,
+  "keywords": 0,
+  "skills": 2,
+  "total": 11,
+  "budget": 13,
+  "diff": -2,
+  "level": "watch"
  },
  "status_jia_dun": {
   "stats": 0,

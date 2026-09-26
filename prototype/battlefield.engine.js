@@ -514,16 +514,17 @@ function renderHand(st) {
     wrap.style.zIndex = 10 + i;
 
     // 费用不足仍保留正常卡面；实际出牌仍由 Core 校验，资源提示显示在统率值上。
-    var cost = c.cost != null ? c.cost : 0;
+    var cost = Core.effectiveCost ? Core.effectiveCost(hc) : (c.cost != null ? c.cost : 0);
     var affordable = cmd >= cost;
     var playable = myTurn && affordable;
-    wrap.appendChild(CR.big(viewCard(c), { desc: true, affordable: affordable }));   // desc: 卡面显示技能名+文案
+    var displayCard = Object.assign({}, c, { cost: cost });
+    wrap.appendChild(CR.big(viewCard(displayCard), { desc: true, affordable: affordable }));   // desc: 卡面显示技能名+文案
 
     // 悬停 → 贴卡弹出技能详情（卡面太小放不下全文，详情面板又在右下角太远）
     wrap.addEventListener('pointerenter', function () {
       if (busy || drag) return;
       $('#cmd-num').classList.toggle('is-warning', !affordable);
-      showCardTip(viewCard(c), wrap);
+      showCardTip(viewCard(displayCard), wrap);
     });
     wrap.addEventListener('pointerleave', function () {
       hideCardTip();
@@ -544,7 +545,7 @@ function renderHand(st) {
       if (busy) skipAnimation();                          // ADR-077
       if (Date.now() - dragHandledAt < 300) return;      // 拖拽已在 pointerup 处理
       if (onHandPick(i)) return;
-      if (isCharacter(c)) { showCardDetail(c); return; }  // 人物卡点击 = 看详情
+      if (isCharacter(c)) { showCardDetail(displayCard); return; }  // 人物卡点击 = 看详情
       if (!playable) {
         $('#cmd-num').classList.add('is-warning');
         banner('统率值不足', c.name + '需要 ' + cost + ' 点统率，当前 ' + cmd, 'warning');
@@ -694,7 +695,8 @@ function startDrag(e, index, card, wrap) {
   e.preventDefault();
 
   var command = session.state.sides.own.command.cur;
-  var cost = card.cost || 0;
+  var handCard = session.state.sides.own.hand[index];
+  var cost = Core.effectiveCost && handCard ? Core.effectiveCost(handCard) : (card.cost || 0);
   if (cost > command) {
     $('#cmd-num').classList.add('is-warning');
     banner('统率值不足', card.name + '需要 ' + cost + ' 点统率，当前 ' + command, 'warning');
@@ -727,12 +729,12 @@ function startDrag(e, index, card, wrap) {
       var el = document.querySelector('.slot[data-side="own"][data-row="' + s.row + '"][data-col="' + s.col + '"]');
       if (el) el.classList.add('is-placeable');
     });
-    showDetail('拖到战场放置', card.name + '（' + card.cost + ' 费）', '绿色格子为可放置位置');
+    showDetail('拖到战场放置', card.name + '（' + cost + ' 费）', '绿色格子为可放置位置');
   } else {
     // 战法 / 事件卡没有落点：把整块战场当作投放区
     var boards = $('#boards') || document.querySelector('.arena-inner');
     if (boards) boards.classList.add('is-spell-target');
-    showDetail('拖到战场释放', card.name + '（' + card.cost + ' 费）', '拉到战场任意处松手即释放');
+    showDetail('拖到战场释放', card.name + '（' + cost + ' 费）', '拉到战场任意处松手即释放');
   }
 
   bindDragEvents();
@@ -1242,6 +1244,29 @@ function showModePicker(card, modes, onPick) {
   showDetail('选择技能分支', card.name, '点上面的按钮选择①或②');
 }
 
+function showDiscoverPicker(cards) {
+  var old = document.getElementById('discover-pick');
+  if (old) old.remove();
+  var box = document.createElement('div');
+  box.id = 'discover-pick';
+  box.innerHTML = '<h4>发现：选择一张加入手牌</h4><div class="discover-list"></div>';
+  var list = box.querySelector('.discover-list');
+  (cards || []).forEach(function (card) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = card.name + '　' + card.cost + '费' + (card.attack != null ? '　' + card.attack + '/' + card.health : '');
+    btn.title = cardSkillText(card);
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      box.remove();
+      doAction({ type: 'CHOOSE_DISCOVER', cardId: card.id });
+    });
+    list.appendChild(btn);
+  });
+  document.body.appendChild(box);
+  showDetail('发现', '从随机展示的牌中选择一张', '候选牌加入手牌；曹氏宗亲统率消耗减少 1 点');
+}
+
 function showDetail(title, sub, why) {
   var d = $('#detail');
   d.innerHTML = '<h4>' + title + '</h4>' +
@@ -1611,7 +1636,11 @@ function doAction(action) {
   playEvents(res.events, function () {
     busy = false;
     renderAll();
-    if (session.state.winner) {
+    var discover = session.state.pendingDiscover;
+    if (discover && discover.side === 'own') {
+      var options = discover.candidates.map(function (id) { return GD.cards.find(function (c) { return c.id === id; }); }).filter(Boolean);
+      showDiscoverPicker(options);
+    } else if (session.state.winner) {
       banner('对局结束', session.state.winner === 'own' ? '我方胜利' : session.state.winner === 'enemy' ? '敌方胜利' : '平局');
     } else if (shouldAuto()) {
       setTimeout(runAiTurn, 350);
@@ -1652,6 +1681,10 @@ function describeEvent(e) {
     }
     case 'CARD_MILLED':
       return { cls: 'mill', text: who + ' 牌库被弃掉一张（' + (e.cardId || '') + '）' };
+    case 'DISCOVER_OPTIONS':
+      return { cls: 'eff', text: who + ' 发现了 ' + e.cards.map(function (c) { return '<b>' + c.name + '</b>'; }).join('、') + '，等待选择' };
+    case 'CARD_DISCOVERED':
+      return { cls: 'eff', text: who + ' 选择了 <b>' + e.card.name + '</b>加入手牌' + (e.costModifier ? '（统率 ' + e.costModifier + '）' : '') };
     case 'TURN_SKIPPED':
       return { cls: 'turn', text: who + ' 的回合被跳过（' + (e.reason || '') + '）' };
     // e.turn 现在是**完整回合数**（双方都行动完才 +1，ADR-064），
@@ -1850,6 +1883,12 @@ function skipAnimation() {
   // 如果里面有阵亡，玩家看到的就是"人凭空消失、日志里也查不到"。
   skipped.forEach(function (e) { logOne(e); });
   renderAll();
+  if (session && session.state.pendingDiscover && session.state.pendingDiscover.side === 'own') {
+    var skippedOptions = session.state.pendingDiscover.candidates.map(function (id) {
+      return GD.cards.find(function (c) { return c.id === id; });
+    }).filter(Boolean);
+    showDiscoverPicker(skippedOptions);
+  }
   // 阵亡单独给一个短暂提示：卡已经不在了，但至少要让人看见"谁死了"
   skipped.forEach(function (e) {
     if (e.type === 'UNIT_DIED') flashDeath(e.side, e.row, e.col, e.unit);

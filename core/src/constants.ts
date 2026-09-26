@@ -94,6 +94,7 @@ export const TAGS: Record<string, { name: string; note: string }> = {
   man_zu:    { name: '蛮族', note: '南方异族：沙摩柯' },
   huang_jin: { name: '黄巾', note: '黄巾军出身或其旧部' },
   shi_zu:    { name: '士族', note: '士族门阀：袁绍及其士族兵' },
+  cao_clan:  { name: '曹氏宗亲', note: '曹操宗族人物：曹昂、曹休、曹彰、曹仁、曹丕等' },
 };
 
 export const FORBIDDEN_KEYWORD_COMBOS: string[][] = [
@@ -181,6 +182,9 @@ export const STATUSES: Record<string, StatusDef> = {
   jin_gu:     { name: '禁锢', kind: 'debuff', numeric: false, duration: 'turns',
                 caps: ['block_attack', 'block_skill'],
                 note: '不能普攻也不能用主动技（陈宫「忠烈」对敌军分支，ADR-069）' },
+  jin_gong:   { name: '无法攻击', kind: 'debuff', numeric: false, duration: 'turns',
+                caps: ['block_attack'],
+                note: '本回合不能普通攻击' },
   mian_yi:    { name: '免疫', kind: 'buff',   numeric: false, duration: 'turns', caps: ['immune_debuff', 'untargetable'],
                 note: '免疫负面状态，且不能被指定为目标' },
   fan_mian:   { name: '翻面', kind: 'debuff', numeric: false, duration: 'conditional',
@@ -219,6 +223,7 @@ export const ACTIONS = [
   'attack_each',   // 挨个发动**真正的普攻**（含反击），自己阵亡即停（ADR-071，张苞）
   'draw_until',    // 一直抽到抽出一张「非某类型」的牌为止（ADR-071，姜维）
   'mill',          // 弃掉目标方牌库的 N 张牌（ADR-074，司马懿「谋定后动」②）
+  'discover',      // 从牌库随机展示候选牌并由玩家选择（曹丕）
 ] as const;
 
 /** 稀有度（ADR-068）：普通 / 精英。精英卡允许强于同费预算 */
