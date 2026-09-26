@@ -9,13 +9,16 @@ import { BOARD, STATUSES, TIMING } from './constants.ts';
 import { allUnits, applyMods, getUnit, hasCap, hasTrait, makeUnit, nextUidSeq, other, setUnit } from './state.ts';
 import { handRef, removeStatus } from './mutate.ts';
 import { effectiveAttack } from './rules.ts';
-import type { Rng } from './rng.ts';
+// 合并说明（rebase 到 main 时）：两边各加了一个 import —— main 把「抽到时释放」
+// 重构成返回 OnDrawResult 的具名函数，我这边（ADR-085 的死亡后光环重算）需要 createRng。
+// 两个都要留。
+import { createRng, type Rng } from './rng.ts';
 import { type OnDrawResult } from './mutate.ts';
 import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchState, Row, Side, SkillDef, TargetSelector, Unit } from './types.ts';
 import {
   applyStatus, dealDamage, drawCard, gainArmor, healTarget, killUnit, lordRef, registerOnDeathResolver,
   registerOnDrawResolver,
-  registerOnKillResolver, summonUnit, unitRef,
+  registerAfterDeathResolver, registerMarkDeathResolver, registerOnKillResolver, summonUnit, unitRef,
   type TargetRef,
 } from './mutate.ts';
 
@@ -52,6 +55,16 @@ registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) 
     runEffects(state, cards, sk.effects ?? [],
       { side, source: unit, killer: killer ?? undefined }, rng, events);
   }
+});
+
+// 「死亡后光环重算」挂载点（ADR-085，时机表第 19 步）
+registerAfterDeathResolver((state, cards, events) => {
+  recomputeAuras(state, cards, createRng(state.rngState), events);
+});
+
+// 「标记阵亡」挂载点（ADR-085）：仇敌 / 阵亡标记的结算（runMarkDeath 从此真正被调用）
+registerMarkDeathResolver((state, cards, dead, rng, events) => {
+  runMarkDeath(state, cards, dead, rng, events);
 });
 
 // 「击杀时」挂载点（ADR-070）：华雄「威震四方」每次击杀 +1/+1
@@ -391,6 +404,11 @@ export function runMarkDeath(
   state: MatchState, cards: Map<string, CardDef>, dead: Unit, rng: Rng, events: GameEvent[],
 ): void {
   const inst = dead.statuses.chou_di_shou ?? dead.statuses.zhen_wang;
+  // ① 卡牌级标记（ADR-085）：结算写在标记上，由施法方执行 —— 不依赖任何单位
+  if (inst?.payoff?.length && inst.srcSide) {
+    runEffects(state, cards, inst.payoff, { side: inst.srcSide }, rng, events);
+  }
+  // ② 单位级标记（ADR-041）：跑标记者自己的 on_mark_death 技能
   if (!inst?.srcUid) return;
   for (const side of ['own', 'enemy'] as Side[]) {
     for (const ref of allUnits(state, side)) {
@@ -673,6 +691,10 @@ export function runOnAttackPhase(
  *
  * @param opts.consumeAttack 是否计入「本回合已攻击次数」。ATTACK 动作为 true；
  *        `attack_each`（战吼发动的一串普攻）为 false —— 它不占用该单位本回合的攻击机会。
+ * @param opts.toSide 被打的是哪一方，缺省 = 攻击者的对面。
+ *        **内讧类效果必须显式给**（混乱 / 趁火打劫「使其攻击己方单位」）——
+ *        原先这里写死 `other(side)`，于是同阵营的强制攻击会**按坐标去对面抓人**，
+ *        打出"打自己人却伤了对方那个人"的静默错位（ADR-085）。
  */
 export function resolveAttack(
   state: MatchState,
@@ -682,11 +704,11 @@ export function resolveAttack(
   to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' },
   events: GameEvent[],
   rng: Rng,
-  opts: { consumeAttack?: boolean } = {},
+  opts: { consumeAttack?: boolean; toSide?: Side } = {},
 ): boolean {
   const attacker = getUnit(state, side, from.row, from.col);
   if (!attacker || attacker.hp <= 0) return false;
-  const foe = other(side);
+  const foe = opts.toSide ?? other(side);
 
   events.push({ type: 'ATTACK_DECLARED', side, from: { ...from }, to });
 
@@ -812,6 +834,32 @@ export function effectsOf(sk: SkillDef, modeIndex?: number): CardEffect[] {
   return sk.effects ?? [];
 }
 
+/**
+ * 「范围伤害 / 随机伤害**默认把主公算进目标**」（ADR-085，设计者裁定）
+ *
+ * 设计者原话：「还有一些范围伤害和随机伤害，如果没有说只能针对非主公的，
+ * 默认就是主公也在攻击目标内也能被选择。」
+ *
+ * 判据：
+ *   · 只作用于 `damage`；
+ *   · 只作用于**范围**（`count: 'all'`）或**随机**（`mode: 'random'`）—— 单点指定目标不受影响；
+ *   · 只作用于敌方 / 双方（打自己人的选择器不吃这条默认）；
+ *   · 卡面**显式**写了 `include_lord`（true 或 false）就一律听卡面的
+ *     —— 张飞「咆哮」卡面写「不含主公」，因此显式标 false。
+ */
+const LORD_DEFAULT_ACTIONS: ReadonlySet<string> = new Set(['damage']);
+
+export function withDefaultLordTarget(eff: CardEffect): CardEffect {
+  const t = eff.target;
+  if (!t) return eff;
+  if (t.filter?.include_lord !== undefined) return eff;          // 卡面已表态
+  if (!LORD_DEFAULT_ACTIONS.has(eff.action)) return eff;
+  if (t.count !== 'all' && t.mode !== 'random') return eff;
+  const side = t.side ?? 'enemy';                                // 与 resolveTargets 的缺省口径一致
+  if (side === 'self' || side === 'ally') return eff;
+  return { ...eff, target: { ...t, filter: { ...(t.filter ?? {}), include_lord: true } } };
+}
+
 export function runEffects(
   state: MatchState,
   cards: Map<string, CardDef>,
@@ -828,7 +876,9 @@ export function runEffects(
     return p ? [p] : [];
   };
 
-  for (const eff of effects) {
+  for (const rawEff of effects) {
+    // 范围/随机伤害默认含主公（ADR-085）—— 归一化后再走后面所有分支
+    const eff = withDefaultLordTarget(rawEff);
     // 概率：掷一次骰子，不中则跳过（ADR-033）
     if (typeof eff.chance === 'number' && rng.next() >= eff.chance) continue;
     // 条件：结算前查一次局面（ADR-033）
@@ -1187,17 +1237,34 @@ export function runEffects(
         break;
       }
       case 'force_attack': {
-        // 强制攻击（ADR-041）：令目标单位立刻攻击其友方（由敌方操控）
+        // 强制攻击（ADR-041 / ADR-085）：令目标单位**真的打一次**。
+        //
+        // 走 resolveAttack（与普攻、张苞「父子将风」同一条结算路径），于是反击、圣盾、
+        // 饮血、攻击时触发技、阵亡移除全部自动与普攻一致。
+        //
+        // 原实现只是「对挨打方 dealDamage 一下」：**没有反击、不走阵亡移除**，
+        // 于是草船借箭变成"敌方白打我一下"，而且被强制者永远死不了 ——
+        // 「敌方每阵亡一个武将，己方抽取两张卡」这条永远触发不了。
+        //
+        //   attack_side（缺省 'own'）= 打自己人（混乱内讧）；'foe' = 打施法方
+        //   victim_mode（缺省 'random'）；'highest_health' 见草船借箭「血量最高单位」
+        const toFoe = eff.attack_side === 'foe';
         for (const t of targets) {
           if (t.kind !== 'unit') continue;
           const u = getUnit(state, t.side, t.row, t.col);
           if (!u || u.hp <= 0) continue;
-          const foes = allUnits(state, other(t.side)).filter((x) => x.unit.hp > 0);
-          if (!foes.length) continue;
-          const victim = foes[rng.int(foes.length)]!;
-          dealDamage(state, cards, unitRef(victim.side, victim.row, victim.col),
-                     u.atk, events, u.name);
+          const targetSide: Side = toFoe ? other(t.side) : t.side;
+          const pool = allUnits(state, targetSide)
+            .filter((x) => x.unit.hp > 0 && x.unit.uid !== u.uid);      // 内讧不该打自己
+          if (!pool.length) continue;
+          const victim = eff.victim_mode === 'highest_health'
+            ? pool.reduce((a, b) => (b.unit.hp > a.unit.hp ? b : a))
+            : pool[rng.int(pool.length)]!;
           events.push({ type: 'FORCED_ATTACK', side: t.side, row: t.row, col: t.col });
+          // consumeAttack: false —— 被强制不是"用掉了自己的攻击机会"，但这回合算行动过
+          resolveAttack(state, cards, t.side, { row: t.row, col: t.col },
+            { kind: 'unit', row: victim.row, col: victim.col }, events, rng,
+            { consumeAttack: false, toSide: targetSide });
         }
         break;
       }
@@ -1241,6 +1308,17 @@ export function runEffects(
             : (eff.target ? resolveTargets(state, eff.target, ctx, rng) : chosenFor(eff.target));
           for (const t of list) {
             applyStatus(state, t, eff.status as string, eff.stacks ?? 1, events, turns, srcUid, ctx.auraId);
+            // 卡牌级标记的阵亡结算（ADR-085，草船借箭）：把"该结算什么"记在标记上
+            if (eff.on_death?.length) {
+              const bags = t.kind === 'unit'
+                ? getUnit(state, t.side, t.row, t.col)?.statuses
+                : t.kind === 'lord' ? state.sides[t.side].lord.statuses : undefined;
+              const inst = bags?.[eff.status as string];
+              if (inst) {
+                inst.payoff = structuredClone(eff.on_death);
+                inst.srcSide = ctx.side;
+              }
+            }
           }
         }
         break;

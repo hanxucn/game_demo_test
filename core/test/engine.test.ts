@@ -276,7 +276,14 @@ test('turn_end 触发技：张角五雷轰顶（5 次随机 1 伤）', () => {
 
   const r = applyAction(state, ctx, { type: 'END_TURN' });
   assert.equal(r.ok, true);
-  assert.equal(getUnit(r.state, 'enemy', 'front', 0)?.hp, 5, '5 次 1 伤应打满 5 点（10 → 5）');
+  // ADR-085：随机伤害默认把主公也算进目标池，5 点会散落在「靶子 + 主将」上，
+  // 所以断言**本次技能打出的总伤害 = 5**（按事件来源统计，不受粮尽等其它伤害干扰）。
+  const dealt = r.events
+    .filter((e): e is Extract<typeof e, { type: 'DAMAGE' }> => e.type === 'DAMAGE' && e.source === '测试张角')
+    .reduce((a, e) => a + e.amount, 0);
+  assert.equal(dealt, 5, '5 次 1 伤应打满 5 点（可落在人物或主将身上）');
+  // 有落点：靶子掉血，或主将掉血（随机目标现在含主将）
+  assert.ok(getUnit(r.state, 'enemy', 'front', 0)!.hp < 10 || r.state.sides.enemy.lord.hp < 30);
 });
 
 test('turn_start 触发技在回合开始时生效', () => {

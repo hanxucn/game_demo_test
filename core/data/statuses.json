@@ -162,7 +162,7 @@
   },
   {
     "id": "zhen_wang",
-    "name": "阵亡",
+    "name": "阵亡标记",
     "kind": "debuff",
     "numeric": false,
     "scope": "character",

@@ -163,7 +163,9 @@
 # 只保证日志与卡面能显示中文。新增卡牌引用它们之前请先找设计者确认。
 
 - id: zhen_wang
-  name: 阵亡
+  # 显示名不能叫「阵亡」—— 卡头 chip 会把活着的单位标成「阵亡」，
+  # 设计者实机看到的就是"对方阵亡了但依然在场上"（ADR-085）
+  name: 阵亡标记
   kind: debuff
   numeric: false
   scope: character

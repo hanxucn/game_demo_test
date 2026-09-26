@@ -3187,28 +3187,39 @@ dsl:
         count: 1
         mode: choose
   shu_zhangfei:
+  # ADR-085（设计者裁定，2026-09-26）：
+  #   ① 「攻击力低于张飞的敌军 −1」是**张飞在场就持续生效**的压制，张飞阵亡即消失
+  #      → 光环 aura（原先写成战吼 + duration: this_turn，只在入场那一下生效，
+  #        之后与张飞死活无关，两条都不对）。
+  #   ② 「1 点伤害」打的是**敌方所有人物**，与对方攻击力高低无关
+  #      → 去掉 attack_below_source（原先只有攻低于张飞的人挨打）。
+  #   ③ 卡面写明「不含主公」，故显式 include_lord: false（范围伤害默认含主公，ADR-085）。
   - id: pao_xiao
     name: 咆哮
-    kind: trigger
-    trigger: on_play
-    text: 战吼：所有攻击力低于张飞的敌军（不含主公）本回合攻击力 −1，并受到 1 点伤害。
+    kind: aura
+    text: 光环：攻击力低于张飞的敌军攻击力 −1（不含主公）。张飞阵亡后失效。
     effects:
     - action: modify
       attack: -1
-      duration: this_turn
       target:
         side: enemy
         filter:
           type: character
           attack_below_source: true
         count: all
+  - id: pao_xiao_hou
+    name: 咆哮（入场）
+    kind: trigger
+    trigger: on_play
+    text: 战吼：对敌方所有人物造成 1 点伤害（不含主公），与对方攻击力无关。
+    effects:
     - action: damage
       value: 1
       target:
         side: enemy
         filter:
           type: character
-          attack_below_source: true
+          include_lord: false
         count: all
   wei_guohuai:
   - id: ju_shou
@@ -3625,6 +3636,7 @@ dsl_effects:
   # ADR-073：原先只翻译了「抽对手一张牌」，「使其随机攻击己方单位」整句被漏掉 ——
   # 一张 5 费卡只干了 1 费的事。`force_attack` 的实现正是"令目标立刻攻击其随机友方"。
   - action: force_attack
+    attack_side: own          # 混乱内讧：打他自己人（ADR-085 的缺省值，此处显式写死）
     condition:
       exists:
         side: enemy
@@ -3686,7 +3698,28 @@ dsl_effects:
       side: both
       lord: true
   tactic_caochuanjiejian:
+  # ADR-085：原先 force_attack 只是「对挨打方 dealDamage 一下」——
+  # 没有反击、不走阵亡移除，于是敌人白打我一下、自己永远死不了
+  # （卡面承诺的「敌方每阵亡一个武将，己方抽两张」因此永远触发不了）。
+  # 现在走 resolveAttack（真实攻击），并按卡面指定：打我方、挑血量最高的那个。
+  #
+  # ⚠️ 顺序要紧：**先打标记，再强制攻击**。
+  #   「敌方每阵亡一个武将」当然包括这张卡自己造成的阵亡 —— 标记后置的话，
+  #   被反杀的那两个根本没被标记上，抽牌依然一次都不会发生。
+  - action: apply_status
+    status: zhen_wang
+    status_source: self
+    on_death:                # 被标记者阵亡 → 施法方抽 2 张（卡牌没有来源单位，
+    - action: draw           #   原先靠 status_source 挂单位技能的路子走不通）
+      value: 2
+    target:
+      side: enemy
+      filter:
+        type: character
+      count: all
   - action: force_attack
+    attack_side: foe
+    victim_mode: highest_health
     count: 2
     target:
       side: enemy
@@ -3694,14 +3727,6 @@ dsl_effects:
         type: character
       count: 2
       mode: choose
-  - action: apply_status
-    status: zhen_wang
-    status_source: self
-    target:
-      side: enemy
-      filter:
-        type: character
-      count: all
   neutral_chuanguo_yuxi:
   - action: gain_command
     value: 1
@@ -3764,6 +3789,9 @@ card_rarity:
   wei_guohuai: elite     # 据守：相邻 +2 上限 + 相邻架盾
   shu_jiangwei: elite    # 文武双全：普攻 +1 / 抽到非策略牌为止
   wu_zhouyu: elite       # 离间：拼点 + 弃牌 + 按弃牌统帅造成伤害
+  shu_zhangfei: elite    # 咆哮（ADR-085 修正后）：在场持续压制攻低于自己的敌人 + 入场全体 1 伤。
+                         # 设计者裁定（2026-09-26）：保留 5 费 5/5 与两条机制，用精英位承载超预算部分，
+                         # 而不是砍血量 —— 5/5 是设计者显式上调过的数值（原手写稿 5/4）。
 
 card_type:
   # ADR-072：ADR-018 的定型规则（攻击 > 1 → 武将）是在**照片稿**上跑的，
@@ -3807,7 +3835,7 @@ card_memo:
   shu_zhangbao: 战吼连打所有攻低于自己的敌人，直到自己倒下
   shu_huangzhong: 每回合免费点名 2 点，专治高价值目标
   shu_machao: 先攻；首回合斩武将可封住敌方主公技
-  shu_zhangfei: 战吼削弱并烫伤所有攻低于自己的敌人
+  shu_zhangfei: 在场就压制攻低于自己的敌人；入场再烫伤敌方全体
   shu_zhaoyun: 第一个回合免疫一切伤害，敢直接冲脸
   shu_guanyu: 全体禁技外加全体 1 伤，一锤定音的精英
   shu_jiangwei: 普攻 +1；打出策略牌就一路抽到非策略牌

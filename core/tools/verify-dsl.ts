@@ -87,13 +87,15 @@ for (const c of cards) {
     let auraNote = '';
     const auraSkills = (c.skills ?? []).filter((s) => s.kind === 'aura');
     if (auraSkills.length) {
-      // 找到该卡在场上的单位，比较派生值与基础值
+      // 光环生效 = **场上任何单位**的派生值与基础值不一致。
+      // 原先只看光环主人自己 —— 那对「只削敌人」的光环（张飞咆哮）永远判为未生效，
+      // 而它其实把敌方 2/1 削成了 1/1、1/2 削成了 0/2。
       let applied = false;
       for (const side of ['own', 'enemy'] as const) {
-        for (const row of ['front', 'front'] as const) {
+        for (const row of ['front'] as const) {
           for (let col = 0; col < 5; col++) {
             const u = r.state.sides[side].rows[row][col];
-            if (u?.cardId === c.id && (u.atk !== u.baseAtk || u.maxHp !== u.baseMaxHp)) applied = true;
+            if (u && (u.atk !== u.baseAtk || u.maxHp !== u.baseMaxHp)) applied = true;
           }
         }
       }

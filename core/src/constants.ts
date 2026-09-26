@@ -27,8 +27,11 @@ export const LORD_SKILL_COST = 2;
 
 export const DECK = {
   SIZE: 30,
+  /** 起手张数（ADR-085，设计者裁定）：**先手与后手同为 3 张**，
+   *  各自在自己回合开始时再抽 1 张 → 双方第一次行动时都是 4 张手牌。
+   *  原先后手 4 张 + 「后手补偿多抽 1 张」= 6 张，比先手多 2 张，实测明显偏多。 */
   HAND_START_FIRST: 3,
-  HAND_START_SECOND: 4,
+  HAND_START_SECOND: 3,
   HAND_LIMIT: 10,
   DRAW_PER_TURN: 1,
 };

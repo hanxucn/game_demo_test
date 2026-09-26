@@ -100,6 +100,26 @@ export interface CardEffect {
    * 缺省 `'random'`（卡面写的是"随机丢弃一张"），`'top'` 则固定弃牌库顶。
    */
   from_deck?: 'top' | 'random';
+  /**
+   * force_attack 专用（ADR-085）：被强制者去打**哪一方**。
+   *
+   *   · `'own'`（缺省）= 打自己人 —— 混乱内讧（趁火打劫「使其随机攻击己方单位」）
+   *   · `'foe'`        = 打施法方 —— 草船借箭「使其攻击我方场上血量最高单位」
+   *
+   * 两张开卡的需求正好相反，原先实现一律打"对方的对面"，导致施法方自己的单位挨打。
+   */
+  attack_side?: 'own' | 'foe';
+  /** force_attack 专用：被攻击者怎么挑（缺省 `'random'`；草船借箭要「血量最高」） */
+  victim_mode?: 'random' | 'highest_health';
+  /**
+   * apply_status 专用（ADR-085）：被标记者**阵亡时由施法方结算**的效果。
+   *
+   * 草船借箭「敌方每阵亡一个武将，己方抽取两张卡」原先用 `status_source: self` 挂标记，
+   * 但**卡牌没有来源单位**（`ctx.source` 为空）→ `srcUid` 是 undefined →
+   * 既有的 `on_mark_death` 联动直接 return，这条效果一次都没生效过。
+   * 现在把"该结算什么"直接写在标记上，不再依赖某个单位持有 `on_mark_death` 技能。
+   */
+  on_death?: CardEffect[];
 }
 
 export interface TargetSelector {
@@ -226,6 +246,10 @@ export interface StatusInstance {
   turns?: number;                // 剩余回合数；undefined = 永久
   srcUid?: string;               // 状态来源单位（守护类状态据此找到「谁替我挨打」，ADR-039）
   auraId?: string;               // 由哪个光环施加（重算时先清后加，避免累加，ADR-041）
+  /** 卡牌级标记的阵亡结算（ADR-085）：持有者阵亡时由 `srcSide` 一方结算 */
+  payoff?: CardEffect[];
+  /** `payoff` 属于哪一方 */
+  srcSide?: Side;
 }
 
 /** 属性修正项（ADR-037）：最终属性 = 基础值 + Σ mods */

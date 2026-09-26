@@ -159,6 +159,42 @@ export function registerOnDeathResolver(fn: OnDeathResolver): void {
   onDeathResolver = fn;
 }
 
+/**
+ * 「标记阵亡」解算器（ADR-085）
+ *
+ * `runMarkDeath`（effects.ts）从 ADR-041 起就写好了，**却从来没有人调用** ——
+ * 于是「仇敌」标记与「阵亡标记」的阵亡结算一直是死代码：
+ * 草船借箭卡面承诺的「敌方每阵亡一个武将，己方抽取两张卡」一次都没生效过。
+ * 这里按 onDeath / onKill 同样的挂载点模式接上，避免 mutate ↔ effects 循环依赖。
+ */
+export type MarkDeathResolver = (
+  state: MatchState, cards: Map<string, CardDef>, dead: Unit,
+  rng: ReturnType<typeof createRng>, events: GameEvent[],
+) => void;
+
+let markDeathResolver: MarkDeathResolver | null = null;
+
+export function registerMarkDeathResolver(fn: MarkDeathResolver): void {
+  markDeathResolver = fn;
+}
+
+/**
+ * 「死亡后光环重算」解算器（ADR-085，时机表第 19 步）
+ *
+ * 原先只有**攻击者自己被打死**这一条路径会重算光环（`resolveAttack` 里那一处），
+ * 被反击打死的**防守方**则不会 —— 于是张飞阵亡后「攻低于他的敌人 −1 攻」还在，
+ * 与卡面「张飞阵亡就会消失」直接矛盾。死亡只有一个漏斗（killUnit），在这里接一次即可。
+ */
+export type AfterDeathResolver = (
+  state: MatchState, cards: Map<string, CardDef>, events: GameEvent[],
+) => void;
+
+let afterDeathResolver: AfterDeathResolver | null = null;
+
+export function registerAfterDeathResolver(fn: AfterDeathResolver): void {
+  afterDeathResolver = fn;
+}
+
 export function drawCard(
   state: MatchState,
   cards: Map<string, CardDef>,
@@ -498,6 +534,12 @@ export function killUnit(
   setUnit(state, side, row, col, null);
   events.push({ type: 'UNIT_DIED', side, row, col, unit });
 
+  // 标记阵亡（ADR-041 / ADR-085）：仇敌标记、阵亡标记的结算。
+  // 放在亡语之前 —— 标记是"别人挂在我身上的账"，先结账再走自己的亡语。
+  if (markDeathResolver) {
+    markDeathResolver(state, cards, unit, createRng(state.rngState), events);
+  }
+
   // 遗计：阵亡时抽 1 张
   if (hasTrait(unit, 'yi_ji')) drawCard(state, cards, side, events);
 
@@ -516,6 +558,9 @@ export function killUnit(
   if (killer && onKillResolver) {
     onKillResolver(state, cards, killer, { name: unit.name, side, row, col, type: unit.type }, events, createRng(state.rngState));
   }
+
+  // 第 19 步：死亡后光环重算（ADR-085）—— 放在最后，让亡语/标记都结算完再重算一次
+  if (afterDeathResolver) afterDeathResolver(state, cards, events);
 }
 
 /* ============================================================
