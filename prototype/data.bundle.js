@@ -1,5 +1,6 @@
 // 自动生成，勿手改：python3 tools/build-data-bundle.py
-window.GameData = {
+window.GameData =
+{
   "cards": [
     {
       "id": "shu_dongjue",
@@ -2567,9 +2568,34 @@ window.GameData = {
       "cost": 3,
       "attack": 3,
       "health": 2,
-      "memo": "3 费 3/2，吴国中坚白板曲线",
+      "memo": "决水造成 3 点水攻伤害",
       "gender": "male",
       "keywords": [],
+      "skills": [
+        {
+          "id": "jue_shui",
+          "name": "决水",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：造成 3 点水攻伤害。",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 3,
+              "damage_type": "water",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "include_lord": true
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": ""
     },
     {
@@ -3309,6 +3335,7 @@ window.GameData = {
             {
               "action": "damage",
               "value": 1,
+              "damage_type": "water",
               "target": {
                 "side": "enemy",
                 "filter": {
@@ -5177,6 +5204,489 @@ window.GameData = {
         }
       ],
       "flavor": ""
+    },
+    {
+      "id": "wu_panzhang",
+      "name": "潘璋",
+      "faction": "wu",
+      "type": "general",
+      "cost": 5,
+      "attack": 4,
+      "health": 2,
+      "memo": "擒将：对受伤敌方武将造成 3 点火攻伤害",
+      "gender": "male",
+      "keywords": [],
+      "skills": [
+        {
+          "id": "qin_jiang",
+          "name": "擒将",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：选择对方一个受伤的武将，造成 3 点火攻伤害。",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "general",
+              "damaged": true
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "damage",
+              "value": 3,
+              "damage_type": "fire",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "general",
+                  "damaged": true
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "擒获关羽，名震江东。",
+      "rarity": "elite"
+    },
+    {
+      "id": "wu_zhanghong",
+      "name": "张纮",
+      "faction": "wu",
+      "type": "strategist",
+      "cost": 3,
+      "attack": 1,
+      "health": 3,
+      "type_explicit": true,
+      "memo": "主公技后发现三张战法并将一张置于牌库顶",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "guang_ling_du",
+          "name": "广陵对",
+          "kind": "trigger",
+          "trigger": "on_lord_skill_used",
+          "text": "每次使用主公技后，从牌库发现三张战法牌，选择一张置于牌库最上方。",
+          "effects": [
+            {
+              "action": "discover",
+              "count": 3,
+              "discover_to": "deck_top",
+              "target": {
+                "side": "self",
+                "filter": {
+                  "type": "tactic"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "张纮与张昭并称二张，辅佐孙氏基业。"
+    },
+    {
+      "id": "wu_luji",
+      "name": "陆绩",
+      "faction": "wu",
+      "type": "strategist",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "type_explicit": true,
+      "memo": "怀橘：主帅满血时抽牌，否则恢复主帅生命",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "huai_ju",
+          "name": "怀橘",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "战吼：己方主帅恢复 2 点生命；若主帅已满血，则抽 1 张牌。",
+          "effects": [
+            {
+              "action": "heal",
+              "value": 2,
+              "target": {
+                "side": "self",
+                "lord": true
+              },
+              "condition": {
+                "lord_full_hp": {
+                  "side": "self",
+                  "value": false
+                }
+              }
+            },
+            {
+              "action": "draw",
+              "value": 1,
+              "condition": {
+                "lord_full_hp": {
+                  "side": "self",
+                  "value": true
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "陆绩怀橘遗母，成为孝义典范。"
+    },
+    {
+      "id": "wu_zhugejin",
+      "name": "诸葛瑾",
+      "faction": "wu",
+      "type": "strategist",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "type_explicit": true,
+      "memo": "通好：限制敌方武将攻击并恢复双方主公生命",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "tong_hao",
+          "name": "通好",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "general"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "text": "战吼：选择一个敌方武将，下个回合无法攻击；双方主公恢复 3 点生命。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "jin_gong",
+              "duration": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "general"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            },
+            {
+              "action": "heal",
+              "value": 3,
+              "target": {
+                "side": "both",
+                "lord": true,
+                "count": "all"
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "诸葛瑾出使蜀汉，努力维系孙刘联盟。",
+      "rarity": "elite"
+    },
+    {
+      "id": "wu_sunshangxiang",
+      "name": "孙尚香",
+      "faction": "wu",
+      "type": "general",
+      "cost": 6,
+      "attack": 3,
+      "health": 6,
+      "memo": "联姻抽牌，并按手牌数治疗一名男性角色",
+      "gender": "female",
+      "skills": [
+        {
+          "id": "lian_yin",
+          "name": "联姻",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "draw",
+              "value": 1
+            },
+            {
+              "action": "heal",
+              "value_from": {
+                "side": "self",
+                "zone": "hand"
+              },
+              "target": {
+                "side": "both",
+                "filter": {
+                  "type": "character",
+                  "gender": "male"
+                },
+                "count": 1,
+                "mode": "choose"
+              }
+            }
+          ],
+          "text": "战吼：抽一张牌，指定一名男性角色，恢复其等同于你手牌数量的生命。"
+        }
+      ],
+      "flavor": "孙刘联姻，巾帼不让须眉。"
+    },
+    {
+      "id": "wu_sunyi",
+      "name": "孙翊",
+      "faction": "wu",
+      "type": "general",
+      "cost": 5,
+      "attack": 4,
+      "health": 3,
+      "memo": "战吼和亡语都按自身攻击力随机伤害敌方角色",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "xiao_han_guo_lie_play",
+          "name": "骁悍果烈",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "damage",
+              "value_from_source": "attack",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "include_lord": true
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ],
+          "text": "战吼：对敌方随机角色造成等同于孙翊攻击力的伤害。"
+        },
+        {
+          "id": "xiao_han_guo_lie_death",
+          "name": "骁悍果烈",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "effects": [
+            {
+              "action": "damage",
+              "value_from_source": "attack",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "include_lord": true
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ],
+          "text": "亡语：对敌方随机角色造成等同于孙翊攻击力的伤害。"
+        }
+      ],
+      "flavor": "孙翊性格刚烈，勇而少谋。"
+    },
+    {
+      "id": "wu_xusheng",
+      "name": "徐盛",
+      "faction": "wu",
+      "type": "general",
+      "cost": 5,
+      "attack": 4,
+      "health": 6,
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "嘲讽，己方人数少于敌方时获得额外生命",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "yi_cheng",
+          "name": "疑城",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "effects": [
+            {
+              "action": "modify",
+              "health": 2,
+              "target": {
+                "source": true
+              },
+              "condition": {
+                "count_vs": {
+                  "left": {
+                    "side": "self",
+                    "filter": {
+                      "type": "character"
+                    }
+                  },
+                  "right": {
+                    "side": "enemy",
+                    "filter": {
+                      "type": "character"
+                    }
+                  },
+                  "op": "<"
+                }
+              }
+            }
+          ],
+          "text": "嘲讽；战吼：当己方场上角色少于对方时，获得 +2 生命。"
+        }
+      ],
+      "flavor": "徐盛以疑城退敌，守江东如铁壁。"
+    },
+    {
+      "id": "wu_jiangqin",
+      "name": "蒋钦",
+      "rarity": "elite",
+      "faction": "wu",
+      "type": "general",
+      "cost": 7,
+      "attack": 4,
+      "health": 7,
+      "memo": "水军都督强化己方水攻伤害",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "shui_jun_du_du",
+          "name": "水军都督",
+          "kind": "aura",
+          "text": "对敌方造成的水攻伤害 +3。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "shui_gong_bonus",
+              "stacks": 3,
+              "status_source": "self",
+              "target": {
+                "side": "self",
+                "source": true
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "蒋钦督水军，善于水战。"
+    },
+    {
+      "id": "wu_dongxi",
+      "name": "董袭",
+      "faction": "wu",
+      "type": "general",
+      "cost": 4,
+      "attack": 3,
+      "health": 6,
+      "memo": "护主：主公受到的伤害由董袭承担",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "hu_zhu",
+          "name": "护主",
+          "kind": "aura",
+          "text": "主公受到的伤害由董袭承担。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "hu_zhu",
+              "status_source": "self",
+              "condition": {
+                "count": {
+                  "selector": {
+                    "side": "ally",
+                    "lord": true,
+                    "filter": {
+                      "has_status": "hu_zhu"
+                    }
+                  },
+                  "op": "==",
+                  "value": 0
+                }
+              },
+              "target": {
+                "side": "ally",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "董袭勇猛，曾冒死护卫孙权。"
+    },
+    {
+      "id": "wu_chenwu",
+      "name": "陈武",
+      "faction": "wu",
+      "type": "general",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "memo": "先攻，主公危急时亡语重创敌方主公",
+      "gender": "male",
+      "keywords": [
+        "xian_gong"
+      ],
+      "skills": [
+        {
+          "id": "fen_si",
+          "name": "奋死",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "亡语：敌方主公生命低于 15 时，对敌方主公造成 3 点伤害。",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 3,
+              "target": {
+                "side": "enemy",
+                "lord": true
+              },
+              "condition": {
+                "lord_hp": {
+                  "side": "enemy",
+                  "op": "<",
+                  "value": 15
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "陈武奋勇战死，名震江东。"
+    },
+    {
+      "id": "wu_zhangzhao",
+      "name": "张昭",
+      "faction": "wu",
+      "type": "strategist",
+      "cost": 3,
+      "attack": 1,
+      "health": 3,
+      "type_explicit": true,
+      "memo": "辅政：每次使用主公技后抽一张牌",
+      "gender": "male",
+      "skills": [
+        {
+          "id": "fu_zheng",
+          "name": "辅政",
+          "kind": "trigger",
+          "trigger": "on_lord_skill_used",
+          "text": "每次使用主公技后，抽一张牌。",
+          "effects": [
+            {
+              "action": "draw",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "flavor": "张昭辅佐孙权，善于治国理政。"
     }
   ],
   "heroes": [
@@ -5589,120 +6099,133 @@ window.GameData = {
         "block_attack"
       ],
       "memo": "本回合不能普通攻击"
+    },
+    {
+      "id": "shui_gong_bonus",
+      "name": "水攻强化",
+      "kind": "buff",
+      "numeric": true,
+      "scope": "character",
+      "timing": 13,
+      "duration": "permanent",
+      "memo": "水攻伤害 +N"
     }
   ],
-  "keywords": [
-    {
-      "id": "jia_dun",
-      "name": "架盾",
-      "type": "buff",
-      "grants": [
-        "jia_dun_status"
-      ],
-      "stackable": false,
-      "value": -1,
-      "implemented": true,
-      "definition": "嘲讽：敌方普通攻击必须先打它。是主将唯一的盾牌（单排后）。",
-      "memo": "敌方必须先打它（ADR-051）"
-    },
-    {
-      "id": "xian_gong",
-      "name": "先攻",
-      "type": "buff",
-      "grants": [
-        "xian_gong_status"
-      ],
-      "stackable": false,
-      "value": -1,
-      "implemented": true,
-      "definition": "入场当回合即可行动攻击。（= 疾行，两者是同一个关键词，已合并为「先攻」）",
-      "memo": "下了就能打",
-      "source": "手写稿四处「获得先攻 / 上场时先攻」均指此意（ADR-055 设计者澄清）"
-    },
-    {
-      "id": "lian_ji",
-      "name": "连击",
-      "type": "buff",
-      "grants": [],
-      "stackable": false,
-      "value": -1.5,
-      "implemented": true,
-      "definition": "当前回合普通攻击可执行两次。",
-      "memo": "一回合打两下"
-    },
-    {
-      "id": "yi_ji",
-      "name": "遗计",
-      "type": "buff",
-      "grants": [],
-      "stackable": false,
-      "value": -2,
-      "implemented": true,
-      "definition": "类亡语：阵亡时触发该卡定义的 on_death 逻辑。",
-      "memo": "死了还要拉一个"
-    },
-    {
-      "id": "yin_xue",
-      "name": "饮血",
-      "type": "buff",
-      "grants": [],
-      "stackable": false,
-      "value": -1,
-      "implemented": false,
-      "definition": "对敌人造成的伤害，为该单位自身恢复等量生命。",
-      "memo": "打多少回多少"
-    },
-    {
-      "id": "sheng_dun",
-      "name": "武圣",
-      "type": "buff",
-      "grants": [
-        "sheng_dun_status"
-      ],
-      "stackable": false,
-      "value": -1,
-      "implemented": false,
-      "definition": "⚠️ 尚未定义。手写稿里「武圣」只作为关羽的两个候选技能名之一出现（〈水淹七军〉? / 〈武圣〉?），未写机制。",
-      "memo": "（待定义）",
-      "open": "原「免疫一次伤害」是初始提交 GDD 里 AI 写的定义，未经设计者确认（Q-06-4）"
-    },
-    {
-      "id": "shen_she",
-      "name": "神射",
-      "type": "buff",
-      "grants": [],
-      "stackable": false,
-      "value": -1,
-      "implemented": false,
-      "definition": "对随机敌人造成远程伤害，且不受对方攻击影响。",
-      "memo": "隔空点名",
-      "open": "待实现（弓兵「射箭」是它的具体化：回合结束随机打敌方人物或主将 1 点，可绕过架盾）"
-    },
-    {
-      "id": "qi_xi",
-      "name": "奇袭",
-      "type": "buff",
-      "grants": [
-        "qi_xi_status"
-      ],
-      "stackable": false,
-      "value": -1,
-      "implemented": false,
-      "definition": "上场先隐身（不能被选定）；下个回合可选择行动攻击，只要执行过行动，隐身状态就消失。",
-      "memo": "先藏一回合再出手",
-      "open": "待实现（现引擎只做了\"攻击后失去\"，缺\"上场自动隐身\"）"
-    },
-    {
-      "id": "zhong_yi",
-      "name": "忠义",
-      "type": "buff",
-      "grants": [],
-      "stackable": false,
-      "value": -1,
-      "implemented": false,
-      "definition": "免疫混乱、离间等状态。",
-      "memo": "不吃控制",
-      "open": "待实现。⚠️ 原引擎误把「忠义」做成\"阵亡触发亡语\"，已纠正——亡语是「遗计」"
-    }
-  ]
+  "keywords": {
+    "note": "关键词表 —— 定义由设计者逐条给出（ADR-054，2026-09-12）。\n手写稿里出现过、且设计者已定义的关键词如下；未在此列的一律不是本作关键词。\n\n⚠️ ADR-055 教训：核对关键词时**不能只查名字在不在手写稿里，必须核对定义**。「先攻」名字在手写稿出现 8 次、我据此判它\"可信\"，但它的定义（击杀不遭反击）是 AI 编的。",
+    "keywords": [
+      {
+        "id": "jia_dun",
+        "name": "架盾",
+        "type": "buff",
+        "grants": [
+          "jia_dun_status"
+        ],
+        "stackable": false,
+        "value": -1,
+        "implemented": true,
+        "definition": "嘲讽：敌方普通攻击必须先打它。是主将唯一的盾牌（单排后）。",
+        "memo": "敌方必须先打它（ADR-051）"
+      },
+      {
+        "id": "xian_gong",
+        "name": "先攻",
+        "type": "buff",
+        "grants": [
+          "xian_gong_status"
+        ],
+        "stackable": false,
+        "value": -1,
+        "implemented": true,
+        "definition": "入场当回合即可行动攻击。（= 疾行，两者是同一个关键词，已合并为「先攻」）",
+        "memo": "下了就能打",
+        "source": "手写稿四处「获得先攻 / 上场时先攻」均指此意（ADR-055 设计者澄清）"
+      },
+      {
+        "id": "lian_ji",
+        "name": "连击",
+        "type": "buff",
+        "grants": [],
+        "stackable": false,
+        "value": -1.5,
+        "implemented": true,
+        "definition": "当前回合普通攻击可执行两次。",
+        "memo": "一回合打两下"
+      },
+      {
+        "id": "yi_ji",
+        "name": "遗计",
+        "type": "buff",
+        "grants": [],
+        "stackable": false,
+        "value": -2,
+        "implemented": true,
+        "definition": "类亡语：阵亡时触发该卡定义的 on_death 逻辑。",
+        "memo": "死了还要拉一个"
+      },
+      {
+        "id": "yin_xue",
+        "name": "饮血",
+        "type": "buff",
+        "grants": [],
+        "stackable": false,
+        "value": -1,
+        "implemented": false,
+        "definition": "对敌人造成的伤害，为该单位自身恢复等量生命。",
+        "memo": "打多少回多少"
+      },
+      {
+        "id": "sheng_dun",
+        "name": "武圣",
+        "type": "buff",
+        "grants": [
+          "sheng_dun_status"
+        ],
+        "stackable": false,
+        "value": -1,
+        "implemented": false,
+        "definition": "⚠️ 尚未定义。手写稿里「武圣」只作为关羽的两个候选技能名之一出现（〈水淹七军〉? / 〈武圣〉?），未写机制。",
+        "memo": "（待定义）",
+        "open": "原「免疫一次伤害」是初始提交 GDD 里 AI 写的定义，未经设计者确认（Q-06-4）"
+      },
+      {
+        "id": "shen_she",
+        "name": "神射",
+        "type": "buff",
+        "grants": [],
+        "stackable": false,
+        "value": -1,
+        "implemented": false,
+        "definition": "对随机敌人造成远程伤害，且不受对方攻击影响。",
+        "memo": "隔空点名",
+        "open": "待实现（弓兵「射箭」是它的具体化：回合结束随机打敌方人物或主将 1 点，可绕过架盾）"
+      },
+      {
+        "id": "qi_xi",
+        "name": "奇袭",
+        "type": "buff",
+        "grants": [
+          "qi_xi_status"
+        ],
+        "stackable": false,
+        "value": -1,
+        "implemented": false,
+        "definition": "上场先隐身（不能被选定）；下个回合可选择行动攻击，只要执行过行动，隐身状态就消失。",
+        "memo": "先藏一回合再出手",
+        "open": "待实现（现引擎只做了\"攻击后失去\"，缺\"上场自动隐身\"）"
+      },
+      {
+        "id": "zhong_yi",
+        "name": "忠义",
+        "type": "buff",
+        "grants": [],
+        "stackable": false,
+        "value": -1,
+        "implemented": false,
+        "definition": "免疫混乱、离间等状态。",
+        "memo": "不吃控制",
+        "open": "待实现。⚠️ 原引擎误把「忠义」做成\"阵亡触发亡语\"，已纠正——亡语是「遗计」"
+      }
+    ]
+  }
 };

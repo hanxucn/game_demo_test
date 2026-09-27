@@ -423,6 +423,12 @@ condition: { count_vs: { left: { side: enemy }, right: { side: ally }, op: '>=' 
 
 # d) event —— 本次结算中发生过某事（"如若斩杀敌人"）
 condition: { event: killed }        # killed | clash_won | clash_lost
+
+# e) lord_hp —— 按主公当前生命比较
+condition: { lord_hp: { side: enemy, op: '<', value: 15 } }
+
+# f) lord_full_hp —— 判断主公在本次技能结算开始时是否满血
+condition: { lord_full_hp: { side: self, value: true } }
 ```
 
 #### ③ 动态取值 `value_from`
@@ -437,6 +443,16 @@ condition: { event: killed }        # killed | clash_won | clash_lost
 
 `*_from` 的取值 = 该选择器命中的单位数 ×（可选）`per` 系数；也支持 `limit` 上限。
 
+效果数值也可以直接取来源单位的当前属性：`value_from_source: attack` 或
+`value_from_source: health`，用于“按自身当前攻击力/生命值造成伤害或治疗”等效果。
+
+`damage` 可标注 `damage_type: water` 表示水攻；来源单位身上的 `water_damage`
+能力状态层数会在结算时加到水攻伤害上。单位触发 `on_lord_skill_used` 时机可用于
+表达“每次使用主公技后”的联动效果。
+
+目标过滤器的 `damaged: true` 表示当前生命低于生命上限；`damage_type: fire`
+用于标记火攻伤害。`discover_to: deck_top` 表示发现后将所选牌置于己方牌库顶。
+
 #### ④ 新增动作
 
 | action | 参数 | 说明 |
@@ -445,7 +461,7 @@ condition: { event: killed }        # killed | clash_won | clash_lost
 | `return_to_hand` | target | 返回手牌（"收回手中""回到对方手牌"）|
 | `clash` | target, then | **拼点**：双方各翻一张，比点数；结果写入 `event` 供条件判定 |
 | `scry` | target, count, to | 查看/移动卡池顶或底（"查看卡池第一张牌""放到最底层"）|
-| `discover` | target.filter, count, value | 从己方牌库随机展示最多 `count` 张满足条件的牌，暂停等待玩家选择；选择后加入手牌，`value` 为该牌的费用修正 |
+| `discover` | target.filter, count, value, discover_to | 从己方牌库随机展示最多 `count` 张满足条件的牌，暂停等待玩家选择；默认加入手牌，`discover_to: deck_top` 时将所选牌置于牌库顶部；`value` 为该牌的费用修正 |
 | `silence` | target, duration | 禁用技能（"技能禁用一回合"）|
 | `flip` | target | 翻面（"将卡牌翻面"，翻面期间不可被选中）|
 | `sacrifice` | target | 牺牲己方单位并记下它的血量（ADR-071） |

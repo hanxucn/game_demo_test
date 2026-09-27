@@ -470,7 +470,7 @@ export function applyStatus(
       turns: turnsL, srcUid, auraId,
       ...(skipTick && turnsL !== undefined ? { skipTick: true } : {}),
     };
-    events.push({ type: 'STATUS_APPLIED', side: ref.side, status, stacks, turns: turnsL });
+    if (auraId === undefined) events.push({ type: 'STATUS_APPLIED', side: ref.side, status, stacks, turns: turnsL });
     return;
   }
 
@@ -498,7 +498,7 @@ export function applyStatus(
     stacks: nextStacks, turns: nextTurns, srcUid, auraId,
     ...(skipTick && nextTurns !== undefined ? { skipTick: true } : {}),
   };
-  events.push({ type: 'STATUS_APPLIED', side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
+  if (auraId === undefined) events.push({ type: 'STATUS_APPLIED', side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
 }
 
 /* ============================================================

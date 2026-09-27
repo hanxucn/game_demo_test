@@ -409,6 +409,14 @@ var Core = (() => {
       caps: ["block_attack"],
       note: "\u672C\u56DE\u5408\u4E0D\u80FD\u666E\u901A\u653B\u51FB"
     },
+    shui_gong_bonus: {
+      name: "\u6C34\u653B\u5F3A\u5316",
+      kind: "buff",
+      numeric: true,
+      duration: "permanent",
+      caps: ["water_damage"],
+      note: "\u6C34\u653B\u4F24\u5BB3 +N"
+    },
     mian_yi: {
       name: "\u514D\u75AB",
       kind: "buff",
@@ -1050,7 +1058,7 @@ var Core = (() => {
         auraId,
         ...skipTick && turnsL !== void 0 ? { skipTick: true } : {}
       };
-      events.push({ type: "STATUS_APPLIED", side: ref.side, status, stacks, turns: turnsL });
+      if (auraId === void 0) events.push({ type: "STATUS_APPLIED", side: ref.side, status, stacks, turns: turnsL });
       return;
     }
     const u = getUnit(state, ref.side, ref.row, ref.col);
@@ -1070,7 +1078,7 @@ var Core = (() => {
       auraId,
       ...skipTick && nextTurns !== void 0 ? { skipTick: true } : {}
     };
-    events.push({ type: "STATUS_APPLIED", side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
+    if (auraId === void 0) events.push({ type: "STATUS_APPLIED", side: ref.side, row: ref.row, col: ref.col, status, stacks, turns: nextTurns });
   }
   function summonUnit(state, cards, side, row, col, cardId, events) {
     const card = cards.get(cardId);
@@ -1352,12 +1360,20 @@ var Core = (() => {
     });
   }
   function runTriggerSkills(state, cards, side, trigger, rng, events) {
-    for (const ref of allUnits(state, side)) {
+    const refs = allUnits(state, side);
+    const start = state.pendingTriggerSkills?.side === side && state.pendingTriggerSkills.trigger === trigger ? state.pendingTriggerSkills.nextIndex : 0;
+    delete state.pendingTriggerSkills;
+    for (let index = start; index < refs.length; index++) {
+      const ref = refs[index];
       const u = ref.unit;
       if (u.hp <= 0) continue;
       for (const sk of (u.skills ?? []).filter((s) => s.trigger === trigger)) {
         emitSkillTriggered(state, side, u, sk, "trigger", events);
         runEffects(state, cards, effectsOf(sk), { side, source: u }, rng, events);
+        if (state.pendingDiscover) {
+          state.pendingTriggerSkills = { side, trigger, nextIndex: index + 1 };
+          return;
+        }
       }
     }
   }
@@ -1733,7 +1749,8 @@ var Core = (() => {
         return eff.value_from_discarded === "cost" ? last.card.cost : last.card.health ?? 0;
       })();
       const flagVal = eff.value_from_flag ? Number((ctx.flags ?? []).find((f) => f.startsWith(`${eff.value_from_flag}:`))?.split(":")[1]) : void 0;
-      const val = flagVal ?? discardVal ?? dynVal ?? eff.value ?? 0;
+      const sourceVal = eff.value_from_source === "attack" ? ctx.source?.atk : eff.value_from_source === "health" ? ctx.source?.hp : void 0;
+      const val = flagVal ?? discardVal ?? dynVal ?? sourceVal ?? eff.value ?? 0;
       const targets = eff.target ? resolveTargets(state, eff.target, ctx, rng) : [];
       switch (eff.action) {
         case "damage": {
@@ -1743,7 +1760,8 @@ var Core = (() => {
             for (const t of list) {
               const before = hpOf(state, t);
               const victim = t.kind === "unit" ? getUnit(state, t.side, t.row, t.col) : null;
-              dealDamage(state, cards, t, val, events, ctx.source?.name ?? "\u6548\u679C");
+              const waterBonus = eff.damage_type === "water" ? allUnits(state, ctx.side).reduce((sum, ref) => sum + capStacks(ref.unit.statuses, "water_damage"), 0) : 0;
+              dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? "\u6548\u679C");
               if (before > 0 && hpOf(state, t) <= 0) {
                 ctx.flags = ctx.flags ?? [];
                 if (!ctx.flags.includes("killed")) ctx.flags.push("killed");
@@ -1781,7 +1799,7 @@ var Core = (() => {
           const count = Math.min(eff.count ?? 3, pool.length);
           for (let i = 0; i < count; i++) shown.push(pool.splice(rng.int(pool.length), 1)[0]);
           if (!shown.length) break;
-          state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value };
+          state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value, destination: eff.discover_to ?? "hand" };
           events.push({
             type: "DISCOVER_OPTIONS",
             side: ctx.side,
@@ -2278,6 +2296,7 @@ var Core = (() => {
       rng,
       events
     );
+    runTriggerSkills(state, ctx.cards, side, "on_lord_skill_used", rng, events);
     return true;
   }
   function startMatch(state, ctx) {
@@ -2344,17 +2363,25 @@ var Core = (() => {
     const card = ctx.cards.get(id);
     if (!card) return false;
     delete state.pendingDiscover;
-    events.push({ type: "CARD_DISCOVERED", side: pending.side, card, costModifier: pending.costModifier });
+    events.push({ type: "CARD_DISCOVERED", side: pending.side, card, costModifier: pending.costModifier, destination: pending.destination ?? "hand" });
     const auto = resolveDrawTrigger(state, ctx.cards, pending.side, card, events, rng);
     if (auto) {
       if (auto.discard) state.sides[pending.side].discard.push(card);
       events.push({ type: "CARD_AUTO_CAST", side: pending.side, card });
+      const continuation = state.pendingTriggerSkills;
+      if (continuation) runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
       return true;
     }
-    state.sides[pending.side].hand.push({
-      card,
-      mods: pending.costModifier ? [{ id: "discover", kind: "cost", value: pending.costModifier }] : []
-    });
+    if (pending.destination === "deck_top") {
+      state.sides[pending.side].deck.push(card.id);
+    } else {
+      state.sides[pending.side].hand.push({
+        card,
+        mods: pending.costModifier ? [{ id: "discover", kind: "cost", value: pending.costModifier }] : []
+      });
+    }
+    const continuation = state.pendingTriggerSkills;
+    if (continuation) runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
     return true;
   }
   var TYPE_CN = {
@@ -2527,8 +2554,8 @@ var Core = (() => {
       setUnit(state, side, slot.row, slot.col, u);
       events.push({ type: "UNIT_SUMMONED", side, row: slot.row, col: slot.col, unit: u });
       const onPlay = (card.skills ?? []).filter((sk) => sk.trigger === "on_play");
-      const chosen = action.target ? { kind: "unit", side: action.target.side, row: action.target.row, col: action.target.col } : void 0;
-      const chosen2 = action.target2 ? { kind: "unit", side: action.target2.side, row: action.target2.row, col: action.target2.col } : void 0;
+      const chosen = action.target ? action.target.row !== void 0 ? unitRef(action.target.side, action.target.row, action.target.col) : lordRef(action.target.side) : void 0;
+      const chosen2 = action.target2 ? action.target2.row !== void 0 ? unitRef(action.target2.side, action.target2.row, action.target2.col) : lordRef(action.target2.side) : void 0;
       for (const sk of onPlay) {
         emitSkillTriggered(state, side, u, sk, "on_play", events);
         runEffects(
@@ -2549,7 +2576,7 @@ var Core = (() => {
     } else {
       runEffects(state, ctx.cards, card.effects, {
         side,
-        chosen: action.target ? { kind: "unit", side: action.target.side, row: action.target.row, col: action.target.col } : void 0
+        chosen: action.target ? action.target.row !== void 0 ? unitRef(action.target.side, action.target.row, action.target.col) : lordRef(action.target.side) : void 0
       }, rng, events);
       s.discard.push(card);
       runCardPlayedTriggers(state, ctx.cards, card, rng, events);

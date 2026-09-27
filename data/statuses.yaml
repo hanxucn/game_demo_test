@@ -284,3 +284,12 @@
   duration: turns
   caps: [block_attack]
   memo: "本回合不能普通攻击"
+
+- id: shui_gong_bonus
+  name: 水攻强化
+  kind: buff
+  numeric: true
+  scope: character
+  timing: 13
+  duration: permanent
+  memo: "水攻伤害 +N"

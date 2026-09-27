@@ -6,7 +6,7 @@
  */
 
 import { BOARD, STATUSES, TIMING } from './constants.ts';
-import { allUnits, applyMods, getUnit, hasCap, hasTrait, makeUnit, nextUidSeq, other, setUnit } from './state.ts';
+import { allUnits, applyMods, capStacks, getUnit, hasCap, hasTrait, makeUnit, nextUidSeq, other, setUnit } from './state.ts';
 import { handRef, removeStatus } from './mutate.ts';
 import { effectiveAttack } from './rules.ts';
 // 合并说明（rebase 到 main 时）：两边各加了一个 import —— main 把「抽到时释放」
@@ -111,6 +111,8 @@ export interface EffectContext {
   handIndex?: number;
   /** 抉择分支下标（ADR-071）：未指定/越界一律取 modes[0] */
   modeIndex?: number;
+  /** 本次技能结算开始时双方主公是否满血 */
+  lordFullHpAtStart?: Record<Side, boolean>;
 }
 
 /**
@@ -186,6 +188,7 @@ const matchesFilter = (
   if (f.faction && u.faction !== f.faction) return false;
   if (f.row && row !== f.row) return false;
   if (typeof f.health_max === 'number' && u.hp > f.health_max) return false;
+  if (f.damaged === true && u.hp >= u.maxHp) return false;
   if (f.has_status && !((u.statuses[f.has_status]?.stacks ?? 0) > 0)) return false;
   if (typeof f.cost_max === 'number' && u.cost > f.cost_max) return false;
   if (typeof f.cost_min === 'number' && u.cost < f.cost_min) return false;
@@ -221,6 +224,16 @@ function checkCondition(
   if (cond.dealt_damage_this_turn !== undefined) {
     const src = ctx.source;
     if (!src || !!src.dealtDamageThisTurn !== cond.dealt_damage_this_turn) return false;
+  }
+  if (cond.lord_hp) {
+    const side = cond.lord_hp.side === 'self' ? ctx.side : other(ctx.side);
+    if (!cmp(state.sides[side].lord.hp, cond.lord_hp.op, cond.lord_hp.value)) return false;
+  }
+  if (cond.lord_full_hp) {
+    const side = cond.lord_full_hp.side === 'self' ? ctx.side : other(ctx.side);
+    const lord = state.sides[side].lord;
+    const full = ctx.lordFullHpAtStart?.[side] ?? (lord.hp === lord.maxHp);
+    if (full !== cond.lord_full_hp.value) return false;
   }
   if (cond.exists) {
     return resolveTargets(state, { ...cond.exists, count: 'all' }, ctx, rng).length > 0;
@@ -297,12 +310,21 @@ export function runTriggerSkills(
   rng: Rng,
   events: GameEvent[],
 ): void {
-  for (const ref of allUnits(state, side)) {
+  const refs = allUnits(state, side);
+  const start = state.pendingTriggerSkills?.side === side && state.pendingTriggerSkills.trigger === trigger
+    ? state.pendingTriggerSkills.nextIndex : 0;
+  delete state.pendingTriggerSkills;
+  for (let index = start; index < refs.length; index++) {
+    const ref = refs[index]!;
     const u = ref.unit;
     if (u.hp <= 0) continue;
     for (const sk of (u.skills ?? []).filter((s) => s.trigger === trigger)) {
       emitSkillTriggered(state, side, u, sk, 'trigger', events);
       runEffects(state, cards, effectsOf(sk), { side, source: u }, rng, events);
+      if (state.pendingDiscover) {
+        state.pendingTriggerSkills = { side, trigger, nextIndex: index + 1 };
+        return;
+      }
     }
   }
 }
@@ -898,6 +920,10 @@ export function runEffects(
   events: GameEvent[],
 ): void {
   if (!effects?.length) return;
+  ctx.lordFullHpAtStart ??= {
+    own: state.sides[ctx.side].lord.hp === state.sides[ctx.side].lord.maxHp,
+    enemy: state.sides[other(ctx.side)].lord.hp === state.sides[other(ctx.side)].lord.maxHp,
+  };
 
   /** 该效果「没有解析出目标」时的兜底：取 pick 对应的玩家选择（ADR-071） */
   const chosenFor = (sel?: TargetSelector): TargetRef[] => {
@@ -928,7 +954,9 @@ export function runEffects(
     const flagVal = eff.value_from_flag
       ? Number((ctx.flags ?? []).find((f) => f.startsWith(`${eff.value_from_flag}:`))?.split(':')[1])
       : undefined;
-    const val = flagVal ?? discardVal ?? dynVal ?? eff.value ?? 0;   // 事件标记 > 弃牌属性 > 动态取值 > 固定值
+    const sourceVal = eff.value_from_source === 'attack' ? ctx.source?.atk
+      : eff.value_from_source === 'health' ? ctx.source?.hp : undefined;
+    const val = flagVal ?? discardVal ?? dynVal ?? sourceVal ?? eff.value ?? 0;
 
     const targets = eff.target ? resolveTargets(state, eff.target, ctx, rng) : [];
     switch (eff.action) {
@@ -942,7 +970,10 @@ export function runEffects(
           for (const t of list) {
             const before = hpOf(state, t);
             const victim = t.kind === 'unit' ? getUnit(state, t.side, t.row, t.col) : null;
-            dealDamage(state, cards, t, val, events, ctx.source?.name ?? '效果');
+            const waterBonus = eff.damage_type === 'water'
+              ? allUnits(state, ctx.side).reduce((sum, ref) => sum + capStacks(ref.unit.statuses, 'water_damage'), 0)
+              : 0;
+            dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? '效果');
             // 记录"本次造成了击杀"，供同一张卡的后续效果做条件判定
             if (before > 0 && hpOf(state, t) <= 0) {
               ctx.flags = ctx.flags ?? [];
@@ -984,7 +1015,10 @@ export function runEffects(
         const count = Math.min(eff.count ?? 3, pool.length);
         for (let i = 0; i < count; i++) shown.push(pool.splice(rng.int(pool.length), 1)[0]!);
         if (!shown.length) break;
-        state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value };
+        state.pendingDiscover = {
+          side: ctx.side, candidates: shown, costModifier: eff.value,
+          destination: eff.discover_to ?? 'hand',
+        };
         events.push({
           type: 'DISCOVER_OPTIONS', side: ctx.side,
           cards: shown.map((id) => cards.get(id)!).filter(Boolean),
