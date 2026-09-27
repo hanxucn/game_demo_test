@@ -1287,6 +1287,7 @@ var Core = (() => {
     if (f.faction && u.faction !== f.faction) return false;
     if (f.row && row !== f.row) return false;
     if (typeof f.health_max === "number" && u.hp > f.health_max) return false;
+    if (f.damaged === true && u.hp >= u.maxHp) return false;
     if (f.has_status && !((u.statuses[f.has_status]?.stacks ?? 0) > 0)) return false;
     if (typeof f.cost_max === "number" && u.cost > f.cost_max) return false;
     if (typeof f.cost_min === "number" && u.cost < f.cost_min) return false;
@@ -1308,6 +1309,16 @@ var Core = (() => {
     if (cond.dealt_damage_this_turn !== void 0) {
       const src = ctx.source;
       if (!src || !!src.dealtDamageThisTurn !== cond.dealt_damage_this_turn) return false;
+    }
+    if (cond.lord_hp) {
+      const side = cond.lord_hp.side === "self" ? ctx.side : other(ctx.side);
+      if (!cmp(state.sides[side].lord.hp, cond.lord_hp.op, cond.lord_hp.value)) return false;
+    }
+    if (cond.lord_full_hp) {
+      const side = cond.lord_full_hp.side === "self" ? ctx.side : other(ctx.side);
+      const lord = state.sides[side].lord;
+      const full = ctx.lordFullHpAtStart?.[side] ?? lord.hp === lord.maxHp;
+      if (full !== cond.lord_full_hp.value) return false;
     }
     if (cond.exists) {
       return resolveTargets(state, { ...cond.exists, count: "all" }, ctx, rng).length > 0;
@@ -1731,6 +1742,10 @@ var Core = (() => {
   }
   function runEffects(state, cards, effects, ctx, rng, events) {
     if (!effects?.length) return;
+    ctx.lordFullHpAtStart ??= {
+      own: state.sides[ctx.side].lord.hp === state.sides[ctx.side].lord.maxHp,
+      enemy: state.sides[other(ctx.side)].lord.hp === state.sides[other(ctx.side)].lord.maxHp
+    };
     const chosenFor = (sel) => {
       const p = pickOf(ctx, sel);
       return p ? [p] : [];
@@ -1799,7 +1814,12 @@ var Core = (() => {
           const count = Math.min(eff.count ?? 3, pool.length);
           for (let i = 0; i < count; i++) shown.push(pool.splice(rng.int(pool.length), 1)[0]);
           if (!shown.length) break;
-          state.pendingDiscover = { side: ctx.side, candidates: shown, costModifier: eff.value, destination: eff.discover_to ?? "hand" };
+          state.pendingDiscover = {
+            side: ctx.side,
+            candidates: shown,
+            costModifier: eff.value,
+            destination: eff.discover_to ?? "hand"
+          };
           events.push({
             type: "DISCOVER_OPTIONS",
             side: ctx.side,
@@ -2368,8 +2388,10 @@ var Core = (() => {
     if (auto) {
       if (auto.discard) state.sides[pending.side].discard.push(card);
       events.push({ type: "CARD_AUTO_CAST", side: pending.side, card });
-      const continuation = state.pendingTriggerSkills;
-      if (continuation) runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
+      const continuation2 = state.pendingTriggerSkills;
+      if (continuation2) {
+        runTriggerSkills(state, ctx.cards, continuation2.side, continuation2.trigger, rng, events);
+      }
       return true;
     }
     if (pending.destination === "deck_top") {
@@ -2381,7 +2403,9 @@ var Core = (() => {
       });
     }
     const continuation = state.pendingTriggerSkills;
-    if (continuation) runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
+    if (continuation) {
+      runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
+    }
     return true;
   }
   var TYPE_CN = {

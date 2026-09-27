@@ -764,7 +764,7 @@
   flavor: ''
 - id: neutral_archer
   name: 弓射手
-  faction: shu
+  faction: neutral
   type: troop
   cost: 1
   attack: 0
@@ -792,7 +792,7 @@
   flavor: ''
 - id: neutral_infantry
   name: 步兵
-  faction: shu
+  faction: neutral
   type: troop
   cost: 1
   attack: 1
@@ -801,11 +801,10 @@
   memo: 1 费 1/1 的填线兵
   gender: male
   keywords: []
-  skills:
-  - id: ''
-    name: ''
-    text: 当场上设有其他敌方人物时，才可攻击主帅.
-    pending: true
+  # 原桩技能「当场上设有其他敌方人物时，才可攻击主帅.」是**纯限制型文案**，schema 无处承载
+  # （ADR-045），一直靠 `pending: true` 挂着、未实现。2026-09-27 设计者裁定撤下：
+  # 步兵 = 白板 1/1。该限制待 restrict 字段落地后重议（见 docs/card-text-vs-data-audit.md）。
+  skills: []
   flavor: ''
 - id: wei_caogang
   name: 曹昂

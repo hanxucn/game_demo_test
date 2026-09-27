@@ -278,8 +278,10 @@ test('ADR-075：人物卡不再有「有技能名、效果待设计」的 pendin
     .map((c) => `${c.id}（${c.name}）`);
   assert.deepEqual(chars, [], `这些人物卡还挂着 pending 技能：${chars.join('、')}`);
 
-  // 剩下的只允许是「限制型文案」那两张（等 ADR-045 的 restrict 字段），换名单就报错
-  const ALLOW = ['neutral_infantry', 'token_jixie_shaobing'];
+  // 剩下的只允许是「限制型文案」那一张（等 ADR-045 的 restrict 字段），换名单就报错。
+  // 步兵（neutral_infantry）原在这张名单里，2026-09-27 设计者裁定撤下桩技能、改白板 1/1，
+  // 故此处的期望名单同步收窄 —— 数据的改动在 data/cards.yaml 有注释留痕。
+  const ALLOW = ['token_jixie_shaobing'];
   assert.deepEqual([...pendingIds].sort(), [...ALLOW].sort(),
     `pending 技能名单变了：${names.join('、')} —— 若是新加的限制型文案，`
     + '请连同 ADR-045 的 restrict 字段一起处理，不要让它静默挂在卡上');
