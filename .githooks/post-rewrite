@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# ============================================================
+# post-rewrite：rebase / commit --amend **之后**跑，补 pre-commit 够不到的那一段
+#
+# 为什么需要它：
+#   `git rebase` 与 `git commit --amend` **不会调用 pre-commit**（实测确认），而变基恰好是
+#   「双方各自提交后出现的差异」发生的地方 —— 2026-09-27 实测：rebase 完 `git status` 是干净的，
+#   但重跑 `build-cards.sh` 后三个产物全都变了（cards.json 10 行、core.bundle.js 32 行、
+#   data.bundle.js 242 行）。
+#
+# 为什么是「报告」而不是「自动改」：
+#   变基可能重写了多条提交，这里无法知道差异该并进哪一条；改错历史比报出来更糟。
+#   所以本 hook 做两件事：① 把工作区的产物**重建成正确的**（这样至少本地跑得对）；
+#   ② 响亮地告诉你"历史里的产物与源不一致"，并给出修复命令。
+# ============================================================
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)" || exit 0
+
+ARTIFACTS=(core/data prototype/core.bundle.js prototype/data.bundle.js)
+
+if ! build_out=$(bash tools/build-cards.sh 2>&1); then
+  echo "⚠ post-rewrite：产物重建失败（工作区可能跑旧代码）"
+  printf '%s\n' "$build_out" | tail -3 | sed 's/^/    /'
+  exit 0
+fi
+
+changed=$(git diff --name-only -- "${ARTIFACTS[@]}")
+if [ -z "$changed" ]; then
+  exit 0   # 与源一致，静默通过
+fi
+
+echo
+echo "⚠ 变基 / amend 之后，仓库里的生成物与源不再同步 —— 已重建到工作区，但**还没进提交**："
+printf '%s\n' "$changed" | sed 's/^/      /'
+echo "  原因：变基过程中 git 对生成物做的是**文本合并**，结果可能与真正重建不一致。"
+echo "  修复（单条提交）："
+echo "      git add $(printf '%s' "$changed" | tr '\n' ' ')"
+echo "      git commit --amend --no-edit"
+echo "  修复（多条提交）：跑一次 \`git rebase -i <base>\`，在需要的那条停下后重复上面两步。"
+echo
+exit 0

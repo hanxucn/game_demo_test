@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# ============================================================
+# pre-commit：保证「提交里带上的生成物 = 从当前源码重建出来的那份」
+#
+# 为什么需要它（2026-09-27 实测的实例）：
+#   teammate 的 PR #12 改了 core/src/*.ts，但**没重建** prototype/core.bundle.js 就提交了。
+#   main 上的页面于是跑「旧引擎 + 新数据」（缺 damaged 过滤器、lord_hp / lord_full_hp 条件），
+#   而且**失败是静默的** —— 页面照常打开、照常能玩，横跨 5 条提交、153 分钟无人发现。
+#   AGENTS.md 里那条人工检查项（「改了 core/data 后已重建 bundle」）被证明靠不住。
+#
+# 做法：**重建 + 自动加入本次提交**（不是报警，是修好）
+#   · 全量重建实测只要 ~0.5s，所以不做「过期检测」，每次都重建
+#   · 重建后只把**真的变了**的生成物 git add 进来 —— 源没动时它们不会变，等于无操作
+#   · 重建失败时：若本次提交碰了生成物的源，就**拦住**（不能带过期产物提交）；
+#     若没碰源（比如只改文档），只警告放行 —— 不因为缺 Python 依赖就卡住无关提交
+#
+# 安装（每个 clone 跑一次；已提交进版本库，所以新人 clone 后也就差这一条命令）：
+#     git config core.hooksPath .githooks
+# 临时跳过：git commit --no-verify
+# ============================================================
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)" || exit 0
+
+# 生成物的「源」——碰了它们就必须重建成功，否则本次提交会带上过期产物
+SOURCES_RE='^(core/src/|data/|core/tools/|tools/(yaml2json\.py|build-data-bundle\.py|build-cards\.sh))'
+ARTIFACTS=(core/data prototype/core.bundle.js prototype/data.bundle.js)
+
+staged=$(git diff --cached --name-only)
+touched_sources=$(printf '%s\n' "$staged" | grep -E "$SOURCES_RE" || true)
+
+if ! build_out=$(bash tools/build-cards.sh 2>&1); then
+  if [ -n "$touched_sources" ]; then
+    echo "✗ 本次提交改了生成物的源，但产物重建失败 —— 不能带着过期产物提交。"
+    echo "──────────────── 重建输出 ────────────────"
+    printf '%s\n' "$build_out"
+    echo "──────────────────────────────────────────"
+    echo "  常见原因：缺 PyYAML（pip install pyyaml）、或没装 core 依赖（cd core && npm install）"
+    echo "  确实要跳过这道检查：git commit --no-verify"
+    exit 1
+  fi
+  echo "⚠ 产物重建失败，但本次提交没碰生成物的源 —— 放行（页面可能跑旧代码）"
+  printf '%s\n' "$build_out" | tail -2 | sed 's/^/    /'
+  exit 0
+fi
+
+# 只 add「真的变了」的 —— 源没动时这里为空，等于无操作
+changed=$(git diff --name-only -- "${ARTIFACTS[@]}")
+if [ -n "$changed" ]; then
+  echo "▸ 生成物与源不同步，已重建并自动加入本次提交："
+  printf '%s\n' "$changed" | sed 's/^/    /'
+  printf '%s\n' "$changed" | while IFS= read -r f; do git add -- "$f"; done
+fi
+
+exit 0

@@ -49,6 +49,12 @@ bash tools/serve.sh          # → http://127.0.0.1:8099/prototype/battlefield.h
 #   端口被占会自动往后找；重复启动直接给地址
 #   想验证「没有服务端时页面还能不能用」：bash tools/serve.sh --static（卡组退化为存浏览器）
 
+# ⚠️ 新 clone（或换机器）先装依赖 —— node_modules **不入库**
+cd core && npm install       # 有 package-lock.json，也可用 npm ci
+#   不装也能跑 npm test / validate / verify:dsl / smoke（纯 node），
+#   但 npm run typecheck（要 tsc）与 npm run build:browser（要 esbuild）需要它，
+#   而 serve.sh 启动时与 .githooks/pre-commit 都要重建产物 → 不装会被拦住并提示这一句。
+
 # 引擎（core）
 cd core
 npm test          # 规则 / 引擎 / 回放确定性 / DSL / 框架闭环 / B 类技能 / 内容收口 / AI
@@ -174,9 +180,33 @@ feat(card): 增加吴国人物卡牌，相关机制优化
 - ❌ 使用非法关键词组合（架盾 + 奇袭）
 - ❌ 在 `data/` 里放入未标注来源的占位数值而不加注释
 
+## 提交前钩子（.githooks/，已入库）
+
+**每个 clone 跑一次**（hook 目录不在 `.git/hooks` 里，需要指过去）：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+它保证**提交里带上的生成物 = 从当前源码重建出来的那份**，两条路径各管一段：
+
+| hook | 触发时机 | 行为 |
+|---|---|---|
+| `pre-commit` | 普通 `git commit` | 重建产物（~0.5s）；把**变了的**生成物**自动加入本次提交**。重建失败且本次提交碰了生成物的源 → **拦住**（不碰源则只警告放行） |
+| `post-rewrite` | `git rebase` / `git commit --amend` **之后** | 这两条路径**不会**调用 `pre-commit`（已实测），而变基对生成物做的是**文本合并**、可能与真重建不一致 → 重建 + 响亮报告 + 给出修复命令 |
+
+临时跳过：`git commit --no-verify`
+
+**为什么加它**：2026-09-27 实测 —— teammate 的 PR #12 改了 `core/src/*.ts` 但没重建
+`prototype/core.bundle.js`，main 上的页面跑**旧引擎 + 新数据**，而且失败是**静默的**
+（页面照常打开、照常能玩），横跨 5 条提交、153 分钟无人发现。
+下面那条人工检查项「改了 core / data 后已重建」因此被证明**靠不住** —— 交给 hook。
+
+> 另：`bash tools/serve.sh` 启动时也会重建一次（~0.5s），所以**本地跑**同样不会再吃到过期产物。
+
 ## 提交前检查清单
 
-- [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
+- [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`（`.githooks/pre-commit` 已自动做）
 - [ ] `cd core && npm test` 全过 + `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（`npm run validate` 无 error；字段名、关键词/状态/动作注册、类型定型都过）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
