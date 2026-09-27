@@ -182,7 +182,8 @@ feat(card): 增加吴国人物卡牌，相关机制优化
 
 ## 提交前钩子（.githooks/，已入库）
 
-**每个 clone 跑一次**（hook 目录不在 `.git/hooks` 里，需要指过去）：
+**`cd core && npm install` 会自动装好**（`core/package.json` 的 `prepare` 脚本会写 `core.hooksPath`）；
+想手工装或确认：
 
 ```bash
 git config core.hooksPath .githooks

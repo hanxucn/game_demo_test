@@ -1,8 +1,6 @@
-# 生成物：由 tools/ 脚本产出，勿手改、勿提交
+# 生成物：由 tools/ 脚本产出，勿手改
 prototype/_probe.html          # tools/make-probe.sh 生成的临时探针页
-prototype/*.bundle.js
-core/data/*.json
-docs/gdd/index.html
+docs/gdd/index.html            # tools/render-gdd.mjs 生成
 server/game.db
 .screenshots/*.png
 .playwright-mcp/
@@ -11,3 +9,11 @@ server/game.db
 node_modules/
 # macOS 桌面元数据
 .DS_Store
+# 已取消跟踪的旧快照：内容全是仓库已有文件的副本，一半是 __MACOSX 垃圾
+/data.zip
+/docs/gdd.zip
+
+# ⚠️ prototype/*.bundle.js 与 core/data/*.json **故意保持入库** —— 别把上面那两条规则加回来：
+#    它们是浏览器与测试的直接输入，取消跟踪会让「pull 下来直接开页面」失效，
+#    反而多一条「本地跑旧引擎」的静默失败路径（PR #12 那个坑的形状）。
+#    新鲜度由 .githooks/pre-commit 与 tools/serve.sh 保证。
