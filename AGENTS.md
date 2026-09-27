@@ -43,8 +43,11 @@ python3 tools/yaml2json.py && python3 tools/build-data-bundle.py
 cd core && npm run build:browser && cd ..
 open prototype/battlefield.html
 
-# 需要本地服务器时用这个（发 no-store，避免改了 JS 刷新还在跑旧代码）
+# 一条命令：静态页面 + 卡组 API（卡组存 server/game.db，跨浏览器/跨机器都在）
 bash tools/serve.sh          # → http://127.0.0.1:8099/prototype/battlefield.html
+#   需要 Node ≥22.18（node:sqlite 内置 + 直接 import core 的 .ts）；core/data/*.json 已入库
+#   端口被占会自动往后找；重复启动直接给地址
+#   想验证「没有服务端时页面还能不能用」：bash tools/serve.sh --static（卡组退化为存浏览器）
 
 # 引擎（core）
 cd core
@@ -116,17 +119,29 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 - ⚠️ 不要用 `git add -A`（会把 `prototype/_probe.html` 等生成物带进版本库）
   —— 只 add 自己确实改过的文件
 
-**提交信息格式（设计者 2026-09 定）**：简体中文，**1~2 句话**说清"改了什么 +
-为什么这么改"，末尾保留 `（ADR-0xx）` 编号：
+**提交信息格式（设计者 2026-09-27 修订）**：简体中文。**标题 1~2 句说清"这是什么事"；
+正文（comment）分组列出概括性的更新内容**：
 
 ```
-fix(prototype): 修复箭头从屏幕外飞入 —— 起点元素失效时 getBoundingClientRect()
-全返回 0，导致箭头从视口左上角画出去；现在取不到有效起点就不画（ADR-083）
+feat(card): 增加吴国人物卡牌，相关机制优化
+
+一、新增吴国人物卡牌
+· 全琮：3 费 3/2 武将；「决水」战吼，对目标造成 3 点水攻伤害。
+· 潘璋：5 费 4/2 武将；「擒将」战吼，选择受伤的敌方武将，造成 3 点火攻伤害。
+
+二、功能 && bugfix
+· 修复技能目标解析错误，人物目标与主公目标现在能正确区分。
+· 修复卡牌效果还未结算时点击「结束回合」导致效果不结算的问题。
+
+三、验证
+· npm test 280 全绿；浏览器实测吴国卡组可构筑并可开局
+
+（ADR-0xx）
 ```
 
-- **不要过短**：「修复箭头动画」这种看不出改了什么的一句话不合格；
-  **也不要过长**：完整根因与实测数据仍写进 `14-open-questions.md` 的 ADR 行，
-  commit 只交代"改了什么、为什么"，避免两处各存一份而漂移
+- **标题要短**：完整根因与实测数据写进 `14-open-questions.md` 的 ADR 行，
+  标题只交代"这是什么事"，**具体改动点列在正文里**，避免两处各存一份而漂移
+- 正文分组用 `一、二、三、`，每条一行以 `·` 起；**有验证结果就单列一组**
 - 不用英文；一次提交只讲一件事；docs 与代码同步的提交写 `docs: 同步 ADR-0xx 与 GDD`
 
 **提交粒度（设计者 2026-09 定）**：判断口径是"**这是同一件事的续做，还是另一件事？**"

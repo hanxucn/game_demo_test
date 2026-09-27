@@ -10,9 +10,11 @@
 | `battlefield.engine.js` | 渲染 + 动画 + 输入 → Action（**不含任何规则判断**） |
 | `card-test.html` | 从全阵营卡池选 1～10 张，进入战场实测出牌与技能 |
 | `card-test.js` / `card-test-page.js` | 测试模式开局数据与选卡界面 |
-| `deck-builder.html` | 独立卡组构筑页：收藏卡牌筛选、效果查看、卡组保存/读取（需要 `server/index.mjs`） |
-| `deck-builder.js` | 卡组构筑页 API 调用与交互 |
-| `setup.js` | 战场开局：阵营选择、手动/已保存卡组、换牌 |
+| `deck-builder.html` | 独立卡组构筑页：筛选、效果查看、保存/读取/删除（**现在不依赖服务端**，无服务端时卡组存浏览器） |
+| `deck-builder.js` | 卡组构筑页交互（规则问 `Core`，存取问 `DeckStore`，渲染问 `CardTile`） |
+| `deck-store.js` | **卡组持久化的唯一知情者**：探测服务端 → 有则存 `server/game.db`，无则存 `localStorage` |
+| `setup.js` | 战场开局：阵营选择 → **构筑卡组（含搜索/详情/保存/读取/删除）** → 换牌 |
+| `card-tile.js` | **卡牌瓦片（选卡 UI）的唯一实现** —— 构筑页 / 卡牌测试页 / 战场第 2 步共用；配色走 `--ct-*` 变量 |
 | `card-render.css` / `.js` | 卡面与动画 |
 | `card-gallery.html` | 卡面画廊（1:1 / 2×） |
 | `style-lab.html` | 风格实验室（已定稿，保留对比） |
@@ -35,36 +37,58 @@ cd core && npm run build:browser
 
 ## 本地启动
 
-卡组保存和战场载入已保存卡组需要启动完整 Demo 服务：
+**构筑卡组本身不再需要服务端** —— 卡池来自 `data.bundle.js`，规则来自 `core.bundle.js`，
+没有服务端时卡组存进浏览器 `localStorage`。服务端只决定"卡组存哪儿"：
 
-```powershell
-$node = "C:\Users\86188\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
-& $node server/index.mjs
+```bash
+bash tools/serve.sh          # 一条命令：静态页面 + 卡组 API，卡组存 server/game.db
+bash tools/serve.sh --static # 纯静态预览：没有 /api，卡组退化为存浏览器（用于验证降级路径）
+bash tools/serve.sh 9000     # 指定起始端口（被占会自动往后找）
 ```
+
+> `tools/serve.sh` 现在**委托给 `node server/index.mjs`** —— 原先它是 python 的 `http.server`，
+> 不提供 `/api`，所以"只开 serve.sh"时卡组只能退化成存 `localStorage`（换端口/换浏览器就没了）。
+> 合并成一条命令后就一条命令、卡组落文件。依赖只有 **Node ≥22.18**：
+> `node:sqlite` 内置不需装包，`core/data/*.json` 已入库，服务端直接 `import` core 的 `.ts` 复用组卡规则。
 
 然后访问：
 
 ```text
-http://127.0.0.1:8099/prototype/deck-builder.html
-http://127.0.0.1:8099/prototype/battlefield.html
+http://127.0.0.1:8099/prototype/battlefield.html     ← 主入口，构筑已并入开局第 2 步
+http://127.0.0.1:8099/prototype/deck-builder.html    ← 独立构筑页（同一套规则与存储）
 http://127.0.0.1:8099/prototype/card-test.html
 ```
 
-仅运行 `tools/serve.sh` 只能预览静态页面，不提供卡组 API。
-
 ## 当前构筑与对战流程
 
+构筑**已并入对战流程**，不再需要跳页（ADR-095）：
+
 ```text
-卡组构筑页：筛选卡牌 → 查看效果 → 组成 30 张 → 保存到 SQLite
-       ↓
-战场页：选择阵营 → 手动/载入已保存卡组 → 换牌 → 开始对局
+战场页第 1 步：选择阵营
+      ↓
+战场页第 2 步：构筑卡组  ← 搜索 / 悬停看完整效果 / 保存 / 读取 / 删除都在这
+      ↓                    （另有独立入口 deck-builder.html，同一套规则与存储）
+战场页第 3 步：换牌 → 开始对局
 ```
+
+存储模式由 `deck-store.js` 自动判定，UI 顶部会明示当前用的是哪一种：
+
+| 模式 | 判定 | 卡组在哪 | 跨机器 |
+|---|---|---|---|
+| `server` | `/api/health` 返回 JSON 且 `ok:true` | `server/game.db` | ✅（拷 db 文件） |
+| `local` | 其余情况（静态服务 / 直接开 html） | 浏览器 `localStorage` | ❌ 换端口、换 hostname、换浏览器都看不到 |
+
+> `localStorage` 是**按「源」隔离**的：`127.0.0.1:8099`、`localhost:8099`、`:8100`、`file://` 各是一套库。
+> `tools/serve.sh` 在端口被占时会自动跳端口 —— 那会换源，看不到原来的本地卡组。
+> 本地攒下的卡组不会被丢弃：服务端起来后会标「未同步」，并给「上传 N 个本地卡组到服务端」按钮（显式上传，不自动覆盖）。
 
 卡牌测试页可跨阵营选 1～10 张已实现卡牌。开始后这些牌直接进入手牌，后续也只会抽到所选卡牌；统率为 10，我方有一名、敌方有五名基础兵供技能选目标。敌方回合默认跳过，也可勾选敌方 AI 测受击等效果。战场“重开”会用同一组选卡重新开始，“卡牌测试”链接可返回选卡页。该模式不保存卡组，也不改变正式对局的组卡规则。
 
 发现机制：部分技能会从牌库随机展示最多 3 张符合条件的牌，暂停等待玩家选择；选中的牌加入手牌，并可携带该技能指定的费用修正。曹丕的“典论革新”用于发现曹氏宗亲。
 
-当前使用固定 `demo-user`，数据库文件为 `server/game.db`。规则校验仍由 `core/src/deck.ts` 和 `Core.validateDeck()` 负责。
+当前使用固定 `demo-user`。**卡组规则的唯一真源是 `core/src/deck.ts`**（`validateDeck` / `maxCopiesOf` /
+`cardPool` / `DECK.SIZE`）：前端直接调 `Core.*`，服务端 `import` 同一份 TS（Node ≥22.18 默认支持类型剥离），
+两边都不再各自维护一份"同名上限"。
 
 ## 演示能做什么
 
