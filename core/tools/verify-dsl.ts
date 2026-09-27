@@ -1,7 +1,7 @@
 /**
  * DSL 翻译验证器
  *
- * 读取 core/data/cards_v1.json 里**已翻译 DSL 的卡**，逐张真打进引擎，确认：
+ * 读取 core/data/cards.json（ADR-091 起唯一的运行时卡表）里**有技能的卡**，逐张真打进引擎，确认：
  *   ① 卡能合法打出（引用的单位/状态/标签都已注册）
  *   ② 技能效果真的产出事件（不是"能加载但跑不动"）
  *
@@ -22,19 +22,14 @@ import { createRng } from '../src/rng.ts';
 import type { Action, CardDef, GameEvent, SkillDef } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const all: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards_v1.json'), 'utf8'));
+const all: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
 
-const hasDsl = (c: CardDef) =>
-  (c.skills ?? []).some((s) => s.dsl) || (c.effects?.length ?? 0) > 0;
+// ADR-091：cards.json 的技能已是摊平后的正式形状（`skills: SkillDef[]`），
+// 不再有草稿层的 `skills[].dsl` 需要摊平。
+const hasDsl = (c: CardDef) => (c.skills ?? []).length > 0 || (c.effects?.length ?? 0) > 0;
 
-// skills[].dsl 存的是**技能定义数组**，需要摊平回 skills
 // 主公卡不进卡组、不能从手牌打出，单独走主公技流程，不在此验证
-const cards: CardDef[] = all
-  .filter((c) => (hasDsl(c) || c.cost_rule) && c.type !== 'lord')
-  .map((c) => ({
-  ...c,
-  skills: (c.skills ?? []).flatMap((s) => (s.dsl as unknown as SkillDef[]) ?? []),
-}));
+const cards: CardDef[] = all.filter((c) => (hasDsl(c) || c.cost_rule) && c.type !== 'lord');
 
 // ① 先注册**已摊平 DSL** 的卡（供打出与技能执行）
 for (const c of cards) if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(c);

@@ -1,42 +1,28 @@
 #!/usr/bin/env bash
-# 卡牌数据全链重建（改完 data/*.yaml 后跑这个，不要手改中间产物）
+# 卡牌数据：校验 + 导出（ADR-091 / ADR-092）
 #
-# 六层数据流：
-#   data/transcribe/*.yaml            原始手写稿转录（冻结，不参与重建）
-#     → data/cards_decisions.draft.yaml   设计者决策（数值 / 技能 / DSL / 平衡）
-#     → data/cards_photo.draft.yaml       应用决策后的卡池
-#     → data/cards_v1.draft.yaml          归一化前卡池
-#     → data/cards.yaml                   ★ 唯一真源（含派生 value 块）
-#     → core/data/*.json                  引擎运行时数据
+# ⚠️ 本脚本**只读** data/cards.yaml —— 不生成、不回写、不改其中任何内容。
+#     它做三件事：把 YAML 导成引擎读的 JSON、校验数据、重建浏览器产物。
+#     卡牌数据完全由人维护：加卡/改数值/改技能都直接改 data/cards.yaml 即可，
+#     不需要为了"保持数据一致"跑任何脚本。
 #
-# value 块是派生数据，所以入库要跑两遍 promote：先出 cards.yaml，算出核算块，再并回去。
+# 三步：
+#   ① 导出运行时 JSON（cards.yaml → core/data/*.json）
+#   ② 校验（结构 / 字段白名单 / 注册表 / 命名 / 类型定型 / 文案与效果一致性）
+#   ③ 重建浏览器产物（data.bundle.js + core.bundle.js）
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "① 应用设计决策 → cards_photo.draft.yaml"
-python3 tools/merge-photos.py
-
-echo "② 归一化 → cards_v1.draft.yaml"
-python3 tools/gen-cards-v1.py
-
-echo "③ 入库（第一遍，不含 value） → data/cards.yaml"
-python3 tools/promote-cards.py
-
-echo "④ 导出运行时 JSON"
+echo "① 导出运行时 JSON（data/*.yaml → core/data/*.json）"
 python3 tools/yaml2json.py
 
-echo "⑤ 计算 value 核算块"
-node --experimental-strip-types core/tools/emit-values.ts
+echo "② 校验 data/cards.yaml"
+(cd core && npm run validate --silent)
 
-echo "⑥ 并入 value 块（第二遍）"
-python3 tools/promote-cards.py
-
-echo "⑦ 重新导出运行时 JSON（带上 value）"
-python3 tools/yaml2json.py
-
-echo "⑧ 重建浏览器产物"
+echo "③ 重建浏览器产物"
 python3 tools/build-data-bundle.py
 (cd core && npm run build:browser --silent)
 
 echo
-echo "✓ 完成。接着跑： cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke"
+echo "✓ 完成（data/cards.yaml 未被改动）。接着跑："
+echo "   cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke"

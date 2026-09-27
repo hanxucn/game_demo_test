@@ -1,7 +1,7 @@
 /**
- * cards_v1 剩余 14 张卡的功能逻辑测试（ADR-040 / ADR-041）
+ * 早期「cards_v1 批次」卡牌的功能逻辑测试（ADR-040 / ADR-041）
  *
- * 数据直接来自 core/data/cards_v1.json（由 tools/gen-cards-v1.py 从
+ * 数据直接来自 core/data/cards.json（由 tools/gen-cards-v1.py 从
  * data/cards_decisions.draft.yaml 的 DSL 翻译生成），因此测的是**真实翻译结果**，
  * 不是测试专用的替身卡。
  *
@@ -24,14 +24,14 @@ import { TEST_CARDS, scenario } from './fixtures.ts';
 import type { Action, CardDef, GameEvent, Unit } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards_v1.json'), 'utf8'));
+const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
 
 // 全部卡都要进卡表：summon / transform 会按 id 引用它们（如 elite_* 精英兵）
 for (const c of ALL) {
   const flat: CardDef = {
     ...c,
     keywords: c.keywords ?? [],
-    skills: (c.skills ?? []).flatMap((sk) => (sk.dsl as unknown as CardDef['skills']) ?? []),
+    skills: c.skills ?? [],          // cards.json 的技能已是摊平后的正式形状（无 skills[].dsl）
   };
   if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(flat);
 }
@@ -39,11 +39,11 @@ for (const c of ALL) {
 /** 取真实翻译后的卡（把 skills[].dsl 摊平回 skills） */
 function realCard(id: string): CardDef {
   const raw = ALL.find((c) => c.id === id);
-  assert.ok(raw, `cards_v1.json 里找不到 ${id}`);
+  assert.ok(raw, `cards.json 里找不到 ${id}`);
   const flat: CardDef = {
     ...raw,
     keywords: raw.keywords ?? [],
-    skills: (raw.skills ?? []).flatMap((s) => (s.dsl as unknown as CardDef['skills']) ?? []),
+    skills: raw.skills ?? [],
   };
   if (!TEST_CARDS.some((x) => x.id === id)) TEST_CARDS.push(flat);
   return flat;

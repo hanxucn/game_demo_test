@@ -1,5 +1,18 @@
 # 13 · 数值模型与数据格式
 
+> ## ⚠️ 第 1~5 章（数值预算模型）已退役 —— ADR-092（2026-09-27）
+>
+> 「属性 + 关键词 + 技能 ≈ 2×费用+1」这套**预算闸门与 `value:` 核算块已整个删除**。
+> 原因：它是按公式估算、**从未实机校准**的启发式（ADR-047 自己就写着"按度量算的，不是实机测的"），
+> 遇到光环/发现/单挑这类机制估不准，反而会拦住设计者有意为之的数值
+> —— 关羽/张飞/周瑜/蒋济/郭淮/姜维都只能靠 `rarity: elite` 豁免过闸。
+>
+> **现在**：`data/cards.yaml` 里不再有 `value:` 块，也没有任何脚本会写它；
+> 「这张卡强不强」由设计者与实机测试判断。下面第 1~5 章保留作**历史与口径记录**
+> （想恢复这套自检，见 ADR-043 / ADR-047 与 git 历史）。
+>
+> **第 6 章（卡牌 Schema）与第 7 章（效果 DSL）完全有效**，且第 6 章的 `value` 字段已移除。
+
 > 状态：**已定**。本文件是 `core` 与内容管线的直接输入。
 
 ## 1. 总价值预算模型
@@ -119,7 +132,7 @@
 ## 6. 卡牌 Schema
 
 ```yaml
-# cards.yaml
+# data/cards.yaml（ADR-091 起为唯一手写真源；ADR-092 起无 value 块）
 - id: shu_infantry              # 必填，唯一
   name: 步兵                    # 必填，≤4 字
   faction: neutral              # shu | wei | wu | qun | neutral
@@ -666,20 +679,22 @@ skills:
 `ADR-018` 的自动判定（**攻击 > 1 → 武将；否则默认谋臣**）是在**照片稿的攻击力**上跑的，
 而攻击力会被 `card_stats` 改 —— 所以「1 攻的武将」必须由设计者显式裁定，否则一律算谋臣：
 
+**ADR-091 起直接在卡条目上标**（`data/cards.yaml` 是唯一手写真源）：
+
 ```yaml
-# data/cards_decisions.draft.yaml
-card_type:
-  wu_zumao:            # 祖茂 2 费 1/3 —— 设计者：即便 1 攻仍是武将
-    type: general
-    explicit: true     # → 卡片字段 type_explicit: true
-  shu_xiangchong:      # 向宠 2 费 1/4 —— 攻击 ≤ 1 且无显式标注 → 谋臣
-    type: strategist
+# data/cards.yaml
+- id: wu_zumao           # 祖茂 2 费 1/3 —— 设计者：即便 1 攻仍是武将
+  type: general
+  type_explicit: true    # 显式裁定「1 攻也算武将」
+- id: shu_xiangchong     # 向宠 2 费 1/4 —— 攻击 ≤ 1 且无显式标注 → 按 ADR-018 算谋臣
+  type: strategist
 ```
 
 - 规则落在 `core/tools/validate.ts`：`general && attack <= 1 && !type_explicit` → **error**；
-- `type_explicit` 必须列入 `promote-cards.py` 的 `KEEP`，否则会被静默丢弃（陷阱 #3）；
-- 同一条目也顺手清掉了 `gen-cards-v1.py` 里 `TYPE_FIX = {'shu_huangquan': 'general'}`
-  这种**按 id 的类型硬编码**（卡牌数据不该写进代码，铁律 1）。
+- `type_explicit` 在字段白名单里（`CARD_FIELDS`）—— 写了名单外的字段会直接报 error，
+  不再有"生成器按 `KEEP` 静默丢弃"这回事（陷阱 #3 已随 ADR-091 结项）；
+- 早年的 `gen-cards-v1.py` 里 `TYPE_FIX = {'shu_huangquan': 'general'}`
+  这种**按 id 的类型硬编码**已删除（卡牌数据不该写进代码，铁律 1）。
 
 #### ⑤ 选目标的判定一律在 core（ADR-077）
 

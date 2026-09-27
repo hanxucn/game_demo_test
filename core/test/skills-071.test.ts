@@ -1,7 +1,7 @@
 /**
  * ADR-071：B 类技能所需的 8 项 DSL / 引擎能力
  *
- * 对应 docs/BACKLOG-skills.md 的 B-3 ~ B-11。数据直接来自 core/data/cards_v1.json
+ * 对应 docs/BACKLOG-skills.md 的 B-3 ~ B-11。数据直接来自 core/data/cards.json
  * （由 data/cards_decisions.draft.yaml 的 DSL 翻译生成），所以测的是**真实翻译结果**，
  * 不是测试替身。
  *
@@ -34,13 +34,13 @@ import { TEST_CARDS, scenario } from './fixtures.ts';
 import type { Action, CardDef, GameEvent, MatchState, TargetSelector, Unit } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards_v1.json'), 'utf8'));
+const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
 
 for (const c of ALL) {
   const flat: CardDef = {
     ...c,
     keywords: c.keywords ?? [],
-    skills: (c.skills ?? []).flatMap((sk) => (sk.dsl as unknown as CardDef['skills']) ?? []),
+    skills: c.skills ?? [],          // cards.json 的技能已是摊平后的正式形状（无 skills[].dsl）
   };
   if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(flat);
 }
@@ -48,11 +48,11 @@ for (const c of ALL) {
 /** 取真实翻译后的卡（skills[].dsl 摊平回 skills），**就地替换卡表**，便于按需改造 */
 function realCard(id: string): CardDef {
   const raw = ALL.find((c) => c.id === id);
-  assert.ok(raw, `cards_v1.json 里找不到 ${id}`);
+  assert.ok(raw, `cards.json 里找不到 ${id}`);
   const flat: CardDef = {
     ...raw,
     keywords: raw.keywords ?? [],
-    skills: (raw.skills ?? []).flatMap((s) => (s.dsl as unknown as CardDef['skills']) ?? []),
+    skills: raw.skills ?? [],
   };
   const i = TEST_CARDS.findIndex((x) => x.id === id);
   if (i >= 0) TEST_CARDS[i] = flat; else TEST_CARDS.push(flat);

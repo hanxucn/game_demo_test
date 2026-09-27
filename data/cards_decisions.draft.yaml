@@ -4061,7 +4061,7 @@ card_memo:
   neutral_archer: 0 攻，但每回合结束白嫖 1 点伤害
   neutral_infantry: 1 费 1/1 的填线兵
   wei_caogang: 1 攻 3 血还带架盾，纯肉盾
-  wei_caoxiu: 抽到时立刻召唤上场（main 00f4fc7 改）
+  wei_caoxiu: 抽到时立刻召唤上场
   wei_caozhang: 战吼二选一：抽 1 张，或本回合 +1 攻
   wei_xiahouen: 阵亡时给己方补 1 张牌
   wei_zhangyan: 上场即可攻击的快攻件

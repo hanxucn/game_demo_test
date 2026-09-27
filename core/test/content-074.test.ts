@@ -2,7 +2,7 @@
  * ADR-074：内容缺口收口（空城计 / 司马懿 / 休养生息 / 黄皓 / 张宝·张梁）
  *        + 让客户端能看见技能的 `SKILL_TRIGGERED`
  *
- * 数据来自 core/data/cards_v1.json（真实翻译结果），不是测试替身。
+ * 数据来自 core/data/cards.json（真实翻译结果），不是测试替身。
  *
  * | 卡 | 补了什么引擎能力 |
  * |---|---|
@@ -29,13 +29,13 @@ import { TEST_CARDS, scenario } from './fixtures.ts';
 import type { Action, CardDef, GameEvent, Unit } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards_v1.json'), 'utf8'));
+const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
 
 for (const c of ALL) {
   const flat: CardDef = {
     ...c,
     keywords: c.keywords ?? [],
-    skills: (c.skills ?? []).flatMap((sk) => (sk.dsl as unknown as CardDef['skills']) ?? []),
+    skills: c.skills ?? [],          // cards.json 的技能已是摊平后的正式形状（无 skills[].dsl）
   };
   const i = TEST_CARDS.findIndex((x) => x.id === c.id);
   if (i >= 0) TEST_CARDS[i] = flat; else TEST_CARDS.push(flat);
@@ -43,11 +43,11 @@ for (const c of ALL) {
 
 function realCard(id: string): CardDef {
   const raw = ALL.find((c) => c.id === id);
-  assert.ok(raw, `cards_v1.json 里找不到 ${id}`);
+  assert.ok(raw, `cards.json 里找不到 ${id}`);
   const flat: CardDef = {
     ...raw,
     keywords: raw.keywords ?? [],
-    skills: (raw.skills ?? []).flatMap((s) => (s.dsl as unknown as CardDef['skills']) ?? []),
+    skills: raw.skills ?? [],
   };
   const i = TEST_CARDS.findIndex((x) => x.id === id);
   if (i >= 0) TEST_CARDS[i] = flat; else TEST_CARDS.push(flat);
@@ -261,9 +261,10 @@ test('ADR-075 陈到：无技能、无关键词的白板武将（技能名「白
 });
 
 /**
- * ⚠️ 这条测试必须读 `cards.json`（真实运行数据 + 校验器读的那份），
- * **不能**读 `cards_v1.json` —— `pending` 标记是 `promote-cards.py` 入库时才加的，
- * `cards_v1.json` 里永远没有这个字段，读它这条断言会**永远通过**（第一版就是这么写的空转测试）。
+ * ⚠️ 这条测试必须读 `cards.json`（真实运行数据 + 校验器读的那份）。
+ * 历史上曾误读草稿层的 `cards_v1.json` —— `pending` 标记只在正式数据里才有，
+ * 读草稿层这条断言会**永远通过**（第一版就是这么写的空转测试）。
+ * ADR-091 起草稿层导出的 `cards_v1.json` 已不再生成，全池测试统一读 `cards.json`。
  */
 test('ADR-075：人物卡不再有「有技能名、效果待设计」的 pending 技能（陈到回归）', () => {
   const runtime: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
