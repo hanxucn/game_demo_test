@@ -174,9 +174,9 @@ registerOnXResolver((...) => { runEffects(...); });
 
 | # | 陷阱 | 后果 |
 |---|---|---|
-| 1 | 改 `data/cards.yaml` | **会被 `tools/build-cards.sh` 覆盖**。真源是 `data/cards_decisions.draft.yaml` |
+| 1 | ~~改 `data/cards.yaml`~~ | **已结项（ADR-091）**：`data/cards.yaml` 现在**就是**唯一手写真源；`build-cards.sh` 只做校验+导出，只维护 `value:` 块。反过来，**别再去改 `cards_decisions.draft.yaml`** —— 那套生成链已退役到 `tools/legacy/`，改了不会生效 |
 | 2 | 数值硬编码在 `tools/gen-cards-v1.py` | 基础兵（盾兵）就在脚本里，改数据要一并看 |
-| 3 | `promote-cards.py` 的 `KEEP` 白名单 | 新字段不加进去会被**静默丢弃**（`rarity` 就丢过） |
+| 3 | ~~`promote-cards.py` 的 `KEEP` 白名单~~ | **已结项（ADR-091）**：改为 `validate.ts` 的 `CARD_FIELDS` 校验 —— 写错字段**报 error** 而不是静默丢弃 |
 | 4 | `dsl._none` 与 `dsl` 冲突 | 卡被列进「无技能」清单时技能会被静默跳过（蔡瑁踩过） |
 | 5 | 卡面原文覆盖 DSL 文案 | 已修（DSL text 优先），但多技能卡要确认每条文案都对 |
 | 6 | 测试改单位属性只改 `atk/hp/maxHp` | `applyMods()` 会用 `baseAtk/baseMaxHp` 重算打回原形，**必须同时改 base** |
@@ -188,7 +188,7 @@ registerOnXResolver((...) => { runEffects(...); });
 ## 5. 每项完成的定义（DoD）
 
 1. `docs/gdd/13-balance-data-model.md` 或 `10-skills-statuses.md` 已同步（**铁律 1：DSL 扩展先改文档**）
-2. 数据已录入 `data/cards_decisions.draft.yaml`，`bash tools/build-cards.sh` 已跑
+2. 数据已录入 `data/cards.yaml`（ADR-091 起为唯一真源），`bash tools/build-cards.sh` 已跑
 3. **带测试**，且测试用相对断言（不写死卡面数值）
 4. `cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke` 全绿
 5. `docs/gdd/14-open-questions.md` 加一条 ADR（记录决策、理由、来源）

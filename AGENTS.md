@@ -23,7 +23,9 @@ server/              （待建）Go 服务端
 ## 四条铁律
 
 1. **加一张卡 = 只改 `data/*.yaml`，不改代码。**
-   若必须改代码，说明效果 DSL 需要扩展——先更新 `docs/gdd/13-balance-data-model.md`，再改代码。
+   卡牌一律加/改在 **`data/cards.yaml`**（ADR-091 起它是唯一手写真源）；字段白名单见该文件头，
+   写错字段 `npm run validate` 会直接报错。若必须改代码，说明效果 DSL 需要扩展
+   —— 先更新 `docs/gdd/13-balance-data-model.md`，再改代码。
 2. **`core/` 零引擎依赖。**
    不允许 `import` 任何 Cocos API。引擎只负责把 `core` 产出的事件流画出来。
 3. **机制以 `docs/gdd/` 为唯一真源。**
@@ -46,21 +48,28 @@ bash tools/serve.sh          # → http://127.0.0.1:8099/prototype/battlefield.h
 
 # 引擎（core）
 cd core
-npm test          # 228 个测试：规则 / 引擎 / 回放确定性 / DSL / 框架闭环 / B 类技能 / 内容收口
+npm test          # 规则 / 引擎 / 回放确定性 / DSL / 框架闭环 / B 类技能 / 内容收口 / AI
 npm run typecheck # tsc --noEmit
-npm run validate  # 卡牌数据校验（结构 + 平衡 + value 块新鲜度）
+npm run validate  # 卡牌数据校验（结构 + 字段白名单 + 注册表 + 命名 + 类型定型 + 文案一致性）
 npm run verify:dsl  # 逐张跑真实卡牌的 DSL，端到端验证
 npm run smoke     # 两个 AI 互打一局 + 回放一致性（完整开局：掷点/换牌）
 ```
 
-**改数据后必须跑**（一条命令重建整条数据链，含派生的 `value` 核算块）：
+**改数据后必须跑**（ADR-091/092：**只读的校验 + 导出**，不会写 `cards.yaml`）：
 ```bash
-bash tools/build-cards.sh          # 八步：决策→归一化→入库→算 value→并回→导出 JSON→重建 bundle
+bash tools/build-cards.sh          # 三步：导出 JSON→校验→重建 bundle（全程只读 cards.yaml）
 cd core && npm test && npm run typecheck && npm run validate && npm run verify:dsl && npm run smoke
 ```
 
-> `data/cards.yaml` 的 `value:` 块是**派生数据**（由 `core/tools/emit-values.ts` 依当前度量算出）。
-> 不要手改；改了效果/数值后重跑 `build-cards.sh`，否则 `npm run validate` 会报"value 核算块已过期"。
+> **`data/cards.yaml` 是卡牌数据的唯一手写真源，且没有任何脚本会写它**（ADR-091/092）：
+> 加卡就在末尾追加一条 `- id: ...`，改数值/技能直接改对应字段。`bash tools/build-cards.sh`
+> 只是**只读的"校验 + 导出"**（导出引擎读的 JSON、重建浏览器产物），不会生成或回写任何卡牌内容。
+>
+> 允许的字段写在 `data/cards.yaml` 的文件头；**写了名单外的字段会被 `npm run validate` 直接报错**
+> （从前的 `promote-cards.py` 是按白名单归一化，写错字段会被静默丢弃 —— `rarity`/`gender` 都丢过）。
+> 两套旧机制**都已退役**，改它们不会生效：① 草稿层生成链（`data/cards_decisions.draft.yaml`、
+> `tools/legacy/*.py`）；② `value:` 预算核算块（ADR-092 整个删除 —— 那套"超模闸门"是按公式估算、
+> 从未实机校准的启发式，会拦住有意为之的数值）。
 
 ## 命名约定
 
@@ -153,7 +162,7 @@ fix(prototype): 修复箭头从屏幕外飞入 —— 起点元素失效时 getB
 ## 提交前检查清单
 
 - [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`
-- [ ] `cd core && npm test` 全过（228/228）+ `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
-- [ ] 新增卡牌已跑数据校验（总价值在预算内）
+- [ ] `cd core && npm test` 全过 + `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
+- [ ] 新增卡牌已跑数据校验（`npm run validate` 无 error；字段名、关键词/状态/动作注册、类型定型都过）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成
 - [ ] 若产生新决策，已写入 `docs/gdd/14-open-questions.md` 的 ADR 表

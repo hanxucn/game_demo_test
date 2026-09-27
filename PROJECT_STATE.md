@@ -93,6 +93,17 @@
 > 已给「进得了卡组」的单位加 `cardEquityOf`（+2.0，判据复用 `NON_DECK_TYPES`），
 > 现在同一个衍生物会先换掉 2/2、第二个再打脸。测试 254 → **256**。
 >
+> **2026-09-27 数据流改制（ADR-091）**：**`data/cards.yaml` 现在是唯一手写真源** —— 加卡/改数值/改技能
+> 直接改它。草稿层生成链（`merge-photos` / `gen-cards-v1` / `promote-cards`）**已退役到 `tools/legacy/`**
+> （起因：teammate 直接改生成物，被重建整张抹掉）。`bash tools/build-cards.sh` 改为**只读的校验 + 导出**
+> 三步，**不重建也不回写 cards.yaml**。字段名写错由 `validate` 的 `CARD_FIELDS` 白名单**直接报错**。
+>
+> **2026-09-27 数值预算模型删除（ADR-092）**：`value:` 核算块 + `cardValue()`/`budgetOf()` 与那条
+> 「±3 超模」闸门**整个删除**（`emit-values.ts` / `breakdown.ts` / `apply-values.py` / `card-values.json`
+> 一并删掉）。理由：按公式估算、**从未实机校准**的启发式会拦住有意为之的数值（关羽/张飞/周瑜/蒋济/郭淮/姜维
+> 都只能靠 `elite` 豁免过闸）。现在 `data/cards.yaml` **完全由人维护、没有任何脚本会写它**；
+> validate 警告从 68 条降到 12 条（少掉的正是超模提示）。
+>
 > **2026-09-26 草船借箭改版（ADR-090，设计者定稿）**：效果整体换成
 > **「敌方场上每有一名人物，己方抽一张卡；随后召唤两个 0/1 架盾假人」**。
 > 新增衍生物 `token_jia_ren`（假人，0/1 架盾，不进卡组），全部走数据（`new_cards` +

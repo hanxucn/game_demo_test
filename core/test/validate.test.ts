@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { validateCards, cardValue, budgetOf } from '../tools/validate.ts';
+import { validateCards } from '../tools/validate.ts';
 import type { CardDef, CardEffect } from '../src/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -65,26 +65,10 @@ test('武将不受谋臣攻击上限约束', () => {
   assert.ok(!errs.some((m) => m.includes('谋臣')), `武将不该触发谋臣规则：${errs.join('；')}`);
 });
 
-/* ---------- 数值模型：预算公式（改数据时的自检工具） ---------- */
-
-test('同费白板基准 = 2 × 统率 + 1', () => {
-  assert.equal(budgetOf(1), 3);
-  assert.equal(budgetOf(5), 11);
-  assert.equal(budgetOf(10), 21);
-});
-
-test('白板卡总价值 = 攻击 + 生命', () => {
-  const v = cardValue(strategist({ type: 'general', attack: 2, health: 3, cost: 2 }));
-  assert.equal(v.stats, 5);
-  assert.equal(v.keywords, 0);
-  assert.equal(v.total, 5);
-});
-
-test('关键词占用预算（架盾 -1、神射 -0.5）', () => {
-  const v = cardValue(strategist({ type: 'general', attack: 2, health: 2, cost: 2, keywords: ['jia_dun'] }));
-  assert.equal(v.keywords, -1);
-  assert.equal(v.total, 3);
-});
+/** ADR-092：数值预算模型（cardValue / budgetOf）与超模闸门已整体删除 ——
+ *  "属性+关键词+技能 ≈ 2×费用+1" 是按公式估算、未实机校准的启发式，
+ *  会拦住设计者有意为之的数值（张飞/关羽/蒋济都只能靠 elite 豁免过闸）。
+ *  想要回这套自检，见 ADR-043 / ADR-047 与 git 历史。 */
 
 /* ---------- 卡名与 memo ---------- */
 

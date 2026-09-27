@@ -20,16 +20,7 @@ window.GameData = {
           "name": "守势"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": -1,
-        "skills": 0,
-        "total": 3,
-        "budget": 5,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_liufeng",
@@ -62,16 +53,7 @@ window.GameData = {
           "text": "每回合有一半概率无法行动."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 1.75,
-        "total": 7.75,
-        "budget": 5,
-        "diff": 2.75,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_chendao",
@@ -84,16 +66,7 @@ window.GameData = {
       "memo": "3 费 2/2 的白板武将（技能名「白毦兵」等效果设计好再加）",
       "gender": "male",
       "keywords": [],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 0,
-        "total": 4,
-        "budget": 7,
-        "diff": -3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_guanping",
@@ -152,16 +125,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 1.9,
-        "total": 7.9,
-        "budget": 7,
-        "diff": 0.9,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_madai",
@@ -211,16 +175,7 @@ window.GameData = {
           "text": "获得先攻；有西凉人物时，所有西凉人物攻击 +1、血量 +1。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": -1,
-        "skills": 2.1,
-        "total": 7.1,
-        "budget": 7,
-        "diff": 0.1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_zhoucang",
@@ -244,16 +199,7 @@ window.GameData = {
           "name": "架盾"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": -1,
-        "skills": 0,
-        "total": 5,
-        "budget": 7,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_guanxing",
@@ -313,16 +259,7 @@ window.GameData = {
           "text": "当场上有低于3统帅的人则可上场时先攻，击败低于3统帅的人物时有50%获得一次额外行动.(只有触发一次)"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 2.38,
-        "total": 10.38,
-        "budget": 9,
-        "diff": 1.38,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_shamoke",
@@ -366,16 +303,7 @@ window.GameData = {
           "text": "场上每有 1 名蛮族人物，自身获得 +1 攻 +1 血量。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 7,
-        "keywords": 0,
-        "skills": 2,
-        "total": 9,
-        "budget": 9,
-        "diff": 0,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_weiyan",
@@ -426,16 +354,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 0.49,
-        "total": 8.49,
-        "budget": 9,
-        "diff": -0.51,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_zhangbao",
@@ -470,16 +389,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 7,
-        "keywords": 0,
-        "skills": 3,
-        "total": 10,
-        "budget": 9,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_huangzhong",
@@ -515,16 +425,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 0.8,
-        "total": 8.8,
-        "budget": 11,
-        "diff": -2.2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_machao",
@@ -566,16 +467,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 10,
-        "keywords": -1,
-        "skills": 0.78,
-        "total": 9.78,
-        "budget": 11,
-        "diff": -1.22,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_zhangfei",
@@ -632,16 +524,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 10,
-        "keywords": 0,
-        "skills": 4.5,
-        "total": 14.5,
-        "budget": 11,
-        "diff": 3.5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_zhaoyun",
@@ -673,16 +556,7 @@ window.GameData = {
           "text": "在自己行动结束的第一回合前,自己免疫一切伤害."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 10,
-        "keywords": 0,
-        "skills": 2,
-        "total": 12,
-        "budget": 11,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_guanyu",
@@ -730,16 +604,7 @@ window.GameData = {
           "text": "使对方所有场上人物技能禁用一回合,并对其造成一点水攻伤害."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 11,
-        "keywords": 0,
-        "skills": 7.5,
-        "total": 18.5,
-        "budget": 13,
-        "diff": 5.5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_jiangwei",
@@ -790,16 +655,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 2.96,
-        "total": 11.96,
-        "budget": 13,
-        "diff": -1.04,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_huanghao",
@@ -836,16 +692,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": 0,
-        "skills": 4,
-        "total": 7,
-        "budget": 5,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_xiangchong",
@@ -860,16 +707,7 @@ window.GameData = {
       ],
       "memo": "2 费最厚的架盾",
       "gender": "male",
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": -1,
-        "skills": 0,
-        "total": 4,
-        "budget": 5,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_huangquan",
@@ -901,16 +739,7 @@ window.GameData = {
           "text": "在场时 我方主帅有50%概率 每回合使用二次主公技."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": 0,
-        "skills": 2,
-        "total": 5,
-        "budget": 7,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_jianyang",
@@ -945,16 +774,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": 0,
-        "skills": 1,
-        "total": 4,
-        "budget": 7,
-        "diff": -3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_masu",
@@ -987,16 +807,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 6,
-        "total": 10,
-        "budget": 7,
-        "diff": 3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_fazheng",
@@ -1054,16 +865,7 @@ window.GameData = {
           "text": "标记一个敌方人物为仇敌(放在对应敌方卡牌位).我仇敌受到伤害时,为指定友方恢复等量的血;当自己受到恢复血量,则抽一张卡牌."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 2.96,
-        "total": 7.96,
-        "budget": 9,
-        "diff": -1.04,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_mifang",
@@ -1099,16 +901,7 @@ window.GameData = {
           "text": "上场时恢复指定友方人物3点滴血量,或者抽取两张卡牌."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 1.2,
-        "total": 6.2,
-        "budget": 9,
-        "diff": -2.8,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_huangyueying",
@@ -1144,16 +937,7 @@ window.GameData = {
           "text": "上场时制造一个机械哨兵 1 攻 1 血，不能攻击敌方主将；制造一个 1 攻 1 血机械哨兵并带架盾效果。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 6,
-        "total": 10,
-        "budget": 11,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_pangtong",
@@ -1198,16 +982,7 @@ window.GameData = {
           "text": "在场时己方所有非人物卡牌统率-2；庞统阵亡时己方抽 2 张卡。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 7.6,
-        "total": 12.6,
-        "budget": 13,
-        "diff": -0.4,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "shu_zhugeliang",
@@ -1269,16 +1044,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 7,
-        "keywords": 0,
-        "skills": 9.8,
-        "total": 16.8,
-        "budget": 15,
-        "diff": 1.8,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "neutral_archer",
@@ -1316,16 +1082,7 @@ window.GameData = {
           "text": "回合结束时，随机对敌方一名人物或主将造成 1 点伤害。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 1,
-        "keywords": 0,
-        "skills": 0.35,
-        "total": 1.35,
-        "budget": 3,
-        "diff": -1.65,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "neutral_infantry",
@@ -1347,16 +1104,7 @@ window.GameData = {
           "pending": true
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 2,
-        "keywords": 0,
-        "skills": 0,
-        "total": 2,
-        "budget": 3,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caogang",
@@ -1382,16 +1130,7 @@ window.GameData = {
           "text": "架盾"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": -1,
-        "skills": 0,
-        "total": 3,
-        "budget": 5,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caozhang",
@@ -1440,16 +1179,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 3,
-        "total": 9,
-        "budget": 7,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xiahouen",
@@ -1477,16 +1207,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 1.8,
-        "total": 6.8,
-        "budget": 7,
-        "diff": -0.2,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_zhangyan",
@@ -1511,16 +1232,7 @@ window.GameData = {
           "text": "上场时获得先攻"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": -1,
-        "skills": 0,
-        "total": 4,
-        "budget": 7,
-        "diff": -3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caoren",
@@ -1562,16 +1274,7 @@ window.GameData = {
           "text": "上场第二回合架盾并在上场第一回合获得一次伤害免疫."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 4,
-        "total": 12,
-        "budget": 9,
-        "diff": 3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caoxiu",
@@ -1584,7 +1287,7 @@ window.GameData = {
       "tags": [
         "cao_clan"
       ],
-      "memo": "抽到时立刻召唤上场（main 00f4fc7 改）",
+      "memo": "抽到时立刻召唤上场",
       "gender": "male",
       "keywords": [],
       "skills": [
@@ -1604,16 +1307,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 2.4,
-        "total": 7.4,
-        "budget": 9,
-        "diff": -1.6,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_guohuai",
@@ -1662,16 +1356,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 8,
-        "total": 14,
-        "budget": 9,
-        "diff": 5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xiahoushang",
@@ -1705,16 +1390,7 @@ window.GameData = {
           "text": "战吼：从牌库发现三张战法，选择一张加入手牌。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 4.5,
-        "total": 8.5,
-        "budget": 9,
-        "diff": -0.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caohong",
@@ -1751,16 +1427,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": -1,
-        "skills": 2,
-        "total": 9,
-        "budget": 11,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caozhen",
@@ -1801,16 +1468,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": -1,
-        "skills": 6,
-        "total": 14,
-        "budget": 11,
-        "diff": 3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_dengai",
@@ -1841,16 +1499,7 @@ window.GameData = {
           "text": "回合结束时，若本回合没有攻击，抽 1 张牌。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 1.47,
-        "total": 10.47,
-        "budget": 11,
-        "diff": -0.53,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_lejin",
@@ -1894,16 +1543,7 @@ window.GameData = {
           "text": "自己场上没有其他武将时，获得先攻。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 1.4,
-        "total": 9.4,
-        "budget": 11,
-        "diff": -1.6,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xiahoudun",
@@ -1951,16 +1591,7 @@ window.GameData = {
           "text": "夏侯惇受到伤害(非满血)时，攻击力+1；满血被击杀时，有一半的机率以 1 血存活。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 10,
-        "keywords": 0,
-        "skills": 3,
-        "total": 13,
-        "budget": 11,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xiahouyuan",
@@ -1999,16 +1630,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 4,
-        "total": 12,
-        "budget": 11,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xuhuang",
@@ -2068,16 +1690,7 @@ window.GameData = {
           "text": "对低于自己统帅的敌军时攻击+1；对不低于自己统帅的敌军时血量+1。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 1.4,
-        "total": 10.4,
-        "budget": 11,
-        "diff": -0.6,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_yujin",
@@ -2114,16 +1727,7 @@ window.GameData = {
           "text": "所有统率为 5 的角色获得 +2 攻击力和 +2 生命值。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 4,
-        "total": 10,
-        "budget": 11,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_zhanghe",
@@ -2159,16 +1763,7 @@ window.GameData = {
           "text": "上场时使指定一人物，选择攻击-2 或血量-2。最少血量为 1，攻击为 0。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 2,
-        "total": 10,
-        "budget": 11,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_zhangliao",
@@ -2205,16 +1800,7 @@ window.GameData = {
           "text": "获得先攻。上场可立即开始行动，如若斩杀敌人人物卡牌，溢出伤害由对方主将承受。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": -1,
-        "skills": 0.84,
-        "total": 8.84,
-        "budget": 11,
-        "diff": -2.16,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_dianwei",
@@ -2277,16 +1863,7 @@ window.GameData = {
           "text": "如果场上只有典韦一名己方人物时，其攻击 +1、血量 +2，并获得架盾。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 11,
-        "keywords": 0,
-        "skills": 3.5,
-        "total": 14.5,
-        "budget": 13,
-        "diff": 1.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xuchu",
@@ -2332,16 +1909,7 @@ window.GameData = {
           "text": "指定敌方一名武将(非主公)与自己对决;分出胜负前,其他人无法对两人进行攻击.(只能使用一次)"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 11,
-        "keywords": 0,
-        "skills": 3.2,
-        "total": 14.2,
-        "budget": 13,
-        "diff": 1.2,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_zhonghui",
@@ -2378,16 +1946,7 @@ window.GameData = {
           "text": "战吼：使一个敌方人物混乱 1 回合。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 2,
-        "total": 11,
-        "budget": 13,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caopi",
@@ -2428,16 +1987,7 @@ window.GameData = {
             }
           ]
         }
-      ],
-      "value": {
-        "stats": 12,
-        "keywords": 0,
-        "skills": 3.6,
-        "total": 15.6,
-        "budget": 17,
-        "diff": -1.4,
-        "level": "ok"
-      }
+      ]
     },
     {
       "id": "wei_liuye",
@@ -2475,16 +2025,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 2.1,
-        "total": 7.1,
-        "budget": 7,
-        "diff": 0.1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_caozhi",
@@ -2534,16 +2075,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 6,
-        "total": 11,
-        "budget": 9,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_jiangji",
@@ -2593,16 +2125,7 @@ window.GameData = {
           "text": "战吼：选择一个敌方武将，使其和所有敌方普通兵种下个回合无法攻击。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 8,
-        "total": 13,
-        "budget": 9,
-        "diff": 4,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xunyou",
@@ -2639,16 +2162,7 @@ window.GameData = {
           "text": "上场时指定敌方 2 个人物卡牌进入技能禁用状态，持续一回合。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 2,
-        "total": 7,
-        "budget": 9,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_chengyu",
@@ -2708,16 +2222,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 2.7,
-        "total": 8.7,
-        "budget": 11,
-        "diff": -2.3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_guojia",
@@ -2770,16 +2275,7 @@ window.GameData = {
           "text": "郭嘉上场时,我方策略牌需要统帅-1,如果每打出一张策略牌,既可抽一张卡牌."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 4.4,
-        "total": 9.4,
-        "budget": 11,
-        "diff": -1.6,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_simayi",
@@ -2844,16 +2340,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 7,
-        "keywords": 0,
-        "skills": 1.47,
-        "total": 8.47,
-        "budget": 11,
-        "diff": -2.53,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_xunyu",
@@ -2888,16 +2375,7 @@ window.GameData = {
           "text": "永久增加主帅两点统帅，且当前回合所有手牌里的人物卡牌减少一个统帅消耗。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 2,
-        "total": 8,
-        "budget": 11,
-        "diff": -3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wei_jiaxu",
@@ -2955,16 +2433,7 @@ window.GameData = {
           "text": "指定一个不大于 3 统率的敌方将来临时变为己方将领 1 回合；大于 3 统率的敌方将领每次行动有一半的机率随机选择任意一名人物单位进行攻击（敌我不限）。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 11.2,
-        "total": 17.2,
-        "budget": 15,
-        "diff": 2.2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_liyi",
@@ -2977,16 +2446,7 @@ window.GameData = {
       "memo": "2 费 2/2 普通卡，低费填充",
       "gender": "male",
       "keywords": [],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 0,
-        "total": 4,
-        "budget": 5,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_songqian",
@@ -2999,16 +2459,7 @@ window.GameData = {
       "memo": "2 费 2/3 扎实身材，无技能纯站场",
       "gender": "male",
       "keywords": [],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 0,
-        "total": 5,
-        "budget": 5,
-        "diff": 0,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_zhuran",
@@ -3023,16 +2474,7 @@ window.GameData = {
       ],
       "memo": "2 费前排嘲讽，敌方必须先打掉它",
       "gender": "male",
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": -1,
-        "skills": 0,
-        "total": 3,
-        "budget": 5,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_zumao",
@@ -3078,16 +2520,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 1.4,
-        "total": 5.4,
-        "budget": 5,
-        "diff": 0.4,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_mazhong",
@@ -3124,16 +2557,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 2.5,
-        "total": 7.5,
-        "budget": 7,
-        "diff": 0.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_quancong",
@@ -3146,16 +2570,7 @@ window.GameData = {
       "memo": "3 费 3/2，吴国中坚白板曲线",
       "gender": "male",
       "keywords": [],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 0,
-        "total": 5,
-        "budget": 7,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_dingfeng",
@@ -3187,16 +2602,7 @@ window.GameData = {
           "text": "如果己方场上有受伤而且为1血人物，就降低一点统帅消耗。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 0,
-        "total": 8,
-        "budget": 9,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_handang",
@@ -3232,16 +2638,7 @@ window.GameData = {
           "text": "上场第一回合时，对指定敌人造成2点伤害。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 1,
-        "total": 9,
-        "budget": 9,
-        "diff": 0,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_huanggai",
@@ -3294,16 +2691,7 @@ window.GameData = {
           "text": "每回合可一次机会自己掉一血指定一名敌人混乱（50%概率），如果混乱成功，则抽一张卡牌."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 7,
-        "keywords": 0,
-        "skills": 2.88,
-        "total": 9.88,
-        "budget": 9,
-        "diff": 0.88,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_lukang",
@@ -3340,16 +2728,7 @@ window.GameData = {
           "text": "自上场时，可选择手里或场上友方将领的技能一次。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 5,
-        "total": 11,
-        "budget": 9,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_sunjian",
@@ -3387,16 +2766,7 @@ window.GameData = {
           "text": "阵亡时与敌方拼点。如果拼点获胜，则随机让己方手牌中一名人物不消耗统率上场（但不能触发这张牌的上场效果）。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 7,
-        "keywords": 0,
-        "skills": 2.46,
-        "total": 9.46,
-        "budget": 9,
-        "diff": 0.46,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_zhoutai",
@@ -3451,16 +2821,7 @@ window.GameData = {
           "text": "每回合，若有己方将领被击破时，可选择是否援护一次，该将领受到的伤害由周泰承受。周泰被击败时，有一次机会50%概率存活。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 3.8,
-        "total": 11.8,
-        "budget": 9,
-        "diff": 2.8,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_zhuhuan",
@@ -3491,16 +2852,7 @@ window.GameData = {
           "text": "自己在场时，如果受伤，每回合恢复自己一点血量。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 0.28,
-        "total": 8.28,
-        "budget": 9,
-        "diff": -0.72,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_ganning",
@@ -3538,16 +2890,7 @@ window.GameData = {
           "text": "第一回合上场时获得先攻，且所有场上敌方人物 -1 攻一回合。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 10,
-        "keywords": -1,
-        "skills": 2.1,
-        "total": 11.1,
-        "budget": 11,
-        "diff": 0.1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_lingtong",
@@ -3587,16 +2930,7 @@ window.GameData = {
           "text": "获得先攻，并且对攻击的敌人有 50% 概率造成震慑。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": -1,
-        "skills": 2,
-        "total": 10,
-        "budget": 11,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_lvmeng",
@@ -3637,16 +2971,7 @@ window.GameData = {
           "text": "上场时可选择一名友方卡牌进行\"白衣渡江\"：本回合内将自己和选择的卡牌翻面，可在之后的回合开始行动。翻面卡牌无法被攻击以及被计策选中。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 8,
-        "keywords": 0,
-        "skills": 5,
-        "total": 13,
-        "budget": 11,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_sunce",
@@ -3687,16 +3012,7 @@ window.GameData = {
           "text": "上场时，根据场上友军人物卡数对敌方指定敌人造成人物数伤害。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 10,
-        "keywords": 0,
-        "skills": 0,
-        "total": 10,
-        "budget": 11,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_chengpu",
@@ -3754,16 +3070,7 @@ window.GameData = {
           "text": "上场时选择一名敌方人物震慑一回合（无法行动）；攻击时，恢复随机友军 1 点血量。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 5.32,
-        "total": 14.32,
-        "budget": 13,
-        "diff": 1.32,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_taishici",
@@ -3795,16 +3102,7 @@ window.GameData = {
           "text": "可选择-2攻击力，但一回合可攻击2次."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 11,
-        "keywords": 0,
-        "skills": 1.6,
-        "total": 12.6,
-        "budget": 13,
-        "diff": -0.4,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_zhugeke",
@@ -3837,16 +3135,7 @@ window.GameData = {
           "text": "上场时，可查看对手卡池顶部一张牌。如果牺牲一名人物, 可同时查看对手手中一张卡牌。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 2.5,
-        "total": 6.5,
-        "budget": 7,
-        "diff": -0.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_lusu",
@@ -3881,16 +3170,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 4.8,
-        "total": 9.8,
-        "budget": 9,
-        "diff": 0.8,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_luxun",
@@ -3938,16 +3218,7 @@ window.GameData = {
           "text": "陆逊每回合对敌方全体造成 1 点火攻伤害，并使其持续灼烧状态 1 回合；在灼烧状态下的敌人受到火攻伤害 +1。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 5.25,
-        "total": 11.25,
-        "budget": 13,
-        "diff": -1.75,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "wu_zhouyu",
@@ -4014,16 +3285,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 5.15,
-        "total": 11.15,
-        "budget": 15,
-        "diff": -3.85,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_caimao",
@@ -4059,16 +3321,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 0.5,
-        "total": 4.5,
-        "budget": 5,
-        "diff": -0.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_songxian",
@@ -4083,16 +3336,7 @@ window.GameData = {
       ],
       "memo": "上场隐身，出手后现形",
       "gender": "male",
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": -1,
-        "skills": 0,
-        "total": 4,
-        "budget": 5,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_huangzu",
@@ -4123,16 +3367,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 7,
-        "keywords": 0,
-        "skills": 0.24,
-        "total": 7.24,
-        "budget": 7,
-        "diff": 0.24,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_huaxiong",
@@ -4181,16 +3416,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 2.8,
-        "total": 8.8,
-        "budget": 7,
-        "diff": 1.8,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_zhangbao",
@@ -4262,16 +3488,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": 0,
-        "skills": 2.83,
-        "total": 5.83,
-        "budget": 7,
-        "diff": -1.17,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_zhangliang",
@@ -4342,16 +3559,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 2.83,
-        "total": 6.83,
-        "budget": 7,
-        "diff": -0.17,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_gaoshun",
@@ -4392,16 +3600,7 @@ window.GameData = {
           "text": "召唤 2 个盾兵，并将场上所有盾兵进化为陷阵盾兵（2 攻 2 血，保留架盾）。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 8,
-        "total": 12,
-        "budget": 9,
-        "diff": 3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_gongsunzan",
@@ -4443,16 +3642,7 @@ window.GameData = {
           "text": "召唤 2 个弓兵，并将场上所有弓兵进化为白马义从（1 攻 2 血，每回合造成 2 点伤害）。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 5.35,
-        "total": 9.35,
-        "budget": 9,
-        "diff": 0.35,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_mateng",
@@ -4496,16 +3686,7 @@ window.GameData = {
           "text": "召唤 2 个步兵，并将场上所有步兵进化为西凉铁骑（2 攻 1 血，获得先攻）。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 6,
-        "total": 10,
-        "budget": 9,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_dongzhuo",
@@ -4541,16 +3722,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 4,
-        "total": 13,
-        "budget": 11,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_yuanshao",
@@ -4620,16 +3792,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 9,
-        "keywords": 0,
-        "skills": 6.6,
-        "total": 15.6,
-        "budget": 13,
-        "diff": 2.6,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_caiwenji",
@@ -4679,16 +3842,7 @@ window.GameData = {
           "text": "使当前一回合使 自己一名武将和一张非令牌中武将牌 统帅消耗一."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 2,
-        "keywords": 0,
-        "skills": 4,
-        "total": 6,
-        "budget": 5,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_zuoci",
@@ -4721,16 +3875,7 @@ window.GameData = {
           "text": "可查看对方当前手牌一次，并选择一个移到对方卡池里。左慈血量降为 0 时，回到己方牌库最底层。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 2.5,
-        "total": 6.5,
-        "budget": 7,
-        "diff": -0.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_chengong",
@@ -4787,16 +3932,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 2.8,
-        "total": 8.8,
-        "budget": 9,
-        "diff": -0.2,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_huatuo",
@@ -4853,16 +3989,7 @@ window.GameData = {
           "text": "可弃掉自己手中一张手牌.恢复指定场上一个人物 其对应弃掉牌统帅值的血量.并清除其负面效果状态.每回合限一次."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 5,
-        "keywords": 0,
-        "skills": 3.36,
-        "total": 8.36,
-        "budget": 9,
-        "diff": -0.64,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_tianfeng",
@@ -4899,16 +4026,7 @@ window.GameData = {
           "text": "禁用己方主将一回合主公技，可抽取一张卡牌到手种，如果为策略卡，则无需消耗统帅."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 5,
-        "total": 9,
-        "budget": 9,
-        "diff": 0,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_diaochan",
@@ -4956,16 +4074,7 @@ window.GameData = {
           ]
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": 0,
-        "skills": 5.5,
-        "total": 9.5,
-        "budget": 11,
-        "diff": -1.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "qun_zhangjiao",
@@ -5030,16 +4139,7 @@ window.GameData = {
           "text": "每回合结束时 5 次随机 1 点雷击；每次 50% 概率震慑；击杀则召唤 1 攻 1 血黄巾兵。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 6,
-        "keywords": 0,
-        "skills": 7.07,
-        "total": 13.07,
-        "budget": 11,
-        "diff": 2.07,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "neutral_shieldman",
@@ -5055,16 +4155,7 @@ window.GameData = {
       ],
       "memo": "架盾：敌方必须先打掉它才能攻击其他人",
       "flavor": "盾如铁壁，寸步不让。",
-      "gender": "male",
-      "value": {
-        "stats": 3,
-        "keywords": -1,
-        "skills": 0,
-        "total": 2,
-        "budget": 3,
-        "diff": -1,
-        "level": "ok"
-      }
+      "gender": "male"
     },
     {
       "id": "elite_baima_yicong",
@@ -5101,16 +4192,7 @@ window.GameData = {
           "text": "每回合对指定任意敌方人物造成 2 点伤害。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": 0,
-        "skills": 0.7,
-        "total": 3.7,
-        "budget": 1,
-        "diff": 2.7,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "elite_xianzhen_dun",
@@ -5126,16 +4208,7 @@ window.GameData = {
       ],
       "memo": "高顺的进化体：2/2 仍带架盾",
       "gender": "male",
-      "flavor": "",
-      "value": {
-        "stats": 4,
-        "keywords": -1,
-        "skills": 0,
-        "total": 3,
-        "budget": 1,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "elite_xiliang_tieqi",
@@ -5151,16 +4224,7 @@ window.GameData = {
       ],
       "memo": "马腾的进化体：2/1 带先攻",
       "gender": "male",
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": -1,
-        "skills": 0,
-        "total": 2,
-        "budget": 1,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "token_huangjin_bing",
@@ -5176,16 +4240,7 @@ window.GameData = {
       "memo": "黄巾系召唤的 1/1 衍生物",
       "gender": "male",
       "keywords": [],
-      "flavor": "",
-      "value": {
-        "stats": 2,
-        "keywords": 0,
-        "skills": 0,
-        "total": 2,
-        "budget": 1,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "token_jia_ren",
@@ -5200,16 +4255,7 @@ window.GameData = {
       ],
       "memo": "草船借箭扎的草人 —— 0/1 架盾，纯粹用来替己方挨打",
       "flavor": "草人借箭，箭尽而归。",
-      "gender": "male",
-      "value": {
-        "stats": 1,
-        "keywords": -1,
-        "skills": 0,
-        "total": 0,
-        "budget": 1,
-        "diff": -1,
-        "level": "ok"
-      }
+      "gender": "male"
     },
     {
       "id": "token_jixie_shaobing",
@@ -5230,16 +4276,7 @@ window.GameData = {
           "pending": true
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": 0,
-        "skills": 0,
-        "total": 3,
-        "budget": 1,
-        "diff": 2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "token_jixie_shouwei",
@@ -5261,16 +4298,7 @@ window.GameData = {
           "text": "打开架盾效果. 不能攻击敌方主帅."
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 3,
-        "keywords": -1,
-        "skills": 0,
-        "total": 2,
-        "budget": 1,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "token_shizu_bing",
@@ -5286,16 +4314,7 @@ window.GameData = {
       "memo": "袁绍召唤的 1/1 衍生物",
       "gender": "male",
       "keywords": [],
-      "flavor": "",
-      "value": {
-        "stats": 2,
-        "keywords": 0,
-        "skills": 0,
-        "total": 2,
-        "budget": 1,
-        "diff": 1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_wanjianqifa",
@@ -5328,16 +4347,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1.5,
-        "total": 1.5,
-        "budget": 1,
-        "diff": 0.5,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_bishi_ruiqi",
@@ -5368,16 +4378,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 2,
-        "total": 2,
-        "budget": 5,
-        "diff": -3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_cuoqi_ruiqi",
@@ -5410,16 +4411,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1.4,
-        "total": 1.4,
-        "budget": 5,
-        "diff": -3.6,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_anduchencang",
@@ -5461,16 +4453,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 5,
-        "total": 5,
-        "budget": 7,
-        "diff": -2,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_bishijixu",
@@ -5502,16 +4485,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1,
-        "total": 1,
-        "budget": 7,
-        "diff": -6,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_gongxinji",
@@ -5545,16 +4519,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 2.5,
-        "total": 2.5,
-        "budget": 7,
-        "diff": -4.5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_huogong",
@@ -5599,16 +4564,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1,
-        "total": 1,
-        "budget": 7,
-        "diff": -6,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_mantianguohai",
@@ -5641,16 +4597,7 @@ window.GameData = {
           "value": 2
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 11,
-        "total": 11,
-        "budget": 7,
-        "diff": 4,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_tuntian",
@@ -5674,16 +4621,7 @@ window.GameData = {
           "value": 2
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 6,
-        "total": 6,
-        "budget": 7,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_chuqibuyi",
@@ -5712,16 +4650,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 2.5,
-        "total": 2.5,
-        "budget": 9,
-        "diff": -6.5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_fudichouxin",
@@ -5749,16 +4678,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 2,
-        "total": 2,
-        "budget": 9,
-        "diff": -7,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_jijiang",
@@ -5786,16 +4706,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 3.5,
-        "total": 3.5,
-        "budget": 9,
-        "diff": -5.5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_shizhanqunru",
@@ -5827,16 +4738,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 6,
-        "total": 6,
-        "budget": 9,
-        "diff": -3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_yuqin_guzong",
@@ -5877,16 +4779,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 3.4,
-        "total": 3.4,
-        "budget": 9,
-        "diff": -5.6,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_zhuchengjiliang",
@@ -5916,16 +4809,7 @@ window.GameData = {
           "value": 2
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 12,
-        "total": 12,
-        "budget": 9,
-        "diff": 3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_chenhuodajie",
@@ -5973,16 +4857,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 3.9,
-        "total": 3.9,
-        "budget": 11,
-        "diff": -7.1,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_kongchengji",
@@ -6023,16 +4898,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1.4,
-        "total": 1.4,
-        "budget": 11,
-        "diff": -9.6,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_xiushengyangxi",
@@ -6075,16 +4941,7 @@ window.GameData = {
           "value": 1
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 7.8,
-        "total": 7.8,
-        "budget": 11,
-        "diff": -3.2,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "tactic_caochuanjiejian",
@@ -6117,16 +4974,7 @@ window.GameData = {
           "position": "random"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 9,
-        "total": 9,
-        "budget": 13,
-        "diff": -4,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "event_fengnian",
@@ -6157,16 +5005,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 12,
-        "total": 12,
-        "budget": 3,
-        "diff": 9,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "event_zainian",
@@ -6195,16 +5034,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 2,
-        "total": 2,
-        "budget": 3,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "event_huangjin",
@@ -6230,16 +5060,7 @@ window.GameData = {
           "position": "random"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 6,
-        "total": 6,
-        "budget": 7,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     },
     {
       "id": "event_nanmanruqin",
@@ -6270,16 +5091,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1.5,
-        "total": 1.5,
-        "budget": 7,
-        "diff": -5.5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "event_shichangshi",
@@ -6308,16 +5120,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 4,
-        "total": 4,
-        "budget": 7,
-        "diff": -3,
-        "level": "watch"
-      }
+      "flavor": ""
     },
     {
       "id": "event_huoshaoluoyang",
@@ -6355,16 +5158,7 @@ window.GameData = {
           }
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 1.5,
-        "total": 1.5,
-        "budget": 9,
-        "diff": -7.5,
-        "level": "off"
-      }
+      "flavor": ""
     },
     {
       "id": "status_jia_dun",
@@ -6382,16 +5176,7 @@ window.GameData = {
           "text": "只能攻击装备此状态的敌人。"
         }
       ],
-      "flavor": "",
-      "value": {
-        "stats": 0,
-        "keywords": 0,
-        "skills": 0,
-        "total": 0,
-        "budget": 1,
-        "diff": -1,
-        "level": "ok"
-      }
+      "flavor": ""
     }
   ],
   "heroes": [
