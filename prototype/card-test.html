@@ -24,19 +24,19 @@
     .filters input { flex:1 1 190px; min-width:0; }
     .filters select { flex:0 1 120px; }
     .count { color:var(--muted); margin-bottom:10px; }
-    .pool { display:grid; grid-template-columns:repeat(auto-fill,minmax(225px,1fr)); gap:8px; max-height:calc(100vh - 195px); min-height:260px; overflow:auto; align-content:start; }
-    .card { border:1px solid var(--line); background:var(--panel); border-radius:5px; padding:10px; display:flex; flex-direction:column; min-height:122px; }
-    .card.selected { border-color:var(--green); background:#263b31; }
-    .card-head { display:flex; justify-content:space-between; gap:8px; align-items:center; }
-    .card-head strong { font-size:15px; }
-    .cost { color:var(--gold); white-space:nowrap; }
-    .tags { display:flex; gap:5px; margin:6px 0; }
-    .tag { border:1px solid #6b786d; border-radius:3px; padding:1px 5px; font-size:11px; color:#d8e2d7; }
-    .tag.faction { border-color:#94784a; color:#f2d29a; }
-    .description { font-size:12px; color:var(--muted); flex:1; overflow-wrap:anywhere; }
-    .card-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; }
-    .stats { color:var(--gold); font-weight:700; }
-    .card-foot button { min-width:52px; padding:4px 7px; }
+    .pool { max-height:calc(100vh - 195px); min-height:260px; overflow:auto; }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     .side { align-self:start; border:1px solid var(--line); border-radius:5px; background:var(--panel); padding:14px; }
     .selected-list { min-height:72px; max-height:280px; overflow:auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:7px 0; }
     .selected-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; gap:8px; }
@@ -63,7 +63,7 @@
           <select id="cost" aria-label="筛选费用"><option value="">全部费用</option><option value="0">0费</option><option value="1">1费</option><option value="2">2费</option><option value="3">3费</option><option value="4">4费</option><option value="5">5费</option><option value="6">6费</option><option value="7">7费</option><option value="8">8费</option></select>
         </div>
         <div id="count" class="count"></div>
-        <div id="cards" class="pool"></div>
+        <div id="cards" class="ct-grid pool"></div>
       </section>
       <aside class="side">
         <h2>待测卡牌 <span id="selected-count">0 / 10</span></h2>
@@ -78,6 +78,7 @@
   </main>
   <script src="core.bundle.js"></script>
   <script src="data.bundle.js"></script>
+  <script src="card-tile.js"></script>
   <script src="card-test.js"></script>
   <script src="card-test-page.js"></script>
 </body>
