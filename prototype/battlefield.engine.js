@@ -862,6 +862,12 @@ function startUnitDrag(e, row, col, wrap, skipSkill) {
   if (busy) skipAnimation();          // ADR-077：动画中也能直接选下一张卡
   if (e.button !== undefined && e.button !== 0) return;
 
+  // ⚠️ 正在等玩家选目标（技能 / 战吼 / 主公技）时，**不要起拖拽**（ADR-093）
+  //    原先按下就起拖拽，而松手时的"轻点"分支只处理技能/普攻，于是这次点击被
+  //    tapHandledEl 吞掉、onUnitClick 永远不跑 —— 表现就是"选了己方人物后没反应"
+  //    （避其锐气选了人却收不回手牌）。交回点击路径去选目标。
+  if (pendingPick || pendingPlay || pendingSkill) return;
+
   // 有可用的指向性主动技 → 按下先给技能（长按/拖动才切普攻）
   if (!skipSkill && armSkillBeforeAttack(e, row, col, wrap)) return;
 
@@ -1752,6 +1758,23 @@ function onLordClick(side, bar) {
   // 技能/出牌的待选目标可能是主将
   if (pendingPick && exactHit(side, undefined, undefined)) { finishPick(exactHit(side, undefined, undefined)); return; }
   if (pendingPlay && recordPlayPick(side, undefined, undefined)) return;
+  // ⚠️ 主公技的待选目标也要认主将（ADR-093）—— 原先这里只认 pendingPick/pendingPlay，
+  //    于是刘备「仁德」高亮了自家主帅、点上去却什么也不发生（只能给自己人回血、不能给主公回血）。
+  if (pendingSkill && pendingSkill.targets) {
+    var okLord = pendingSkill.targets.filter(function (t) {
+      return t.kind === 'lord' && t.side === side;
+    })[0];
+    if (okLord) {
+      var act = pendingSkill.useSkill
+        ? { type: 'USE_SKILL', row: pendingSkill.useSkill.row, col: pendingSkill.useSkill.col,
+            target: { side: side } }
+        : { type: 'USE_SKILL', row: pendingSkill.row, col: pendingSkill.col, target: { side: side } };
+      pendingSkill = null;
+      clearMarks();
+      doAction(act);
+      return;
+    }
+  }
   if (sel && sel.kind === 'unit' && side === 'enemy' && bar.classList.contains('is-target')) {
     doAction({ type: 'ATTACK', from: { row: sel.row, col: sel.col }, to: { kind: 'lord' } });
     return;

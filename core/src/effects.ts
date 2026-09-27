@@ -136,10 +136,20 @@ const sameTarget = (a: TargetRef, b: TargetRef): boolean =>
     (a.kind === 'unit' && b.kind === 'unit' && a.row === b.row && a.col === b.col)
   );
 
-/** 卡牌类型是否落在选择器的 `type` 条件里（'character' = 三类人物卡） */
+/**
+ * 选择器里 `type: 'character'` 指什么（ADR-093）
+ *
+ * 原先只认三类人物卡（troop / general / strategist），于是**召唤出来的衍生物**
+ * （黄巾兵 / 假人 / 机械哨兵 / 士族兵……`type: token`）虽然站在场上、普通攻击也打得到，
+ * 却**选不中** —— 指向性技能点上去没反应（设计者实机反馈：「黄巾兵、假人这些召唤出来的
+ * 不能被指向性选择到」）。现在按"场上的单位"来理解，含 token。
+ */
+const CHARACTER_TYPES = ['troop', 'general', 'strategist', 'token'];
+const isCharacterType = (t: string): boolean => CHARACTER_TYPES.includes(t);
+
 const matchesCardType = (t: string, want?: string): boolean => {
   if (!want) return true;
-  if (want === 'character') return ['troop', 'general', 'strategist'].includes(t);
+  if (want === 'character') return isCharacterType(t);
   return t === want;
 };
 
@@ -166,7 +176,7 @@ const matchesFilter = (
   // 排除来源自身（ADR-071）：陆抗「手里或场上友方将领」不该把自己算成目标
   if (f.exclude_source && srcUid !== undefined && u.uid === srcUid) return false;
   if (f.type) {
-    if (f.type === 'character') { if (!['troop', 'general', 'strategist'].includes(u.type)) return false; }
+    if (f.type === 'character') { if (!isCharacterType(u.type)) return false; }
     else if (u.type !== f.type) return false;
   }
   // 性别（ADR-071，貂蝉「祸国倾城」只认「男性角色」）
@@ -373,7 +383,7 @@ export function runCardPlayedTriggers(
         // 条件里可用 played_type 过滤：只有指定类型的牌被打出时才触发
         const want: string | undefined = sk.target?.filter?.type;
         if (want === 'character') {
-          if (!['troop', 'general', 'strategist'].includes(played.type)) continue;
+          if (!isCharacterType(played.type)) continue;
         } else if (want && played.type !== want) continue;
         emitSkillTriggered(state, side, u, sk, 'trigger', events);
         runEffects(state, cards, effectsOf(sk), { side, source: u }, rng, events);
@@ -965,7 +975,7 @@ export function runEffects(
           if (!card) return false;
           if (filter?.faction && card.faction !== filter.faction) return false;
           if (filter?.type && filter.type !== 'character' && card.type !== filter.type) return false;
-          if (filter?.type === 'character' && !['troop', 'general', 'strategist'].includes(card.type)) return false;
+          if (filter?.type === 'character' && !isCharacterType(card.type)) return false;
           if (filter?.tag && !(card.tags ?? []).includes(filter.tag)) return false;
           return true;
         });
