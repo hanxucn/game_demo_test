@@ -1247,9 +1247,11 @@ var Core = (() => {
   var pickOf = (ctx, sel) => sel?.pick === 2 ? ctx.chosen2 ?? ctx.chosen : ctx.chosen;
   var hpOf = (s, t) => t.kind === "lord" ? s.sides[t.side].lord.hp : t.kind === "hand" ? 0 : getUnit(s, t.side, t.row, t.col)?.hp ?? 0;
   var sameTarget = (a, b) => a.kind === b.kind && a.side === b.side && (a.kind === "lord" || a.kind === "hand" && b.kind === "hand" && a.index === b.index || a.kind === "unit" && b.kind === "unit" && a.row === b.row && a.col === b.col);
+  var CHARACTER_TYPES = ["troop", "general", "strategist", "token"];
+  var isCharacterType = (t) => CHARACTER_TYPES.includes(t);
   var matchesCardType = (t, want) => {
     if (!want) return true;
-    if (want === "character") return ["troop", "general", "strategist"].includes(t);
+    if (want === "character") return isCharacterType(t);
     return t === want;
   };
   var matchesHandFilter = (hc, f) => {
@@ -1268,7 +1270,7 @@ var Core = (() => {
     if (f.exclude_source && srcUid !== void 0 && u.uid === srcUid) return false;
     if (f.type) {
       if (f.type === "character") {
-        if (!["troop", "general", "strategist"].includes(u.type)) return false;
+        if (!isCharacterType(u.type)) return false;
       } else if (u.type !== f.type) return false;
     }
     if (f.gender && u.gender !== f.gender) return false;
@@ -1414,7 +1416,7 @@ var Core = (() => {
           if (sk.duration === "this_turn" && u.enteredTurn !== state.turn) continue;
           const want = sk.target?.filter?.type;
           if (want === "character") {
-            if (!["troop", "general", "strategist"].includes(played.type)) continue;
+            if (!isCharacterType(played.type)) continue;
           } else if (want && played.type !== want) continue;
           emitSkillTriggered(state, side, u, sk, "trigger", events);
           runEffects(state, cards, effectsOf(sk), { side, source: u }, rng, events);
@@ -1770,7 +1772,7 @@ var Core = (() => {
             if (!card) return false;
             if (filter?.faction && card.faction !== filter.faction) return false;
             if (filter?.type && filter.type !== "character" && card.type !== filter.type) return false;
-            if (filter?.type === "character" && !["troop", "general", "strategist"].includes(card.type)) return false;
+            if (filter?.type === "character" && !isCharacterType(card.type)) return false;
             if (filter?.tag && !(card.tags ?? []).includes(filter.tag)) return false;
             return true;
           });
@@ -2880,8 +2882,8 @@ var Core = (() => {
   }
 
   // src/ai/cards.ts
-  var CHARACTER_TYPES = ["troop", "general", "strategist"];
-  var isCharacterCard = (c) => CHARACTER_TYPES.includes(c.type);
+  var CHARACTER_TYPES2 = ["troop", "general", "strategist"];
+  var isCharacterCard = (c) => CHARACTER_TYPES2.includes(c.type);
   function skillEffects(sk) {
     if (sk.modes?.length) return sk.modes.flatMap((m) => m.effects ?? []);
     return sk.effects ?? [];

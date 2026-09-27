@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { applyAction, playTargetPlan } from '../src/engine.ts';
+import { applyAction, playTargetPlan, unitSkillTargetPlan } from '../src/engine.ts';
 import { getUnit, makeUnit, setUnit } from '../src/state.ts';
 import { applyStatus, dealDamage, lordRef, unitRef } from '../src/mutate.ts';
 import { recomputeAuras, resolveTargets, effectsOf } from '../src/effects.ts';
@@ -791,4 +791,31 @@ test('ADR-072：定型为「判不出类型」的卡不再丢攻血（黄权回�
     assert.equal(c.attack, undefined, `${c.id}（${c.type}）不该有攻击力`);
     assert.equal(c.health, undefined, `${c.id}（${c.type}）不该有生命值`);
   }
+});
+
+/**
+ * ADR-093：`type: 'character'` 要认**召唤出来的衍生物**
+ *
+ * 设计者实机反馈：「黄巾兵、假人这些召唤出来的卡牌，本来正常能被选择攻击，
+ * 现在指向性选择不到」。根因是选择器把 character 只当成三类人物卡
+ * （troop/general/strategist），`type: token` 的衍生物被排除 —— 打得到、却选不中。
+ */
+test('ADR-093：指向性技能可以选中衍生物（token）', () => {
+  const { state } = scenario({});
+  setUnit(state, 'own', 'front', 0, makeUnit(realCard('shu_huangzhong'), state.turn - 2, 91));
+  setUnit(state, 'enemy', 'front', 0, makeUnit(realCard('token_jia_ren'), state.turn - 2, 92));
+  setUnit(state, 'enemy', 'front', 1, makeUnit(realCard('wei_xiahouen'), state.turn - 2, 93));
+
+  const plan = unitSkillTargetPlan(state, 'own', 'front', 0);
+  const cols = (plan.choices[0]?.targets ?? []).map((t) => t.col).sort();
+  assert.deepEqual(cols, [0, 1], '衍生物(第0格)与人物(第1格)都该能选');
+});
+
+test('ADR-093：避其锐气「收回手牌」的目标清单含衍生物', () => {
+  const { state } = scenario({});
+  setUnit(state, 'own', 'front', 0, makeUnit(realCard('shu_madai'), state.turn - 2, 91));
+  setUnit(state, 'own', 'front', 1, makeUnit(realCard('token_jia_ren'), state.turn - 2, 92));
+
+  const plan = playTargetPlan(state, 'own', realCard('tactic_bishi_ruiqi'));
+  assert.equal((plan.choices[0]?.targets ?? []).length, 2, '己方两个单位都该可选');
 });
