@@ -875,9 +875,11 @@
   }
   #setup .rules b { color: var(--gold); }
   #setup .body { flex: 1; display: flex; gap: 12px; min-height: 0; }
-  #setup .col { display: flex; flex-direction: column; min-height: 0; }
-  #setup .col.pool { flex: 1.35; }
-  #setup .col.deck { flex: 1; }
+  #setup .col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  /* 卡池在左、占满高度与宽度（瓦片要宽度才排得开列），卡组压成右侧固定栏 —— 见 ADR-096。
+     与构筑页的 .layout{grid-template-columns:1fr 380px} 是同一个版式，栏宽略窄。 */
+  #setup .col.pool { flex: 1 1 auto; }
+  #setup .col.deck { flex: 0 0 336px; min-width: 0; }
   #setup .hd { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
   #setup .hd .t { font-weight: 700; color: var(--gold); }
   #setup .list { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 4px; }
@@ -891,8 +893,9 @@
   #setup .acts button:disabled { opacity: .4; cursor: not-allowed; }
   #setup .saved-decks { margin: 0 0 12px; padding: 10px 12px; background: rgba(37,27,16,.78); border: 1px solid #6d5a35; border-radius: 6px; }
   #setup .saved-decks-label { display: block; margin-bottom: 8px; color: var(--gold-hi); font-size: 12px; font-weight: 700; }
-  #setup .saved-deck-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
-  #setup .saved-decks button { min-height: 40px; background: #3a2917; color: var(--gold-hi); border: 1px solid #9a7336; border-radius: 5px; padding: 7px 10px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
+  /* 卡组一多就把面板吃掉半个 —— 压到约两行并自己滚（实测 12 套时占了 230px） */
+  #setup .saved-deck-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; max-height: 74px; overflow-y: auto; }
+  #setup .saved-decks button { min-height: 32px; background: #3a2917; color: var(--gold-hi); border: 1px solid #9a7336; border-radius: 5px; padding: 7px 10px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
   #setup .saved-decks button:hover { border-color: var(--gold-hi); background: #513719; }
   #setup .saved-decks button.unavailable,
   #setup .saved-decks button:disabled { color: var(--dim); background: #211d18; border-color: #423c32; opacity: .55; cursor: not-allowed; }
@@ -908,7 +911,10 @@
   }
   .crow .nm { flex: 0 0 62px; font-weight: 700; }
   .crow .st { flex: 0 0 34px; color: #d9a35a; }
-  .crow .tx { flex: 1; color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* ⚠️ min-width:0 不能少：.tx 是 nowrap 的 flex item，默认 min-width:auto 会让它的
+     **自动最小尺寸 = 整段文本宽度**，把整列撑到一千多像素、把右侧「卡组」栏挤出视口。
+     overflow/text-overflow 只负责"截断得好看"，不负责"允许收缩"。 */
+  .crow .tx { flex: 1; min-width: 0; color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .crow .n { flex: 0 0 20px; text-align: right; color: var(--gold); font-weight: 700; }
   .crow .add-card { flex: 0 0 42px; padding: 2px 4px; border: 1px solid #6d5a35; border-radius: 3px; background: #352817; color: var(--gold-hi); font: inherit; font-size: 10px; cursor: pointer; }
   .crow .add-card:hover { background: #5a4020; }
@@ -926,6 +932,58 @@
   #setup .msg .err { color: #e08a7a; }
   #setup .msg .warn { color: #d9c07a; }
   #setup .msg .ok { color: #9fd0a4; }
+  /* ============ 构筑：瓦片卡池 / 搜索 / 保存 / 同步状态（ADR-096） ============
+     卡牌瓦片本体在 card-tile.js（三处共用一份），这里只做两件事：
+     ① 本页的盒子与滚动；② 把瓦片配色接到本面板的暗金主题上（覆盖 --ct-* 变量）。 */
+  #setup .pool-search {
+    flex: 1; min-width: 88px; padding: 3px 7px; font: inherit; font-size: 11px;
+    background: #1b1710; color: #e8e2d4; border: 1px solid #6d5a35; border-radius: 4px;
+  }
+  #setup .pool-search::placeholder { color: #7d7566; }
+  /* 卡池滚动盒：瓦片网格在它里面滚动，面板高度不变 */
+  #setup .pool-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
+  /* 本面板的瓦片配色（card-tile.js 的 --ct-* 就是为这种覆盖留的） */
+  #setup .ct-tile {
+    --ct-bg: rgba(40,32,21,.94);
+    --ct-line: #5c4a2e;
+    --ct-muted: var(--dim);
+    --ct-gold: var(--gold-hi);
+    --ct-ink: #e8e2d4;
+  }
+  #setup .ct-grid { grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); }
+  /* 已选卡牌：多列排布，30 张也压得进 32vh */
+  #setup .decklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 2px 8px; align-content: start; }
+  #setup .drow { display: flex; align-items: center; gap: 6px; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+  #setup .drow:hover { background: #3a2117; }
+  #setup .drow .cst { flex: 0 0 18px; height: 18px; border-radius: 50%; background: #2a2317; color: var(--gold-hi); font-weight: 700; text-align: center; font-size: 11px; line-height: 18px; }
+  #setup .drow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  #setup .drow .n { flex: 0 0 auto; color: var(--gold); font-weight: 700; font-size: 11px; }
+  /* 卡组名 + 保存 */
+  #setup .deckbar { margin-top: -2px; }
+  #setup .deck-name {
+    flex: 1; min-width: 68px; padding: 4px 7px; font: inherit; font-size: 12px;
+    background: #1b1710; color: #e8e2d4; border: 1px solid #6d5a35; border-radius: 4px;
+  }
+  #setup .deckbar button.save { background: #6b5526; border-color: var(--gold-hi); color: #f2e2bb; font-weight: 700; }
+  #setup .store-mode { font-weight: 400; font-size: 11px; color: var(--dim); }
+  #setup .store-mode.is-ok { color: #9fd0a4; }
+  #setup .store-mode.is-local { color: #d9c07a; }
+  /* 每条已保存卡组 = 载入按钮 + 删除按钮（嵌套 button 非法，故用 span 包一层） */
+  #setup .saved-item { display: flex; gap: 4px; align-items: stretch; min-width: 0; }
+  #setup .saved-item .saved-load { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #setup .saved-item.is-unavailable .saved-load { opacity: .55; cursor: not-allowed; }
+  #setup .saved-del {
+    flex: 0 0 30px; padding: 0; text-align: center;
+    background: #3a2117; border-color: #7d4a35; color: #e0a08a; font-weight: 700;
+  }
+  #setup .saved-del:hover { background: #5a2c1d; border-color: #c0705a; }
+  #setup .saved-upload {
+    display: block; width: 100%; margin-top: 8px; min-height: 34px;
+    background: #2c3a26; border-color: #5f8a4d; color: #bfe0ac; font-weight: 700;
+  }
+  #setup .saved-upload:hover { background: #3a4d30; border-color: #8fc07a; }
+  #setup .crow .rm { flex: 0 0 auto; color: #6f6759; font-size: 10px; }
+  #setup .crow:hover .rm { color: #c0705a; }
   /* 换牌 */
   #setup .handpick { display: flex; flex-wrap: wrap; gap: 8px; }
   #setup .pick {
@@ -1233,7 +1291,7 @@
   // 同上：逐一带时间戳，保证每次刷新都拿到最新的引擎与原型代码
   (function () {
     var v = '?v=' + Date.now();
-    ['core.bundle.js', 'data.bundle.js', 'card-render.js', 'setup.js', 'card-test.js', 'battlefield.engine.js']
+    ['core.bundle.js', 'data.bundle.js', 'card-render.js', 'card-tile.js', 'deck-store.js', 'setup.js', 'card-test.js', 'battlefield.engine.js']
       .forEach(function (f) { document.write('<script src="' + f + v + '"><\/script>'); });
   })();
 </script>
