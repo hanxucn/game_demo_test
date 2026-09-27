@@ -98,7 +98,32 @@ for (const c of cards) {
       const handBuffed = r.state.sides.own.hand.some((hc) => hc.mods.length > 0)
         || r.state.sides.enemy.hand.some((hc) => hc.mods.length > 0);
       const statusGiven = evs.some((e) => e.type === 'STATUS_APPLIED');
-      applied = applied || handBuffed || statusGiven;
+      /**
+       * ⚠️ 2026-09-27：**光环施加的状态不再发 STATUS_APPLIED 事件**（见 mutate.ts —— 光环每次
+       * `recomputeAuras` 都「先清后加」，发事件会把日志/动画刷屏，故只在该状态由**技能主动施加**
+       * 时才发）。于是只看事件会让两类光环永远判为「未生效」：
+       *   · 给**主公**挂状态的（黄权「劝谏」→ 主公 can_mou）—— 主将不在 rows 里，派生值判据也够不到
+       *   · 给**自己**挂状态的（蒋钦「水军都督」→ 自身 shui_gong_bonus）
+       * 改为直接核对该光环**自己声明的状态**有没有真的挂上（值仍在，只是不发事件）。
+       */
+      const auraStatuses = new Set<string>();
+      for (const sk of auraSkills) {
+        for (const eff of sk.effects ?? []) {
+          if (eff.action === 'apply_status' && eff.status) auraStatuses.add(eff.status);
+        }
+      }
+      const statusOnBoard = auraStatuses.size > 0 && ((): boolean => {
+        const hit = (holder: { statuses?: Record<string, { stacks?: number }> }): boolean =>
+          [...auraStatuses].some((k) => (holder.statuses?.[k]?.stacks ?? 0) > 0);
+        for (const side of ['own', 'enemy'] as const) {
+          if (hit(r.state.sides[side].lord)) return true;
+          for (const row of ['front', 'back'] as const) {
+            if (r.state.sides[side].rows[row].some((u) => !!u && hit(u))) return true;
+          }
+        }
+        return false;
+      })();
+      applied = applied || handBuffed || statusGiven || statusOnBoard;
       auraNote = applied
         ? ` [光环生效: ${auraSkills.map((s) => s.name).join('/')}]`
         : ` [⚠️ 光环未生效]`;
