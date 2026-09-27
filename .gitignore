@@ -4,3 +4,5 @@ prototype/*.bundle.js
 core/data/*.json
 docs/gdd/index.html
 server/game.db
+.screenshots/*.png
+.playwright-mcp/
