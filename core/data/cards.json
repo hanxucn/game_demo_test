@@ -1047,7 +1047,7 @@
   {
     "id": "neutral_archer",
     "name": "弓射手",
-    "faction": "shu",
+    "faction": "neutral",
     "type": "troop",
     "cost": 1,
     "attack": 0,
@@ -1085,7 +1085,7 @@
   {
     "id": "neutral_infantry",
     "name": "步兵",
-    "faction": "shu",
+    "faction": "neutral",
     "type": "troop",
     "cost": 1,
     "attack": 1,
@@ -1094,14 +1094,7 @@
     "memo": "1 费 1/1 的填线兵",
     "gender": "male",
     "keywords": [],
-    "skills": [
-      {
-        "id": "",
-        "name": "",
-        "text": "当场上设有其他敌方人物时，才可攻击主帅.",
-        "pending": true
-      }
-    ],
+    "skills": [],
     "flavor": ""
   },
   {
@@ -5205,6 +5198,7 @@
   {
     "id": "wu_panzhang",
     "name": "潘璋",
+    "rarity": "elite",
     "faction": "wu",
     "type": "general",
     "cost": 5,
@@ -5247,8 +5241,7 @@
         ]
       }
     ],
-    "flavor": "擒获关羽，名震江东。",
-    "rarity": "elite"
+    "flavor": "擒获关羽，名震江东。"
   },
   {
     "id": "wu_zhanghong",
@@ -5336,6 +5329,7 @@
   {
     "id": "wu_zhugejin",
     "name": "诸葛瑾",
+    "rarity": "elite",
     "faction": "wu",
     "type": "strategist",
     "cost": 2,
@@ -5385,8 +5379,7 @@
         ]
       }
     ],
-    "flavor": "诸葛瑾出使蜀汉，努力维系孙刘联盟。",
-    "rarity": "elite"
+    "flavor": "诸葛瑾出使蜀汉，努力维系孙刘联盟。"
   },
   {
     "id": "wu_sunshangxiang",

@@ -1,6 +1,5 @@
 // 自动生成，勿手改：python3 tools/build-data-bundle.py
-window.GameData =
-{
+window.GameData = {
   "cards": [
     {
       "id": "shu_dongjue",
@@ -1050,7 +1049,7 @@ window.GameData =
     {
       "id": "neutral_archer",
       "name": "弓射手",
-      "faction": "shu",
+      "faction": "neutral",
       "type": "troop",
       "cost": 1,
       "attack": 0,
@@ -1088,7 +1087,7 @@ window.GameData =
     {
       "id": "neutral_infantry",
       "name": "步兵",
-      "faction": "shu",
+      "faction": "neutral",
       "type": "troop",
       "cost": 1,
       "attack": 1,
@@ -1097,14 +1096,7 @@ window.GameData =
       "memo": "1 费 1/1 的填线兵",
       "gender": "male",
       "keywords": [],
-      "skills": [
-        {
-          "id": "",
-          "name": "",
-          "text": "当场上设有其他敌方人物时，才可攻击主帅.",
-          "pending": true
-        }
-      ],
+      "skills": [],
       "flavor": ""
     },
     {
@@ -5208,6 +5200,7 @@ window.GameData =
     {
       "id": "wu_panzhang",
       "name": "潘璋",
+      "rarity": "elite",
       "faction": "wu",
       "type": "general",
       "cost": 5,
@@ -5250,8 +5243,7 @@ window.GameData =
           ]
         }
       ],
-      "flavor": "擒获关羽，名震江东。",
-      "rarity": "elite"
+      "flavor": "擒获关羽，名震江东。"
     },
     {
       "id": "wu_zhanghong",
@@ -5339,6 +5331,7 @@ window.GameData =
     {
       "id": "wu_zhugejin",
       "name": "诸葛瑾",
+      "rarity": "elite",
       "faction": "wu",
       "type": "strategist",
       "cost": 2,
@@ -5388,8 +5381,7 @@ window.GameData =
           ]
         }
       ],
-      "flavor": "诸葛瑾出使蜀汉，努力维系孙刘联盟。",
-      "rarity": "elite"
+      "flavor": "诸葛瑾出使蜀汉，努力维系孙刘联盟。"
     },
     {
       "id": "wu_sunshangxiang",
@@ -6111,121 +6103,118 @@ window.GameData =
       "memo": "水攻伤害 +N"
     }
   ],
-  "keywords": {
-    "note": "关键词表 —— 定义由设计者逐条给出（ADR-054，2026-09-12）。\n手写稿里出现过、且设计者已定义的关键词如下；未在此列的一律不是本作关键词。\n\n⚠️ ADR-055 教训：核对关键词时**不能只查名字在不在手写稿里，必须核对定义**。「先攻」名字在手写稿出现 8 次、我据此判它\"可信\"，但它的定义（击杀不遭反击）是 AI 编的。",
-    "keywords": [
-      {
-        "id": "jia_dun",
-        "name": "架盾",
-        "type": "buff",
-        "grants": [
-          "jia_dun_status"
-        ],
-        "stackable": false,
-        "value": -1,
-        "implemented": true,
-        "definition": "嘲讽：敌方普通攻击必须先打它。是主将唯一的盾牌（单排后）。",
-        "memo": "敌方必须先打它（ADR-051）"
-      },
-      {
-        "id": "xian_gong",
-        "name": "先攻",
-        "type": "buff",
-        "grants": [
-          "xian_gong_status"
-        ],
-        "stackable": false,
-        "value": -1,
-        "implemented": true,
-        "definition": "入场当回合即可行动攻击。（= 疾行，两者是同一个关键词，已合并为「先攻」）",
-        "memo": "下了就能打",
-        "source": "手写稿四处「获得先攻 / 上场时先攻」均指此意（ADR-055 设计者澄清）"
-      },
-      {
-        "id": "lian_ji",
-        "name": "连击",
-        "type": "buff",
-        "grants": [],
-        "stackable": false,
-        "value": -1.5,
-        "implemented": true,
-        "definition": "当前回合普通攻击可执行两次。",
-        "memo": "一回合打两下"
-      },
-      {
-        "id": "yi_ji",
-        "name": "遗计",
-        "type": "buff",
-        "grants": [],
-        "stackable": false,
-        "value": -2,
-        "implemented": true,
-        "definition": "类亡语：阵亡时触发该卡定义的 on_death 逻辑。",
-        "memo": "死了还要拉一个"
-      },
-      {
-        "id": "yin_xue",
-        "name": "饮血",
-        "type": "buff",
-        "grants": [],
-        "stackable": false,
-        "value": -1,
-        "implemented": false,
-        "definition": "对敌人造成的伤害，为该单位自身恢复等量生命。",
-        "memo": "打多少回多少"
-      },
-      {
-        "id": "sheng_dun",
-        "name": "武圣",
-        "type": "buff",
-        "grants": [
-          "sheng_dun_status"
-        ],
-        "stackable": false,
-        "value": -1,
-        "implemented": false,
-        "definition": "⚠️ 尚未定义。手写稿里「武圣」只作为关羽的两个候选技能名之一出现（〈水淹七军〉? / 〈武圣〉?），未写机制。",
-        "memo": "（待定义）",
-        "open": "原「免疫一次伤害」是初始提交 GDD 里 AI 写的定义，未经设计者确认（Q-06-4）"
-      },
-      {
-        "id": "shen_she",
-        "name": "神射",
-        "type": "buff",
-        "grants": [],
-        "stackable": false,
-        "value": -1,
-        "implemented": false,
-        "definition": "对随机敌人造成远程伤害，且不受对方攻击影响。",
-        "memo": "隔空点名",
-        "open": "待实现（弓兵「射箭」是它的具体化：回合结束随机打敌方人物或主将 1 点，可绕过架盾）"
-      },
-      {
-        "id": "qi_xi",
-        "name": "奇袭",
-        "type": "buff",
-        "grants": [
-          "qi_xi_status"
-        ],
-        "stackable": false,
-        "value": -1,
-        "implemented": false,
-        "definition": "上场先隐身（不能被选定）；下个回合可选择行动攻击，只要执行过行动，隐身状态就消失。",
-        "memo": "先藏一回合再出手",
-        "open": "待实现（现引擎只做了\"攻击后失去\"，缺\"上场自动隐身\"）"
-      },
-      {
-        "id": "zhong_yi",
-        "name": "忠义",
-        "type": "buff",
-        "grants": [],
-        "stackable": false,
-        "value": -1,
-        "implemented": false,
-        "definition": "免疫混乱、离间等状态。",
-        "memo": "不吃控制",
-        "open": "待实现。⚠️ 原引擎误把「忠义」做成\"阵亡触发亡语\"，已纠正——亡语是「遗计」"
-      }
-    ]
-  }
+  "keywords": [
+    {
+      "id": "jia_dun",
+      "name": "架盾",
+      "type": "buff",
+      "grants": [
+        "jia_dun_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "implemented": true,
+      "definition": "嘲讽：敌方普通攻击必须先打它。是主将唯一的盾牌（单排后）。",
+      "memo": "敌方必须先打它（ADR-051）"
+    },
+    {
+      "id": "xian_gong",
+      "name": "先攻",
+      "type": "buff",
+      "grants": [
+        "xian_gong_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "implemented": true,
+      "definition": "入场当回合即可行动攻击。（= 疾行，两者是同一个关键词，已合并为「先攻」）",
+      "memo": "下了就能打",
+      "source": "手写稿四处「获得先攻 / 上场时先攻」均指此意（ADR-055 设计者澄清）"
+    },
+    {
+      "id": "lian_ji",
+      "name": "连击",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1.5,
+      "implemented": true,
+      "definition": "当前回合普通攻击可执行两次。",
+      "memo": "一回合打两下"
+    },
+    {
+      "id": "yi_ji",
+      "name": "遗计",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -2,
+      "implemented": true,
+      "definition": "类亡语：阵亡时触发该卡定义的 on_death 逻辑。",
+      "memo": "死了还要拉一个"
+    },
+    {
+      "id": "yin_xue",
+      "name": "饮血",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1,
+      "implemented": false,
+      "definition": "对敌人造成的伤害，为该单位自身恢复等量生命。",
+      "memo": "打多少回多少"
+    },
+    {
+      "id": "sheng_dun",
+      "name": "武圣",
+      "type": "buff",
+      "grants": [
+        "sheng_dun_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "implemented": false,
+      "definition": "⚠️ 尚未定义。手写稿里「武圣」只作为关羽的两个候选技能名之一出现（〈水淹七军〉? / 〈武圣〉?），未写机制。",
+      "memo": "（待定义）",
+      "open": "原「免疫一次伤害」是初始提交 GDD 里 AI 写的定义，未经设计者确认（Q-06-4）"
+    },
+    {
+      "id": "shen_she",
+      "name": "神射",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1,
+      "implemented": false,
+      "definition": "对随机敌人造成远程伤害，且不受对方攻击影响。",
+      "memo": "隔空点名",
+      "open": "待实现（弓兵「射箭」是它的具体化：回合结束随机打敌方人物或主将 1 点，可绕过架盾）"
+    },
+    {
+      "id": "qi_xi",
+      "name": "奇袭",
+      "type": "buff",
+      "grants": [
+        "qi_xi_status"
+      ],
+      "stackable": false,
+      "value": -1,
+      "implemented": false,
+      "definition": "上场先隐身（不能被选定）；下个回合可选择行动攻击，只要执行过行动，隐身状态就消失。",
+      "memo": "先藏一回合再出手",
+      "open": "待实现（现引擎只做了\"攻击后失去\"，缺\"上场自动隐身\"）"
+    },
+    {
+      "id": "zhong_yi",
+      "name": "忠义",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1,
+      "implemented": false,
+      "definition": "免疫混乱、离间等状态。",
+      "memo": "不吃控制",
+      "open": "待实现。⚠️ 原引擎误把「忠义」做成\"阵亡触发亡语\"，已纠正——亡语是「遗计」"
+    }
+  ]
 };
