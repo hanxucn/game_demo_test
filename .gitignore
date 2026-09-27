@@ -6,3 +6,8 @@ docs/gdd/index.html
 server/game.db
 .screenshots/*.png
 .playwright-mcp/
+
+# 依赖目录（各平台二进制不同，绝不能入库 —— 见 AGENTS.md）
+node_modules/
+# macOS 桌面元数据
+.DS_Store
