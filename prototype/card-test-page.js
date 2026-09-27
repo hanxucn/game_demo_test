@@ -9,7 +9,10 @@
     return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char];
   }); };
   var effect = function (card) {
-    return (card.skills || []).map(function (skill) { return skill.text || skill.name; }).filter(Boolean).join('；')
+    return (card.skills || []).map(function (skill) {
+      if (skill.name && skill.text) return skill.name + '：' + skill.text;
+      return skill.name || skill.text;
+    }).filter(Boolean).join('；')
       || card.memo || (card.keywords || []).join('、') || '暂无效果描述';
   };
 

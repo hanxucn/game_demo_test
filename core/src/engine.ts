@@ -31,6 +31,8 @@ function useLordSkill(
   // 抉择（ADR-071）：主公技同样支持 modes
   runEffects(state, ctx.cards, effectsOf(skill, action.modeIndex),
              { side, chosen: target, handIndex: action.handIndex, modeIndex: action.modeIndex }, rng, events);
+  // 主公技结算完成后，触发己方单位的「辅政」等联动技能。
+  runTriggerSkills(state, ctx.cards, side, 'on_lord_skill_used', rng, events);
   return true;
 }
 
@@ -128,18 +130,31 @@ function chooseDiscover(
   const card = ctx.cards.get(id);
   if (!card) return false;
   delete state.pendingDiscover;
-  events.push({ type: 'CARD_DISCOVERED', side: pending.side, card, costModifier: pending.costModifier });
+  events.push({ type: 'CARD_DISCOVERED', side: pending.side, card, costModifier: pending.costModifier, destination: pending.destination ?? 'hand' });
   // 发现到带“抽到时”技能的牌时，沿用抽牌触发规则；例如曹休会立即召唤。
   const auto = resolveDrawTrigger(state, ctx.cards, pending.side, card, events, rng);
   if (auto) {
     if (auto.discard) state.sides[pending.side].discard.push(card);
     events.push({ type: 'CARD_AUTO_CAST', side: pending.side, card });
+    const continuation = state.pendingTriggerSkills;
+    if (continuation) {
+      runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
+    }
     return true;
   }
-  state.sides[pending.side].hand.push({
-    card,
-    mods: pending.costModifier ? [{ id: 'discover', kind: 'cost', value: pending.costModifier }] : [],
-  });
+  if (pending.destination === 'deck_top') {
+    // 抽牌使用 pop()，数组末尾才是实际牌库顶部。
+    state.sides[pending.side].deck.push(card.id);
+  } else {
+    state.sides[pending.side].hand.push({
+      card,
+      mods: pending.costModifier ? [{ id: 'discover', kind: 'cost', value: pending.costModifier }] : [],
+    });
+  }
+  const continuation = state.pendingTriggerSkills;
+  if (continuation) {
+    runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
+  }
   return true;
 }
 
@@ -426,12 +441,16 @@ function playCard(
     const onPlay = (card.skills ?? []).filter((sk) => sk.trigger === 'on_play');
     // 战吼需要选目标时（如陈宫「忠烈」、蔡瑁「水攻」），把玩家选的目标作为 chosen 传入。
     // 此前完全没传 → mode:'choose' 只能退回"取第一个合法目标"，玩家无法真正选择。
-    const chosen = action.target
-      ? ({ kind: 'unit', side: action.target.side, row: action.target.row, col: action.target.col } as const)
+    const chosen: TargetRef | undefined = action.target
+      ? action.target.row !== undefined
+        ? unitRef(action.target.side, action.target.row, action.target.col as number)
+        : lordRef(action.target.side)
       : undefined;
     // 第二选择（ADR-071，程昱「审时度势」：牺牲谁 + 恢复谁）
-    const chosen2 = action.target2
-      ? ({ kind: 'unit', side: action.target2.side, row: action.target2.row, col: action.target2.col } as const)
+    const chosen2: TargetRef | undefined = action.target2
+      ? action.target2.row !== undefined
+        ? unitRef(action.target2.side, action.target2.row, action.target2.col as number)
+        : lordRef(action.target2.side)
       : undefined;
     for (const sk of onPlay) {
       emitSkillTriggered(state, side, u, sk, 'on_play', events);
@@ -451,7 +470,9 @@ function playCard(
     runEffects(state, ctx.cards, card.effects, {
       side,
       chosen: action.target
-        ? ({ kind: 'unit', side: action.target.side, row: action.target.row, col: action.target.col } as const)
+        ? action.target.row !== undefined
+          ? unitRef(action.target.side, action.target.row, action.target.col as number)
+          : lordRef(action.target.side)
         : undefined,
     }, rng, events);
     s.discard.push(card);

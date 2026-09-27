@@ -123,6 +123,7 @@ export type StatusCap =
   | 'block_draw'         // 该方不能抽牌（灾年，ADR-041）
   | 'duel_lock'          // 单挑锁定：不可被第三方选中（许褚，ADR-041）
   | 'mark_damage'        // 被标记：受到伤害时触发标记者的联动（法正，ADR-041）
+  | 'water_damage'       // 水攻伤害加成
   | 'skip_turn';         // 该方整个回合被跳过（ADR-074，休养生息「下一回合不进行任何活动」）
 
 export interface StatusDef {
@@ -188,6 +189,8 @@ export const STATUSES: Record<string, StatusDef> = {
   jin_gong:   { name: '无法攻击', kind: 'debuff', numeric: false, duration: 'turns',
                 caps: ['block_attack'],
                 note: '本回合不能普通攻击' },
+  shui_gong_bonus: { name: '水攻强化', kind: 'buff', numeric: true, duration: 'permanent',
+                caps: ['water_damage'], note: '水攻伤害 +N' },
   mian_yi:    { name: '免疫', kind: 'buff',   numeric: false, duration: 'turns', caps: ['immune_debuff', 'untargetable'],
                 note: '免疫负面状态，且不能被指定为目标' },
   fan_mian:   { name: '翻面', kind: 'debuff', numeric: false, duration: 'conditional',

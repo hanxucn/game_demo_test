@@ -44,6 +44,10 @@ export interface EffectCondition {
   acted_this_turn?: boolean;
   /** 来源单位本回合的攻击**是否造成过伤害**（ADR-074，司马懿②） */
   dealt_damage_this_turn?: boolean;
+  /** 主公当前生命条件（陈武「奋死」等） */
+  lord_hp?: { side: 'self' | 'enemy'; op: CompareOp; value: number };
+  /** 主公是否处于满生命 */
+  lord_full_hp?: { side: 'self' | 'enemy'; value: boolean };
   /**
    * 条件的**与 / 或**组合（ADR-074）
    *
@@ -67,6 +71,9 @@ export interface CardEffect {
   from?: 'top' | 'bottom';       // scry 的取牌端
   status_source?: 'self';        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
   value_from_discarded?: 'cost' | 'health';   // 取「最近被弃牌」的属性作为数值（ADR-040）
+  value_from_source?: 'attack' | 'health';    // 取来源单位当前攻/血作为数值
+  damage_type?: 'water' | 'fire'; // damage 专用：水攻/火攻伤害
+  discover_to?: 'hand' | 'deck_top'; // discover 专用：选择后进手牌或牌库顶
   value_from_flag?: string;                   // 取 flags 中 "<name>:N" 的 N 作为数值（ADR-041）        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
   attack_from?: TargetSelector;  // 动态取值：攻击 = 该集合数量
   health_from?: TargetSelector;  // 动态取值：生命 = 该集合数量
@@ -146,6 +153,7 @@ export interface TargetSelector {
     lane?: number;
     row?: Row;
     health_max?: number;
+    damaged?: boolean;          // 当前生命低于生命上限
     cost_max?: number;             // 统帅值上限（绝对，含）
     cost_min?: number;             // 统帅值下限（绝对，含）——与 cost_max 配合可写出互斥分支
     cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADR-036
@@ -373,7 +381,10 @@ export interface MatchState {
     side: Side;
     candidates: string[];
     costModifier?: number;
+    destination?: 'hand' | 'deck_top';
   };
+  /** 发现流程暂停时，等待继续结算的同一时机触发技队列。 */
+  pendingTriggerSkills?: { side: Side; trigger: string; nextIndex: number };
 }
 
 /* ============================================================
@@ -383,9 +394,9 @@ export interface MatchState {
 export type Action =
   | { type: 'PLAY_CARD'; cardIndex: number; row?: Row; col?: number;
       /** 战吼（on_play）需要玩家选目标时，在此带上所选目标（ADR-069） */
-      target?: { side: Side; row: Row; col: number };
+      target?: { side: Side; row?: Row; col?: number };
       /** 第二个玩家选择（ADR-071，程昱）：`TargetSelector.pick: 2` 读它 */
-      target2?: { side: Side; row: Row; col: number };
+      target2?: { side: Side; row?: Row; col?: number };
       /** 抉择分支下标（ADR-071，曹彰）：缺省 / 越界一律取 modes[0] */
       modeIndex?: number }
   | { type: 'CHOOSE_DISCOVER'; cardId: string }
@@ -405,7 +416,7 @@ export type GameEvent =
   | { type: 'CARD_AUTO_CAST'; side: Side; card: CardDef }
   | { type: 'DECK_ADDED'; side: Side; card: CardDef; count: number; to?: 'hand' | 'deck' }
   | { type: 'DISCOVER_OPTIONS'; side: Side; cards: CardDef[] }
-  | { type: 'CARD_DISCOVERED'; side: Side; card: CardDef; costModifier?: number }
+  | { type: 'CARD_DISCOVERED'; side: Side; card: CardDef; costModifier?: number; destination?: 'hand' | 'deck_top' }
   /** 牌库被弃牌（milled）：ADR-074 */
   | { type: 'CARD_MILLED'; side: Side; cardId: string; from: 'top' | 'random' }
   /**

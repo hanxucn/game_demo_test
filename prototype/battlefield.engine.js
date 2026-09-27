@@ -45,6 +45,8 @@ var pendingPlay = null;
 var animToken = 0;
 var animQueue = null;
 var busy = false;
+// 结算动画期间点击结束回合时，先记录请求；动画完成后再提交 END_TURN。
+var queuedEndTurn = false;
 
 var $ = function (s) { return document.querySelector(s); };
 var $all = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
@@ -121,7 +123,7 @@ function newGame() {
     if (busy) skipAnimation();
     var test = CardTest.createSession(Core, GD, TEST_CONFIG);
     session = { state: test.state, ctx: test.ctx, meta: test.meta };
-    sel = null; drag = null; pendingSkill = null; pendingPick = null; pendingPlay = null; busy = false;
+    sel = null; drag = null; pendingSkill = null; pendingPick = null; pendingPlay = null; busy = false; queuedEndTurn = false;
     logClear();
     logEvents(test.events);
     renderAll();
@@ -138,7 +140,7 @@ function newGame() {
         ctx: { cards: cfg.cards || data.cards, lords: cfg.lords || data.lords },
         meta: { ownFaction: cfg.ownFaction, enemyFaction: cfg.enemyFaction },
       };
-      sel = null; drag = null; pendingSkill = null; busy = false;
+      sel = null; drag = null; pendingSkill = null; busy = false; queuedEndTurn = false;
       logClear();
       var started = Core.startMatch(session.state, session.ctx);
       session = { state: started.state, ctx: session.ctx, meta: session.meta };
@@ -282,10 +284,11 @@ function renderPanel(st) {
   var pips = '';
   for (var i = 0; i < 10; i++) pips += '<div class="pip' + (i < s.command.cur ? ' on' : '') + '"></div>';
   $('#cmd-pips').innerHTML = pips;
-  $('#turn-side').textContent = st.active === 'own' ? '我方回合' : '敌方回合';
+  $('#turn-side').textContent = queuedEndTurn && st.active === 'own'
+    ? '回合结束' : (st.active === 'own' ? '我方回合' : '敌方回合');
   $('#turn-side').className = 'turn-side ' + st.active;
   var endBtn = $('#end-turn-btn');
-  if (endBtn) endBtn.classList.toggle('is-hidden', st.active !== 'own' || !!st.winner || busy);
+  if (endBtn) endBtn.classList.toggle('is-hidden', st.active !== 'own' || !!st.winner || busy || queuedEndTurn);
   var ownDeck = $('#own-deck-pile');
   if (ownDeck) ownDeck.title = '我方牌库：' + s.deck.length + ' 张';
   var foeDeck = $('#foe-deck-visual');
@@ -861,6 +864,9 @@ function startUnitDrag(e, row, col, wrap, skipSkill) {
   if (session.state.winner || session.state.active !== 'own') return;
   if (busy) skipAnimation();          // ADR-077：动画中也能直接选下一张卡
   if (e.button !== undefined && e.button !== 0) return;
+  // 卡牌战吼/战法或技能正在等待场上目标时，单位点击必须交给目标选择流程；
+  // 否则先进入普通攻击拖拽，会把目标点击误判成攻击操作。
+  if (pendingPlay || pendingPick || (pendingSkill && pendingSkill.targets)) return;
 
   // ⚠️ 正在等玩家选目标（技能 / 战吼 / 主公技）时，**不要起拖拽**（ADR-093）
   //    原先按下就起拖拽，而松手时的"轻点"分支只处理技能/普攻，于是这次点击被
@@ -1102,16 +1108,15 @@ function onDragEnd(e) {
       dragHandledAt = Date.now();
       d.wrap.classList.add('is-played');
       clearMarks();
-      // 战吼可能需要玩家选目标 → 交给 Core.playTargetPlan 判定（BACKLOG §3）
-      window.setTimeout(function () {
-        beginPlay(d.index, dropSlot.dataset.row, Number(dropSlot.dataset.col));
-      }, 180);
+      // 战吼可能需要玩家选目标 → 立即建立目标选择状态；
+      // 延迟建立 pendingPlay 会让普通攻击拖拽抢走这段交互。
+      beginPlay(d.index, dropSlot.dataset.row, Number(dropSlot.dataset.col));
     } else if (!d.isUnit && dropBoard) {
       // 战法 / 事件卡：落到战场即释放（没有 row/col）
       dragHandledAt = Date.now();
       d.wrap.classList.add('is-played');
       clearMarks();
-      window.setTimeout(function () { beginPlay(d.index); }, 180);
+      beginPlay(d.index);
     } else {
       clearMarks();
       showDetail('取消打出', d.card.name,
@@ -1483,12 +1488,13 @@ function showModePicker(card, modes, onPick) {
   showDetail('选择技能分支', card.name, '点上面的按钮选择①或②');
 }
 
-function showDiscoverPicker(cards) {
+function showDiscoverPicker(cards, destination) {
   var old = document.getElementById('discover-pick');
   if (old) old.remove();
   var box = document.createElement('div');
   box.id = 'discover-pick';
-  box.innerHTML = '<h4>发现：选择一张加入手牌</h4><div class="discover-list"></div>';
+  var destinationText = destination === 'deck_top' ? '置于牌库顶部' : '加入手牌';
+  box.innerHTML = '<h4>发现：选择一张' + destinationText + '</h4><div class="discover-list"></div>';
   var list = box.querySelector('.discover-list');
   (cards || []).forEach(function (card) {
     var btn = document.createElement('button');
@@ -1503,7 +1509,7 @@ function showDiscoverPicker(cards) {
     list.appendChild(btn);
   });
   document.body.appendChild(box);
-  showDetail('发现', '从随机展示的牌中选择一张', '候选牌加入手牌；曹氏宗亲统率消耗减少 1 点');
+  showDetail('发现', '从随机展示的牌中选择一张', '选择后' + destinationText + (destination === 'deck_top' ? '' : '；曹氏宗亲统率消耗减少 1 点'));
 }
 
 function showDetail(title, sub, why) {
@@ -1672,8 +1678,13 @@ function onUnitClick(side, row, col, ev) {
     return;                                   // 点到非目标：保持待选，不乱取消
   }
 
-  // ⓪ 出牌待选目标（战吼 / 卡级效果，BACKLOG §3）—— 优先级最高
-  if (pendingPlay && recordPlayPick(side, row, col)) return;
+  // ⓪ 出牌待选目标（战吼 / 卡级效果，BACKLOG §3）—— 优先级最高。
+  // 点到非合法目标也必须停在这里，不能继续落入普通攻击选择流程。
+  if (pendingPlay) {
+    if (recordPlayPick(side, row, col)) return;
+    showDetail('请选择战吼目标', '当前点击的单位不是合法目标', '请点击高亮的目标；点空白处可取消');
+    return;
+  }
 
   // ① 主公技等待选目标（ADR-051：仁德可指定敌我任何人，故不再限定 side==='own'）
   if (pendingSkill && pendingSkill.targets) {
@@ -1757,7 +1768,11 @@ function onLordClick(side, bar) {
   if (busy) skipAnimation();
   // 技能/出牌的待选目标可能是主将
   if (pendingPick && exactHit(side, undefined, undefined)) { finishPick(exactHit(side, undefined, undefined)); return; }
-  if (pendingPlay && recordPlayPick(side, undefined, undefined)) return;
+  if (pendingPlay) {
+    if (recordPlayPick(side, undefined, undefined)) return;
+    showDetail('请选择战吼目标', '当前点击的主公不是合法目标', '请点击高亮的目标；点空白处可取消');
+    return;
+  }
   // ⚠️ 主公技的待选目标也要认主将（ADR-093）—— 原先这里只认 pendingPick/pendingPlay，
   //    于是刘备「仁德」高亮了自家主帅、点上去却什么也不发生（只能给自己人回血、不能给主公回血）。
   if (pendingSkill && pendingSkill.targets) {
@@ -1859,13 +1874,24 @@ function onEscape() {
 
 function onEndTurn() {
   if (session.state.winner) return;
-  if (busy) skipAnimation();
   if (session.state.active !== 'own') return;
+  if (busy) {
+    queuedEndTurn = true;
+    renderAll();
+    return;
+  }
   doAction({ type: 'END_TURN' });
 }
 
 function doAction(action) {
   if (session.state.winner) return;
+  if (busy && action.type === 'END_TURN') {
+    queuedEndTurn = true;
+    renderAll();
+    return;
+  }
+  // 已经请求结束回合后，只允许完成发现选择；其他操作不应插入当前回合。
+  if (queuedEndTurn && action.type !== 'END_TURN' && action.type !== 'CHOOSE_DISCOVER') return;
   // 动画播放中又来操作 → 先跳过动画再执行（ADR-077，替代原来的"点不动"）
   if (busy) skipAnimation();
   var res = Core.applyAction(session.state, session.ctx, action);
@@ -1899,7 +1925,12 @@ function doAction(action) {
     var discover = session.state.pendingDiscover;
     if (discover && discover.side === 'own') {
       var options = discover.candidates.map(function (id) { return GD.cards.find(function (c) { return c.id === id; }); }).filter(Boolean);
-      showDiscoverPicker(options);
+      showDiscoverPicker(options, discover.destination);
+    } else if (queuedEndTurn && session.state.active === 'own' && !session.state.winner) {
+      // 当前动作（以及可能的发现选择）全部完成后，才真正切换对方回合。
+      queuedEndTurn = false;
+      doAction({ type: 'END_TURN' });
+      return;
     } else if (session.state.winner) {
       banner('对局结束', session.state.winner === 'own' ? '我方胜利' : session.state.winner === 'enemy' ? '敌方胜利' : '平局');
     } else if (shouldAuto()) {
@@ -1944,7 +1975,7 @@ function describeEvent(e) {
     case 'DISCOVER_OPTIONS':
       return { cls: 'eff', text: who + ' 发现了 ' + e.cards.map(function (c) { return '<b>' + c.name + '</b>'; }).join('、') + '，等待选择' };
     case 'CARD_DISCOVERED':
-      return { cls: 'eff', text: who + ' 选择了 <b>' + e.card.name + '</b>加入手牌' + (e.costModifier ? '（统率 ' + e.costModifier + '）' : '') };
+      return { cls: 'eff', text: who + ' 选择了 <b>' + e.card.name + '</b>' + (e.destination === 'deck_top' ? '置于牌库顶部' : '加入手牌') + (e.costModifier ? '（统率 ' + e.costModifier + '）' : '') };
     case 'TURN_SKIPPED':
       return { cls: 'turn', text: who + ' 的回合被跳过（' + (e.reason || '') + '）' };
     // e.turn 现在是**完整回合数**（双方都行动完才 +1，ADR-064），
@@ -2147,7 +2178,7 @@ function skipAnimation() {
     var skippedOptions = session.state.pendingDiscover.candidates.map(function (id) {
       return GD.cards.find(function (c) { return c.id === id; });
     }).filter(Boolean);
-    showDiscoverPicker(skippedOptions);
+    showDiscoverPicker(skippedOptions, session.state.pendingDiscover.destination);
   }
   // 阵亡单独给一个短暂提示：卡已经不在了，但至少要让人看见"谁死了"
   skipped.forEach(function (e) {

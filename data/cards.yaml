@@ -1838,9 +1838,26 @@
   cost: 3
   attack: 3
   health: 2
-  memo: 3 费 3/2，吴国中坚白板曲线
+  memo: 决水造成 3 点水攻伤害
   gender: male
   keywords: []
+  skills:
+  - id: jue_shui
+    name: 决水
+    kind: trigger
+    trigger: on_play
+    text: 战吼：造成 3 点水攻伤害。
+    effects:
+    - action: damage
+      value: 3
+      damage_type: water
+      target:
+        side: enemy
+        filter:
+          type: character
+          include_lord: true
+        count: 1
+        mode: choose
   flavor: ''
 - id: wu_dingfeng
   name: 丁奉
@@ -2365,6 +2382,7 @@
     effects:
     - action: damage
       value: 1
+      damage_type: water
       target:
         side: enemy
         filter:
@@ -3660,3 +3678,346 @@
     name: ''
     text: 只能攻击装备此状态的敌人。
   flavor: ''
+- id: wu_panzhang
+  name: 潘璋
+  rarity: elite
+  faction: wu
+  type: general
+  cost: 5
+  attack: 4
+  health: 2
+  memo: 擒将：对受伤敌方武将造成 3 点火攻伤害
+  gender: male
+  keywords: []
+  skills:
+  - id: qin_jiang
+    name: 擒将
+    kind: trigger
+    trigger: on_play
+    text: 战吼：选择对方一个受伤的武将，造成 3 点火攻伤害。
+    target:
+      side: enemy
+      filter:
+        type: general
+        damaged: true
+      count: 1
+      mode: choose
+    effects:
+    - action: damage
+      value: 3
+      damage_type: fire
+      target:
+        side: enemy
+        filter:
+          type: general
+          damaged: true
+        count: 1
+        mode: choose
+  flavor: 擒获关羽，名震江东。
+- id: wu_zhanghong
+  name: 张纮
+  faction: wu
+  type: strategist
+  cost: 3
+  attack: 1
+  health: 3
+  type_explicit: true
+  memo: 主公技后发现三张战法并将一张置于牌库顶
+  gender: male
+  skills:
+  - id: guang_ling_du
+    name: 广陵对
+    kind: trigger
+    trigger: on_lord_skill_used
+    text: 每次使用主公技后，从牌库发现三张战法牌，选择一张置于牌库最上方。
+    effects:
+    - action: discover
+      count: 3
+      discover_to: deck_top
+      target:
+        side: self
+        filter:
+          type: tactic
+  flavor: 张纮与张昭并称二张，辅佐孙氏基业。
+- id: wu_luji
+  name: 陆绩
+  faction: wu
+  type: strategist
+  cost: 2
+  attack: 1
+  health: 3
+  type_explicit: true
+  memo: 怀橘：主帅满血时抽牌，否则恢复主帅生命
+  gender: male
+  skills:
+  - id: huai_ju
+    name: 怀橘
+    kind: trigger
+    trigger: on_play
+    text: 战吼：己方主帅恢复 2 点生命；若主帅已满血，则抽 1 张牌。
+    effects:
+    - action: heal
+      value: 2
+      target:
+        side: self
+        lord: true
+      condition:
+        lord_full_hp:
+          side: self
+          value: false
+    - action: draw
+      value: 1
+      condition:
+        lord_full_hp:
+          side: self
+          value: true
+  flavor: 陆绩怀橘遗母，成为孝义典范。
+- id: wu_zhugejin
+  name: 诸葛瑾
+  rarity: elite
+  faction: wu
+  type: strategist
+  cost: 2
+  attack: 1
+  health: 3
+  type_explicit: true
+  memo: 通好：限制敌方武将攻击并恢复双方主公生命
+  gender: male
+  skills:
+  - id: tong_hao
+    name: 通好
+    kind: trigger
+    trigger: on_play
+    target:
+      side: enemy
+      filter:
+        type: general
+      count: 1
+      mode: choose
+    text: 战吼：选择一个敌方武将，下个回合无法攻击；双方主公恢复 3 点生命。
+    effects:
+    - action: apply_status
+      status: jin_gong
+      duration: 1
+      target:
+        side: enemy
+        filter:
+          type: general
+        count: 1
+        mode: choose
+    - action: heal
+      value: 3
+      target:
+        side: both
+        lord: true
+        count: all
+  flavor: 诸葛瑾出使蜀汉，努力维系孙刘联盟。
+- id: wu_sunshangxiang
+  name: 孙尚香
+  faction: wu
+  type: general
+  cost: 6
+  attack: 3
+  health: 6
+  memo: 联姻抽牌，并按手牌数治疗一名男性角色
+  gender: female
+  skills:
+  - id: lian_yin
+    name: 联姻
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: draw
+      value: 1
+    - action: heal
+      value_from:
+        side: self
+        zone: hand
+      target:
+        side: both
+        filter:
+          type: character
+          gender: male
+        count: 1
+        mode: choose
+    text: 战吼：抽一张牌，指定一名男性角色，恢复其等同于你手牌数量的生命。
+  flavor: 孙刘联姻，巾帼不让须眉。
+- id: wu_sunyi
+  name: 孙翊
+  faction: wu
+  type: general
+  cost: 5
+  attack: 4
+  health: 3
+  memo: 战吼和亡语都按自身攻击力随机伤害敌方角色
+  gender: male
+  skills:
+  - id: xiao_han_guo_lie_play
+    name: 骁悍果烈
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: damage
+      value_from_source: attack
+      target:
+        side: enemy
+        filter:
+          type: character
+          include_lord: true
+        count: 1
+        mode: random
+    text: 战吼：对敌方随机角色造成等同于孙翊攻击力的伤害。
+  - id: xiao_han_guo_lie_death
+    name: 骁悍果烈
+    kind: trigger
+    trigger: on_death
+    effects:
+    - action: damage
+      value_from_source: attack
+      target:
+        side: enemy
+        filter:
+          type: character
+          include_lord: true
+        count: 1
+        mode: random
+    text: 亡语：对敌方随机角色造成等同于孙翊攻击力的伤害。
+  flavor: 孙翊性格刚烈，勇而少谋。
+- id: wu_xusheng
+  name: 徐盛
+  faction: wu
+  type: general
+  cost: 5
+  attack: 4
+  health: 6
+  keywords:
+  - jia_dun
+  memo: 嘲讽，己方人数少于敌方时获得额外生命
+  gender: male
+  skills:
+  - id: yi_cheng
+    name: 疑城
+    kind: trigger
+    trigger: on_play
+    effects:
+    - action: modify
+      health: 2
+      target:
+        source: true
+      condition:
+        count_vs:
+          left:
+            side: self
+            filter:
+              type: character
+          right:
+            side: enemy
+            filter:
+              type: character
+          op: <
+    text: 嘲讽；战吼：当己方场上角色少于对方时，获得 +2 生命。
+  flavor: 徐盛以疑城退敌，守江东如铁壁。
+- id: wu_jiangqin
+  name: 蒋钦
+  rarity: elite
+  faction: wu
+  type: general
+  cost: 7
+  attack: 4
+  health: 7
+  memo: 水军都督强化己方水攻伤害
+  gender: male
+  skills:
+  - id: shui_jun_du_du
+    name: 水军都督
+    kind: aura
+    text: 对敌方造成的水攻伤害 +3。
+    effects:
+    - action: apply_status
+      status: shui_gong_bonus
+      stacks: 3
+      status_source: self
+      target:
+        side: self
+        source: true
+  flavor: 蒋钦督水军，善于水战。
+- id: wu_dongxi
+  name: 董袭
+  faction: wu
+  type: general
+  cost: 4
+  attack: 3
+  health: 6
+  memo: 护主：主公受到的伤害由董袭承担
+  gender: male
+  skills:
+  - id: hu_zhu
+    name: 护主
+    kind: aura
+    text: 主公受到的伤害由董袭承担。
+    effects:
+    - action: apply_status
+      status: hu_zhu
+      status_source: self
+      condition:
+        count:
+          selector:
+            side: ally
+            lord: true
+            filter:
+              has_status: hu_zhu
+          op: ==
+          value: 0
+      target:
+        side: ally
+        lord: true
+  flavor: 董袭勇猛，曾冒死护卫孙权。
+- id: wu_chenwu
+  name: 陈武
+  faction: wu
+  type: general
+  cost: 4
+  attack: 4
+  health: 3
+  memo: 先攻，主公危急时亡语重创敌方主公
+  gender: male
+  keywords:
+  - xian_gong
+  skills:
+  - id: fen_si
+    name: 奋死
+    kind: trigger
+    trigger: on_death
+    text: 亡语：敌方主公生命低于 15 时，对敌方主公造成 3 点伤害。
+    effects:
+    - action: damage
+      value: 3
+      target:
+        side: enemy
+        lord: true
+      condition:
+        lord_hp:
+          side: enemy
+          op: <
+          value: 15
+  flavor: 陈武奋勇战死，名震江东。
+- id: wu_zhangzhao
+  name: 张昭
+  faction: wu
+  type: strategist
+  cost: 3
+  attack: 1
+  health: 3
+  type_explicit: true
+  memo: 辅政：每次使用主公技后抽一张牌
+  gender: male
+  skills:
+  - id: fu_zheng
+    name: 辅政
+    kind: trigger
+    trigger: on_lord_skill_used
+    text: 每次使用主公技后，抽一张牌。
+    effects:
+    - action: draw
+      value: 1
+  flavor: 张昭辅佐孙权，善于治国理政。
