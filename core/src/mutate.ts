@@ -8,7 +8,7 @@
 
 import { BOARD, DECK, STATUSES } from './constants.ts';
 import { createRng } from './rng.ts';
-import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, makeUnit, nextUidSeq, other, setUnit, statusStacks } from './state.ts';
+import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, isBasicTroop, makeUnit, nextUidSeq, other, setUnit, statusStacks, upgradeProgress } from './state.ts';
 import type { CardDef, CardType, GameEvent, HandCard, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
 export type TargetRef =
@@ -254,11 +254,14 @@ export function dealDamage(
   depth = 0,
   /** 造成伤害的单位（用于把「击杀者」传给 killUnit → on_kill，ADR-070） */
   killerRef?: { side: Side; row: Row; col: number } | null,
+  /** 造成伤害的具体单位，用于普通兵升级进度与剧毒。 */
+  sourceUnit?: Unit,
 ): number {
   if (amount <= 0 || !refAlive(state, ref)) return 0;
 
   if (ref.kind === 'lord') {
     const lord = state.sides[ref.side].lord;
+    const hpBefore = lord.hp;
     // 「护主」守护（ADR-071，祖茂「替主」）：主帅的伤害转由守护者承受。
     // 必须在扣护甲/扣血之前判定 —— 否则主帅已经掉了血，转移就成了补刀。
     const lguard = findLordGuard(state, ref.side);
@@ -266,7 +269,7 @@ export function dealDamage(
       events.push({ type: 'DAMAGE_REDIRECTED', side: ref.side, lord: true,
                     to: lguard.side, guardName: lguard.unit.name });
       return dealDamage(state, cards, unitRef(lguard.side, lguard.row, lguard.col),
-                        amount, events, source, depth + 1, killerRef);
+                        amount, events, source, depth + 1, killerRef, sourceUnit);
     }
     let dmg = amount;
     if (lord.armor > 0) {
@@ -275,6 +278,12 @@ export function dealDamage(
       dmg -= absorbed;
     }
     lord.hp -= dmg;
+    const actual = Math.min(dmg, hpBefore);
+    if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
+      const p = upgradeProgress(sourceUnit);
+      if (sourceUnit.troopKind === 'infantry') p.damage += actual;
+      if (sourceUnit.troopKind === 'archer') p.heroHits += 1;
+    }
     events.push({ type: 'DAMAGE', target: ref, amount, source });
     if (lord.hp <= 0) {
       lord.hp = 0;
@@ -293,20 +302,37 @@ export function dealDamage(
     events.push({ type: 'DAMAGE_REDIRECTED', side: ref.side, row: ref.row, col: ref.col,
                   to: guard.side, guardName: guard.unit.name });
     return dealDamage(state, cards, unitRef(guard.side, guard.row, guard.col),
-                      amount, events, source, depth + 1, killerRef);
+                      amount, events, source, depth + 1, killerRef, sourceUnit);
   }
 
-  // 免疫伤害（武圣等，能力驱动 ADR-034）：消耗后失效
-  if (hasCap(u, 'immune_damage')) {
-    const id = Object.keys(u.statuses).find((k) => STATUSES[k]?.caps?.includes('immune_damage'))!;
-    delete u.statuses[id];
-    u.kw = u.kw.filter((k) => k !== id);
-    events.push({ type: 'STATUS_EXPIRED', side: ref.side, row: ref.row, col: ref.col, status: id });
+  // 免疫伤害（圣盾）：既支持效果施加的 sheng_dun_status，也支持卡牌固有的
+  // sheng_dun 关键词。两种载体都只消耗一次，且都产生同样的过期事件。
+  const shieldStatus = Object.keys(u.statuses).find((k) => STATUSES[k]?.caps?.includes('immune_damage'));
+  const shieldKeyword = u.kw.includes('sheng_dun');
+  if (shieldStatus || shieldKeyword) {
+    if (shieldStatus) delete u.statuses[shieldStatus];
+    if (shieldKeyword) u.kw = u.kw.filter((k) => k !== 'sheng_dun');
+    events.push({ type: 'STATUS_EXPIRED', side: ref.side, row: ref.row, col: ref.col,
+      status: shieldStatus ?? 'sheng_dun_status' });
     return 0;
   }
 
+  const hpBefore = u.hp;
   u.hp -= amount;
+  const actual = Math.min(amount, hpBefore);
+
+  if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
+    const p = upgradeProgress(sourceUnit);
+    if (sourceUnit.troopKind === 'infantry') p.damage += actual;
+    if (sourceUnit.troopKind === 'archer' && ['general', 'strategist'].includes(u.type)) p.heroHits += 1;
+  }
   events.push({ type: 'DAMAGE', target: ref, amount, source });
+
+  // 剧毒是伤害来源单位的能力，不依赖额外牌组或状态；伤害至少命中 1 点后直接摧毁目标。
+  if (actual > 0 && sourceUnit?.kw.includes('ju_du') && u.hp > 0) {
+    killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
+    return actual;
+  }
 
   // 免死判定（ADR-039）：致命伤害时按 on_lethal 技能掷骰，成功则以 1 血存活
   if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return amount;
@@ -536,6 +562,16 @@ export function killUnit(
 ): void {
   const { side, row, col, unit } = ref;
   if (!getUnit(state, side, row, col)) return;
+
+  // 骑兵升变进度：只统计击杀基础兵，或击杀武将/谋臣；特殊兵不算基础兵。
+  if (killer) {
+    const killerUnit = getUnit(state, killer.side, killer.row, killer.col);
+    if (killerUnit?.troopKind === 'cavalry' && isBasicTroop(killerUnit)) {
+      const p = upgradeProgress(killerUnit);
+      if (isBasicTroop(unit)) p.basicKills += 1;
+      if (unit.type === 'general' || unit.type === 'strategist') p.characterKills += 1;
+    }
+  }
 
   setUnit(state, side, row, col, null);
   events.push({ type: 'UNIT_DIED', side, row, col, unit });

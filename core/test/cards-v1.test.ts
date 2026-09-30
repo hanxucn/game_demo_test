@@ -26,7 +26,7 @@ import type { Action, CardDef, GameEvent, Unit } from '../src/types.ts';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ALL: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));
 
-// 全部卡都要进卡表：summon / transform 会按 id 引用它们（如 elite_* 精英兵）
+// 全部卡都要进卡表：summon / transform 会按 id 引用它们（如 elite_* 特种兵）
 for (const c of ALL) {
   const flat: CardDef = {
     ...c,

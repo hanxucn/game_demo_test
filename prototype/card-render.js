@@ -28,6 +28,12 @@ window.CardRender = (function () {
   }
 
   /* ---------- 工具 ---------- */
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
   function hash(str) {
     var h = 0;
     for (var i = 0; i < (str || '').length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
@@ -75,15 +81,43 @@ window.CardRender = (function () {
     );
   }
 
-  /* ---------- 关键词 chip ---------- */
-  function keywordsHTML(card, row) {
-    var list = card.kw || [];
-    if (!list.length) return '';
-    var html = list.map(function (k) {
+  /* ---------- 统一能力栏 ----------
+   * 关键词和技能名共用一个容器，避免「先攻 / 战技 / 放箭」分别定位时互相覆盖。
+   * zhan_ji 是分类关键词，和主动技能名合并成「战技：技能名」。
+   */
+  function abilityLabels(card) {
+    var keywords = card.kw || card.keywords || [];
+    var skills = card.skills || [];
+    var labels = [];
+    var hasActive = false;
+    keywords.forEach(function (k) {
+      if (k === 'sheng_dun') return; // 兼容旧快照，但不再对外展示已删除关键词
       var meta = KW[k] || { name: k };
-      return '<i title="' + meta.name + '">' + meta.name + '</i>';
-    }).join('');
-    return '<div class="cr-kw">' + html + '</div>';
+      if (k === 'zhan_ji') {
+        var active = skills.filter(function (sk) { return sk.kind === 'active'; });
+        hasActive = active.length > 0;
+        if (active.length) active.forEach(function (sk) {
+          labels.push('战技：' + (sk.name || '技能'));
+        });
+        else labels.push('战技');
+      } else {
+        labels.push(meta.name);
+      }
+    });
+    skills.forEach(function (sk) {
+      if (!sk || !sk.name) return;
+      if (hasActive && sk.kind === 'active') return;
+      if (labels.indexOf(sk.name) < 0) labels.push(sk.name);
+    });
+    return labels;
+  }
+
+  function abilitiesHTML(card) {
+    var list = abilityLabels(card);
+    if (!list.length) return '';
+    return '<div class="cr-abilities">' + list.map(function (label) {
+      return '<i title="' + esc(label) + '">' + esc(label) + '</i>';
+    }).join('') + '</div>';
   }
 
   /**
@@ -94,17 +128,13 @@ window.CardRender = (function () {
    * 返回空串时上层不会渲染这一行。
    */
   function skillBrief(card) {
-    var sk = (card.skills || [])[0];
-    if (sk && (sk.name || sk.text)) {
-      return '<b>' + (sk.name || '技能') + '</b>' + (sk.text ? '　' + sk.text : '');
-    }
-    return '';
-  }
-
-  /** 战场卡只放得下一个技能名 */
-  function skillName(card) {
-    var sk = (card.skills || [])[0];
-    return sk && sk.name ? sk.name : '';
+    var isZhanji = (card.kw || card.keywords || []).indexOf('zhan_ji') >= 0;
+    return (card.skills || []).map(function (sk) {
+      if (!sk || (!sk.name && !sk.text)) return '';
+      var title = sk.name || '技能';
+      if (isZhanji && sk.kind === 'active') title = '战技：' + title;
+      return '<b>' + esc(title) + '</b>' + (sk.text ? '　' + esc(sk.text) : '');
+    }).filter(Boolean).join('；');
   }
 
   /* ---------- 状态标记（卡头） ---------- */
@@ -150,9 +180,12 @@ window.CardRender = (function () {
     // ADR-089：目标定的"减费"要在卡面上看得出来 —— 绿色费用宝石（红=费用不够，绿=已被减费）
     var costCls = opts.affordable === false ? 'cr-costnum is-unaffordable'
       : opts.discounted ? 'cr-costnum is-discounted' : 'cr-costnum';
-    html += '<div class="cr-name">' + costInline.replace('cr-costnum', costCls) + (card.name || '') + '</div>';
+    // 名称必须使用完整卡名（包含括号说明）；窄卡面视觉上允许省略，但悬停标题保留完整文本。
+    var fullCardName = card.name || '';
+    html += '<div class="cr-name" title="' + esc(fullCardName) + '" aria-label="' + esc(fullCardName) + '">'
+      + costInline.replace('cr-costnum', costCls) + esc(fullCardName) + '</div>';
     html += statusHTML(opts);
-    html += keywordsHTML(card, opts.row);
+    html += abilitiesHTML(card);
 
     // 主动技可用标记（点它使用）——仅在战场卡上显示
     if (opts.board && opts.skill) {
@@ -171,10 +204,7 @@ window.CardRender = (function () {
     }
 
     if (opts.board) {
-      // 战场卡只有 42×59：全文放不下，先把**技能名**摆出来（血攻圆圈上方那条），
-      // 完整文案走悬浮详情面板（见 battlefield.engine.js 的 hover 绑定）。
-      var sn = hasStats ? skillName(card) : null;
-      if (sn) html += '<div class="cr-skillname">' + sn + '</div>';
+      // 战场卡只有 42×59：统一能力栏只保留短标签，完整文案走悬浮详情面板。
     } else {
       // 手牌 56×78：显示技能名 + 文案（原先进来时 opts.desc 从没被传过，
       // 所以这段描述一直没渲染出来 —— 设计者反馈"看不到技能描述"）

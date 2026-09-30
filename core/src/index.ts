@@ -15,8 +15,8 @@ export * from './rules.ts';
 export * from './mutate.ts';
 export { resolveTargets, runEffects, type EffectContext } from './effects.ts';
 export {
-  applyAction, startMatch, playTargetPlan, unitSkillTargetPlan, lordSkillTargetPlan,
-  type PlayTargetPlan, type PlayTargetChoice,
+  applyAction, startMatch, playTargetPlan, unitSkillTargetPlan, lordSkillTargetPlan, upgradeStatus,
+  type PlayTargetPlan, type PlayTargetChoice, type UpgradeStatus,
 } from './engine.ts';
 export {
   summarizeMatch, formatSummary,

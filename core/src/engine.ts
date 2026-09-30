@@ -48,8 +48,10 @@ import { createRng } from './rng.ts';
 import {
   capStacks,
   lordStatusStacks,
-  allUnits, cloneState, getUnit, makeUnit, nextUidSeq, other, setUnit, statusStacks,
+  allUnits, cloneState, getUnit, hasTrait, isBasicTroop, makeUnit, nextUidSeq, other, setUnit, statusStacks,
+  upgradeProgress,
 } from './state.ts';
+import { applyMods } from './state.ts';
 import {
   canPlayCard, canUseLordSkill, canUseUnitSkill, legalTargets,
 } from './rules.ts';
@@ -96,6 +98,7 @@ export function applyAction(state: MatchState, ctx: EngineContext, action: Actio
     switch (action.type) {
       case 'PLAY_CARD': ok = playCard(next, ctx, action, events, rng); break;
       case 'CHOOSE_DISCOVER': ok = chooseDiscover(next, ctx, action, events, rng); break;
+      case 'UPGRADE_UNIT': ok = upgradeUnit(next, ctx, action, events, rng); break;
       case 'ATTACK': ok = attack(next, ctx, action, events, rng); break;
       case 'USE_LORD_SKILL': ok = useLordSkill(next, ctx, action, events, rng); break;
       case 'USE_SKILL': ok = useUnitSkill(next, ctx, action, events, rng); break;
@@ -156,6 +159,85 @@ function chooseDiscover(
     runTriggerSkills(state, ctx.cards, continuation.side, continuation.trigger, rng, events);
   }
   return true;
+}
+
+/**
+ * 玩家确认的普通兵升变（BDSB v0.4）。
+ *
+ * 目标卡只从正式卡池解析，不检查牌库/手牌，也不消耗同名卡；这是形态转换，
+ * 因此不触发目标卡的入场、战吼或亡语。与技能 DSL 的 `transform` 区分：
+ * `transform` 保留伤害，`UPGRADE_UNIT` 按设计稿恢复为目标形态满血。
+ */
+function upgradeUnit(
+  state: MatchState,
+  ctx: EngineContext,
+  action: Extract<Action, { type: 'UPGRADE_UNIT' }>,
+  events: GameEvent[],
+  rng: ReturnType<typeof createRng>,
+): boolean {
+  const side = state.active;
+  const u = getUnit(state, side, action.row, action.col);
+  const toCard = ctx.cards.get(action.toCardId);
+  const status = upgradeStatus(state, ctx.cards, side, action.row, action.col);
+  if (!u || !toCard || !status || !status.ready || !status.options.some((c) => c.id === toCard.id)) return false;
+
+  const from = u.cardId;
+  u.cardId = toCard.id;
+  u.name = toCard.name;
+  u.type = toCard.type;
+  u.faction = toCard.faction;
+  u.cost = toCard.cost;
+  u.baseAtk = toCard.attack ?? 0;
+  u.baseMaxHp = toCard.health ?? 1;
+  u.kw = [...(toCard.keywords ?? [])];
+  u.tags = [...(toCard.tags ?? [])];
+  u.skills = toCard.skills ? structuredClone(toCard.skills) : undefined;
+  u.troopKind = toCard.troopKind;
+  u.gender = toCard.gender;
+  applyMods(u);
+  u.hp = u.maxHp;
+  // 只要升变后的形态拥有先攻，就返还本回合已经消耗的一次普攻机会。
+  // 即使原形态本身也是先攻兵，也必须获得这次额外机会；只返还一次，
+  // 避免连击单位因升变被错误地重置为完整攻击次数。
+  if (hasTrait(u, 'xian_gong') && u.attackedThisTurn > 0) {
+    u.attackedThisTurn -= 1;
+  }
+  // 升变目标可能带“无法攻击”等光环技能；形态替换后立即重算，避免新单位
+  // 在本回合错误获得普通攻击能力。
+  recomputeAuras(state, ctx.cards, rng, events);
+  delete u.upgradeProgress;
+  events.push({ type: 'UNIT_UPGRADED', side, row: action.row, col: action.col, from, to: toCard.id, unit: u });
+  return true;
+}
+
+export interface UpgradeStatus {
+  label: string;
+  progress: string;
+  ready: boolean;
+  options: CardDef[];
+}
+
+/** UI 与 AI 共用升变资格；不改变对局状态。 */
+export function upgradeStatus(
+  state: MatchState, cards: Map<string, CardDef>, side: Side, row: Row, col: number,
+): UpgradeStatus | null {
+  const u = getUnit(state, side, row, col);
+  if (!u || !isBasicTroop(u)) return null;
+  const p = u.upgradeProgress ?? { damage: 0, shieldSurvival: 0, basicKills: 0, characterKills: 0, heroHits: 0 };
+  let label = '', progress = '', ready = false;
+  switch (u.troopKind) {
+    case 'infantry': label = '累计造成伤害'; progress = `${p.damage}/2`; ready = p.damage >= 2; break;
+    case 'shield': label = '敌方回合结束时存活'; progress = `${p.shieldSurvival}/2`; ready = p.shieldSurvival >= 2; break;
+    case 'cavalry': label = '击杀基础兵或人物'; progress = `${p.basicKills}/2 · ${p.characterKills}/1`; ready = p.basicKills >= 2 || p.characterKills >= 1; break;
+    case 'archer': label = '命中武将、谋臣或主公'; progress = `${p.heroHits}/1`; ready = p.heroHits >= 1; break;
+    default: return null;
+  }
+  const faction = state.sides[side].lord.faction;
+  const options = ready ? [...cards.values()].filter((c) => c.type === 'troop'
+    && c.upgradeFrom === u.troopKind && c.troopKind === u.troopKind
+    && c.id !== 'elite_xianzhen_dun'
+    && (c.faction === faction || c.faction === 'qun' || c.faction === 'neutral')) : [];
+  return { label, progress, ready, options };
 }
 
 /* ============================================================
@@ -281,12 +363,12 @@ const LORD_PREVIEW = { cost: 0, atk: 0 };
  * 与 `playTargetPlan` 同一套判定，UI 直接照它高亮即可 —— 不再自己按 side 猜。
  */
 export function unitSkillTargetPlan(
-  state: MatchState, side: Side, row: Row, col: number, modeIndex = 0,
+  state: MatchState, side: Side, row: Row, col: number, modeIndex = 0, skillId?: string,
 ): PlayTargetPlan {
   const plan: PlayTargetPlan = { modes: [], choices: [] };
   const u = getUnit(state, side, row, col);
   if (!u) return plan;
-  const sk = (u.skills ?? []).find((x) => x.kind === 'active');
+  const sk = (u.skills ?? []).find((x) => x.kind === 'active' && (!skillId || x.id === skillId));
   if (!sk) return plan;
   if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `选项 ${i + 1}`);
   for (const eff of effectsOf(sk, modeIndex)) {
@@ -367,6 +449,14 @@ function finishTurn(state: MatchState, ctx: EngineContext, events: GameEvent[], 
   const side = state.active;
   resolveTurnEndStatuses(state, ctx.cards, side, events);                     // 第 20 步 ①中毒
   runTriggerSkills(state, ctx.cards, side, TIMING.TURN_END, rng, events);     // 第 20 步 ②回合结束技
+  // 敌方回合结束时，触发我方单位的对应技能（例如陷阵营的每回合 +1/+1）。
+  runTriggerSkills(state, ctx.cards, other(side), TIMING.ENEMY_TURN_END, rng, events);
+  // 盾兵在敌方回合结束时仍存活，记录一次独立升变进度。
+  for (const ref of allUnits(state, other(side))) {
+    if (ref.unit.troopKind === 'shield' && isBasicTroop(ref.unit) && ref.unit.hp > 0) {
+      upgradeProgress(ref.unit).shieldSurvival += 1;
+    }
+  }
   expireStatuses(state, side, events);                                        // 第 21 步 清除临时效果
   expireMods(state, side);                                                     // 第 21 步 临时属性修正到期
   expireHandMods(state, side);                                                 // 第 21 步 手牌修正到期
@@ -530,7 +620,7 @@ function useUnitSkill(
   const u = getUnit(state, side, action.row, action.col);
   if (!u) return false;
   // 频率 / 震慑 / 费用共用 rules.ts 的判定（AI 与引擎必须同源）
-  const check = canUseUnitSkill(state, side, action.row, action.col);
+  const check = canUseUnitSkill(state, side, action.row, action.col, action.skillId);
   if (!check.ok) return false;
   const skill = check.skill!;
 

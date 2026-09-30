@@ -31,8 +31,14 @@ const hasDsl = (c: CardDef) => (c.skills ?? []).length > 0 || (c.effects?.length
 // 主公卡不进卡组、不能从手牌打出，单独走主公技流程，不在此验证
 const cards: CardDef[] = all.filter((c) => (hasDsl(c) || c.cost_rule) && c.type !== 'lord');
 
-// ① 先注册**已摊平 DSL** 的卡（供打出与技能执行）
-for (const c of cards) if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(c);
+// ① 先注册**已摊平 DSL** 的卡（供打出与技能执行）。
+// 正式卡表可能与测试夹具存在同 ID 的旧定义（例如弓射手曾是“神射”），
+// 验证器必须以正式运行时数据覆盖夹具，否则会出现“校验通过了旧卡”的假象。
+for (const c of cards) {
+  const i = TEST_CARDS.findIndex((x) => x.id === c.id);
+  if (i >= 0) TEST_CARDS[i] = c;
+  else TEST_CARDS.push(c);
+}
 // ② 再把其余卡补进卡表（summon / transform 会按 id 引用它们；已存在的不覆盖）
 for (const c of all) if (!TEST_CARDS.some((x) => x.id === c.id)) TEST_CARDS.push(c);
 const base = (id: string) => TEST_CARDS.find((x) => x.id === id)!;

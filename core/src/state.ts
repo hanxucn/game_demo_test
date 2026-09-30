@@ -243,6 +243,13 @@ export function makeUnit(card: CardDef, turn: number, seq: number): Unit {
     hp: card.health ?? 1,
     maxHp: card.health ?? 1,
     troopKind: card.troopKind,
+    upgradeProgress: {
+      damage: 0,
+      shieldSurvival: 0,
+      basicKills: 0,
+      characterKills: 0,
+      heroHits: 0,
+    },
     gender: card.gender,
     kw: [...(card.keywords ?? [])],
     tags: [...(card.tags ?? [])],
@@ -256,6 +263,27 @@ export function makeUnit(card: CardDef, turn: number, seq: number): Unit {
     skillsUsedOnce: [],
   };
 }
+
+/** 保证旧快照/旧测试夹具也能使用 BDSB 升变进度。 */
+export function upgradeProgress(u: Unit): NonNullable<Unit['upgradeProgress']> {
+  u.upgradeProgress ??= {
+    damage: 0,
+    shieldSurvival: 0,
+    basicKills: 0,
+    characterKills: 0,
+    heroHits: 0,
+  };
+  return u.upgradeProgress;
+}
+
+/** 只有三种基础兵属于“基础兵击杀”统计，特殊兵不计入。 */
+export const isBasicTroop = (u: Pick<Unit, 'cardId' | 'type' | 'troopKind'>): boolean =>
+  u.type === 'troop' && (
+    u.cardId === 'neutral_infantry' ||
+    u.cardId === 'neutral_shieldman' ||
+    u.cardId === 'neutral_archer' ||
+    u.cardId === 'neutral_cavalry'
+  );
 
 /**
  * 重算派生属性（ADR-037）

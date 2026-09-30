@@ -6,7 +6,7 @@
 
 | 文件 | 内容 | 状态 |
 |---|---|---|
-| `keywords.yaml` | 12 个关键词定义 | 已定 |
+| `keywords.yaml` | 14 个关键词定义 | 已定 |
 | `tags.yaml` | **归属标签**（西凉/蛮族/黄巾/士族），见 ADR-029 | 草案待确认 |
 | `statuses.yaml` | 12 个状态定义 | 已定 |
 | `cards.yaml` | 卡牌数据 | **仅含已确认内容**（基础兵种 + 传国玉玺），其余待策划填写 |
@@ -27,7 +27,7 @@
 | `neutral_` | 中立卡 | `neutral_infantry` |
 | `event_` | 事件卡 | `event_zainian` |
 | `tactic_` | 战法卡 | `tactic_huogong` |
-| `elite_` | 特殊兵种卡 | `elite_hubaogi` |
+| `elite_` | 特种兵卡（历史 ID 保留 `elite_` 前缀，运行时类型为 `troop`） | `elite_hubaima_yicong` |
 | `jiuling_` | 酒令 | `jiuling_wenjiu` |
 | `bond_` | 羁绊 | `bond_taoyuan` |
 
@@ -91,7 +91,7 @@ python3 tools/yaml2json.py && cd core && npm run validate -- --verbose
 
 ## 当前进度
 
-- ✅ 基础兵种 3 张（步兵 / 盾兵 / 弓箭手）
+- ✅ 基础兵种 3 张（步兵 / 盾兵 / 弓兵）
 - ✅ 传国玉玺
 - 🟡 武将卡（**录入中** → `characters.draft.yaml`，5 人：吴·宋谦/朱然/全琮/马忠/李异）
 - 🟡 谋臣卡（**录入中** → 同文件，1 人：吴·鲁肃）

@@ -43,12 +43,12 @@ export const isMelee = (u: Unit): boolean =>
  * 否则 AI 会提出引擎必拒的动作（曾导致对局在回合中途直接停摆）。
  */
 export function canUseUnitSkill(
-  state: MatchState, side: Side, row: Row, col: number,
+  state: MatchState, side: Side, row: Row, col: number, skillId?: string,
 ): Check & { skill?: SkillDef } {
   const u = getUnit(state, side, row, col);
   if (!u) return { ok: false, reason: '该格没有单位' };
   if (hasCap(u, 'block_action') || hasCap(u, 'block_skill')) return { ok: false, reason: '被禁用技能' };
-  const skill = (u.skills ?? []).find((sk) => sk.kind === 'active');
+  const skill = (u.skills ?? []).find((sk) => sk.kind === 'active' && (!skillId || sk.id === skillId));
   if (!skill) return { ok: false, reason: '没有主动技' };
   const key = skill.id || skill.name || '0';
   const freq = skill.frequency ?? 'once_per_turn';
@@ -89,6 +89,7 @@ export function canUseLordSkill(
 export function canAttack(state: MatchState, side: Side, row: Row, col: number): Check {
   const u = getUnit(state, side, row, col);
   if (!u) return { ok: false, reason: '该格没有人物卡' };
+  if (u.cardId === 'neutral_archer') return { ok: false, reason: '弓兵只能放箭，不能普通攻击' };
   // ADR-051：谋臣也可以普通攻击（默认 1 攻）——原「谋臣不能普攻」已取消
   if (hasCap(u, 'block_action') || hasCap(u, 'block_attack')) {
     return { ok: false, reason: '当前状态无法普通攻击' };

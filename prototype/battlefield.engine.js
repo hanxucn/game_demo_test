@@ -84,13 +84,18 @@ function statusList(u) {
 }
 
 /** 该单位有可用主动技吗（用引擎的共享判定，UI 不做规则判断） */
-function unitSkillState(st, side, row, col) {
+function unitSkillState(st, side, row, col, skillId) {
   var u = st.sides[side].rows[row][col];
   if (!u) return null;
-  var sk = (u.skills || []).filter(function (x) { return x.kind === 'active'; })[0];
+  var sk = (u.skills || []).filter(function (x) {
+    return x.kind === 'active' && (!skillId || x.id === skillId);
+  })[0];
   if (!sk) return null;
-  var can = Core.canUseUnitSkill(st, side, row, col);
-  return { name: sk.name, usable: can.ok, why: can.reason || '' };
+  var can = Core.canUseUnitSkill(st, side, row, col, skillId);
+  // 保留技能 ID，点击卡面上的额外战技按钮时必须用它精确定位技能。
+  // 之前只返回名称/可用状态，onUnitSkillClick 按 `skill.id` 查找时拿到
+  // undefined，导致所有主动战技都被静默跳过。
+  return { id: sk.id, name: sk.name, usable: can.ok, why: can.reason || '' };
 }
 
 /* ---------- 视图适配 ---------- */
@@ -330,6 +335,40 @@ function renderBoard(st) {
               onUnitSkillClick(row, col, skill);
             });
           }
+          // 一张卡可能有多个战技（例如先登弩手同时拥有「先登」和「放箭」）。
+          // 卡面保留主按钮，额外技能以小按钮叠放，均走同一套 Core 目标/频率判定。
+          var activeSkills = (u.skills || []).filter(function (x) { return x.kind === 'active'; });
+          activeSkills.slice(1).forEach(function (sk, index) {
+            var extraState = unitSkillState(st, 'own', row, col, sk.id);
+            var extra = document.createElement('button');
+            extra.type = 'button';
+            extra.className = 'cr-skillbtn cr-skillbtn-extra' + (extraState && extraState.usable ? '' : ' is-off');
+            extra.style.top = (13 + (index + 1) * 15) + 'px';
+            extra.textContent = '技' + (index + 2);
+            extra.title = sk.name + (extraState && extraState.usable ? '（点击使用）' : '（本回合不可用）');
+            extra.addEventListener('click', function (e) {
+              e.stopPropagation();
+              onUnitSkillClick(row, col, extraState);
+            });
+            wrap.appendChild(extra);
+          });
+          if (side === 'own' && st.active === 'own') {
+            var up = Core.upgradeStatus ? Core.upgradeStatus(st, session.ctx.cards, 'own', row, col) : null;
+            // 升级条件与进度放在中央详情面板；战场卡下方只在达成后显示可点击的“升变”。
+            if (up && up.ready) {
+              var ub = document.createElement('button');
+              ub.type = 'button';
+              ub.className = 'upgrade-btn is-ready';
+              ub.textContent = '升变';
+              ub.title = up.label + '：' + up.progress;
+              ub.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+              ub.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (up.ready) showUpgradePicker(row, col, up);
+              });
+              wrap.appendChild(ub);
+            }
+          }
           // 「本回合能不能动」要在卡上直接看得出来（ADR-078）：
           // 只有**当前行动方**的单位才标绿/置灰 —— 非行动方的 attackedThisTurn 是上一轮
           // 残留值，标出来反而是错的。
@@ -346,7 +385,14 @@ function renderBoard(st) {
           }
           if (side === 'own') {
             wrap.addEventListener('pointerdown', function (e) {
-              if (e.target.closest('.cr-skillbtn')) return;   // 「技」按钮不拖拽
+              // 战技/战吼/主公技选目标期间，目标单位的 pointerdown 只能交给选择流程，
+              // 不能启动普通攻击拖拽；否则松手时会把目标点击误判成另一张单位的普攻。
+              if (pendingPick || pendingPlay || (pendingSkill && pendingSkill.targets)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
+              if (e.target.closest('.cr-skillbtn, .upgrade-btn')) return;   // 技能/升变按钮不拖拽
               if (drag) return;
               startUnitDrag(e, row, col, wrap);
             });
@@ -354,7 +400,7 @@ function renderBoard(st) {
           // 悬停即看技能全文：战场卡只有 42×59，读技能只能靠详情面板
           wrap.addEventListener('pointerenter', function () {
             if (busy || drag) return;
-            showCardDetail(u);
+            showCardDetail(u, side, row, col);
             // 不能行动时，把**原因**一起说清楚（入场当回合 / 已攻击过 / 被震慑…）
             if (actState && !actState.ok) {
               var canSk = Core.canUseUnitSkill(st, side, row, col).ok;
@@ -692,21 +738,53 @@ function cardDetailHTML(c) {
     }).join('　') + '</div>');
   }
   (c.skills || []).forEach(function (sk) {
-    if (!sk.name && !sk.text) return;
+    var description = skillTextOf(sk);
+    if (!sk.name && !description) return;
     rows.push('<div class="sk"><b class="skname">' + (sk.name || '（无名技能）') + '</b>'
       + (sk.kind ? '<span class="sub">　' + (sk.kind === 'active' ? '主动技'
         : sk.kind === 'aura' ? '光环技' : '触发技')
         + (sk.trigger ? '·' + (TRIGGER_NAME[sk.trigger] || sk.trigger) : '') + '</span>' : '')
-      + '<div class="why">' + (sk.text || '（无文案）') + '</div></div>');
+      + '<div class="why">' + (description || '（无文案）') + '</div></div>');
   });
   // 「记忆点」是给设计/校对用的内部字段，不面向玩家 —— 详情面板不再展示（ADR-079）
   return rows.join('');
 }
 
-function showCardDetail(c) {
+function upgradeDetailHTML(side, row, col) {
+  if (side !== 'own' || !Core.upgradeStatus || !session || !session.ctx) return '';
+  var up = Core.upgradeStatus(session.state, session.ctx.cards, side, row, col);
+  if (!up) return '';
+  var ready = up.ready ? '已满足升级条件，可选择升级目标。' : '尚未满足升级条件。';
+  return '<div class="upgrade-detail"><b>升级进度</b><span>' + up.label + '：' + up.progress
+    + '</span><em>' + ready + '</em></div>';
+}
+
+function showCardDetail(c, side, row, col) {
   var el = $('#detail');
-  el.innerHTML = cardDetailHTML(c);
+  el.innerHTML = cardDetailHTML(c) + upgradeDetailHTML(side, row, col);
   el.classList.add('show');
+  positionDetailPanel();
+}
+
+/** 详情固定在右侧信息栏的「结束回合」按钮下方，避免遮住战场卡牌。 */
+function positionDetailPanel() {
+  var el = $('#detail');
+  if (!el) return;
+  var anchor = $('#end-turn-btn');
+  if (!anchor || !anchor.getClientRects().length) {
+    el.style.left = '12px';
+    el.style.top = '12px';
+    return;
+  }
+  var rect = anchor.getBoundingClientRect();
+  var width = Math.min(290, Math.max(220, window.innerWidth - 24));
+  var left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+  var top = rect.bottom + 8;
+  var maxHeight = Math.min(window.innerHeight * .38, 280);
+  if (top + maxHeight > window.innerHeight - 12) top = Math.max(12, rect.top - maxHeight - 8);
+  el.style.width = width + 'px';
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
 }
 
 /* ---------- 悬浮技能弹窗 ----------
@@ -1518,6 +1596,7 @@ function showDetail(title, sub, why) {
     (sub ? '<div class="sub">' + sub + '</div>' : '') +
     (why ? '<div class="why">' + why + '</div>' : '');
   d.classList.add('show');
+  positionDetailPanel();
 }
 
 /**
@@ -1575,11 +1654,12 @@ function onUnitSkillClick(row, col, skill) {
   if (!skill.usable) { showDetail('主动技', skill.name, skill.why || '本回合不可用'); return; }
 
   var u = st.sides.own.rows[row][col];
-  var def = (u.skills || []).filter(function (x) { return x.kind === 'active'; })[0];
+  var def = (u.skills || []).filter(function (x) { return x.kind === 'active' && (!skill || x.id === skill.id); })[0];
+  if (!def) return;
   // ⚠️ 目标集一律由 core 给（ADR-077）：原先这里自己按 selector.side 枚举"该方所有单位"，
   //    **完全忽略 filter** —— 貂蝉（只认男性）、陆抗（排除自己）这类技能会高亮一堆非法目标，
   //    点了之后引擎又退回兜底目标，表现为"指向性技能的选择逻辑有问题，有些又没问题"。
-  var plan = Core.unitSkillTargetPlan(st, 'own', row, col);
+  var plan = Core.unitSkillTargetPlan(st, 'own', row, col, 0, def.id);
   var choice = plan.choices[0];
   if (choice) {
     if (!choice.targets.length) {
@@ -1587,7 +1667,8 @@ function onUnitSkillClick(row, col, skill) {
       return;
     }
     beginTargetPick(choice.targets, function (t) {
-      doAction({ type: 'USE_SKILL', row: row, col: col, target: { side: t.side, row: t.row, col: t.col } });
+      doAction({ type: 'USE_SKILL', row: row, col: col, skillId: def.id,
+        target: { side: t.side, row: t.row, col: t.col } });
     }, {
       title: '选择目标',
       sub: def.name,
@@ -1595,12 +1676,13 @@ function onUnitSkillClick(row, col, skill) {
     });
     return;
   }
-  doAction({ type: 'USE_SKILL', row: row, col: col });
+  doAction({ type: 'USE_SKILL', row: row, col: col, skillId: def.id });
 }
 
 /** 取一段技能的可读文案（详情面板里用；没有 text 就退回"动作列表"） */
 function skillTextOf(sk) {
   if (!sk) return '';
+  if (window.CardTile && window.CardTile.skillText) return window.CardTile.skillText(sk);
   if (sk.text) return sk.text;
   var effs = sk.effects || [];
   return effs.map(function (e) { return e.action; }).join(' / ');
@@ -1674,13 +1756,19 @@ function onUnitClick(side, row, col, ev) {
   // ⓪-0 技能待选目标：精确点到就打，点偏了用吸附
   if (pendingPick) {
     var pt = exactHit(side, row, col) || (ev && nearestHit(ev.clientX, ev.clientY));
-    if (pt) { finishPick(pt); return; }
+    if (pt) {
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      finishPick(pt);
+      return;
+    }
+    if (ev) ev.stopPropagation();
     return;                                   // 点到非目标：保持待选，不乱取消
   }
 
   // ⓪ 出牌待选目标（战吼 / 卡级效果，BACKLOG §3）—— 优先级最高。
   // 点到非合法目标也必须停在这里，不能继续落入普通攻击选择流程。
   if (pendingPlay) {
+    if (ev) { ev.preventDefault(); ev.stopPropagation(); }
     if (recordPlayPick(side, row, col)) return;
     showDetail('请选择战吼目标', '当前点击的单位不是合法目标', '请点击高亮的目标；点空白处可取消');
     return;
@@ -1865,11 +1953,58 @@ function onLordSkillClick(side) {
 }
 
 function onEscape() {
+  if (document.getElementById('upgrade-picker')?.classList.contains('show')) {
+    closeUpgradePicker();
+    return;
+  }
   if (pendingPick) { cancelPick(); return; }
   if (busy) return;
   if (pendingPlay) { cancelPlay(); return; }
   if (pendingSkill) { pendingSkill = null; clearMarks(); showDetail('已取消', '', ''); return; }
   if (sel) { sel = null; clearMarks(); arrowHide(); showDetail('已取消选择', '', ''); }
+}
+
+function closeUpgradePicker() {
+  var el = document.getElementById('upgrade-picker');
+  if (el) { el.classList.remove('show'); el.innerHTML = ''; }
+}
+
+/** 升变目标只来自 core.upgradeStatus，原型不复制阵营/兵种规则。 */
+function showUpgradePicker(row, col, status) {
+  if (!status || !status.ready || !status.options || !status.options.length) {
+    showDetail('暂不可升变', status ? status.label : '', status ? status.progress : '当前单位没有可用升变目标');
+    return;
+  }
+  var el = document.getElementById('upgrade-picker');
+  if (!el) return;
+  var html = '<div class="up-panel"><h3>选择升变目标</h3>'
+    + '<div class="up-progress">' + status.label + '：' + status.progress + '　升变不消耗牌库或手牌</div>'
+    + '<div class="up-options">';
+  status.options.forEach(function (c) {
+    var factionName = { shu: '蜀国', wei: '魏国', wu: '吴国', qun: '群雄', neutral: '中立' }[c.faction] || c.faction || '未知阵营';
+    html += '<button type="button" class="up-card" data-upgrade-id="' + String(c.id).replace(/"/g, '&quot;') + '">'
+      + '<b>' + escapeUpgradeText(c.name) + '</b><span class="up-faction">' + escapeUpgradeText(factionName) + '</span>'
+      + '<span>' + c.cost + ' 费　' + (c.attack ?? 0) + '/' + (c.health ?? 0) + '</span>'
+      + '<small>' + escapeUpgradeText(c.memo || skillTextOf((c.skills || [])[0]) || '无额外效果') + '</small></button>';
+  });
+  html += '</div><button type="button" class="up-cancel">取消</button></div>';
+  el.innerHTML = html;
+  el.classList.add('show');
+  el.querySelectorAll('[data-upgrade-id]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-upgrade-id');
+      closeUpgradePicker();
+      doAction({ type: 'UPGRADE_UNIT', row: row, col: col, toCardId: id });
+    });
+  });
+  var cancel = el.querySelector('.up-cancel');
+  if (cancel) cancel.addEventListener('click', closeUpgradePicker);
+}
+
+function escapeUpgradeText(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+  });
 }
 
 function onEndTurn() {
@@ -1885,6 +2020,7 @@ function onEndTurn() {
 
 function doAction(action) {
   if (session.state.winner) return;
+  if (action.type === 'UPGRADE_UNIT') closeUpgradePicker();
   if (busy && action.type === 'END_TURN') {
     queuedEndTurn = true;
     renderAll();
@@ -1989,6 +2125,7 @@ function describeEvent(e) {
     case 'CARD_PLAYED': return { cls: '', text: who + ' 打出 <b>' + e.card.name + '</b>' + (e.col != null ? '（第' + (e.col + 1) + '格）' : '') };
     case 'UNIT_SUMMONED': return { cls: '', text: '　' + who + ' 上场 <b>' + e.unit.name + '</b> ' + e.unit.atk + '/' + e.unit.hp + '（第' + (e.col + 1) + '格）' };
     case 'UNIT_TRANSFORMED': return { cls: 'eff', text: '　' + who + ' 进化：' + e.from + ' → <b>' + (e.unit ? e.unit.name : e.to) + '</b>' };
+    case 'UNIT_UPGRADED': return { cls: 'eff', text: '　' + who + ' 升变：' + e.from + ' → <b>' + (e.unit ? e.unit.name : e.to) + '</b>' };
     case 'ATTACK_DECLARED': return { cls: '', text: who + ' 第' + (e.from.col + 1) + '格 攻击 ' + (e.to && e.to.kind === 'lord' ? (SIDE_NAME[e.to.side] || '') + '主将' : '第' + (e.to.col + 1) + '格') };
     case 'DAMAGE': {
       // DAMAGE 事件没有顶层 side，挨打的是谁只能看 target.side。
@@ -2397,6 +2534,15 @@ function animate(e) {
       }
       return 460;
     }
+    case 'UNIT_UPGRADED': {
+      var ue = unitEl(e.side, e.row, e.col);
+      if (ue && e.unit) {
+        ue.innerHTML = '';
+        ue.appendChild(CR.mini(e.unit, { row: e.row, hurt: false, statuses: statusList(e.unit) }));
+        CR.spell(ue, 'rgba(120,220,160,.95)');
+      }
+      return 520;
+    }
     case 'ATTACK_DECLARED': {
       var from = unitEl(e.side, e.from.row, e.from.col);
       var to = e.to && e.to.kind === 'lord' ? lordEl(e.to.side)
@@ -2749,7 +2895,10 @@ window.addEventListener('pointermove', function (e) {
   if (!wrap || !arrowOrigin(wrap)) { arrowHide(); return; }     // ADR-083
   arrowTo(wrap, e.clientX, e.clientY, dropIsValid(e.clientX, e.clientY));
 });
-window.addEventListener('resize', reportSizes);
+window.addEventListener('resize', function () {
+  reportSizes();
+  if ($('#detail') && $('#detail').classList.contains('show')) positionDetailPanel();
+});
 window.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' || e.key === 'Esc') onEscape();
 });

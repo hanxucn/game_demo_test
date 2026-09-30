@@ -5,6 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   var factions = ['shu', 'wei', 'wu'];
   var types = ['troop', 'general', 'strategist', 'tactic', 'event'];
+  var testSequence = 0;
 
   function selectableCards(core, gameData) {
     return gameData.cards.filter(function (card) {
@@ -56,16 +57,36 @@
     });
     state.uidSeq += 1;
     state.sides.own.rows.front[0] = core.makeUnit(dummy, state.turn, state.uidSeq);
-    [2, 3, 4, 5, 6].forEach(function (col) {
+    // 测试场景始终保留基础兵，同时随机放入一个敌方武将和一个谋臣，
+    // 方便验证指向性技能、伤害目标和人物类型筛选。随机仍走 core RNG，
+    // 只用变化的测试序号作为种子，不把 Math.random 引入规则层。
+    var enemyRng = Core.createRng((Date.now() + (++testSequence * 0x9e3779b9)) >>> 0);
+    var enemyPool = data.cards instanceof Map ? Array.from(data.cards.values()) : gameData.cards;
+    var enemyGeneral = enemyPool.filter(function (card) {
+      return card.faction === config.enemyFaction && card.type === 'general'
+        && card.attack != null && card.health != null
+        && !(card.skills || []).some(function (skill) { return skill.pending === true; });
+    });
+    var enemyStrategist = enemyPool.filter(function (card) {
+      return card.faction === config.enemyFaction && card.type === 'strategist'
+        && card.attack != null && card.health != null
+        && !(card.skills || []).some(function (skill) { return skill.pending === true; });
+    });
+    var general = enemyRng.pick(enemyGeneral);
+    var strategist = enemyRng.pick(enemyStrategist);
+    var enemyUnits = [dummy, dummy, dummy, general, strategist];
+    enemyUnits.forEach(function (card, index) {
+      var col = index + 2;
       state.uidSeq += 1;
-      state.sides.enemy.rows.front[col] = core.makeUnit(dummy, state.turn, state.uidSeq);
+      state.sides.enemy.rows.front[col] = core.makeUnit(card, state.turn, state.uidSeq);
     });
     return {
       state: state, ctx: ctx,
       events: started.events.filter(function (event) {
         return !(event.type === 'CARD_DRAWN' && event.side === 'own');
       }),
-      meta: { ownFaction: config.ownFaction, enemyFaction: config.enemyFaction },
+      meta: { ownFaction: config.ownFaction, enemyFaction: config.enemyFaction,
+        enemyGeneral: general.id, enemyStrategist: strategist.id },
     };
   }
 

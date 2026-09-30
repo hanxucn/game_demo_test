@@ -247,6 +247,38 @@
     pointer-events: none;
   }
   .unit-wrap { position: absolute; inset: 0; }
+  .upgrade-btn {
+    position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%);
+    z-index: 12; padding: 2px 5px; border: 1px solid #d4af6a; border-radius: 4px;
+    background: #2b1d0d; color: #ffe9b0; font: 800 8px/1.1 inherit; cursor: pointer;
+    white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,.7);
+  }
+  .upgrade-btn:hover { background: #5a4020; }
+  .upgrade-btn.is-ready { color: #d9ffcf; border-color: #78c77d; background: #203620; }
+  .upgrade-btn:disabled { color: #aaa08f; border-color: #635640; background: #241d15; opacity: .85; cursor: default; }
+  #upgrade-picker {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    z-index: 700; background: rgba(5,4,3,.72);
+  }
+  #upgrade-picker.show { display: flex; }
+  #upgrade-picker .up-panel {
+    width: min(620px, calc(100vw - 28px)); max-height: min(78vh, 460px); overflow: auto;
+    padding: 16px; border: 1px solid #8e7040; border-radius: 10px;
+    background: linear-gradient(180deg, #332515, #171008); box-shadow: 0 18px 50px rgba(0,0,0,.8);
+  }
+  #upgrade-picker h3 { margin: 0 0 4px; color: #ffe4a5; font-size: 16px; }
+  #upgrade-picker .up-progress { color: #b9aa91; font-size: 11px; margin-bottom: 12px; }
+  #upgrade-picker .up-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  #upgrade-picker button.up-card, #upgrade-picker button.up-cancel {
+    font: inherit; color: #f1e6ce; border: 1px solid #665331; border-radius: 7px;
+    background: #261b10; cursor: pointer; padding: 10px; text-align: left;
+  }
+  #upgrade-picker button.up-card:hover { border-color: #d4af6a; background: #3a2917; }
+  #upgrade-picker .up-card b { display: block; color: #ffe3a1; font-size: 13px; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+  #upgrade-picker .up-card .up-faction { color: #c8b7e6; font-size: 10px; margin-top: 4px; }
+  #upgrade-picker .up-card span { display: block; color: #d9a35a; font-size: 11px; margin-top: 3px; }
+  #upgrade-picker .up-card small { display: block; color: #aaa08f; font-size: 10px; margin-top: 5px; line-height: 1.4; }
+  #upgrade-picker .up-cancel { margin-top: 12px; padding: 6px 10px; color: #c6b9a1; }
   .unit-wrap.is-selected .cr-card {
     box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--gold-hi), 0 0 18px rgba(212,175,106,.85);
   }
@@ -1052,19 +1084,26 @@
   #detail .sk .skname { color: var(--gold-hi); font-size: 12px; }
 
   #detail {
-    position: fixed; right: 10px; bottom: 10px; z-index: 300;
-    width: 258px;
+    position: fixed; left: 0; top: 0; right: auto; bottom: auto;
+    transform: none; z-index: 300;
+    width: min(290px, calc(100vw - 24px)); max-height: min(38vh, 280px); overflow: auto;
     background: rgba(14,12,10,.95);
     border: 1px solid var(--line);
     border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 12px; line-height: 1.6;
+    padding: 16px 18px;
+    font-size: 13px; line-height: 1.7;
     display: none;
   }
   #detail.show { display: block; }
   #detail h4 { margin: 0 0 4px; color: var(--gold); font-size: 13px; }
   #detail .why { color: #9fd0a4; }
   #detail .sub { color: var(--dim); }
+  #detail .upgrade-detail {
+    margin-top: 10px; padding-top: 8px; border-top: 1px solid #4a3b29;
+    display: grid; gap: 3px; color: #ffe4a5;
+  }
+  #detail .upgrade-detail span { color: #d9c49b; }
+  #detail .upgrade-detail em { color: #9fd0a4; font-style: normal; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -1283,6 +1322,7 @@
 </div>
 
 <div id="detail"></div>
+<div id="upgrade-picker"></div>
 <div id="setup"></div>
 <div id="log"></div>
 

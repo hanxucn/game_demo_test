@@ -87,6 +87,7 @@ var Core = (() => {
     hashSeed: () => hashSeed,
     healTarget: () => healTarget,
     isBanned: () => isBanned,
+    isBasicTroop: () => isBasicTroop,
     isDeckable: () => isDeckable,
     isMelee: () => isMelee,
     isPlayableBy: () => isPlayableBy,
@@ -133,6 +134,8 @@ var Core = (() => {
     unitCount: () => unitCount,
     unitRef: () => unitRef,
     unitSkillTargetPlan: () => unitSkillTargetPlan,
+    upgradeProgress: () => upgradeProgress,
+    upgradeStatus: () => upgradeStatus,
     validateDeck: () => validateDeck
   });
 
@@ -227,11 +230,6 @@ var Core = (() => {
       implemented: true,
       note: "\u5BF9\u654C\u4EBA\u9020\u6210\u7684\u4F24\u5BB3\uFF0C\u4E3A\u8BE5\u5355\u4F4D\u81EA\u8EAB\u6062\u590D\u7B49\u91CF\u751F\u547D\uFF08ADR-057 \u8BBE\u8BA1\u8005\u5B9A\u7A3F\uFF1A\u56DE\u81EA\u5DF1\uFF0C\u4E0D\u56DE\u4E3B\u5C06\uFF09"
     },
-    sheng_dun: {
-      name: "\u5723\u76FE",
-      implemented: true,
-      note: "\u62E5\u6709\u4E00\u4E2A\u5723\u76FE\u72B6\u6001\uFF0C\u53EF\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3\uFF1B\u4F24\u5BB3\u88AB\u514D\u75AB\u540E\u8BE5\u72B6\u6001\u6D88\u8017\u6389\uFF08ADR-057 \u8BBE\u8BA1\u8005\u5B9A\u7A3F\uFF09"
-    },
     shen_she: {
       name: "\u795E\u5C04",
       implemented: false,
@@ -246,12 +244,29 @@ var Core = (() => {
       name: "\u5FE0\u4E49",
       implemented: false,
       note: '\u514D\u75AB\u6DF7\u4E71\u3001\u79BB\u95F4\u7B49\u72B6\u6001\uFF08\u5F85\u5B9E\u73B0\u3002\u6CE8\uFF1A\u539F\u5B9E\u73B0\u8BEF\u505A\u6210"\u9635\u4EA1\u89E6\u53D1\u4EA1\u8BED"\uFF0C\u5DF2\u7EA0\u6B63\uFF09'
+    },
+    zhan_ji: {
+      name: "\u6218\u6280",
+      implemented: true,
+      note: "\u6BCF\u56DE\u5408\u4E00\u6B21\u7684\u4E3B\u52A8\u6280\u80FD\uFF1B\u4F7F\u7528\u540E\u672C\u56DE\u5408\u4E0D\u80FD\u518D\u6B21\u4F7F\u7528\u8BE5\u6280\u80FD"
+    },
+    ji_li: {
+      name: "\u6FC0\u52B1",
+      implemented: true,
+      note: "\u5DF1\u65B9\u4E3B\u516C\u6280\u5B8C\u6210\u7ED3\u7B97\u540E\u89E6\u53D1\uFF1B\u5177\u4F53\u6536\u76CA\u7531\u5361\u724C\u6280\u80FD\u5B9A\u4E49"
+    },
+    ju_du: {
+      name: "\u5267\u6BD2",
+      implemented: true,
+      note: "\u8BE5\u5355\u4F4D\u9020\u6210\u4F24\u5BB3\u5E76\u5B9E\u9645\u547D\u4E2D\u540E\uFF0C\u76F4\u63A5\u6D88\u706D\u53D7\u4F24\u5355\u4F4D"
     }
   };
   var RETIRED_KEYWORDS = {
     ji_xing: "\u75BE\u884C \u2014\u2014 \u4E0E\u300C\u5148\u653B\u300D\u662F\u540C\u4E00\u4E2A\u4E1C\u897F\uFF08\u8BBE\u8BA1\u8005\u88C1\u5B9A\uFF09\uFF0C\u5DF2\u5408\u5E76\uFF0C\u8BF7\u6539\u7528 xian_gong",
+    fang_jian: "\u653E\u7BAD \u2014\u2014 \u5DF2\u6539\u4E3A\u5E26\u6709\u300C\u653E\u7BAD\u300D\u6280\u80FD\u540D\u7684\u6218\u6280\uFF0C\u4E0D\u518D\u4F5C\u4E3A\u81EA\u52A8\u89E6\u53D1\u5173\u952E\u8BCD",
+    sheng_dun: "\u5723\u76FE \u2014\u2014 \u5173\u952E\u8BCD\u5DF2\u5220\u9664\uFF1B\u4E00\u6B21\u4F24\u5BB3\u514D\u75AB\u4FDD\u7559\u4E3A\u5185\u90E8\u72B6\u6001 sheng_dun_status",
     wu_shuang: "\u65E0\u53CC \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u6682\u65F6\u6CA1\u6709\u8FD9\u4E2A\u72B6\u6001",
-    wu_sheng: '\u6B66\u5723 \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u5E9F\u5F03\u6B64\u540D\uFF08\u5173\u7FBD\u7684\u6280\u80FD\u540D\u7528\u300C\u6C34\u6DF9\u4E03\u519B\u300D\uFF09\uFF1B\u5176"\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"\u7684\u673A\u5236\u6539\u540D\u4E3A\u300C\u5723\u76FE\u300D',
+    wu_sheng: "\u6B66\u5723 \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u5E9F\u5F03\u6B64\u540D\uFF08\u5173\u7FBD\u7684\u6280\u80FD\u540D\u7528\u300C\u6C34\u6DF9\u4E03\u519B\u300D\uFF09\uFF1B\u4E00\u6B21\u4F24\u5BB3\u514D\u75AB\u6539\u7531\u5185\u90E8\u72B6\u6001\u627F\u8F7D",
     jie_zhen: '\u7ED3\u9635 \u2014\u2014 \u8BBE\u8BA1\u8005\uFF1A\u79FB\u9664\u8BE5\u6548\u679C\uFF08\u5F15\u64CE\u91CC"\u76F8\u90BB\u6709\u53CB\u65B9\u6B65\u5175\u65F6 +1 \u653B"\u662F AI \u81EA\u5DF1\u63A8\u7684\uFF0C\u4ECE\u672A\u88AB\u8BBE\u8BA1\uFF09'
   };
   var TAGS = {
@@ -277,12 +292,12 @@ var Core = (() => {
     },
     qi_xi_status: { name: "\u5947\u88AD", kind: "buff", numeric: false, duration: "until_consumed", note: "\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807" },
     sheng_dun_status: {
-      name: "\u5723\u76FE",
+      name: "\u4F24\u5BB3\u514D\u75AB",
       kind: "buff",
       numeric: false,
       duration: "until_consumed",
       caps: ["immune_damage"],
-      note: "\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3"
+      note: "\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3\uFF1B\u89E6\u53D1\u540E\u6D88\u8017"
     },
     hu_jia: { name: "\u62A4\u7532", kind: "buff", numeric: true, duration: "permanent", scope: "lord", note: "\u5438\u6536\u4F24\u5BB3" },
     zhen_she: {
@@ -444,6 +459,7 @@ var Core = (() => {
     ON_DEATH: "on_death",
     ON_DAMAGED: "on_damaged",
     TURN_END: "turn_end",
+    ENEMY_TURN_END: "enemy_turn_end",
     ON_ATTACK: "on_attack",
     ON_DEFEND: "on_defend",
     ON_LETHAL: "on_lethal",
@@ -480,6 +496,8 @@ var Core = (() => {
     "take_control",
     "copy_skill",
     "force_attack",
+    "attack_bonus",
+    // 普通攻击结算前的临时伤害加成
     "add_to_deck",
     // 往牌库随机位置塞 N 张指定卡（ADR-050）
     "send_to_deck",
@@ -665,6 +683,13 @@ var Core = (() => {
       hp: card.health ?? 1,
       maxHp: card.health ?? 1,
       troopKind: card.troopKind,
+      upgradeProgress: {
+        damage: 0,
+        shieldSurvival: 0,
+        basicKills: 0,
+        characterKills: 0,
+        heroHits: 0
+      },
       gender: card.gender,
       kw: [...card.keywords ?? []],
       tags: [...card.tags ?? []],
@@ -678,6 +703,17 @@ var Core = (() => {
       skillsUsedOnce: []
     };
   }
+  function upgradeProgress(u) {
+    u.upgradeProgress ??= {
+      damage: 0,
+      shieldSurvival: 0,
+      basicKills: 0,
+      characterKills: 0,
+      heroHits: 0
+    };
+    return u.upgradeProgress;
+  }
+  var isBasicTroop = (u) => u.type === "troop" && (u.cardId === "neutral_infantry" || u.cardId === "neutral_shieldman" || u.cardId === "neutral_archer" || u.cardId === "neutral_cavalry");
   function applyMods(u) {
     const dAtk = u.mods.reduce((s, m) => s + (m.attack ?? 0), 0);
     const dHp = u.mods.reduce((s, m) => s + (m.health ?? 0), 0);
@@ -694,11 +730,11 @@ var Core = (() => {
 
   // src/rules.ts
   var isMelee = (u) => u.type !== "strategist" && !hasTrait(u, "shen_she");
-  function canUseUnitSkill(state, side, row, col) {
+  function canUseUnitSkill(state, side, row, col, skillId) {
     const u = getUnit(state, side, row, col);
     if (!u) return { ok: false, reason: "\u8BE5\u683C\u6CA1\u6709\u5355\u4F4D" };
     if (hasCap(u, "block_action") || hasCap(u, "block_skill")) return { ok: false, reason: "\u88AB\u7981\u7528\u6280\u80FD" };
-    const skill = (u.skills ?? []).find((sk) => sk.kind === "active");
+    const skill = (u.skills ?? []).find((sk) => sk.kind === "active" && (!skillId || sk.id === skillId));
     if (!skill) return { ok: false, reason: "\u6CA1\u6709\u4E3B\u52A8\u6280" };
     const key = skill.id || skill.name || "0";
     const freq = skill.frequency ?? "once_per_turn";
@@ -724,6 +760,7 @@ var Core = (() => {
   function canAttack(state, side, row, col) {
     const u = getUnit(state, side, row, col);
     if (!u) return { ok: false, reason: "\u8BE5\u683C\u6CA1\u6709\u4EBA\u7269\u5361" };
+    if (u.cardId === "neutral_archer") return { ok: false, reason: "\u5F13\u5175\u53EA\u80FD\u653E\u7BAD\uFF0C\u4E0D\u80FD\u666E\u901A\u653B\u51FB" };
     if (hasCap(u, "block_action") || hasCap(u, "block_attack")) {
       return { ok: false, reason: "\u5F53\u524D\u72B6\u6001\u65E0\u6CD5\u666E\u901A\u653B\u51FB" };
     }
@@ -894,10 +931,11 @@ var Core = (() => {
     }
     s.hand.push({ card, mods: [] });
   }
-  function dealDamage(state, cards, ref, amount, events, source, depth = 0, killerRef) {
+  function dealDamage(state, cards, ref, amount, events, source, depth = 0, killerRef, sourceUnit) {
     if (amount <= 0 || !refAlive(state, ref)) return 0;
     if (ref.kind === "lord") {
       const lord = state.sides[ref.side].lord;
+      const hpBefore2 = lord.hp;
       const lguard = findLordGuard(state, ref.side);
       if (lguard && depth < 3) {
         events.push({
@@ -915,7 +953,8 @@ var Core = (() => {
           events,
           source,
           depth + 1,
-          killerRef
+          killerRef,
+          sourceUnit
         );
       }
       let dmg = amount;
@@ -925,6 +964,12 @@ var Core = (() => {
         dmg -= absorbed;
       }
       lord.hp -= dmg;
+      const actual2 = Math.min(dmg, hpBefore2);
+      if (sourceUnit && actual2 > 0 && isBasicTroop(sourceUnit)) {
+        const p = upgradeProgress(sourceUnit);
+        if (sourceUnit.troopKind === "infantry") p.damage += actual2;
+        if (sourceUnit.troopKind === "archer") p.heroHits += 1;
+      }
       events.push({ type: "DAMAGE", target: ref, amount, source });
       if (lord.hp <= 0) {
         lord.hp = 0;
@@ -953,18 +998,37 @@ var Core = (() => {
         events,
         source,
         depth + 1,
-        killerRef
+        killerRef,
+        sourceUnit
       );
     }
-    if (hasCap(u, "immune_damage")) {
-      const id = Object.keys(u.statuses).find((k) => STATUSES[k]?.caps?.includes("immune_damage"));
-      delete u.statuses[id];
-      u.kw = u.kw.filter((k) => k !== id);
-      events.push({ type: "STATUS_EXPIRED", side: ref.side, row: ref.row, col: ref.col, status: id });
+    const shieldStatus = Object.keys(u.statuses).find((k) => STATUSES[k]?.caps?.includes("immune_damage"));
+    const shieldKeyword = u.kw.includes("sheng_dun");
+    if (shieldStatus || shieldKeyword) {
+      if (shieldStatus) delete u.statuses[shieldStatus];
+      if (shieldKeyword) u.kw = u.kw.filter((k) => k !== "sheng_dun");
+      events.push({
+        type: "STATUS_EXPIRED",
+        side: ref.side,
+        row: ref.row,
+        col: ref.col,
+        status: shieldStatus ?? "sheng_dun_status"
+      });
       return 0;
     }
+    const hpBefore = u.hp;
     u.hp -= amount;
+    const actual = Math.min(amount, hpBefore);
+    if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
+      const p = upgradeProgress(sourceUnit);
+      if (sourceUnit.troopKind === "infantry") p.damage += actual;
+      if (sourceUnit.troopKind === "archer" && ["general", "strategist"].includes(u.type)) p.heroHits += 1;
+    }
     events.push({ type: "DAMAGE", target: ref, amount, source });
+    if (actual > 0 && sourceUnit?.kw.includes("ju_du") && u.hp > 0) {
+      killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
+      return actual;
+    }
     if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return amount;
     if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
     return amount;
@@ -1092,6 +1156,14 @@ var Core = (() => {
   function killUnit(state, cards, ref, events, killer) {
     const { side, row, col, unit } = ref;
     if (!getUnit(state, side, row, col)) return;
+    if (killer) {
+      const killerUnit = getUnit(state, killer.side, killer.row, killer.col);
+      if (killerUnit?.troopKind === "cavalry" && isBasicTroop(killerUnit)) {
+        const p = upgradeProgress(killerUnit);
+        if (isBasicTroop(unit)) p.basicKills += 1;
+        if (unit.type === "general" || unit.type === "strategist") p.characterKills += 1;
+      }
+    }
     setUnit(state, side, row, col, null);
     events.push({ type: "UNIT_DIED", side, row, col, unit });
     if (markDeathResolver) {
@@ -1313,6 +1385,24 @@ var Core = (() => {
     if (cond.lord_hp) {
       const side = cond.lord_hp.side === "self" ? ctx.side : other(ctx.side);
       if (!cmp(state.sides[side].lord.hp, cond.lord_hp.op, cond.lord_hp.value)) return false;
+    }
+    if (cond.lord_hp_vs_enemy && !cmp(
+      state.sides[ctx.side].lord.hp,
+      cond.lord_hp_vs_enemy,
+      state.sides[other(ctx.side)].lord.hp
+    )) return false;
+    if (cond.attack_target) {
+      const t = ctx.attackTarget;
+      if (!t) return false;
+      if (cond.attack_target.type === "lord") {
+        if (t.kind !== "lord") return false;
+      } else {
+        if (t.kind !== "unit") return false;
+        const target = getUnit(state, t.side, t.row, t.col);
+        if (!target) return false;
+        if (cond.attack_target.type && !matchesCardType(target.type, cond.attack_target.type)) return false;
+        if (cond.attack_target.keyword && !hasTrait(target, cond.attack_target.keyword)) return false;
+      }
     }
     if (cond.lord_full_hp) {
       const side = cond.lord_full_hp.side === "self" ? ctx.side : other(ctx.side);
@@ -1613,6 +1703,10 @@ var Core = (() => {
       const srcCol = ctx.source ? findCol(state, ctx.side, ctx.source.uid) : -1;
       finalPool = srcCol < 0 ? [] : pool.filter((t) => t.kind === "unit" && Math.abs(t.col - srcCol) <= 1);
     }
+    if (selector.filter?.adjacent_to === "chosen") {
+      const chosen = pickOf(ctx, selector);
+      finalPool = chosen?.kind === "unit" ? finalPool.filter((t) => t.kind === "unit" && t.side === chosen.side && t.row === chosen.row && Math.abs(t.col - chosen.col) === 1) : [];
+    }
     const sel = confused ? { ...selector, mode: "random" } : selector;
     const pick = pickOf(ctx, sel);
     if (sel.mode === "choose" && pick && finalPool.some((t) => sameTarget(t, pick))) {
@@ -1631,28 +1725,37 @@ var Core = (() => {
     const bags = ref.kind === "unit" ? getUnit(state, ref.side, ref.row, ref.col)?.statuses : ref.kind === "lord" ? state.sides[ref.side].lord.statuses : void 0;
     return Object.entries(bags ?? {}).filter(([id, inst]) => inst.stacks > 0 && STATUSES[id]?.kind === kind).map(([id]) => id);
   }
-  function runOnAttackPhase(state, cards, attacker, phase, killed, rng, events, overflow = 0) {
-    if (attacker.hp <= 0) return;
+  function runOnAttackPhase(state, cards, attacker, phase, killed, rng, events, overflow = 0, attackTarget) {
+    if (attacker.hp <= 0) return 0;
     const side = findSide(state, attacker.uid);
-    if (!side) return;
+    if (!side) return 0;
+    let bonus = 0;
     for (const sk of (attacker.skills ?? []).filter((x) => x.trigger === TIMING.ON_ATTACK)) {
       const effs = (sk.effects ?? []).filter((e) => phase === "after" ? e.condition?.event === "killed" : e.condition?.event !== "killed");
-      if (!effs.length) continue;
+      const ctx = {
+        side,
+        source: attacker,
+        attackTarget,
+        flags: killed ? ["killed", ...overflow > 0 ? [`overflow:${overflow}`] : []] : []
+      };
+      const applicable = effs.filter((e) => checkCondition(state, e.condition, ctx, rng));
+      if (!applicable.length) continue;
       emitSkillTriggered(state, side, attacker, sk, "trigger", events);
-      const flags = killed ? ["killed"] : [];
-      if (killed && overflow > 0) flags.push(`overflow:${overflow}`);
-      runEffects(state, cards, effs, { side, source: attacker, flags }, rng, events);
+      bonus += applicable.filter((e) => e.action === "attack_bonus").reduce((sum, e) => sum + (e.value ?? 0), 0);
+      runEffects(state, cards, applicable.filter((e) => e.action !== "attack_bonus"), ctx, rng, events);
     }
+    return bonus;
   }
   function resolveAttack(state, cards, side, from, to, events, rng, opts = {}) {
     const attacker = getUnit(state, side, from.row, from.col);
     if (!attacker || attacker.hp <= 0) return false;
     const foe = opts.toSide ?? other(side);
     events.push({ type: "ATTACK_DECLARED", side, from: { ...from }, to });
-    runOnAttackPhase(state, cards, attacker, "before", false, rng, events);
+    const attackTarget = to.kind === "lord" ? lordRef(foe) : unitRef(foe, to.row, to.col);
+    const attackBonus = runOnAttackPhase(state, cards, attacker, "before", false, rng, events, 0, attackTarget);
     const me = getUnit(state, side, from.row, from.col);
     if (!me || me.hp <= 0) return false;
-    const dmg = effectiveAttack(state, side, from.row, from.col);
+    const dmg = effectiveAttack(state, side, from.row, from.col) + attackBonus;
     const hasYinXue = hasTrait(me, "yin_xue");
     let killed = false;
     let overflow = 0;
@@ -1666,7 +1769,8 @@ var Core = (() => {
         events,
         me.name,
         0,
-        { side, row: from.row, col: from.col }
+        { side, row: from.row, col: from.col },
+        me
       );
       dealtTotal += dealt;
       killed = state.sides[foe].lord.hp <= 0;
@@ -1685,14 +1789,25 @@ var Core = (() => {
         events,
         me.name,
         0,
-        { side, row: from.row, col: from.col }
+        { side, row: from.row, col: from.col },
+        me
       );
       dealtTotal += dealt;
       const hit = getUnit(state, foe, tRow, tCol);
       if (hit && hit.hp > 0) runUnitTrigger(state, cards, hit, "on_damaged", rng, events);
       if (hit) runMarkDamaged(state, cards, hit, dmg, rng, events);
       if (retaliate > 0) {
-        dealDamage(state, cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? "\u53CD\u51FB");
+        dealDamage(
+          state,
+          cards,
+          unitRef(side, from.row, from.col),
+          retaliate,
+          events,
+          targetUnit?.name ?? "\u53CD\u51FB",
+          0,
+          void 0,
+          targetUnit ?? void 0
+        );
         const back = getUnit(state, side, from.row, from.col);
         if (back && back.hp > 0) runUnitTrigger(state, cards, back, "on_damaged", rng, events);
       }
@@ -1718,16 +1833,17 @@ var Core = (() => {
     }
     const survivor = getUnit(state, side, from.row, from.col);
     if (survivor && survivor.hp > 0) {
-      runOnAttackPhase(state, cards, survivor, "after", killed, rng, events, overflow);
+      runOnAttackPhase(state, cards, survivor, "after", killed, rng, events, overflow, attackTarget);
     }
     return true;
   }
   function effectsOf(sk, modeIndex) {
-    if (sk.modes?.length) {
+    const effects = sk.modes?.length ? (() => {
       const i = typeof modeIndex === "number" && Number.isInteger(modeIndex) && modeIndex >= 0 && modeIndex < sk.modes.length ? modeIndex : 0;
       return sk.modes[i].effects ?? [];
-    }
-    return sk.effects ?? [];
+    })() : sk.effects ?? [];
+    if (!sk.target) return effects;
+    return effects.map((eff) => eff.target ? eff : { ...eff, target: sk.target });
   }
   var LORD_DEFAULT_ACTIONS = /* @__PURE__ */ new Set(["damage"]);
   function withDefaultLordTarget(eff) {
@@ -1776,7 +1892,7 @@ var Core = (() => {
               const before = hpOf(state, t);
               const victim = t.kind === "unit" ? getUnit(state, t.side, t.row, t.col) : null;
               const waterBonus = eff.damage_type === "water" ? allUnits(state, ctx.side).reduce((sum, ref) => sum + capStacks(ref.unit.statuses, "water_damage"), 0) : 0;
-              dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? "\u6548\u679C");
+              dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? "\u6548\u679C", 0, void 0, ctx.source);
               if (before > 0 && hpOf(state, t) <= 0) {
                 ctx.flags = ctx.flags ?? [];
                 if (!ctx.flags.includes("killed")) ctx.flags.push("killed");
@@ -2347,6 +2463,9 @@ var Core = (() => {
         case "CHOOSE_DISCOVER":
           ok = chooseDiscover(next, ctx, action, events, rng);
           break;
+        case "UPGRADE_UNIT":
+          ok = upgradeUnit(next, ctx, action, events, rng);
+          break;
         case "ATTACK":
           ok = attack(next, ctx, action, events, rng);
           break;
@@ -2408,6 +2527,68 @@ var Core = (() => {
     }
     return true;
   }
+  function upgradeUnit(state, ctx, action, events, rng) {
+    const side = state.active;
+    const u = getUnit(state, side, action.row, action.col);
+    const toCard = ctx.cards.get(action.toCardId);
+    const status = upgradeStatus(state, ctx.cards, side, action.row, action.col);
+    if (!u || !toCard || !status || !status.ready || !status.options.some((c) => c.id === toCard.id)) return false;
+    const from = u.cardId;
+    u.cardId = toCard.id;
+    u.name = toCard.name;
+    u.type = toCard.type;
+    u.faction = toCard.faction;
+    u.cost = toCard.cost;
+    u.baseAtk = toCard.attack ?? 0;
+    u.baseMaxHp = toCard.health ?? 1;
+    u.kw = [...toCard.keywords ?? []];
+    u.tags = [...toCard.tags ?? []];
+    u.skills = toCard.skills ? structuredClone(toCard.skills) : void 0;
+    u.troopKind = toCard.troopKind;
+    u.gender = toCard.gender;
+    applyMods(u);
+    u.hp = u.maxHp;
+    if (hasTrait(u, "xian_gong") && u.attackedThisTurn > 0) {
+      u.attackedThisTurn -= 1;
+    }
+    recomputeAuras(state, ctx.cards, rng, events);
+    delete u.upgradeProgress;
+    events.push({ type: "UNIT_UPGRADED", side, row: action.row, col: action.col, from, to: toCard.id, unit: u });
+    return true;
+  }
+  function upgradeStatus(state, cards, side, row, col) {
+    const u = getUnit(state, side, row, col);
+    if (!u || !isBasicTroop(u)) return null;
+    const p = u.upgradeProgress ?? { damage: 0, shieldSurvival: 0, basicKills: 0, characterKills: 0, heroHits: 0 };
+    let label = "", progress = "", ready = false;
+    switch (u.troopKind) {
+      case "infantry":
+        label = "\u7D2F\u8BA1\u9020\u6210\u4F24\u5BB3";
+        progress = `${p.damage}/2`;
+        ready = p.damage >= 2;
+        break;
+      case "shield":
+        label = "\u654C\u65B9\u56DE\u5408\u7ED3\u675F\u65F6\u5B58\u6D3B";
+        progress = `${p.shieldSurvival}/2`;
+        ready = p.shieldSurvival >= 2;
+        break;
+      case "cavalry":
+        label = "\u51FB\u6740\u57FA\u7840\u5175\u6216\u4EBA\u7269";
+        progress = `${p.basicKills}/2 \xB7 ${p.characterKills}/1`;
+        ready = p.basicKills >= 2 || p.characterKills >= 1;
+        break;
+      case "archer":
+        label = "\u547D\u4E2D\u6B66\u5C06\u3001\u8C0B\u81E3\u6216\u4E3B\u516C";
+        progress = `${p.heroHits}/1`;
+        ready = p.heroHits >= 1;
+        break;
+      default:
+        return null;
+    }
+    const faction = state.sides[side].lord.faction;
+    const options = ready ? [...cards.values()].filter((c) => c.type === "troop" && c.upgradeFrom === u.troopKind && c.troopKind === u.troopKind && c.id !== "elite_xianzhen_dun" && (c.faction === faction || c.faction === "qun" || c.faction === "neutral")) : [];
+    return { label, progress, ready, options };
+  }
   var TYPE_CN = {
     troop: "\u5175\u79CD",
     general: "\u6B66\u5C06",
@@ -2468,11 +2649,11 @@ var Core = (() => {
     };
   }
   var LORD_PREVIEW = { cost: 0, atk: 0 };
-  function unitSkillTargetPlan(state, side, row, col, modeIndex = 0) {
+  function unitSkillTargetPlan(state, side, row, col, modeIndex = 0, skillId) {
     const plan = { modes: [], choices: [] };
     const u = getUnit(state, side, row, col);
     if (!u) return plan;
-    const sk = (u.skills ?? []).find((x) => x.kind === "active");
+    const sk = (u.skills ?? []).find((x) => x.kind === "active" && (!skillId || x.id === skillId));
     if (!sk) return plan;
     if (sk.modes?.length) plan.modes = sk.modes.map((m, i) => m.name || `\u9009\u9879 ${i + 1}`);
     for (const eff of effectsOf(sk, modeIndex)) {
@@ -2530,6 +2711,12 @@ var Core = (() => {
     const side = state.active;
     resolveTurnEndStatuses(state, ctx.cards, side, events);
     runTriggerSkills(state, ctx.cards, side, TIMING.TURN_END, rng, events);
+    runTriggerSkills(state, ctx.cards, other(side), TIMING.ENEMY_TURN_END, rng, events);
+    for (const ref of allUnits(state, other(side))) {
+      if (ref.unit.troopKind === "shield" && isBasicTroop(ref.unit) && ref.unit.hp > 0) {
+        upgradeProgress(ref.unit).shieldSurvival += 1;
+      }
+    }
     expireStatuses(state, side, events);
     expireMods(state, side);
     expireHandMods(state, side);
@@ -2638,7 +2825,7 @@ var Core = (() => {
     const side = state.active;
     const u = getUnit(state, side, action.row, action.col);
     if (!u) return false;
-    const check = canUseUnitSkill(state, side, action.row, action.col);
+    const check = canUseUnitSkill(state, side, action.row, action.col, action.skillId);
     if (!check.ok) return false;
     const skill = check.skill;
     const key = skill.id || skill.name || "0";
@@ -2948,8 +3135,6 @@ var Core = (() => {
   var KEYWORD_VALUE = {
     jia_dun: 1.2,
     // 架盾：逼对手先打它，等于给全队挡刀
-    sheng_dun: 1.1,
-    // 圣盾：免疫一次伤害
     lian_ji: 1,
     // 连击：每回合两次普攻
     xian_gong: 0.9,
@@ -3344,6 +3529,10 @@ var Core = (() => {
     const baseline = evaluate(state, side, w);
     const empty = { action: null, profile, sims: 0, score: null, candidates: 0 };
     if (state.winner) return empty;
+    if (state.pendingDiscover) {
+      const cardId = state.pendingDiscover.candidates[0];
+      return cardId ? { ...empty, action: { type: "CHOOSE_DISCOVER", cardId }, candidates: state.pendingDiscover.candidates.length } : empty;
+    }
     let options;
     try {
       options = generateOptions(state, w);

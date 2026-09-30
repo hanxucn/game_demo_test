@@ -113,6 +113,8 @@ export interface EffectContext {
   modeIndex?: number;
   /** 本次技能结算开始时双方主公是否满血 */
   lordFullHpAtStart?: Record<Side, boolean>;
+  /** 当前普通攻击目标；仅 on_attack 技能条件可读取。 */
+  attackTarget?: TargetRef;
 }
 
 /**
@@ -228,6 +230,20 @@ function checkCondition(
   if (cond.lord_hp) {
     const side = cond.lord_hp.side === 'self' ? ctx.side : other(ctx.side);
     if (!cmp(state.sides[side].lord.hp, cond.lord_hp.op, cond.lord_hp.value)) return false;
+  }
+  if (cond.lord_hp_vs_enemy && !cmp(state.sides[ctx.side].lord.hp,
+    cond.lord_hp_vs_enemy, state.sides[other(ctx.side)].lord.hp)) return false;
+  if (cond.attack_target) {
+    const t = ctx.attackTarget;
+    if (!t) return false;
+    if (cond.attack_target.type === 'lord') { if (t.kind !== 'lord') return false; }
+    else {
+      if (t.kind !== 'unit') return false;
+      const target = getUnit(state, t.side, t.row, t.col);
+      if (!target) return false;
+      if (cond.attack_target.type && !matchesCardType(target.type, cond.attack_target.type)) return false;
+      if (cond.attack_target.keyword && !hasTrait(target, cond.attack_target.keyword)) return false;
+    }
   }
   if (cond.lord_full_hp) {
     const side = cond.lord_full_hp.side === 'self' ? ctx.side : other(ctx.side);
@@ -648,6 +664,12 @@ export function resolveTargets(
     finalPool = srcCol < 0 ? [] : pool.filter((t) =>
       t.kind === 'unit' && Math.abs(t.col - srcCol) <= 1);
   }
+  if (selector.filter?.adjacent_to === 'chosen') {
+    const chosen = pickOf(ctx, selector);
+    finalPool = chosen?.kind === 'unit' ? finalPool.filter((t) =>
+      t.kind === 'unit' && t.side === chosen.side && t.row === chosen.row
+      && Math.abs(t.col - chosen.col) === 1) : [];
+  }
 
   const sel: TargetSelector = confused ? { ...selector, mode: 'random' } : selector;
   const pick = pickOf(ctx, sel);
@@ -703,21 +725,26 @@ export function runOnAttackPhase(
   events: GameEvent[],
   /** 本次击杀的溢出伤害（ADR-088）——以 `overflow:N` 事件标记交给 DSL 的 `value_from_flag` */
   overflow = 0,
-): void {
-  if (attacker.hp <= 0) return;
+  attackTarget?: TargetRef,
+): number {
+  if (attacker.hp <= 0) return 0;
   const side = findSide(state, attacker.uid);
-  if (!side) return;
+  if (!side) return 0;
+  let bonus = 0;
   for (const sk of (attacker.skills ?? []).filter((x) => x.trigger === TIMING.ON_ATTACK)) {
     const effs = (sk.effects ?? []).filter((e) =>
       phase === 'after'
         ? e.condition?.event === 'killed'
         : e.condition?.event !== 'killed');
-    if (!effs.length) continue;
+    const ctx: EffectContext = { side, source: attacker, attackTarget,
+      flags: killed ? ['killed', ...(overflow > 0 ? [`overflow:${overflow}`] : [])] : [] };
+    const applicable = effs.filter((e) => checkCondition(state, e.condition, ctx, rng));
+    if (!applicable.length) continue;
     emitSkillTriggered(state, side, attacker, sk, 'trigger', events);
-    const flags = killed ? ['killed'] : [];
-    if (killed && overflow > 0) flags.push(`overflow:${overflow}`);
-    runEffects(state, cards, effs, { side, source: attacker, flags }, rng, events);
+    bonus += applicable.filter((e) => e.action === 'attack_bonus').reduce((sum, e) => sum + (e.value ?? 0), 0);
+    runEffects(state, cards, applicable.filter((e) => e.action !== 'attack_bonus'), ctx, rng, events);
   }
+  return bonus;
 }
 
 /**
@@ -759,13 +786,14 @@ export function resolveAttack(
   // 「攻击时攻击力 +1」。原先触发技排在伤害结算之后，于是这一下吃不到加成，
   // 加成从**下一次**攻击才开始生效（还没写 duration 时会永久累积）。
   // 带 `condition: {event: killed}` 的效果**不在这里**跑 —— 见 8½-after。
-  runOnAttackPhase(state, cards, attacker, 'before', false, rng, events);
+  const attackTarget = to.kind === 'lord' ? lordRef(foe) : unitRef(foe, to.row, to.col);
+  const attackBonus = runOnAttackPhase(state, cards, attacker, 'before', false, rng, events, 0, attackTarget);
 
   // 触发技可能把攻击者自己弄死（如张苞连环普攻途中被反击带走）
   const me = getUnit(state, side, from.row, from.col);
   if (!me || me.hp <= 0) return false;
 
-  const dmg = effectiveAttack(state, side, from.row, from.col);
+  const dmg = effectiveAttack(state, side, from.row, from.col) + attackBonus;
   const hasYinXue = hasTrait(me, 'yin_xue');
 
   // 本次普攻有没有**击杀**目标 —— 8½-after 的击杀奖励据此判定（ADR-072）
@@ -783,7 +811,7 @@ export function resolveAttack(
 
   if (to.kind === 'lord') {
     const dealt = dealDamage(state, cards, lordRef(foe), dmg, events, me.name, 0,
-      { side, row: from.row, col: from.col });
+      { side, row: from.row, col: from.col }, me);
     dealtTotal += dealt;
     killed = state.sides[foe].lord.hp <= 0;
     if (hasYinXue) healTarget(state, unitRef(side, from.row, from.col), dealt, events);   // 饮血：回该单位自身（ADR-057）
@@ -797,7 +825,7 @@ export function resolveAttack(
     const retaliate = effectiveAttack(state, foe, tRow, tCol);
 
     const dealt = dealDamage(state, cards, unitRef(foe, tRow, tCol), dmg, events, me.name, 0,
-      { side, row: from.row, col: from.col });
+      { side, row: from.row, col: from.col }, me);
     dealtTotal += dealt;
 
     // 时机表第 16 步：受到伤害触发技（on_damaged）
@@ -810,7 +838,8 @@ export function resolveAttack(
     // 目标 0 攻则无伤害；攻击方身上的「圣盾」（immune_damage）会在 dealDamage 里
     // 消耗一层并免掉本次伤害，这才是唯一的免疫途径。
     if (retaliate > 0) {
-      dealDamage(state, cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? '反击');
+      dealDamage(state, cards, unitRef(side, from.row, from.col), retaliate, events, targetUnit?.name ?? '反击', 0,
+        undefined, targetUnit ?? undefined);
       const back = getUnit(state, side, from.row, from.col);
       if (back && back.hp > 0) runUnitTrigger(state, cards, back, 'on_damaged', rng, events);
     }
@@ -847,7 +876,7 @@ export function resolveAttack(
   //    立刻又被这次攻击的记账加回去，额外行动等于白给（这条被测试抓到过）。
   const survivor = getUnit(state, side, from.row, from.col);
   if (survivor && survivor.hp > 0) {
-    runOnAttackPhase(state, cards, survivor, 'after', killed, rng, events, overflow);
+    runOnAttackPhase(state, cards, survivor, 'after', killed, rng, events, overflow, attackTarget);
   }
   return true;
 }
@@ -868,6 +897,7 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<string> = new Set([
   'add_to_deck', 'send_to_deck', 'cycle_to_deck',
   'sacrifice', 'attack_each', 'draw_until', 'mill',
   'discover',
+  'attack_bonus',
 ]);
 
 /**
@@ -877,12 +907,18 @@ export const IMPLEMENTED_ACTIONS: ReadonlySet<string> = new Set([
  * 保证 AI、测试与尚未接入分支选择的 UI 都能跑。
  */
 export function effectsOf(sk: SkillDef, modeIndex?: number): CardEffect[] {
-  if (sk.modes?.length) {
-    const i = typeof modeIndex === 'number' && Number.isInteger(modeIndex)
-      && modeIndex >= 0 && modeIndex < sk.modes.length ? modeIndex : 0;
-    return sk.modes[i]!.effects ?? [];
-  }
-  return sk.effects ?? [];
+  const effects = sk.modes?.length
+    ? (() => {
+      const i = typeof modeIndex === 'number' && Number.isInteger(modeIndex)
+        && modeIndex >= 0 && modeIndex < sk.modes.length ? modeIndex : 0;
+      return sk.modes[i]!.effects ?? [];
+    })()
+    : (sk.effects ?? []);
+  // 卡牌数据允许把主动技能的目标选择器写在技能级（`skill.target`），
+  // 这样多条效果可以共享同一个玩家选择。执行与 UI 预览都必须把它下沉到
+  // 没有单独 target 的效果上，否则 UI 不会进入选目标流程，技能也会空转。
+  if (!sk.target) return effects;
+  return effects.map((eff) => eff.target ? eff : { ...eff, target: sk.target });
 }
 
 /**
@@ -973,7 +1009,7 @@ export function runEffects(
             const waterBonus = eff.damage_type === 'water'
               ? allUnits(state, ctx.side).reduce((sum, ref) => sum + capStacks(ref.unit.statuses, 'water_damage'), 0)
               : 0;
-            dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? '效果');
+            dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? '效果', 0, undefined, ctx.source);
             // 记录"本次造成了击杀"，供同一张卡的后续效果做条件判定
             if (before > 0 && hpOf(state, t) <= 0) {
               ctx.flags = ctx.flags ?? [];

@@ -43,7 +43,6 @@ export const cardBudget = (cost: number): number => 2 * cost + 1;
  */
 const KEYWORD_VALUE: Record<string, number> = {
   jia_dun: 1.2,      // 架盾：逼对手先打它，等于给全队挡刀
-  sheng_dun: 1.1,    // 圣盾：免疫一次伤害
   lian_ji: 1.0,      // 连击：每回合两次普攻
   xian_gong: 0.9,    // 先攻：入场即可攻击
   yi_ji: 0.7,        // 遗计：亡语

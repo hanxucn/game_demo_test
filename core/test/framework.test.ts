@@ -67,13 +67,17 @@ test('组卡：中立卡可进任何阵营卡组', () => {
   assert.ok(deck.some((id) => data.cards.get(id)!.faction === 'neutral'), 'qun 卡组应含中立卡');
 });
 
-test('组卡：主公卡 / 衍生物 / 精英卡不可组入卡组', () => {
-  for (const id of ['shu_liubei', 'token_shizu_bing', 'elite_baima_yicong']) {
+test('组卡：主公卡 / 衍生物不可组入，特种兵卡可组入卡组', () => {
+  for (const id of ['shu_liubei', 'token_shizu_bing']) {
     const c = data.cards.get(id);
     assert.ok(c, `${id} 应存在于卡表`);
     const r = validateDeck(data, 'shu', [id]);
     assert.equal(r.ok, false, `${id} 不应可组`);
   }
+  const elite = data.cards.get('elite_baima_yicong');
+  assert.ok(elite, 'elite_baima_yicong 应存在于卡表');
+  assert.equal(validateDeck(data, 'shu', [elite.id]).errors.some((e) => e.kind === 'type'), false,
+    '升级后的特种兵应允许进入普通卡组（数量不足时仍会因卡组张数不合法）');
 });
 
 test('组卡：自动卡组不违反同名上限，且不含主公/衍生物', () => {
@@ -294,7 +298,7 @@ test('全流程：0 费主动技在场也不会无限循环（回归 ADR-047）'
     while (!s.winner && n < 3000) {
       const a: Action = chooseAction(s, ctx) ?? { type: 'END_TURN' };
       const r = applyAction(s, ctx, a);
-      assert.equal(r.ok, true, `seed=${seed} 第 ${n} 步被拒：${JSON.stringify(a)}`);
+      assert.equal(r.ok, true, `seed=${seed} 第 ${n} 步被拒：${JSON.stringify(a)}，原因：${r.error ?? '未知'}`);
       s = r.state;
       n += 1;
     }
@@ -548,12 +552,16 @@ test('ADR-054：关键词表——疾行已合并入先攻，无双已取消', a
   assert.ok(RETIRED_KEYWORDS.jie_zhen, '结阵应记入已取消');
   // 忠义的定义已从"亡语"纠正为"免疫控制"
   assert.ok(KEYWORDS.zhong_yi!.note.includes('免疫'), '忠义应为免疫控制类');
-  // ADR-057：武圣废弃 → 圣盾（免疫一次伤害）；饮血已实现（回自身）
+  // 一次伤害免疫由内部状态承载，不再作为公开关键词；饮血已实现（回自身）
   assert.ok(!KEYWORDS.wu_sheng, '武圣应已废弃');
-  assert.ok(KEYWORDS.sheng_dun, '圣盾应存在');
-  assert.equal(KEYWORDS.sheng_dun!.implemented, true, '圣盾机制已实现');
+  assert.ok(!KEYWORDS.sheng_dun, '圣盾不应再作为公开关键词');
+  assert.ok(RETIRED_KEYWORDS.sheng_dun, '圣盾应记入已取消');
   assert.equal(KEYWORDS.yin_xue!.implemented, true, '饮血已实现');
   assert.ok(RETIRED_KEYWORDS.wu_sheng, '武圣应记入已取消');
+  assert.equal(KEYWORDS.zhan_ji!.implemented, true, '战技应已注册');
+  assert.equal(KEYWORDS.ji_li!.implemented, true, '激励应已注册');
+  assert.ok(data.cards.get('wu_zhangzhao')!.keywords?.includes('ji_li'), '张昭应标记激励');
+  assert.ok(data.cards.get('wu_zhanghong')!.keywords?.includes('ji_li'), '张纮应标记激励');
 });
 
 test('ADR-054：先攻＝入场当回合即可攻击（原疾行的行为）', async () => {
@@ -917,11 +925,11 @@ test('关键词的两套载体等价：状态形式的「架盾/先攻/奇袭」
 test('同名上限：基础兵 3 张，其余人物与将领 1 张', async () => {
   const { maxCopiesOf, BASIC_TROOP_COPIES, UNIQUE_COPIES } = await import('../src/deck.ts');
 
-  // 三张基础兵 = type: troop
-  for (const id of ['neutral_infantry', 'neutral_archer', 'neutral_shieldman']) {
+  // 基础兵与升级后的特种兵都属于普通卡组中的 troop
+  for (const [id, cost] of [['neutral_infantry', 1], ['neutral_archer', 2], ['neutral_shieldman', 2]] as const) {
     const c = data.cards.get(id)!;
     assert.equal(c.type, 'troop', `${id} 应为 troop`);
-    assert.equal(c.cost, 1, `${id} 应为 1 费`);
+    assert.equal(c.cost, cost, `${id} 应为 ${cost} 费`);
     assert.equal(maxCopiesOf(c), BASIC_TROOP_COPIES, `${id} 同名上限应为 3`);
   }
   // 其余人物 / 将领独一无二
