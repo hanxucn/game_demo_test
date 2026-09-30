@@ -196,7 +196,7 @@ test('ADR-073：modify 一个数值都没给 → 警告', () => {
 test('ADR-073：真实卡池里不存在「文案提到关键词但卡上没实现」的静默白板', () => {
   const KW_CN: Record<string, string> = {
     先攻: 'xian_gong', 疾行: 'xian_gong', 架盾: 'jia_dun', 奇袭: 'qi_xi',
-    连击: 'lian_ji', 圣盾: 'sheng_dun', 饮血: 'yin_xue', 神射: 'shen_she',
+    连击: 'lian_ji', 饮血: 'yin_xue', 神射: 'shen_she',
   };
   // 「亡语 / 遗计」由 `trigger: 'on_death'` 承载，不靠关键词，故不在此列
   const cards: CardDef[] = JSON.parse(readFileSync(join(ROOT, 'data', 'cards.json'), 'utf8'));

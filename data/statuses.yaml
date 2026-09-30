@@ -59,7 +59,7 @@
   memo: "不能被指定为目标"
 
 - id: sheng_dun_status
-  name: 圣盾
+  name: 伤害免疫
   kind: buff
   numeric: false
   scope: character

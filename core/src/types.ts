@@ -48,6 +48,10 @@ export interface EffectCondition {
   lord_hp?: { side: 'self' | 'enemy'; op: CompareOp; value: number };
   /** 主公是否处于满生命 */
   lord_full_hp?: { side: 'self' | 'enemy'; value: boolean };
+  /** 双方主公当前生命值比较；self 始终是效果来源方。 */
+  lord_hp_vs_enemy?: CompareOp;
+  /** 本次普通攻击的目标类别或固有关键词。 */
+  attack_target?: { type?: CardType | 'character' | 'lord'; keyword?: string };
   /**
    * 条件的**与 / 或**组合（ADR-074）
    *
@@ -159,9 +163,9 @@ export interface TargetSelector {
     cost_below_source?: boolean;   // 统帅值低于来源单位（相对，"低于自己统帅的敌军"）ADR-036
     attack_below_source?: boolean; // 攻击力低于来源单位（张飞「咆哮」）ADR-069
     card_id?: string;              // 指定具体卡（关平亡语指定「关羽」）ADR-069
-    troopKind?: 'infantry' | 'shield' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
+  troopKind?: 'infantry' | 'shield' | 'cavalry' | 'archer';   // 兵种（进化卡按兵种选目标，ADR-042）
     has_status?: string;
-    adjacent_to?: 'self';          // 相邻单位（"相邻的己方人物"）
+    adjacent_to?: 'self' | 'chosen'; // 来源或玩家选定目标左右相邻的单位
     /** 排除来源单位自身（ADR-071，陆抗「手里**或**场上友方将领」：不能复制自己） */
     exclude_source?: boolean;
     include_lord?: boolean;        // 候选池额外纳入该方主将（ADR-051，弓兵射箭「含主将」）
@@ -217,7 +221,9 @@ export interface CardDef {
   cost: number;
   attack?: number;
   health?: number;
-  troopKind?: 'infantry' | 'shield' | 'archer';
+  troopKind?: 'infantry' | 'shield' | 'cavalry' | 'archer';
+  /** 特种兵升变来源；只有显式声明此字段的卡才可被 UPGRADE_UNIT 选择。 */
+  upgradeFrom?: 'infantry' | 'shield' | 'cavalry' | 'archer';
   /** 性别（ADR-071）：有攻血的单位默认 male，女性角色在 card_gender 决策段显式登记 */
   gender?: Gender;
   /**
@@ -307,6 +313,14 @@ export interface Unit {
   hp: number;
   maxHp: number;                 // 派生值 = baseMaxHp + Σmods.health
   troopKind?: string;
+  /** 普通兵独立升变进度（BDSB v0.4）；离场后随 Unit 一起清除。 */
+  upgradeProgress?: {
+    damage: number;
+    shieldSurvival: number;
+    basicKills: number;
+    characterKills: number;
+    heroHits: number;
+  };
   gender?: Gender;              // 性别（ADR-071）
   kw: string[];
   tags: string[];                // 归属标签（ADR-029）
@@ -400,9 +414,10 @@ export type Action =
       /** 抉择分支下标（ADR-071，曹彰）：缺省 / 越界一律取 modes[0] */
       modeIndex?: number }
   | { type: 'CHOOSE_DISCOVER'; cardId: string }
+  | { type: 'UPGRADE_UNIT'; row: Row; col: number; toCardId: string }
   | { type: 'ATTACK'; from: { row: Row; col: number }; to: { kind: 'unit'; row: Row; col: number } | { kind: 'lord' } }
   | { type: 'USE_LORD_SKILL'; target?: { side: Side; row?: Row; col?: number }; handIndex?: number; modeIndex?: number }
-  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number; modeIndex?: number }
+  | { type: 'USE_SKILL'; row: Row; col: number; target?: { side: Side; row?: Row; col?: number }; handIndex?: number; modeIndex?: number; skillId?: string }
   | { type: 'END_TURN' };
 
 /* ============================================================
@@ -443,6 +458,7 @@ export type GameEvent =
   | { type: 'ARMOR_GAINED'; side: Side; amount: number; armor: number }
   | { type: 'STATUS_APPLIED'; side: Side; row?: Row; col?: number; status: string; stacks: number; turns?: number }
   | { type: 'UNIT_TRANSFORMED'; side: Side; row: Row; col: number; from: string; to: string; unit: Unit }
+  | { type: 'UNIT_UPGRADED'; side: Side; row: Row; col: number; from: string; to: string; unit: Unit }
   | { type: 'DRAW_BLOCKED'; side: Side }
   | { type: 'EXTRA_ATTACK'; side: Side; row: Row; col: number }
   | { type: 'CONTROL_TAKEN'; from: Side; to: Side; unit: Unit }

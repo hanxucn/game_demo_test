@@ -73,6 +73,14 @@ export function decide(state: MatchState, ctx: EngineContext): AiDecision {
 
   if (state.winner) return empty;
 
+  // 发现待选择时，引擎只接受 CHOOSE_DISCOVER；它不能与“空过”比较收益。
+  if (state.pendingDiscover) {
+    const cardId = state.pendingDiscover.candidates[0];
+    return cardId
+      ? { ...empty, action: { type: 'CHOOSE_DISCOVER', cardId }, candidates: state.pendingDiscover.candidates.length }
+      : empty;
+  }
+
   let options: AiOption[];
   try {
     options = generateOptions(state, w);

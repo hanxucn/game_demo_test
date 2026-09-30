@@ -45,14 +45,72 @@ window.CardTile = (function () {
     return (card.keywords || []).map(function (k) { return kwMap[k] || k; });
   }
 
+  var TYPE_TEXT = { troop: '兵种', general: '武将', strategist: '谋臣', character: '角色' };
+  var DAMAGE_TEXT = { normal: '', fire: '火攻', water: '水攻', thunder: '雷击' };
+
+  function statusName(id) {
+    var list = (window.GameData && window.GameData.statuses) || [];
+    var item = list.filter(function (x) { return x && x.id === id; })[0];
+    return item && item.name ? item.name : id;
+  }
+
+  function targetText(sel) {
+    if (!sel) return '';
+    var filter = sel.filter || {};
+    var side = sel.side === 'enemy' ? '敌方' : sel.side === 'ally' || sel.side === 'self' ? '友方' : '任意';
+    if (sel.lord) return (sel.count === 'all' ? '所有' : '敌方') + '主公';
+    var type = filter.include_lord && filter.type === 'character'
+      ? '单位' : (TYPE_TEXT[filter.type] || (filter.type === 'character' ? '角色' : '单位'));
+    if (filter.adjacent_to) type = '目标相邻单位';
+    if (filter.damaged) type = '受伤' + type;
+    var amount = sel.count === 'all' ? '所有' : sel.mode === 'random' ? '随机一名' : '一名';
+    return amount + side + type;
+  }
+
+  function effectDescription(effect, skill) {
+    var target = targetText(effect.target || (skill && skill.target));
+    var prefix = target ? target : '';
+    var value = effect.value != null ? effect.value : null;
+    switch (effect.action) {
+      case 'damage':
+        return (prefix ? '对' + prefix : '') + '造成 ' + (value != null ? value : '相应')
+          + ' 点' + (DAMAGE_TEXT[effect.damage_type] || '') + '伤害';
+      case 'heal':
+        return (prefix ? '为' + prefix : '') + '恢复 ' + (value != null ? value : '相应') + ' 点生命';
+      case 'draw': return '抽 ' + (value != null ? value : 1) + ' 张牌';
+      case 'destroy': return (prefix ? '消灭' + prefix : '消灭目标');
+      case 'apply_status': return (prefix ? '使' + prefix : '使目标') + '获得「' + statusName(effect.status) + '」';
+      case 'modify': {
+        var parts = [];
+        if (effect.attack) parts.push((effect.attack > 0 ? '+' : '') + effect.attack + ' 攻击力');
+        if (effect.health) parts.push((effect.health > 0 ? '+' : '') + effect.health + ' 生命');
+        return (prefix ? '使' + prefix : '使目标') + (parts.length ? parts.join('、') : '获得属性修正');
+      }
+      case 'extra_attack': return (prefix ? prefix : '自身') + '获得一次额外攻击';
+      case 'attack_bonus': return '本次攻击攻击力 +' + (value != null ? value : 0);
+      default: return '';
+    }
+  }
+
+  function skillText(skill) {
+    if (!skill) return '';
+    if (skill.text) return skill.text;
+    var effects = (skill.effects || []).map(function (effect) { return effectDescription(effect, skill); })
+      .filter(Boolean);
+    return effects.join('；');
+  }
+
   /** 一张卡的展示用文本：技能文案优先 → 关键词 → 记忆点 */
   function effectText(card) {
     var texts = (card.skills || [])
       // 「技能名：技能文本」—— PR #12（teammate）为卡牌测试页与构筑页**各补过一次**；
       // 现在这段逻辑只此一处，改一次三页都生效（ADR-096 把两份实现收成了一份）。
       .map(function (s) {
-        if (s.name && s.text) return s.name + '：' + s.text;
-        return s.name || s.text;
+        var text = skillText(s);
+        var zhanji = (card.keywords || []).indexOf('zhan_ji') >= 0 && s.kind === 'active';
+        var title = (zhanji ? '战技：' : '') + (s.name || '');
+        if (title && text) return title + '：' + text;
+        return title || text;
       })
       .filter(Boolean);
     if (texts.length) return texts.join('；');
@@ -172,6 +230,7 @@ window.CardTile = (function () {
     ensureStyles: ensureStyles,
     esc: esc,
     effectText: effectText,
+    skillText: skillText,
     keywordNames: keywordNames,
     factionName: function (f) { return FAC_NAME[f] || f; },
     typeName: function (t) { return TYPE_NAME[t] || t; },

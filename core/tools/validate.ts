@@ -27,7 +27,7 @@ const DATA = join(ROOT, 'data');
  * ⚠️ ADR-092：`value`（预算核算块）已整个删除，**不再是合法字段** —— 再写它会被这里拦下。
  */
 const CARD_FIELDS = new Set([
-  'id', 'name', 'faction', 'type', 'cost', 'attack', 'health', 'troopKind',
+  'id', 'name', 'faction', 'type', 'cost', 'attack', 'health', 'troopKind', 'upgradeFrom',
   'keywords', 'tags', 'memo', 'flavor', 'cost_rule', 'rarity', 'gender',
   'type_explicit', 'note', 'skills', 'effects',
 ]);
@@ -167,6 +167,9 @@ export function validateCards(cards: CardDef[]): Issue[] {
     }
     // 类型合法
     if (!(CARD_TYPES as readonly string[]).includes(c.type)) add('error', c.id, `未知卡牌类型：${c.type}`);
+    if (c.upgradeFrom && (c.type !== 'troop' || c.troopKind !== c.upgradeFrom)) {
+      add('error', c.id, 'upgradeFrom 只能标在同兵种的特种兵卡上');
+    }
 
   }
 

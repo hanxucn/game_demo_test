@@ -5,6 +5,33 @@ note: '关键词表 —— 定义由设计者逐条给出（ADR-054，2026-09-12
 
   ⚠️ ADR-055 教训：核对关键词时**不能只查名字在不在手写稿里，必须核对定义**。「先攻」名字在手写稿出现 8 次、我据此判它"可信"，但它的定义（击杀不遭反击）是 AI 编的。'
 keywords:
+- id: zhan_ji
+  name: 战技
+  type: active
+  grants: []
+  stackable: false
+  value: -1
+  implemented: true
+  definition: 每回合一次的主动技能，通常需要玩家指定目标后释放。
+  memo: 一回合一次主动技
+- id: ji_li
+  name: 激励
+  type: trigger
+  grants: []
+  stackable: false
+  value: -1
+  implemented: true
+  definition: 己方主公技完成结算后触发，具体效果由卡牌技能定义。
+  memo: 主公技后获得收益
+- id: ju_du
+  name: 剧毒
+  type: buff
+  grants: []
+  stackable: false
+  value: -1
+  implemented: true
+  definition: 该单位造成伤害并实际命中后，直接消灭受伤单位。
+  memo: 命中即斩杀
 - id: jia_dun
   name: 架盾
   type: buff
@@ -53,17 +80,6 @@ keywords:
   implemented: false
   definition: 对敌人造成的伤害，为该单位自身恢复等量生命。
   memo: 打多少回多少
-- id: sheng_dun
-  name: 武圣
-  type: buff
-  grants:
-  - sheng_dun_status
-  stackable: false
-  value: -1
-  implemented: false
-  definition: ⚠️ 尚未定义。手写稿里「武圣」只作为关羽的两个候选技能名之一出现（〈水淹七军〉? / 〈武圣〉?），未写机制。
-  memo: （待定义）
-  open: 原「免疫一次伤害」是初始提交 GDD 里 AI 写的定义，未经设计者确认（Q-06-4）
 - id: shen_she
   name: 神射
   type: buff

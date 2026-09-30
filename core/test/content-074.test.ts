@@ -72,7 +72,7 @@ test('ADR-074 空城计：己方场上无人时，主帅一整个对手回合内
   realCard('tactic_kongchengji');
   // 敌方单位必须用 scenario 摆位（enteredTurn = 0）—— mk() 造的 enteredTurn = 当前回合，
   // 会因召唤失调而"没有合法目标"，把空城的断言掩盖成假通过
-  const { state, ctx } = scenario({ ownHand: ['tactic_kongchengji'], enemy: { front: ['neutral_archer'] } });
+  const { state, ctx } = scenario({ ownHand: ['tactic_kongchengji'], enemy: { front: ['neutral_infantry'] } });
 
   const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0 });
   assert.ok(r.ok, `打出应成功：${r.error}`);

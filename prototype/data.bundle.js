@@ -76,7 +76,7 @@ window.GameData = {
       "cost": 3,
       "attack": 3,
       "health": 3,
-      "memo": "关羽在场才 +1/+1；阵亡把圣盾交给关羽",
+      "memo": "关羽在场才 +1/+1；阵亡把一次伤害免疫交给关羽",
       "gender": "male",
       "keywords": [],
       "skills": [
@@ -106,10 +106,10 @@ window.GameData = {
         },
         {
           "id": "yi_ji_sheng_dun",
-          "name": "遗计·圣盾",
+          "name": "遗计·免疫",
           "kind": "trigger",
           "trigger": "on_death",
-          "text": "亡语：使关羽获得圣盾。",
+          "text": "亡语：使关羽获得一次伤害免疫。",
           "effects": [
             {
               "action": "apply_status",
@@ -401,7 +401,9 @@ window.GameData = {
       "health": 4,
       "memo": "每回合免费点名 2 点，专治高价值目标",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
           "id": "bai_bu_chuan_yang",
@@ -994,7 +996,9 @@ window.GameData = {
       "health": 6,
       "memo": "调牌库顶三张再抽 1；空手时免疫伤害",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
           "id": "yun_chou_wei_wo",
@@ -1022,7 +1026,7 @@ window.GameData = {
           "id": "kong_cheng_ji",
           "name": "空城之计",
           "kind": "aura",
-          "text": "己方手牌为 0 时，诸葛亮获得免疫伤害效果。",
+          "text": "己方手牌为 0 时，诸葛亮获得一次伤害免疫。",
           "effects": [
             {
               "action": "apply_status",
@@ -1048,22 +1052,24 @@ window.GameData = {
     },
     {
       "id": "neutral_archer",
-      "name": "弓射手",
+      "name": "弓兵",
       "faction": "neutral",
       "type": "troop",
-      "cost": 1,
-      "attack": 0,
-      "health": 1,
+      "cost": 2,
+      "attack": 1,
+      "health": 2,
       "troopKind": "archer",
-      "memo": "0 攻，但每回合结束白嫖 1 点伤害",
+      "memo": "无法普通攻击；战技「放箭」随机对敌方单位造成 1 点伤害",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
-          "id": "she_jian",
-          "name": "射箭",
-          "kind": "trigger",
-          "trigger": "turn_end",
+          "id": "neutral_fangjian",
+          "name": "放箭",
+          "kind": "active",
+          "frequency": "once_per_turn",
           "effects": [
             {
               "action": "damage",
@@ -1078,8 +1084,7 @@ window.GameData = {
                 "mode": "random"
               }
             }
-          ],
-          "text": "回合结束时，随机对敌方一名人物或主将造成 1 点伤害。"
+          ]
         }
       ],
       "flavor": ""
@@ -1093,9 +1098,26 @@ window.GameData = {
       "attack": 1,
       "health": 1,
       "troopKind": "infantry",
-      "memo": "1 费 1/1 的填线兵",
+      "memo": "1 费 1/1 的基础步兵",
       "gender": "male",
       "keywords": [],
+      "skills": [],
+      "flavor": ""
+    },
+    {
+      "id": "neutral_cavalry",
+      "name": "骑兵",
+      "faction": "neutral",
+      "type": "troop",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "troopKind": "cavalry",
+      "memo": "先攻骑兵，击杀后可积累升变进度",
+      "gender": "male",
+      "keywords": [
+        "xian_gong"
+      ],
       "skills": [],
       "flavor": ""
     },
@@ -1955,7 +1977,9 @@ window.GameData = {
       "memo": "随机展示三张曹氏宗亲，选择一张并减 1 统帅",
       "flavor": "魏文帝整顿宗室与朝局，令曹氏人才为魏所用。",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
           "id": "yan_ge_gai_ge",
@@ -2668,7 +2692,9 @@ window.GameData = {
       "health": 4,
       "memo": "自掉 1 血换敌人半数概率混乱，混乱成功再抽 1",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
           "id": "ku_rou_ji",
@@ -3100,7 +3126,9 @@ window.GameData = {
       "health": 6,
       "memo": "−2 攻换一回合打两次",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
           "id": "shen_she_hao",
@@ -3165,7 +3193,9 @@ window.GameData = {
       "health": 4,
       "memo": "每回合送对手 1 张手牌，自己抽 2 张",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
           "id": "zhang_yi_shu_cai",
@@ -3963,7 +3993,9 @@ window.GameData = {
       "health": 5,
       "memo": "弃 1 张牌，按它的统率回血并清掉全部负面",
       "gender": "male",
-      "keywords": [],
+      "keywords": [
+        "zhan_ji"
+      ],
       "skills": [
         {
           "id": "qing_nang",
@@ -4165,9 +4197,9 @@ window.GameData = {
       "name": "盾兵",
       "faction": "neutral",
       "type": "troop",
-      "cost": 1,
+      "cost": 2,
       "attack": 1,
-      "health": 2,
+      "health": 4,
       "troopKind": "shield",
       "keywords": [
         "jia_dun"
@@ -4180,11 +4212,13 @@ window.GameData = {
       "id": "elite_baima_yicong",
       "name": "白马义从",
       "faction": "neutral",
-      "type": "elite",
-      "cost": 0,
+      "type": "troop",
+      "cost": 2,
+      "note": "原为 0 费不可直出的形态卡；改为可直接打出的特种兵后暂设 2 费，待实机校准。",
       "attack": 1,
       "health": 2,
       "troopKind": "archer",
+      "upgradeFrom": "archer",
       "memo": "公孙瓒的进化体：每回合点 2 点伤害",
       "gender": "male",
       "keywords": [],
@@ -4217,8 +4251,9 @@ window.GameData = {
       "id": "elite_xianzhen_dun",
       "name": "陷阵盾兵",
       "faction": "neutral",
-      "type": "elite",
-      "cost": 0,
+      "type": "troop",
+      "cost": 2,
+      "note": "原为 0 费不可直出的形态卡；改为可直接打出的特种兵后暂设 2 费，待实机校准。",
       "attack": 2,
       "health": 2,
       "troopKind": "shield",
@@ -4233,11 +4268,13 @@ window.GameData = {
       "id": "elite_xiliang_tieqi",
       "name": "西凉铁骑",
       "faction": "neutral",
-      "type": "elite",
-      "cost": 0,
+      "type": "troop",
+      "cost": 2,
+      "note": "原为 0 费不可直出的形态卡；改为可直接打出的特种兵后暂设 2 费，待实机校准。",
       "attack": 2,
       "health": 1,
       "troopKind": "infantry",
+      "upgradeFrom": "infantry",
       "keywords": [
         "xian_gong"
       ],
@@ -5256,6 +5293,9 @@ window.GameData = {
       "type_explicit": true,
       "memo": "主公技后发现三张战法并将一张置于牌库顶",
       "gender": "male",
+      "keywords": [
+        "ji_li"
+      ],
       "skills": [
         {
           "id": "guang_ling_du",
@@ -5663,6 +5703,9 @@ window.GameData = {
       "type_explicit": true,
       "memo": "辅政：每次使用主公技后抽一张牌",
       "gender": "male",
+      "keywords": [
+        "ji_li"
+      ],
       "skills": [
         {
           "id": "fu_zheng",
@@ -5679,6 +5722,1083 @@ window.GameData = {
         }
       ],
       "flavor": "张昭辅佐孙权，善于治国理政。"
+    },
+    {
+      "id": "wei_huweijun_dun",
+      "name": "虎卫军",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 1,
+      "health": 7,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "架盾；阵亡时为主公恢复3点生命",
+      "skills": [
+        {
+          "id": "huwei_hui_xue",
+          "name": "虎卫",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "effects": [
+            {
+              "action": "heal",
+              "value": 3,
+              "target": {
+                "side": "self",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wei_wuweiying",
+      "name": "武卫营",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 4,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "架盾的魏国精兵"
+    },
+    {
+      "id": "wei_qingzhou_bing",
+      "name": "青州兵",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 3,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [],
+      "memo": "主公血量更高时攻击主公额外造成2点伤害",
+      "skills": [
+        {
+          "id": "qingzhou_zhan",
+          "name": "青州突骑",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "text": "己方主公血量高于敌方时，攻击敌方主公的伤害+2。",
+          "effects": [
+            {
+              "action": "attack_bonus",
+              "value": 2,
+              "condition": {
+                "all_of": [
+                  {
+                    "attack_target": {
+                      "type": "lord"
+                    }
+                  },
+                  {
+                    "lord_hp_vs_enemy": ">"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wei_huweijun_bu",
+      "name": "虎卫军",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [],
+      "memo": "免疫一次伤害的步兵",
+      "skills": [
+        {
+          "id": "huwei_mian_yi",
+          "name": "虎卫",
+          "kind": "trigger",
+          "trigger": "on_play",
+          "text": "上场时获得一次伤害免疫。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "sheng_dun_status",
+              "stacks": 1,
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wei_hubaoki_hu",
+      "name": "虎豹骑",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 5,
+      "health": 4,
+      "troopKind": "cavalry",
+      "upgradeFrom": "cavalry",
+      "keywords": [
+        "xian_gong"
+      ],
+      "memo": "攻击后封锁敌方主公技一回合",
+      "skills": [
+        {
+          "id": "hubao_jin_yan",
+          "name": "虎骑威势",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "jin_yan",
+              "duration": "until_next_turn",
+              "target": {
+                "side": "enemy",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wei_hubaoki_bao",
+      "name": "豹骑营",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 4,
+      "health": 3,
+      "troopKind": "cavalry",
+      "upgradeFrom": "cavalry",
+      "keywords": [
+        "xian_gong"
+      ],
+      "memo": "入场当回合即可攻击"
+    },
+    {
+      "id": "wei_qiangnuying",
+      "name": "强弩营",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "zhan_ji"
+      ],
+      "memo": "无法普通攻击；战技对一个单位造成4点伤害",
+      "skills": [
+        {
+          "id": "qiangnu_jin_gong",
+          "name": "强弩",
+          "kind": "aura",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "jin_gong",
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "qiangnu_she",
+          "name": "强弩",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "damage",
+              "value": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wei_piliche",
+      "name": "霹雳车",
+      "faction": "wei",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "zhan_ji"
+      ],
+      "memo": "无法普通攻击；战技对目标及相邻单位造成2点伤害",
+      "skills": [
+        {
+          "id": "pili_jin_gong",
+          "name": "车阵",
+          "kind": "aura",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "jin_gong",
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "pili_bao",
+          "name": "霹雳",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "damage",
+              "value": 2
+            },
+            {
+              "action": "damage",
+              "value": 2,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "adjacent_to": "chosen"
+                },
+                "count": "all"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shu_bai_erbing",
+      "name": "白毦兵",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 6,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "架盾蜀国精兵"
+    },
+    {
+      "id": "shu_banshuyuan",
+      "name": "板楯蛮",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [
+        "jia_dun",
+        "ju_du"
+      ],
+      "memo": "架盾且剧毒"
+    },
+    {
+      "id": "shu_danyangbing",
+      "name": "丹阳兵",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 4,
+      "health": 4,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [],
+      "memo": "高攻步兵"
+    },
+    {
+      "id": "shu_hubujun",
+      "name": "虎步军",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 3,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [
+        "xian_gong"
+      ],
+      "memo": "先攻步兵",
+      "skills": [
+        {
+          "id": "hubu_zhuiji",
+          "name": "虎步",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "text": "攻击并消灭敌方单位后，获得一次额外攻击。",
+          "effects": [
+            {
+              "action": "extra_attack",
+              "condition": {
+                "event": "killed"
+              },
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shu_xiliangtieqi",
+      "name": "西凉铁骑",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 3,
+      "troopKind": "cavalry",
+      "upgradeFrom": "cavalry",
+      "keywords": [
+        "xian_gong",
+        "zhan_ji"
+      ],
+      "memo": "先攻；战技「放箭」随机对敌方单位造成1点伤害",
+      "skills": [
+        {
+          "id": "shu_xiliang_fangjian",
+          "name": "放箭",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "include_lord": true
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shu_muniuliuma",
+      "name": "木牛流马",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 0,
+      "health": 6,
+      "troopKind": "cavalry",
+      "upgradeFrom": "cavalry",
+      "keywords": [
+        "zhan_ji"
+      ],
+      "memo": "战技抽牌并治疗一名友军",
+      "skills": [
+        {
+          "id": "mu_niu",
+          "name": "木牛流马",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "target": {
+            "side": "ally",
+            "filter": {
+              "type": "character"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "draw",
+              "value": 1
+            },
+            {
+              "action": "heal",
+              "value": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shu_yuanrongnubing",
+      "name": "元戎弩兵",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "zhan_ji"
+      ],
+      "memo": "战技对所有敌方单位造成1点伤害",
+      "skills": [
+        {
+          "id": "yuanrong_qi",
+          "name": "元戎",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": "all"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shu_wudangfeijun",
+      "name": "无当飞军",
+      "faction": "shu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 0,
+      "health": 2,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "ju_du",
+        "zhan_ji"
+      ],
+      "memo": "剧毒弓兵；战技「放箭」随机对敌方单位造成1点伤害",
+      "skills": [
+        {
+          "id": "wudang_jin_gong",
+          "name": "飞军",
+          "kind": "aura",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "jin_gong",
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "shu_wudang_fangjian",
+          "name": "放箭",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "include_lord": true
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wu_danyangqing",
+      "name": "青巾兵",
+      "faction": "wu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 4,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [
+        "jia_dun",
+        "xian_gong"
+      ],
+      "memo": "架盾先攻"
+    },
+    {
+      "id": "wu_jiefanbing",
+      "name": "解烦兵",
+      "faction": "wu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 1,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [
+        "xian_gong",
+        "zhan_ji"
+      ],
+      "memo": "先攻；战技造成1点水攻伤害",
+      "skills": [
+        {
+          "id": "jiefan_shui",
+          "name": "解烦",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "damage_type": "water"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wu_gansiying",
+      "name": "敢死营",
+      "faction": "wu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [],
+      "memo": "亡语对敌方主公造成2点伤害",
+      "skills": [
+        {
+          "id": "gansi",
+          "name": "敢死",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 2,
+              "target": {
+                "side": "enemy",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wu_chexiahushi",
+      "name": "车下虎士",
+      "faction": "wu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 4,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [],
+      "memo": "承担主公受到的伤害",
+      "skills": [
+        {
+          "id": "chexia_huzhu",
+          "name": "护主",
+          "kind": "aura",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "hu_zhu",
+              "status_source": "self",
+              "target": {
+                "side": "ally",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wu_dongwujingqi",
+      "name": "东吴精骑",
+      "faction": "wu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 3,
+      "troopKind": "cavalry",
+      "upgradeFrom": "cavalry",
+      "keywords": [
+        "xian_gong",
+        "ji_li"
+      ],
+      "memo": "激励后获得额外攻击",
+      "skills": [
+        {
+          "id": "dongwu_jili",
+          "name": "激励",
+          "kind": "trigger",
+          "trigger": "on_lord_skill_used",
+          "effects": [
+            {
+              "action": "extra_attack",
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wu_louchuanjun",
+      "name": "楼船军",
+      "faction": "wu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 4,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "zhan_ji"
+      ],
+      "memo": "战技对目标和敌方主公各造成2点水攻伤害",
+      "skills": [
+        {
+          "id": "louchuan_shui",
+          "name": "楼船",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "damage",
+              "value": 2,
+              "damage_type": "water"
+            },
+            {
+              "action": "damage",
+              "value": 2,
+              "damage_type": "water",
+              "target": {
+                "side": "enemy",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wu_mengchongdoujian",
+      "name": "蒙冲斗舰",
+      "faction": "wu",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 4,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "zhan_ji"
+      ],
+      "memo": "战技造成火攻并波及目标相邻单位",
+      "skills": [
+        {
+          "id": "mengchong_huo",
+          "name": "蒙冲",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "damage",
+              "value": 2,
+              "damage_type": "fire"
+            },
+            {
+              "action": "damage",
+              "value": 1,
+              "damage_type": "fire",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "adjacent_to": "chosen"
+                },
+                "count": "all"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_xianzhenying",
+      "name": "陷阵营",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 5,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "架盾；每个敌方回合结束时攻击和生命各+1",
+      "skills": [
+        {
+          "id": "xianzhen_zengqiang",
+          "name": "陷阵",
+          "kind": "trigger",
+          "trigger": "enemy_turn_end",
+          "text": "每个敌方回合结束时，攻击力和生命值各+1。",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "health": 1,
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_xiandengdun",
+      "name": "先登盾兵",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 1,
+      "health": 7,
+      "troopKind": "shield",
+      "upgradeFrom": "shield",
+      "keywords": [
+        "jia_dun"
+      ],
+      "memo": "架盾，攻击时获得2点攻击",
+      "skills": [
+        {
+          "id": "xiandeng_dun",
+          "name": "先登",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "text": "攻击时攻击力+2。",
+          "effects": [
+            {
+              "action": "attack_bonus",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_xiandengsishi",
+      "name": "先登死士",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 4,
+      "health": 3,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [],
+      "memo": "亡语随机对敌方角色造成2点伤害",
+      "skills": [
+        {
+          "id": "xiandeng_si",
+          "name": "死士",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 2,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_huangjinlishi",
+      "name": "黄巾力士",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 3,
+      "troopKind": "infantry",
+      "upgradeFrom": "infantry",
+      "keywords": [],
+      "memo": "亡语召唤两个黄巾兵",
+      "skills": [
+        {
+          "id": "huangjin_li",
+          "name": "力士",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "effects": [
+            {
+              "action": "summon",
+              "unit": "token_huangjin_bing",
+              "count": 2,
+              "position": "random"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_baimayicong",
+      "name": "白马义从",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 3,
+      "troopKind": "cavalry",
+      "upgradeFrom": "cavalry",
+      "keywords": [
+        "xian_gong",
+        "zhan_ji"
+      ],
+      "memo": "先攻；战技造成2点伤害",
+      "skills": [
+        {
+          "id": "baima_ji",
+          "name": "白马",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "target": {
+            "side": "enemy",
+            "filter": {
+              "type": "character"
+            },
+            "count": 1,
+            "mode": "choose"
+          },
+          "effects": [
+            {
+              "action": "damage",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_xiliangtieqi",
+      "name": "西凉铁骑",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 3,
+      "troopKind": "cavalry",
+      "upgradeFrom": "cavalry",
+      "keywords": [
+        "xian_gong"
+      ],
+      "memo": "先攻，攻击人物时获得额外攻击",
+      "skills": [
+        {
+          "id": "xiliang_tuji",
+          "name": "突骑",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "text": "攻击武将或谋臣时，攻击力+2。",
+          "effects": [
+            {
+              "action": "attack_bonus",
+              "value": 2,
+              "condition": {
+                "any_of": [
+                  {
+                    "attack_target": {
+                      "type": "general"
+                    }
+                  },
+                  {
+                    "attack_target": {
+                      "type": "strategist"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_wuhuantuqi",
+      "name": "乌桓突骑",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 3,
+      "health": 4,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "xian_gong",
+        "zhan_ji"
+      ],
+      "memo": "先攻；战技「放箭」随机对敌方单位造成1点伤害",
+      "skills": [
+        {
+          "id": "qun_wuhuan_fangjian",
+          "name": "放箭",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "include_lord": true
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qun_xiandengnushou",
+      "name": "先登弩手",
+      "faction": "qun",
+      "type": "troop",
+      "cost": 2,
+      "attack": 2,
+      "health": 4,
+      "troopKind": "archer",
+      "upgradeFrom": "archer",
+      "keywords": [
+        "zhan_ji"
+      ],
+      "memo": "战技先消灭一个随机先攻士兵，再放箭随机对敌方单位造成1点伤害",
+      "skills": [
+        {
+          "id": "xiandeng_nu",
+          "name": "先登",
+          "kind": "active",
+          "frequency": "once_per_turn",
+          "effects": [
+            {
+              "action": "destroy",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "troop",
+                  "keyword": "xian_gong"
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            },
+            {
+              "action": "damage",
+              "value": 1,
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "include_lord": true
+                },
+                "count": 1,
+                "mode": "random"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "heroes": [
@@ -5833,7 +6953,7 @@ window.GameData = {
     },
     {
       "id": "sheng_dun_status",
-      "name": "圣盾",
+      "name": "伤害免疫",
       "kind": "buff",
       "numeric": false,
       "scope": "character",
@@ -6105,6 +7225,39 @@ window.GameData = {
   ],
   "keywords": [
     {
+      "id": "zhan_ji",
+      "name": "战技",
+      "type": "active",
+      "grants": [],
+      "stackable": false,
+      "value": -1,
+      "implemented": true,
+      "definition": "每回合一次的主动技能，通常需要玩家指定目标后释放。",
+      "memo": "一回合一次主动技"
+    },
+    {
+      "id": "ji_li",
+      "name": "激励",
+      "type": "trigger",
+      "grants": [],
+      "stackable": false,
+      "value": -1,
+      "implemented": true,
+      "definition": "己方主公技完成结算后触发，具体效果由卡牌技能定义。",
+      "memo": "主公技后获得收益"
+    },
+    {
+      "id": "ju_du",
+      "name": "剧毒",
+      "type": "buff",
+      "grants": [],
+      "stackable": false,
+      "value": -1,
+      "implemented": true,
+      "definition": "该单位造成伤害并实际命中后，直接消灭受伤单位。",
+      "memo": "命中即斩杀"
+    },
+    {
       "id": "jia_dun",
       "name": "架盾",
       "type": "buff",
@@ -6163,20 +7316,6 @@ window.GameData = {
       "implemented": false,
       "definition": "对敌人造成的伤害，为该单位自身恢复等量生命。",
       "memo": "打多少回多少"
-    },
-    {
-      "id": "sheng_dun",
-      "name": "武圣",
-      "type": "buff",
-      "grants": [
-        "sheng_dun_status"
-      ],
-      "stackable": false,
-      "value": -1,
-      "implemented": false,
-      "definition": "⚠️ 尚未定义。手写稿里「武圣」只作为关羽的两个候选技能名之一出现（〈水淹七军〉? / 〈武圣〉?），未写机制。",
-      "memo": "（待定义）",
-      "open": "原「免疫一次伤害」是初始提交 GDD 里 AI 写的定义，未经设计者确认（Q-06-4）"
     },
     {
       "id": "shen_she",

@@ -151,50 +151,34 @@
   z-index: 3;
 }
 
-/* ---------- 关键词 ---------- */
-.cr-kw {
+/* ---------- 统一能力栏（关键词 + 技能名） ---------- */
+.cr-abilities {
   position: absolute;
+  left: 2px; right: 2px; bottom: 19px;
   display: flex;
-  gap: 1px;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-height: 22px;
+  overflow: hidden;
   z-index: 3;
 }
-.cr-kw i {
+.cr-abilities i {
   font-style: normal;
-  font-size: 8px;
-  line-height: 1.35;
+  font-size: 7px;
+  line-height: 1.25;
   padding: 0 3px;
   border-radius: 3px;
   background: linear-gradient(180deg, rgba(212,175,106,.5), rgba(0,0,0,.7));
   border: 1px solid color-mix(in srgb, var(--gold) 65%, transparent);
   color: var(--gold-hi);
   white-space: nowrap;
-}
-.cr-kw i.is-off {
-  background: rgba(0,0,0,.5);
-  border-color: #3a352c;
-  color: #7a7264;
-  text-decoration: line-through;
-}
-/* 战场卡：关键词在右上竖排 */
-.cr-board .cr-kw { right: 1px; top: 15px; flex-direction: column; align-items: flex-end; }
-/* 手牌：关键词在底部横排，避免压住描述 */
-.cr-hand .cr-kw { left: 3px; right: 3px; bottom: 19px; flex-direction: row; justify-content: center; flex-wrap: wrap; }
-
-/* ---------- 攻/血宝石 ---------- */
-/* 战场卡的技能名：血攻圆圈上方那条空位（左右各留出 18px 圆圈） */
-.cr-skillname {
-  position: absolute;
-  left: 1px; right: 1px; bottom: 20px;
-  text-align: center;
-  font-size: 8px;
-  line-height: 1.2;
-  color: #ffe6b8;
-  text-shadow: 0 1px 2px #000, 0 0 5px rgba(0,0,0,.95);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  z-index: 3;
 }
+
+/* ---------- 攻/血宝石 ---------- */
 
 .cr-stat {
   position: absolute;

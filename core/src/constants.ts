@@ -69,21 +69,27 @@ export const KEYWORDS: Record<string, { name: string; implemented: boolean; note
                note: '类亡语：阵亡时触发该卡定义的 on_death 逻辑' },
   yin_xue:   { name: '饮血', implemented: true,
                note: '对敌人造成的伤害，为该单位自身恢复等量生命（ADR-057 设计者定稿：回自己，不回主将）' },
-  sheng_dun: { name: '圣盾', implemented: true,
-               note: '拥有一个圣盾状态，可免疫一次伤害；伤害被免疫后该状态消耗掉（ADR-057 设计者定稿）' },
   shen_she:  { name: '神射', implemented: false,
                note: '对随机敌人造成远程伤害，且不受对方攻击影响（待实现）' },
   qi_xi:     { name: '奇袭', implemented: false,
                note: '上场先隐身（不能被选定）；下回合可选择行动攻击，执行过行动后隐身消失（待实现）' },
   zhong_yi:  { name: '忠义', implemented: false,
                note: '免疫混乱、离间等状态（待实现。注：原实现误做成"阵亡触发亡语"，已纠正）' },
+  zhan_ji:   { name: '战技', implemented: true,
+               note: '每回合一次的主动技能；使用后本回合不能再次使用该技能' },
+  ji_li:     { name: '激励', implemented: true,
+               note: '己方主公技完成结算后触发；具体收益由卡牌技能定义' },
+  ju_du:     { name: '剧毒', implemented: true,
+               note: '该单位造成伤害并实际命中后，直接消灭受伤单位' },
 };
 
 /** 已取消的关键词（保留列表以免数据误用） */
 export const RETIRED_KEYWORDS: Record<string, string> = {
   ji_xing: '疾行 —— 与「先攻」是同一个东西（设计者裁定），已合并，请改用 xian_gong',
+  fang_jian: '放箭 —— 已改为带有「放箭」技能名的战技，不再作为自动触发关键词',
+  sheng_dun: '圣盾 —— 关键词已删除；一次伤害免疫保留为内部状态 sheng_dun_status',
   wu_shuang: '无双 —— 设计者：暂时没有这个状态',
-  wu_sheng: '武圣 —— 设计者：废弃此名（关羽的技能名用「水淹七军」）；其"免疫一次伤害"的机制改名为「圣盾」',
+  wu_sheng: '武圣 —— 设计者：废弃此名（关羽的技能名用「水淹七军」）；一次伤害免疫改由内部状态承载',
   jie_zhen: '结阵 —— 设计者：移除该效果（引擎里"相邻有友方步兵时 +1 攻"是 AI 自己推的，从未被设计）',
 };
 
@@ -150,8 +156,8 @@ export const STATUSES: Record<string, StatusDef> = {
   xian_gong_status: { name: '先攻', kind: 'buff',   numeric: false, duration: 'permanent',
                 note: '入场当回合即可行动攻击（ADR-055）' },
   qi_xi_status: { name: '奇袭', kind: 'buff',   numeric: false, duration: 'until_consumed', note: '不能被指定为目标' },
-  sheng_dun_status:   { name: '圣盾', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
-                note: '免疫一次伤害' },
+  sheng_dun_status:   { name: '伤害免疫', kind: 'buff',   numeric: false, duration: 'until_consumed', caps: ['immune_damage'],
+                note: '免疫一次伤害；触发后消耗' },
   hu_jia:     { name: '护甲', kind: 'buff',   numeric: true,  duration: 'permanent', scope: 'lord', note: '吸收伤害' },
   zhen_she:   { name: '震慑', kind: 'debuff', numeric: false, duration: 'turns', caps: ['block_action'],
                 note: '不能普攻，也不能使用主动技' },
@@ -208,6 +214,7 @@ export const TIMING = {
   ON_DEATH: 'on_death',
   ON_DAMAGED: 'on_damaged',
   TURN_END: 'turn_end',
+  ENEMY_TURN_END: 'enemy_turn_end',
   ON_ATTACK: 'on_attack',
   ON_DEFEND: 'on_defend',
   ON_LETHAL: 'on_lethal',
@@ -222,6 +229,7 @@ export const ACTIONS = [
   'move', 'destroy', 'modify', 'gain_armor', 'gain_command', 'cost_modifier', 'transform', 'random_pick',
   'discard', 'return_to_hand', 'clash', 'flip', 'scry', 'ban_play', 'steal_card', 'survive',
   'extra_attack', 'take_control', 'copy_skill', 'force_attack',
+  'attack_bonus',  // 普通攻击结算前的临时伤害加成
   'add_to_deck',   // 往牌库随机位置塞 N 张指定卡（ADR-050）
   'send_to_deck',  // 把牌库里剩下的指定牌全塞给对方（ADR-050）
   'cycle_to_deck', // 手牌放回牌库随机位置再抽 1 张（ADR-050）

@@ -199,6 +199,15 @@ function makeState(o: Setup): MatchState {
 
 const decideFor = (st: MatchState) => decide(st, CTX);
 
+test('AI：发现待选择时必须选牌，不能返回空过或结束回合', () => {
+  const st = makeState({ hand: [], deck: ['t_soldier', 't_chip'] });
+  st.pendingDiscover = { side: 'own', candidates: ['t_soldier', 't_chip'], destination: 'deck_top' };
+  assert.deepEqual(chooseAction(st, CTX), { type: 'CHOOSE_DISCOVER', cardId: 't_soldier' });
+  const result = applyAction(st, CTX, chooseAction(st, CTX)!);
+  assert.equal(result.ok, true, result.error ?? 'discover choice rejected');
+  assert.equal(result.state.pendingDiscover, undefined);
+});
+
 /** 把动作摊平成便于断言的一行 */
 const describe = (a: Action | null): string => {
   if (!a) return 'PASS';
