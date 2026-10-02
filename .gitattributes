@@ -1,0 +1,9 @@
+# 生成物的合并策略：冲突时自动取"当前分支那一份"。
+#
+# 这些文件是脚本产物（bash tools/build-cards.sh 生成），冲突内容是压缩 JS 与格式化 JSON，
+# 没有语义、无法人工判断该保留哪边。重建由 .githooks/post-merge 负责。
+#
+# ⚠️ 需要 `git config merge.ours.driver true` 才生效（tools/serve.sh 与 npm install 会自动配）。
+prototype/core.bundle.js  merge=ours
+prototype/data.bundle.js  merge=ours
+core/data/*.json          merge=ours

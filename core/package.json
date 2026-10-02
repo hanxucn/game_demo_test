@@ -18,7 +18,7 @@
     "smoke": "node --experimental-strip-types tools/smoke.ts",
     "build:browser": "esbuild src/index.ts --bundle --format=iife --global-name=Core --outfile=../prototype/core.bundle.js --log-level=warning",
     "ai:report": "node --experimental-strip-types tools/ai-report.ts",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true; git config merge.ours.driver true || true; git config pull.rebase false || true"
   },
   "engines": {
     "node": ">=20"

@@ -1,12 +1,35 @@
+# ⚠️ 本文件的注释必须**单独占一行** —— gitignore 不支持行尾注释。
+#    `foo.html   # 说明` 会被当成一个含空格与 # 的**文件名**，永远匹配不上；
+#    而且失败是**静默的**：文件既没被跟踪、也没被忽略 → 永远显示 `??`、
+#    能被 `git add -A` 带进版本库、还会**挡住 git checkout**（目标分支同名文件已跟踪时，
+#    git 拒绝覆盖未跟踪文件）。
+#    本规则由 tools/check-hygiene.sh 强制检查（.githooks/pre-commit 会跑）。
+
 # 生成物：由 tools/ 脚本产出，勿手改
-prototype/_probe.html          # tools/make-probe.sh 生成的临时探针页
-docs/gdd/index.html            # tools/render-gdd.mjs 生成
+# prototype/_probe.html —— tools/make-probe.sh 生成的临时探针页
+prototype/_probe.html
+# docs/gdd/index.html —— tools/render-gdd.mjs 生成
+docs/gdd/index.html
 server/game.db
 .screenshots/*.png
 .playwright-mcp/
 
 # 依赖目录（各平台二进制不同，绝不能入库 —— 见 AGENTS.md）
 node_modules/
+# Python 的编译产物与「装进仓库里」的依赖（2026-09-30：feat(troop) 误入库了 44 个文件，
+# 含一个 248KB 的 Windows 二进制 _yaml.cp312-win_amd64.pyd —— 在本机根本加载不了）。
+# 本地缺 PyYAML 请 `pip install pyyaml`，不要把依赖目录塞进仓库。
+__pycache__/
+*.pyc
+*.pyd
+*.whl
+*.egg-info/
+.venv/
+venv/
+site-packages/
+# AI/工具在仓库内建的本地沙箱或缓存目录（形如 .codex-xxx / .claude-xxx）
+.codex-*/
+.claude-*/
 # macOS 桌面元数据
 .DS_Store
 # 已取消跟踪的旧快照：内容全是仓库已有文件的副本，一半是 __MACOSX 垃圾
@@ -17,3 +40,4 @@ node_modules/
 #    它们是浏览器与测试的直接输入，取消跟踪会让「pull 下来直接开页面」失效，
 #    反而多一条「本地跑旧引擎」的静默失败路径（PR #12 那个坑的形状）。
 #    新鲜度由 .githooks/pre-commit 与 tools/serve.sh 保证。
+#    这条也由 tools/check-hygiene.sh 守着（防止有人把规则加回来）。

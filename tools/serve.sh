@@ -41,6 +41,23 @@ PORT="${1:-8099}"
 #   条件），而且失败是**静默的** —— 页面照常打开、照常能玩，横跨 5 条提交、153 分钟无人发现。
 #   对比：产物缺失时页面是**一片黑**（window.Core undefined），那是响亮的失败。
 #   这个重建就是让"静默"变回"响亮"、并且直接修好它。
+# ---------- 补齐本地协作配置（幂等、静默） ----------
+# 三项 config 是各"机制"生效的前提，但存在**每个 clone 各自的 .git/config** 里、无法随仓库分发。
+# 放在这里是因为**这是大家本来就会跑的命令**，不用额外记一条（npm install 的 prepare 也会配）。
+#   core.hooksPath / merge.ours.driver / pull.rebase（后者不配，git ≥2.27 的 pull 会直接失败）
+if [ "$(git config core.hooksPath 2>/dev/null || true)" != ".githooks" ]; then
+  git config core.hooksPath .githooks 2>/dev/null || true
+  echo "▸ 已启用提交/合并/推送钩子（core.hooksPath = .githooks）"
+fi
+if [ "$(git config merge.ours.driver 2>/dev/null || true)" != "true" ]; then
+  git config merge.ours.driver true 2>/dev/null || true
+  echo "▸ 已启用生成物自动合并（merge.ours.driver）"
+fi
+if [ "$(git config pull.rebase 2>/dev/null || true)" != "false" ]; then
+  git config pull.rebase false 2>/dev/null || true
+  echo "▸ 已设定 git pull 用 merge（pull.rebase = false）"
+fi
+
 build_ok=1
 if [ ! -d core/node_modules ]; then
   echo "⚠ core/node_modules 不存在 —— 打包浏览器产物要 esbuild，先跑一次："

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# pre-push：推送前确认生成物与源码一致 —— 过期产物不许流到远端。
+#
+# 为什么需要：pre-commit 只在"有提交"时跑。若 merge/pull 之后没新提交就直接 push，
+# 那次推送可能带着与源码不同步的生成物。有了这道闸，你推送前不需要主动跑任何命令。
+#
+# 通过条件：重建之后，工作区与暂存区都没有生成物差异
+#          （即即将推送的内容 = 从当前源码重建出来的那份）。
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" 2>/dev/null || exit 0
+
+ARTIFACTS=(core/data prototype/core.bundle.js prototype/data.bundle.js)
+
+if ! bash tools/build-cards.sh >/dev/null 2>&1; then
+  echo "⚠ pre-push：生成物重建失败（缺 esbuild / python3 / PyYAML？）—— 跳过这道检查。"
+  echo "  手动跑一次看原因： bash tools/build-cards.sh"
+  exit 0
+fi
+node tools/render-gdd.mjs >/dev/null 2>&1 || true
+
+if ! git diff --quiet -- "${ARTIFACTS[@]}" || ! git diff --cached --quiet -- "${ARTIFACTS[@]}"; then
+  echo
+  echo "✗ pre-push：生成物与源码不同步 —— 推上去的会是过期数据。已重建好，提交它再推："
+  echo
+  echo "      git add -- ${ARTIFACTS[*]}"
+  echo "      git commit -m \"chore: 重建生成物\"     # 想并进上一条：git commit --amend --no-edit"
+  exit 1
+fi
+exit 0

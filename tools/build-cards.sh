@@ -13,6 +13,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# 提醒：提交前的自动防线（仓库卫生 + 产物重建）靠 git hook，而 hook 要装一次。
+# 没装的话，下面这些检查不会在 `git commit` 时自动跑 —— 这里替它喊一声。
+# （本脚本被 .githooks/pre-commit 调用时，hooksPath 已是 .githooks，因此不会重复提醒。）
+if [ "$(git config core.hooksPath 2>/dev/null || true)" != ".githooks" ]; then
+  echo "⚠ core.hooksPath 未设为 .githooks —— 提交前的自动防线不会生效。装一次即可："
+  echo "    cd core && npm install        # 或：git config core.hooksPath .githooks"
+  echo
+fi
+
 echo "① 导出运行时 JSON（data/*.yaml → core/data/*.json）"
 python3 tools/yaml2json.py
 

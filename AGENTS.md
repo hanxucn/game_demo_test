@@ -35,6 +35,9 @@ server/              （待建）Go 服务端
 ## 验证命令
 
 ```bash
+# 仓库卫生（6 条通用规则：.gitignore 语法 / 生成物入库状态 / 文件类型白名单 / 依赖安装特征 / 顶层目录白名单 / 钩子执行位）
+bash tools/check-hygiene.sh      # pre-commit 会自动跑；改过 .gitignore 后请手动确认
+
 # 机制文档
 node tools/render-gdd.mjs        # 重新生成单页 HTML
 
@@ -110,6 +113,19 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 
 ## Git 提交约定（重要）
 
+> ### 日常流程（普通 git 命令，不需要额外跑项目脚本）
+>
+> ```bash
+> git pull origin main      # 同步 main —— 生成物冲突由 merge=ours 自动解决，不会打断你
+> #  若提示手写文件冲突：打开改好 → git add <文件> → git commit
+> git commit                # 钩子自动跑防线 + 重建产物并带上（别用 git add -A）
+> git push                  # 钩子最后确认一次：产物与源不一致就拦下
+> ```
+>
+> 生成物冲突不需要你解（内容是压缩 JS 与格式化 JSON，本就没有语义）：`merge=ours` 让 git
+> 自动取一边，钩子随后从源码重建。只有**手写文件**的冲突会浮到你面前。
+> `bash tools/sync.sh` 是可选引导版，不用它一样正确。钩子明细见下节。
+
 **AI 不要自行 `git commit`。** 每完成一处改动/修复后，向设计者报告：
 
 1. 改了什么、为什么改（含验证结果）
@@ -122,8 +138,8 @@ cd core && npm test && npm run typecheck && npm run validate && npm run verify:d
 - ✅ 允许：`git status` / `git diff` / `git log` / `git show` 等只读操作
 - ✅ 允许：在设计者明确要求时提交，或按设计者指定的粒度提交
 - ❌ 不要：改完就自动 `git add -A && git commit`
-- ⚠️ 不要用 `git add -A`（会把 `prototype/_probe.html` 等生成物带进版本库）
-  —— 只 add 自己确实改过的文件
+- ⚠️ 不要用 `git add -A`（会把当前所有未跟踪文件一起带进来）—— 只 add 自己确实改过的文件
+  （生成物已由 `.gitignore` + `tools/check-hygiene.sh` 挡住，但**未跟踪的新文件**不受保护）
 
 **提交信息格式（设计者 2026-09-27 修订）**：简体中文。**标题 1~2 句说清"这是什么事"；
 正文（comment）分组列出概括性的更新内容**：
@@ -189,25 +205,31 @@ feat(card): 增加吴国人物卡牌，相关机制优化
 git config core.hooksPath .githooks
 ```
 
-它保证**提交里带上的生成物 = 从当前源码重建出来的那份**，两条路径各管一段：
+它保证**提交/合并里带上的生成物 = 从当前源码重建出来的那份**，五条路径各管一段：
 
 | hook | 触发时机 | 行为 |
 |---|---|---|
-| `pre-commit` | 普通 `git commit` | 重建产物（~0.5s）；把**变了的**生成物**自动加入本次提交**。重建失败且本次提交碰了生成物的源 → **拦住**（不碰源则只警告放行） |
-| `post-rewrite` | `git rebase` / `git commit --amend` **之后** | 这两条路径**不会**调用 `pre-commit`（已实测），而变基对生成物做的是**文本合并**、可能与真重建不一致 → 重建 + 响亮报告 + 给出修复命令 |
+| `pre-commit` | `git commit` | 卫生防线（失败即拦）+ 重建产物并**自动加入本次提交** |
+| `post-rewrite` | `rebase` / `--amend` 之后 | 这两条路径**不触发** `pre-commit` → 重建 + 报告 |
+| `pre-merge-commit` | `git merge` 造合并提交**之前** | 只落一个标记给 `post-merge`。⚠️ 这里 `git add` **改不了**合并提交（git 已先算好树） |
+| `post-merge` | `git merge` / `git pull` **之后** | 重建并**并进刚才的合并提交**。⚠️ 判断靠标记文件；`--amend` 前需挪开 `MERGE_HEAD` |
+| `pre-push` | `git push` **之前** | 产物与源不一致就拦下 —— 过期产物不可能流到远端 |
 
 临时跳过：`git commit --no-verify`
 
-**为什么加它**：2026-09-27 实测 —— teammate 的 PR #12 改了 `core/src/*.ts` 但没重建
-`prototype/core.bundle.js`，main 上的页面跑**旧引擎 + 新数据**，而且失败是**静默的**
-（页面照常打开、照常能玩），横跨 5 条提交、153 分钟无人发现。
-下面那条人工检查项「改了 core / data 后已重建」因此被证明**靠不住** —— 交给 hook。
+> **① 守什么**：6 条通用规则（.gitignore 语法 / 生成物入库状态 / 文件类型白名单 /
+> 依赖安装特征 / 顶层目录白名单 / **钩子执行位**），判据与修法见 `tools/check-hygiene.sh` 文件头。
+> 第 ⑥ 条是踩出来的：git 对**没有可执行位**的钩子是**静默跳过**的 —— 一个不跑的钩子
+> 比没有钩子更糟，它让人以为防线还在。
+
+**为什么加它**：2026-09-27 实测 —— teammate 改了 `core/src/*.ts` 却没重建
+`prototype/core.bundle.js`，main 上的页面跑**旧引擎 + 新数据**且失败是**静默的**
+（页面照常打开），横跨 5 条提交无人发现。人工检查项因此被证明靠不住 —— 交给 hook。
 
 > 另：`bash tools/serve.sh` 启动时也会重建一次（~0.5s），所以**本地跑**同样不会再吃到过期产物。
 
 ## 提交前检查清单
 
-- [ ] 改了 core / data 后已重建 `core.bundle.js` 与 `data.bundle.js`（`.githooks/pre-commit` 已自动做）
 - [ ] `cd core && npm test` 全过 + `npm run typecheck` + `npm run validate` + `npm run verify:dsl`
 - [ ] 新增卡牌已跑数据校验（`npm run validate` 无 error；字段名、关键词/状态/动作注册、类型定型都过）
 - [ ] 若改了机制，`docs/gdd/` 已同步且 `index.html` 已重新生成

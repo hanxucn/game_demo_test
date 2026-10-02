@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# post-merge：合并后重建生成物，并把它并进刚才的合并提交。
+#
+# 为什么需要：`git merge` **不触发** pre-commit（实测），而 .gitattributes 的 merge=ours
+# 会让生成物静默保留"我们这一份" —— 不处理就是「产物与合进来的源码不一致、且不报错」，
+# 而测试与 server 读的正是 core/data/*.json。
+#
+# ⚠️ 两条实测约束：
+#   ① 判断"HEAD 是本次刚造的合并提交"要用 pre-merge-commit 落的标记文件，别用时间启发式；
+#   ② `git commit --amend` 会被 `MERGE_HEAD` 挡住（fatal: You are in the middle of a merge），
+#      需临时挪开 —— 合并已完成，git 紧接着自己也会清掉它。
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" 2>/dev/null || exit 0
+
+ARTIFACTS=(core/data prototype/core.bundle.js prototype/data.bundle.js)
+
+MARKER="$(git rev-parse --git-path dsh-merge-commit-pending)"
+fresh=0
+if [ -f "$MARKER" ]; then rm -f "$MARKER"; fresh=1; fi
+
+if ! bash tools/build-cards.sh >/dev/null 2>&1; then
+  echo "⚠ post-merge：生成物重建失败 —— 手动跑一次看原因： bash tools/build-cards.sh"
+  exit 0
+fi
+node tools/render-gdd.mjs >/dev/null 2>&1 || true
+
+changed=$(git diff --name-only -- "${ARTIFACTS[@]}")
+[ -z "$changed" ] && exit 0
+printf '%s\n' "$changed" | while IFS= read -r f; do [ -n "$f" ] && git add -- "$f"; done
+
+amended=0
+if [ "$fresh" = 1 ]; then
+  MH="$(git rev-parse --git-path MERGE_HEAD)"
+  if [ -f "$MH" ]; then
+    mv "$MH" "$MH.dshbak" 2>/dev/null || true
+    if git commit --amend --no-edit >/dev/null 2>&1; then
+      amended=1; rm -f "$MH.dshbak"
+    else
+      mv "$MH.dshbak" "$MH" 2>/dev/null || true
+    fi
+  elif git commit --amend --no-edit >/dev/null 2>&1; then
+    amended=1
+  fi
+fi
+
+if [ "$amended" = 1 ]; then
+  echo "▸ post-merge：生成物已重建并**并进刚才的合并提交**："
+else
+  echo "▸ post-merge：生成物已重建并暂存（随下次提交带上；pre-push 也会确认）："
+fi
+printf '%s\n' "$changed" | sed 's/^/    /'
+exit 0

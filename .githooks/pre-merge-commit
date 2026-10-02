@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# pre-merge-commit：留一个标记，告诉 post-merge「HEAD 就是这次合并刚造出来的提交」。
+#
+# ⚠️ 别在这里做重建 + git add —— 实测无效：git 在调用本钩子**之前**就把合并提交的树
+#    算好了（这点与 pre-commit 不同，那里 git add 会进提交）。重建放 post-merge。
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" 2>/dev/null || exit 0
+
+: > "$(git rev-parse --git-path dsh-merge-commit-pending)" 2>/dev/null || true

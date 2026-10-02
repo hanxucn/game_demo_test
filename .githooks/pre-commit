@@ -14,6 +14,10 @@
 #   · 重建失败时：若本次提交碰了生成物的源，就**拦住**（不能带过期产物提交）；
 #     若没碰源（比如只改文档），只警告放行 —— 不因为缺 Python 依赖就卡住无关提交
 #
+# 另：本 hook 开头还会跑 tools/check-hygiene.sh（仓库卫生检查）——
+#   .gitignore 行尾注释会让规则**静默失效**、生成物被误入库会**挡住 git checkout**，
+#   两类都不报错，所以每次提交都查一遍。详见那个脚本的文件头。
+#
 # 安装（每个 clone 跑一次；已提交进版本库，所以新人 clone 后也就差这一条命令）：
 #     git config core.hooksPath .githooks
 # 临时跳过：git commit --no-verify
@@ -21,6 +25,14 @@
 set -uo pipefail
 
 cd "$(git rev-parse --show-toplevel)" || exit 0
+
+# ---------- 仓库卫生（.gitignore 语法 + 生成物的入库状态）----------
+# 放在重建之前：坏消息早报，且不依赖重建是否成功。守什么见 tools/check-hygiene.sh。
+if ! bash tools/check-hygiene.sh; then
+  echo
+  echo "  跳过这道检查：git commit --no-verify"
+  exit 1
+fi
 
 # 生成物的「源」——碰了它们就必须重建成功，否则本次提交会带上过期产物
 SOURCES_RE='^(core/src/|data/|core/tools/|tools/(yaml2json\.py|build-data-bundle\.py|build-cards\.sh))'
