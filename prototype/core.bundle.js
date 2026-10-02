@@ -432,6 +432,14 @@ var Core = (() => {
       caps: ["water_damage"],
       note: "\u6C34\u653B\u4F24\u5BB3 +N"
     },
+    teng_jia: {
+      name: "\u85E4\u7532",
+      kind: "buff",
+      numeric: true,
+      duration: "permanent",
+      caps: ["reduce_physical", "vulnerable_fire", "thorns"],
+      note: "\u53D7\u5230\u666E\u901A/\u65E0\u5C5E\u6027\u4F24\u5BB3 \u2212N\uFF08\u6700\u4F4E 0\uFF09\uFF0C\u53D7\u5230\u706B\u5C5E\u6027\u4F24\u5BB3 +N\uFF0C\u4E14\u4F24\u5BB3\u6765\u6E90\u53CD\u5F39 N \u70B9\uFF08ADR-108\uFF09"
+    },
     mian_yi: {
       name: "\u514D\u75AB",
       kind: "buff",
@@ -931,7 +939,7 @@ var Core = (() => {
     }
     s.hand.push({ card, mods: [] });
   }
-  function dealDamage(state, cards, ref, amount, events, source, depth = 0, killerRef, sourceUnit) {
+  function dealDamage(state, cards, ref, amount, events, source, depth = 0, killerRef, sourceUnit, damageType = "physical") {
     if (amount <= 0 || !refAlive(state, ref)) return 0;
     if (ref.kind === "lord") {
       const lord = state.sides[ref.side].lord;
@@ -1017,21 +1025,60 @@ var Core = (() => {
       return 0;
     }
     const hpBefore = u.hp;
-    u.hp -= amount;
-    const actual = Math.min(amount, hpBefore);
+    const reducePhysical = capStacks(u.statuses, "reduce_physical");
+    const vulnerableFire = capStacks(u.statuses, "vulnerable_fire");
+    let finalAmount = amount;
+    if (damageType === "physical" && reducePhysical > 0) {
+      finalAmount = Math.max(0, finalAmount - reducePhysical);
+    } else if (damageType === "fire" && vulnerableFire > 0) {
+      finalAmount = finalAmount + vulnerableFire;
+    }
+    if (finalAmount <= 0) {
+      events.push({ type: "DAMAGE", target: ref, amount: 0, source });
+      return 0;
+    }
+    u.hp -= finalAmount;
+    const actual = Math.min(finalAmount, hpBefore);
+    const thorns = capStacks(u.statuses, "thorns");
+    if (actual > 0 && thorns > 0 && sourceUnit && killerRef && sourceUnit.uid !== u.uid) {
+      events.push({ type: "DAMAGE", target: ref, amount: actual, source });
+      const srcSide = killerRef.side;
+      const srcRow = killerRef.row;
+      const srcCol = killerRef.col;
+      const v = getUnit(state, srcSide, srcRow, srcCol);
+      if (v) {
+        const before = v.hp;
+        dealDamage(
+          state,
+          cards,
+          unitRef(srcSide, srcRow, srcCol),
+          thorns,
+          events,
+          u.name,
+          depth + 1,
+          null,
+          u,
+          "physical"
+        );
+        if (v.hp <= 0 && before > 0) {
+          killUnit(state, cards, { side: srcSide, row: srcRow, col: srcCol, unit: v }, events, null);
+        }
+      }
+      return actual;
+    }
     if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
       const p = upgradeProgress(sourceUnit);
       if (sourceUnit.troopKind === "infantry") p.damage += actual;
       if (sourceUnit.troopKind === "archer" && ["general", "strategist"].includes(u.type)) p.heroHits += 1;
     }
-    events.push({ type: "DAMAGE", target: ref, amount, source });
+    events.push({ type: "DAMAGE", target: ref, amount: finalAmount, source });
     if (actual > 0 && sourceUnit?.kw.includes("ju_du") && u.hp > 0) {
       killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
       return actual;
     }
-    if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return amount;
+    if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return finalAmount;
     if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
-    return amount;
+    return finalAmount;
   }
   function tryLethalSave(state, u, ref, events) {
     const saves = (u.skills ?? []).filter((sk) => sk.trigger === "on_lethal");
@@ -1198,7 +1245,18 @@ var Core = (() => {
     for (const ref of allUnits(state, side)) {
       const poison = statusStacks(ref.unit, "zhong_du");
       if (poison > 0) {
-        dealDamage(state, cards, unitRef(ref.side, ref.row, ref.col), poison, events, "\u4E2D\u6BD2");
+        dealDamage(
+          state,
+          cards,
+          unitRef(ref.side, ref.row, ref.col),
+          poison,
+          events,
+          "\u707C\u70E7",
+          0,
+          void 0,
+          void 0,
+          "fire"
+        );
       }
     }
   }
@@ -1892,7 +1950,18 @@ var Core = (() => {
               const before = hpOf(state, t);
               const victim = t.kind === "unit" ? getUnit(state, t.side, t.row, t.col) : null;
               const waterBonus = eff.damage_type === "water" ? allUnits(state, ctx.side).reduce((sum, ref) => sum + capStacks(ref.unit.statuses, "water_damage"), 0) : 0;
-              dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? "\u6548\u679C", 0, void 0, ctx.source);
+              dealDamage(
+                state,
+                cards,
+                t,
+                val + waterBonus,
+                events,
+                ctx.source?.name ?? "\u6548\u679C",
+                0,
+                void 0,
+                ctx.source,
+                eff.damage_type ?? "physical"
+              );
               if (before > 0 && hpOf(state, t) <= 0) {
                 ctx.flags = ctx.flags ?? [];
                 if (!ctx.flags.includes("killed")) ctx.flags.push("killed");

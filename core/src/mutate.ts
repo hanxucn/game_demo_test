@@ -8,8 +8,8 @@
 
 import { BOARD, DECK, STATUSES } from './constants.ts';
 import { createRng } from './rng.ts';
-import { allUnits, applyMods, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, isBasicTroop, makeUnit, nextUidSeq, other, setUnit, statusStacks, upgradeProgress } from './state.ts';
-import type { CardDef, CardType, GameEvent, HandCard, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
+import { allUnits, applyMods, capStacks, getUnit, hasCap, hasCapOn, hasKeyword, hasTrait, isBasicTroop, makeUnit, nextUidSeq, other, setUnit, statusStacks, upgradeProgress } from './state.ts';
+import type { CardDef, CardType, DamageType, GameEvent, HandCard, MatchState, Row, Side, SkillDef, Unit } from './types.ts';
 
 export type TargetRef =
   | { kind: 'unit'; side: Side; row: Row; col: number }
@@ -256,6 +256,14 @@ export function dealDamage(
   killerRef?: { side: Side; row: Row; col: number } | null,
   /** 造成伤害的具体单位，用于普通兵升级进度与剧毒。 */
   sourceUnit?: Unit,
+  /**
+   * 本次伤害的**属性**（藤甲兵 ADR-108）。缺省 `physical` = 普通攻击 / 无属性效果伤害。
+   *
+   * 这是**受伤侧**唯一能知道"来源是火还是水"的入口 —— 此前 `damage_type` 只在
+   * 发起伤害时被读取（水攻加成），`dealDamage` 完全不知道来源属性，
+   * 导致「藤甲：火 +1 / 其余 −1」这类减伤效果无法实现（见 GDD 18 §3）。
+   */
+  damageType: DamageType = 'physical',
 ): number {
   if (amount <= 0 || !refAlive(state, ref)) return 0;
 
@@ -318,15 +326,57 @@ export function dealDamage(
   }
 
   const hpBefore = u.hp;
-  u.hp -= amount;
-  const actual = Math.min(amount, hpBefore);
+
+  // 受伤侧减伤 / 反伤（ADR-108 藤甲兵）：
+  //   reduce_physical —— 受到 physical 伤害时 −N（最低 0，"刀枪不入"）
+  //   vulnerable_fire —— 受到 fire 伤害时 +N（"遇火即燃"）
+  //   thorns —— 本次实际受伤后，来源单位反弹 N 点
+  // 三个能力都是**状态驱动**（藤甲兵入场自挂），故只认能力、不认卡 id。
+  const reducePhysical = capStacks(u.statuses, 'reduce_physical');
+  const vulnerableFire = capStacks(u.statuses, 'vulnerable_fire');
+  let finalAmount = amount;
+  if (damageType === 'physical' && reducePhysical > 0) {
+    finalAmount = Math.max(0, finalAmount - reducePhysical);
+  } else if (damageType === 'fire' && vulnerableFire > 0) {
+    finalAmount = finalAmount + vulnerableFire;
+  }
+  if (finalAmount <= 0) {
+    // 被完全减伤：只发 0 伤事件，不进入后面的击杀/免死/升级进度判定
+    events.push({ type: 'DAMAGE', target: ref, amount: 0, source });
+    return 0;
+  }
+
+  u.hp -= finalAmount;
+  const actual = Math.min(finalAmount, hpBefore);
+
+  // 反伤：本次实际受伤后，由来源单位承受 N 点（同一次结算内立即回敬）。
+  // 来源的**坐标**取自 killerRef —— `sourceUnit`（Unit）本身不携带 row/col。
+  const thorns = capStacks(u.statuses, 'thorns');
+  if (actual > 0 && thorns > 0 && sourceUnit && killerRef && sourceUnit.uid !== u.uid) {
+    events.push({ type: 'DAMAGE', target: ref, amount: actual, source });
+    const srcSide = killerRef.side;
+    const srcRow = killerRef.row;
+    const srcCol = killerRef.col;
+    const v = getUnit(state, srcSide, srcRow, srcCol);
+    if (v) {
+      const before = v.hp;
+      dealDamage(
+        state, cards, unitRef(srcSide, srcRow, srcCol),
+        thorns, events, u.name, depth + 1, null, u, 'physical',
+      );
+      if (v.hp <= 0 && before > 0) {
+        killUnit(state, cards, { side: srcSide, row: srcRow, col: srcCol, unit: v }, events, null);
+      }
+    }
+    return actual;
+  }
 
   if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
     const p = upgradeProgress(sourceUnit);
     if (sourceUnit.troopKind === 'infantry') p.damage += actual;
     if (sourceUnit.troopKind === 'archer' && ['general', 'strategist'].includes(u.type)) p.heroHits += 1;
   }
-  events.push({ type: 'DAMAGE', target: ref, amount, source });
+  events.push({ type: 'DAMAGE', target: ref, amount: finalAmount, source });
 
   // 剧毒是伤害来源单位的能力，不依赖额外牌组或状态；伤害至少命中 1 点后直接摧毁目标。
   if (actual > 0 && sourceUnit?.kw.includes('ju_du') && u.hp > 0) {
@@ -335,10 +385,10 @@ export function dealDamage(
   }
 
   // 免死判定（ADR-039）：致命伤害时按 on_lethal 技能掷骰，成功则以 1 血存活
-  if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return amount;
+  if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return finalAmount;
 
   if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
-  return amount;
+  return finalAmount;
 }
 
 /**
@@ -644,7 +694,11 @@ export function resolveTurnEndStatuses(
   for (const ref of allUnits(state, side)) {
     const poison = statusStacks(ref.unit, 'zhong_du');
     if (poison > 0) {
-      dealDamage(state, cards, unitRef(ref.side, ref.row, ref.col), poison, events, '中毒');
+      // ADR-108：`zhong_du` 在卡池里**只被火属性卡用作「灼烧」**（荀攸乌巢袭粮 /
+      // 陆逊策火流云 / 董卓暴虐），故按 fire 结算 —— 藤甲的「遇火即燃」要能吃到它。
+      // 走 dealDamage 的最后一位参数，语义与普通火攻伤害一致。
+      dealDamage(state, cards, unitRef(ref.side, ref.row, ref.col), poison, events, '灼烧',
+        0, undefined, undefined, 'fire');
     }
   }
 }

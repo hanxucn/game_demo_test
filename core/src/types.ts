@@ -66,6 +66,14 @@ export interface EffectCondition {
 
 export type CompareOp = '>=' | '<=' | '==' | '>' | '<' | '!=';
 
+/**
+ * 伤害属性（ADR-108 藤甲兵）
+ *
+ * 缺省 `physical` 覆盖**普通攻击**与**无属性效果伤害**（如万箭齐发、火烧洛阳
+ * 补 damage_type 之前的状态）。`fire` / `water` 由卡面 `damage_type` 显式声明。
+ */
+export type DamageType = 'physical' | 'fire' | 'water';
+
 export interface CardEffect {
   action: string;
   value?: number;
@@ -76,7 +84,7 @@ export interface CardEffect {
   status_source?: 'self';        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
   value_from_discarded?: 'cost' | 'health';   // 取「最近被弃牌」的属性作为数值（ADR-040）
   value_from_source?: 'attack' | 'health';    // 取来源单位当前攻/血作为数值
-  damage_type?: 'water' | 'fire'; // damage 专用：水攻/火攻伤害
+  damage_type?: DamageType;       // damage 专用：水攻/火攻伤害（缺省 physical，见 DamageType）
   discover_to?: 'hand' | 'deck_top'; // discover 专用：选择后进手牌或牌库顶
   value_from_flag?: string;                   // 取 flags 中 "<name>:N" 的 N 作为数值（ADR-041）        // apply_status 时把来源单位记为状态的 srcUid（ADR-039）
   attack_from?: TargetSelector;  // 动态取值：攻击 = 该集合数量

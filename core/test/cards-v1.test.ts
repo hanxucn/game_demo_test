@@ -19,6 +19,8 @@ import { applyAction } from '../src/engine.ts';
 import { getUnit, makeUnit, setUnit } from '../src/state.ts';
 import { dealDamage, effectiveCost } from '../src/mutate.ts';
 import { legalTargets } from '../src/rules.ts';
+import { resolveAttack } from '../src/effects.ts';
+import { createRng } from '../src/rng.ts';
 import { STATUSES } from '../src/constants.ts';
 import { TEST_CARDS, scenario } from './fixtures.ts';
 import type { Action, CardDef, GameEvent, Unit } from '../src/types.ts';
@@ -66,15 +68,30 @@ const u = (id: string, atk: number, hp: number, tags: string[] = [], faction: 's
 const uReady = (id: string, atk: number, hp: number, faction: 'shu' | 'wei' = 'wei') =>
   makeUnit({ id, name: id, faction, type: 'general', cost: 2, attack: atk, health: hp, keywords: [], tags: [], memo: '' } as CardDef, 0, 1);
 
-/* ================= 黄权：光环为主帅加主公技次数 ================= */
+/* ================= 黄权：受创时对敌方全体造成火攻伤害 ================= */
 
-test('黄权 劝谏：光环给己方主帅挂「参谋」（主公技可多用一次）', () => {
-  const card = realCard('shu_huangquan');
-  const { state, ctx } = scenario({ ownHand: ['shu_huangquan'] });
-  const r = applyAction(state, ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 0 });
-  const lord = r.state.sides.own.lord;
-  assert.ok(lord.statuses?.can_mou, '己方主帅应获得「参谋」状态');
-  assert.equal(lord.statuses?.can_mou?.stacks, 1, '参谋应为 1 层');
+test('黄权 断后：受到伤害时对敌方全体造成 1 点火攻伤害', () => {
+  // on_damaged 由「普通攻击结算」触发（时机表第 16 步，effects.ts:833），
+  // 必须走 resolveAttack（攻击的正规入口），裸调 dealDamage 不派发触发技。
+  const { state, ctx } = scenario({ own: { front: ['shu_huangquan'] } });
+  setUnit(state, 'enemy', 'front', 0, u('e0', 2, 4));
+  setUnit(state, 'enemy', 'front', 1, u('e1', 2, 4));
+  setUnit(state, 'enemy', 'front', 2, u('attacker', 1, 4));
+  const before0 = getUnit(state, 'enemy', 'front', 0)!.hp;
+  const before1 = getUnit(state, 'enemy', 'front', 1)!.hp;
+
+  // 敌方 2 号位攻击己方黄权
+  const events: GameEvent[] = [];
+  const ok = resolveAttack(
+    state, ctx.cards, 'enemy', { row: 'front', col: 2 },
+    { kind: 'unit', row: 'front', col: 0 }, events, createRng(1), { toSide: 'own' },
+  );
+  assert.ok(ok, '攻击应成立');
+
+  const after0 = getUnit(state, 'enemy', 'front', 0)!.hp;
+  const after1 = getUnit(state, 'enemy', 'front', 1)!.hp;
+  assert.equal(before0 - after0, 1, '敌方单位 0 应因断后掉 1 血');
+  assert.equal(before1 - after1, 1, '敌方单位 1 应因断后掉 1 血');
 });
 
 /* ================= 关兴：条件先攻 + 击杀后额外行动 ================= */

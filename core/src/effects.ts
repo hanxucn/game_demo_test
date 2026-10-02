@@ -1009,7 +1009,8 @@ export function runEffects(
             const waterBonus = eff.damage_type === 'water'
               ? allUnits(state, ctx.side).reduce((sum, ref) => sum + capStacks(ref.unit.statuses, 'water_damage'), 0)
               : 0;
-            dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? '效果', 0, undefined, ctx.source);
+            dealDamage(state, cards, t, val + waterBonus, events, ctx.source?.name ?? '效果', 0, undefined, ctx.source,
+              eff.damage_type ?? 'physical');
             // 记录"本次造成了击杀"，供同一张卡的后续效果做条件判定
             if (before > 0 && hpOf(state, t) <= 0) {
               ctx.flags = ctx.flags ?? [];
