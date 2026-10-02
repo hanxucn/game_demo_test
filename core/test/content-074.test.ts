@@ -448,9 +448,9 @@ test('ADR-074：触发技 / 光环 / 主动技 / 主公技都发 SKILL_TRIGGERED
   assert.ok(rz.events.some((e) => e.type === 'SKILL_TRIGGERED' && e.timing === 'turn_end'),
     'turn_end 触发技应发事件');
 
-  // 光环：黄权（给主帅挂参谋）
-  realCard('shu_huangquan');
-  const hq = scenario({ ownHand: ['shu_huangquan'] });
+  // 光环：关平（勇武）。注：此处不能用黄权——它已从「劝谏」光环改为「断后」on_damaged
+  realCard('shu_guanping');
+  const hq = scenario({ ownHand: ['shu_guanping'] });
   const rh = applyAction(hq.state, hq.ctx, { type: 'PLAY_CARD', cardIndex: 0, row: 'front', col: 0 });
   assert.ok(rh.events.some((e) => e.type === 'SKILL_TRIGGERED' && e.kind === 'aura'),
     '光环重算应发事件');

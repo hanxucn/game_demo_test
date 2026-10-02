@@ -783,7 +783,9 @@ test('ADR-072：定型为「判不出类型」的卡不再丢攻血（黄权回�
   assert.ok(huang, '黄权应存在于卡表');
   assert.equal(huang.type, 'strategist', '黄权史实为文臣、攻击 ≤ 1 → 谋臣');
   assert.equal(huang.health, 3, '生命值不能因为「类型判不出」而丢失（曾整块丢过）');
-  assert.equal(huang.attack, 0, '攻击力应显式为 0，而不是缺字段');
+  // 2026-10 设计者裁定：黄权改「断后」时同步上调至 1 攻（谋臣上限，见 validate 的
+  // STRATEGIST_ATTACK_MAX）。本用例的本意是「攻血字段不得丢失」，攻血仍在，断言随之上调。
+  assert.equal(huang.attack, 1, '攻击力应显式写值（谋臣上限 1），而不是缺字段');
   // 顺带锁住"非单位卡不该有攻血"这条不变量
   const unitLike = ['tactic', 'event', 'status', 'special'];
   for (const c of ALL) {

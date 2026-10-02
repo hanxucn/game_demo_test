@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 
 import { applyAction, unitSkillTargetPlan } from '../src/engine.ts';
 import { dealDamage, unitRef } from '../src/mutate.ts';
+import { recomputeAuras } from '../src/effects.ts';
 import { createRng } from '../src/rng.ts';
-import { getUnit, makeUnit, setUnit } from '../src/state.ts';
+import { capStacks, getUnit, makeUnit, setUnit } from '../src/state.ts';
 import { scenario } from './fixtures.ts';
 import type { CardDef, GameEvent } from '../src/types.ts';
 
@@ -178,4 +179,207 @@ test('治疗战技可以选择满血友军', () => {
   });
   assert.equal(result.ok, true, result.error ?? '治疗满血友军应当成功');
   assert.equal(getUnit(result.state, 'own', 'front', 1)?.hp, 2);
+});
+
+/* ========================================================================
+ * ADR-108 藤甲盾：「刀枪不入、箭矢不透，遇火即燃」
+ *
+ * 这是**首个受伤侧属性感知**的机制。此前 dealDamage 完全不知道伤害来源是
+ * 火还是水（damage_type 只在发起侧被读取），所以这三条必须各锁一个用例：
+ *   ① 物理/无属性伤害 −1，且**最低为 0**（1 攻单位打不动 2/4 藤甲）
+ *   ② 火属性伤害 +1
+ *   ③ 伤害来源反弹 1 点
+ * ===================================================================== */
+
+const TENGJIA: CardDef = {
+  id: 'test_tengjia', name: '藤甲盾', faction: 'shu', type: 'troop',
+  cost: 2, attack: 2, health: 4, troopKind: 'shield', keywords: ['jia_dun'], memo: '测试',
+  skills: [{ id: 'teng_jia_wei', name: '藤甲', kind: 'aura', effects: [
+    { action: 'apply_status', status: 'teng_jia', stacks: 1, target: { source: true } },
+  ] }],
+};
+const STRAW: CardDef = {
+  id: 'test_straw', name: '草人', faction: 'wei', type: 'troop',
+  cost: 1, attack: 1, health: 4, troopKind: 'infantry', keywords: [], memo: '测试',
+};
+
+/** 摆一个「藤甲盾挨打」的局面，返回目标与攻击者的坐标 */
+function tengjiaUnderAttack() {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(TENGJIA.id, TENGJIA);
+  ctx.cards.set(STRAW.id, STRAW);
+  // uid 必须与本文件其它用例错开（前面已用到 1~10）：光环的 auraId 以 uid 为键，
+  // uid 撞车会让 recomputeAuras 认到别的单位身上。
+  setUnit(state, 'enemy', 'front', 3, makeUnit(TENGJIA, 0, 201));  // 挨打方
+  setUnit(state, 'own', 'front', 0, makeUnit(STRAW, 0, 202));     // 攻击方
+  // 光环由 recomputeAuras 挂载 —— 直接 setUnit 进场不会跑它，
+  // 必须显式重算，否则藤甲的减伤/反伤状态根本没挂上（实测 4 条用例会全灭）。
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+  // 目标必须是**带 kind 判别字段**的 TargetRef（`unitRef()` 构造）。
+  // 写成 `{ side, row, col }` 会因缺 `kind` 被 `ref.kind !== 'unit'` 判否，
+  // dealDamage 在函数第一行就返回 0 —— 症状是「藤甲减伤完全不生效」，极难定位。
+  return { state, ctx, target: unitRef('enemy', 'front', 3) };
+}
+
+test('ADR-108 藤甲盾：物理伤害 −1（刀枪不入）', () => {
+  const { state, ctx, target } = tengjiaUnderAttack();
+  const u = getUnit(state, 'enemy', 'front', 3)!;
+  const before = u.hp;
+  assert.equal(capStacks(u.statuses, 'reduce_physical'), 1, '藤甲减伤应挂 1 层');
+  // 2 点物理伤害 → 减 1 → 实际 1 点
+  const dealt = dealDamage(state, ctx.cards, target, 2, [], '测试', 0, { side: 'own', row: 'front', col: 0 },
+    getUnit(state, 'own', 'front', 0) ?? undefined, 'physical');
+  assert.equal(dealt, 1, 'dealt 应为 1');
+  assert.equal(before - (getUnit(state, 'enemy', 'front', 3)?.hp ?? -1), 1, '2 点物理伤害应被减到 1 点');
+});
+
+test('ADR-108 藤甲盾：减伤有下限，1 点物理伤害被完全免疫（不得为负）', () => {
+  const { state, ctx, target } = tengjiaUnderAttack();
+  const before = getUnit(state, 'enemy', 'front', 3)!.hp;
+  const dealt = dealDamage(state, ctx.cards, target, 1, [], '测试', 0, { side: 'own', row: 'front', col: 0 },
+    getUnit(state, 'own', 'front', 0) ?? undefined, 'physical');
+  assert.equal(dealt, 0, '1 点物理伤害应被完全减掉');
+  assert.equal(getUnit(state, 'enemy', 'front', 3)!.hp, before, '血量不应变化');
+});
+
+test('ADR-108 藤甲盾：火属性伤害 +1（遇火即燃）', () => {
+  const { state, ctx, target } = tengjiaUnderAttack();
+  const before = getUnit(state, 'enemy', 'front', 3)!.hp;
+  // 2 点火伤 → 加 1 → 实际 3 点
+  dealDamage(state, ctx.cards, target, 2, [], '火攻', 0, { side: 'own', row: 'front', col: 0 },
+    getUnit(state, 'own', 'front', 0) ?? undefined, 'fire');
+  assert.equal(before - getUnit(state, 'enemy', 'front', 3)!.hp, 3, '2 点火伤应放大为 3 点');
+});
+
+test('ADR-108 藤甲盾：火属性伤害触发反伤，来源掉 1 点', () => {
+  const { state, ctx, target } = tengjiaUnderAttack();
+  const atkBefore = getUnit(state, 'own', 'front', 0)!.hp;
+  dealDamage(state, ctx.cards, target, 2, [], '火攻', 0, { side: 'own', row: 'front', col: 0 },
+    getUnit(state, 'own', 'front', 0) ?? undefined, 'fire');
+  assert.equal(atkBefore - getUnit(state, 'own', 'front', 0)!.hp, 1, '伤害来源应受到 1 点反伤');
+});
+
+test('ADR-108 藤甲盾：水属性伤害不增不减（照常结算）', () => {
+  const { state, ctx, target } = tengjiaUnderAttack();
+  const before = getUnit(state, 'enemy', 'front', 3)!.hp;
+  dealDamage(state, ctx.cards, target, 2, [], '水攻', 0, { side: 'own', row: 'front', col: 0 },
+    getUnit(state, 'own', 'front', 0) ?? undefined, 'water');
+  assert.equal(before - getUnit(state, 'enemy', 'front', 3)!.hp, 2, '水攻应原样结算');
+});
+
+test('ADR-108 藤甲盾：无藤甲状态的单位不受影响（能力是状态驱动，不是卡 id 驱动）', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(STRAW.id, STRAW);
+  setUnit(state, 'own', 'front', 0, makeUnit(STRAW, 0, 301));
+  setUnit(state, 'enemy', 'front', 1, makeUnit(STRAW, 0, 302));
+  const before = getUnit(state, 'enemy', 'front', 1)!.hp;
+  dealDamage(state, ctx.cards, unitRef('enemy', 'front', 1), 2, [], '测试', 0,
+    { side: 'own', row: 'front', col: 0 }, getUnit(state, 'own', 'front', 0) ?? undefined, 'physical');
+  assert.equal(before - getUnit(state, 'enemy', 'front', 1)!.hp, 2, '普通单位应吃满 2 点物理伤害');
+});
+
+/* ========================================================================
+ * 无难兵「赴难」：己方主公血量**低于**敌方主公时攻击力 +1
+ *
+ * 与青州兵「青州突骑」是同一套模板（on_attack + lord_hp_vs_enemy），
+ * 但条件方向相反：青州=顺风（>），无难=逆风（<）。两条都锁住，
+ * 防止将来改条件时把两张卡改成同一个方向。
+ * ===================================================================== */
+
+const WUNAN: CardDef = {
+  id: 'test_wunan', name: '无难兵', faction: 'wu', type: 'troop',
+  cost: 3, attack: 2, health: 4, troopKind: 'shield', keywords: ['jia_dun'], memo: '测试',
+  skills: [{ id: 'fu_nan', name: '赴难', kind: 'trigger', trigger: 'on_attack', effects: [
+    { action: 'attack_bonus', value: 1, condition: { lord_hp_vs_enemy: '<' } },
+  ] }],
+};
+
+test('无难兵 赴难：己方主公血量低于敌方时，打主公伤害 +1', () => {
+  // scenario() 的 place 只认**卡池里已注册**的 id，测试卡必须先 ctx.cards.set，
+  // 否则 setup 阶段就抛「测试卡不存在」。
+  const { state, ctx } = scenario({});
+  ctx.cards.set(WUNAN.id, WUNAN);
+  setUnit(state, 'own', 'front', 0, makeUnit(WUNAN, 0, 501));
+  state.sides.own.lord.hp = 20;    // 我方 20
+  state.sides.enemy.lord.hp = 28;   // 敌方 28 → 逆风
+  const r = applyAction(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
+  assert.equal(r.ok, true, r.error ?? '攻击应成立');
+  assert.equal(r.state.sides.enemy.lord.hp, 25, '2 点基础伤害 + 1 点赴难 = 3');
+});
+
+test('无难兵 赴难：己方主公血量高于敌方时**不加成**（逆风才触发）', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(WUNAN.id, WUNAN);
+  setUnit(state, 'own', 'front', 0, makeUnit(WUNAN, 0, 502));
+  state.sides.own.lord.hp = 28;
+  state.sides.enemy.lord.hp = 20;   // 顺风
+  const r = applyAction(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.state.sides.enemy.lord.hp, 18, '顺风时只有 2 点基础伤害，无加成');
+});
+
+test('无难兵 赴难：与青州兵「青州突骑」条件方向相反，互不串味', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(WUNAN.id, WUNAN);
+  setUnit(state, 'own', 'front', 0, makeUnit(WUNAN, 0, 503));
+  // 双方同血：两个条件（> 与 <）都不成立，应无任何加成
+  state.sides.own.lord.hp = 25;
+  state.sides.enemy.lord.hp = 25;
+  const r = applyAction(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.state.sides.enemy.lord.hp, 23, '主公同血时两条条件都不触发，只有 2 点基础伤害');
+});
+
+/* ========================================================================
+ * 丹阳兵「袍泽」：阵亡时己方其他【步兵系】永久 +1/+1
+ *
+ * 关键不变量：只作用于 troopKind=infantry —— 盾/骑/弓系**不得**被误伤
+ * （`type: troop` 的卡占全池 38 张，若过滤失效会波及所有兵种）。
+ * ===================================================================== */
+
+const DANYANG: CardDef = {
+  id: 'test_danyang', name: '丹阳兵', faction: 'shu', type: 'troop',
+  cost: 3, attack: 3, health: 3, troopKind: 'infantry', keywords: [], memo: '测试',
+  skills: [{ id: 'pao_ze', name: '袍泽', kind: 'trigger', trigger: 'on_death', effects: [
+    { action: 'modify', attack: 1, health: 1, target: {
+      side: 'ally', filter: { type: 'troop', troopKind: 'infantry', exclude_source: true }, count: 'all' } },
+  ] }],
+};
+const SHIELDER: CardDef = {
+  id: 'test_shield', name: '测试盾兵', faction: 'wu', type: 'troop',
+  cost: 2, attack: 1, health: 4, troopKind: 'shield', keywords: ['jia_dun'], memo: '测试',
+};
+
+test('丹阳兵 袍泽：亡语给己方其他步兵 +1/+1', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(DANYANG.id, DANYANG);
+  setUnit(state, 'own', 'front', 0, makeUnit(DANYANG, 0, 504));
+  setUnit(state, 'own', 'front', 1, makeUnit(DANYANG, 0, 401)); // 另一名步兵
+  setUnit(state, 'own', 'front', 2, makeUnit(DANYANG, 0, 402));
+  const ally = getUnit(state, 'own', 'front', 1)!;
+  const ally2 = getUnit(state, 'own', 'front', 2)!;
+  assert.equal(ally.atk, 3); assert.equal(ally.hp, 3);
+
+  // 打死 0 号位的丹阳兵 → 触发亡语
+  const events: GameEvent[] = [];
+  dealDamage(state, ctx.cards, unitRef('own', 'front', 0), 99, events, '测试');
+
+  assert.equal(ally.atk, 4, '另一名步兵应 +1 攻');
+  assert.equal(ally.hp, 4, '另一名步兵应 +1 血');
+  assert.equal(ally2.atk, 4, '第三名步兵也应吃到增益');
+});
+
+test('丹阳兵 袍泽：不得波及其他兵种（盾/骑/弓）', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(DANYANG.id, DANYANG);
+  ctx.cards.set(SHIELDER.id, SHIELDER);
+  setUnit(state, 'own', 'front', 0, makeUnit(DANYANG, 0, 505));
+  setUnit(state, 'own', 'front', 1, makeUnit(SHIELDER, 0, 411)); // 盾兵：不该被加成
+  const shield = getUnit(state, 'own', 'front', 1)!;
+  assert.equal(shield.atk, 1);
+
+  dealDamage(state, ctx.cards, unitRef('own', 'front', 0), 99, [], '测试');
+
+  assert.equal(shield.atk, 1, '盾兵攻击力不应被步兵亡语加成');
+  assert.equal(shield.hp, 4, '盾兵生命值不应被步兵亡语加成');
 });

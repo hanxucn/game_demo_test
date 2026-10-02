@@ -717,31 +717,35 @@ window.GameData = {
       "faction": "shu",
       "type": "strategist",
       "cost": 3,
-      "attack": 0,
+      "attack": 1,
       "health": 3,
-      "memo": "半数概率让己方主帅一回合能放两次主公技",
+      "memo": "受创时对敌方全体造成 1 点火攻伤害",
       "gender": "male",
       "keywords": [],
       "skills": [
         {
-          "id": "quan_jian",
-          "name": "劝谏",
-          "kind": "aura",
+          "id": "duan_hou",
+          "name": "断后",
+          "kind": "trigger",
+          "trigger": "on_damaged",
           "effects": [
             {
-              "action": "apply_status",
-              "status": "can_mou",
-              "stacks": 1,
+              "action": "damage",
+              "value": 1,
+              "damage_type": "fire",
               "target": {
-                "side": "ally",
-                "lord": true
+                "side": "enemy",
+                "filter": {
+                  "type": "character"
+                },
+                "count": "all"
               }
             }
           ],
-          "text": "在场时 我方主帅有50%概率 每回合使用二次主公技."
+          "text": "受到伤害时，对敌方全体造成 1 点火攻伤害。"
         }
       ],
-      "flavor": ""
+      "flavor": "猇亭之战，陆逊火烧连营，黄权率部断后，护刘备全军退入白帝城。"
     },
     {
       "id": "shu_jianyang",
@@ -2152,34 +2156,50 @@ window.GameData = {
       "cost": 4,
       "attack": 1,
       "health": 4,
-      "memo": "战吼封住敌方两名人物技能一回合",
+      "memo": "战吼：火烧敌方两处粮草，对随机 2 名受伤单位各造成 2 点火伤并灼烧 1 回合",
       "gender": "male",
       "keywords": [],
       "skills": [
         {
-          "id": "fen_er_ji_zhi",
-          "name": "分而击之",
+          "id": "wu_chao_xi_liang",
+          "name": "乌巢袭粮",
           "kind": "trigger",
           "trigger": "on_play",
           "effects": [
             {
+              "action": "damage",
+              "value": 2,
+              "damage_type": "fire",
+              "target": {
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "damaged": true
+                },
+                "count": 2,
+                "mode": "random"
+              }
+            },
+            {
               "action": "apply_status",
-              "status": "jin_yong",
+              "status": "zhong_du",
+              "stacks": 1,
               "duration": 1,
               "target": {
                 "side": "enemy",
                 "filter": {
-                  "type": "character"
+                  "type": "character",
+                  "damaged": true
                 },
                 "count": 2,
-                "mode": "choose"
+                "mode": "random"
               }
             }
           ],
-          "text": "上场时指定敌方 2 个人物卡牌进入技能禁用状态，持续一回合。"
+          "text": "战吼：对敌方随机 2 名已受伤的单位各造成 2 点火攻伤害，并施加 1 回合灼烧（回合结束时再失去 1 点生命）。"
         }
       ],
-      "flavor": ""
+      "flavor": "建安十年，荀攸力主许攸之谋，夜袭乌巢，尽焚袁绍军粮。"
     },
     {
       "id": "wei_chengyu",
@@ -3241,6 +3261,7 @@ window.GameData = {
             {
               "action": "damage",
               "value": 1,
+              "damage_type": "fire",
               "target": {
                 "side": "enemy",
                 "filter": {
@@ -3745,7 +3766,7 @@ window.GameData = {
       "cost": 5,
       "attack": 3,
       "health": 6,
-      "memo": "抽 1 张，但要自己主公吃 2 点",
+      "memo": "战吼：若有女性在场则自身生命上限 +2，并令敌方全体男性每回合受 1 点火伤",
       "gender": "male",
       "keywords": [],
       "skills": [
@@ -3754,24 +3775,42 @@ window.GameData = {
           "name": "暴虐",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "战吼：抽 1 张牌，并对主公造成 2 点伤害。",
+          "text": "战吼：若己方有女性角色，自身生命上限 +2；对敌方全体**男性**角色施加 2 回合灼烧。",
           "effects": [
             {
-              "action": "draw",
-              "value": 1
+              "action": "modify",
+              "health": 2,
+              "condition": {
+                "exists": {
+                  "side": "ally",
+                  "filter": {
+                    "type": "character",
+                    "gender": "female"
+                  }
+                }
+              },
+              "target": {
+                "source": true
+              }
             },
             {
-              "action": "damage",
-              "value": 2,
+              "action": "apply_status",
+              "status": "zhong_du",
+              "stacks": 1,
+              "duration": 2,
               "target": {
-                "side": "ally",
-                "lord": true
+                "side": "enemy",
+                "filter": {
+                  "type": "character",
+                  "gender": "male"
+                },
+                "count": "all"
               }
             }
           ]
         }
       ],
-      "flavor": ""
+      "flavor": "董卓骄横暴戾，焚烧洛阳，废立天子。其孙女董白生而貌美，统兵为将。"
     },
     {
       "id": "qun_yuanshao",
@@ -4597,6 +4636,7 @@ window.GameData = {
         {
           "action": "damage",
           "value": 1,
+          "damage_type": "fire",
           "target": {
             "side": "enemy",
             "filter": {
@@ -4610,6 +4650,7 @@ window.GameData = {
           "action": "damage",
           "value": 2,
           "chance": 0.5,
+          "damage_type": "fire",
           "target": {
             "side": "enemy",
             "filter": {
@@ -5198,6 +5239,7 @@ window.GameData = {
         {
           "action": "damage",
           "value": 1,
+          "damage_type": "fire",
           "target": {
             "side": "enemy",
             "filter": {
@@ -6022,33 +6064,77 @@ window.GameData = {
       "memo": "架盾蜀国精兵"
     },
     {
-      "id": "shu_banshuyuan",
-      "name": "板楯蛮",
+      "id": "shu_tengjia_dun",
+      "name": "藤甲盾",
       "faction": "shu",
       "type": "troop",
       "cost": 2,
-      "attack": 1,
-      "health": 3,
+      "attack": 2,
+      "health": 4,
       "troopKind": "shield",
       "upgradeFrom": "shield",
       "keywords": [
-        "jia_dun",
-        "ju_du"
+        "jia_dun"
       ],
-      "memo": "架盾且剧毒"
+      "memo": "架盾；受到普通伤害 −1、火属性伤害 +1，且伤害来源反弹 1 点",
+      "skills": [
+        {
+          "id": "teng_jia_wei",
+          "name": "藤甲",
+          "kind": "aura",
+          "text": "受到普通攻击或无属性伤害时该伤害 −1（最低 0）；受到火属性伤害时该伤害 +1，且伤害来源受到 1 点反伤。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "teng_jia",
+              "stacks": 1,
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "賨人板楯蛮以木板为盾，善山地步战；藤甲浸油晒干，刀枪不入、箭矢不透，渡江不沉，遇火即燃。"
     },
     {
       "id": "shu_danyangbing",
       "name": "丹阳兵",
       "faction": "shu",
       "type": "troop",
-      "cost": 2,
-      "attack": 4,
-      "health": 4,
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
       "troopKind": "infantry",
       "upgradeFrom": "infantry",
       "keywords": [],
-      "memo": "高攻步兵"
+      "memo": "亡语：己方其他步兵（含特种兵）永久 +1/+1",
+      "skills": [
+        {
+          "id": "pao_ze",
+          "name": "袍泽",
+          "kind": "trigger",
+          "trigger": "on_death",
+          "text": "阵亡时，己方其他【步兵】单位永久获得 +1 攻 / +1 生命。",
+          "effects": [
+            {
+              "action": "modify",
+              "attack": 1,
+              "health": 1,
+              "target": {
+                "side": "ally",
+                "filter": {
+                  "type": "troop",
+                  "troopKind": "infantry",
+                  "exclude_source": true
+                },
+                "count": "all"
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "丹阳郡山险，民多果劲。陶谦、刘备皆以丹阳兵为家底；刘备典徐州牧，陶谦拨兵四千助之。"
     },
     {
       "id": "shu_hubujun",
@@ -6255,20 +6341,38 @@ window.GameData = {
       ]
     },
     {
-      "id": "wu_danyangqing",
-      "name": "青巾兵",
+      "id": "wu_wunan_bing",
+      "name": "无难兵",
       "faction": "wu",
       "type": "troop",
-      "cost": 2,
+      "cost": 3,
       "attack": 2,
       "health": 4,
       "troopKind": "shield",
       "upgradeFrom": "shield",
       "keywords": [
-        "jia_dun",
-        "xian_gong"
+        "jia_dun"
       ],
-      "memo": "架盾先攻"
+      "memo": "架盾；己方主公血量低于敌方时攻击力 +1",
+      "skills": [
+        {
+          "id": "fu_nan",
+          "name": "赴难",
+          "kind": "trigger",
+          "trigger": "on_attack",
+          "text": "己方主公生命值低于敌方主公时，攻击力 +1。",
+          "effects": [
+            {
+              "action": "attack_bonus",
+              "value": 1,
+              "condition": {
+                "lord_hp_vs_enemy": "<"
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "所向无难，故曰无难。孙琳谋反，帝帅宿卫虎骑、左右无难一时围之。"
     },
     {
       "id": "wu_jiefanbing",
@@ -7221,6 +7325,21 @@ window.GameData = {
       "timing": 13,
       "duration": "permanent",
       "memo": "水攻伤害 +N"
+    },
+    {
+      "id": "teng_jia",
+      "name": "藤甲",
+      "kind": "buff",
+      "numeric": true,
+      "scope": "character",
+      "timing": 10,
+      "duration": "permanent",
+      "caps": [
+        "reduce_physical",
+        "vulnerable_fire",
+        "thorns"
+      ],
+      "memo": "受到普通/无属性伤害 −N（最低 0）；受到火属性伤害 +N；伤害来源反弹 N 点（ADR-108 藤甲盾）"
     }
   ],
   "keywords": [

@@ -130,6 +130,11 @@ export type StatusCap =
   | 'duel_lock'          // 单挑锁定：不可被第三方选中（许褚，ADR-041）
   | 'mark_damage'        // 被标记：受到伤害时触发标记者的联动（法正，ADR-041）
   | 'water_damage'       // 水攻伤害加成
+  // 受伤侧减伤 / 反伤（ADR-108 藤甲兵）—— 此前引擎只在「发起伤害」侧读 damage_type，
+  // 受伤侧拿不到属性，这三个能力是藤甲「刀枪不入、遇火即燃」的实现载体。
+  | 'reduce_physical'    // 受到普通/无属性伤害时 −N（最低 0）
+  | 'vulnerable_fire'    // 受到火属性伤害时 +N
+  | 'thorns'             // 本次实际受伤后，伤害来源反弹 N 点
   | 'skip_turn';         // 该方整个回合被跳过（ADR-074，休养生息「下一回合不进行任何活动」）
 
 export interface StatusDef {
@@ -197,6 +202,9 @@ export const STATUSES: Record<string, StatusDef> = {
                 note: '本回合不能普通攻击' },
   shui_gong_bonus: { name: '水攻强化', kind: 'buff', numeric: true, duration: 'permanent',
                 caps: ['water_damage'], note: '水攻伤害 +N' },
+  teng_jia:   { name: '藤甲', kind: 'buff', numeric: true, duration: 'permanent',
+                caps: ['reduce_physical', 'vulnerable_fire', 'thorns'],
+                note: '受到普通/无属性伤害 −N（最低 0），受到火属性伤害 +N，且伤害来源反弹 N 点（ADR-108）' },
   mian_yi:    { name: '免疫', kind: 'buff',   numeric: false, duration: 'turns', caps: ['immune_debuff', 'untargetable'],
                 note: '免疫负面状态，且不能被指定为目标' },
   fan_mian:   { name: '翻面', kind: 'debuff', numeric: false, duration: 'conditional',

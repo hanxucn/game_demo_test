@@ -319,5 +319,20 @@
     "timing": 13,
     "duration": "permanent",
     "memo": "水攻伤害 +N"
+  },
+  {
+    "id": "teng_jia",
+    "name": "藤甲",
+    "kind": "buff",
+    "numeric": true,
+    "scope": "character",
+    "timing": 10,
+    "duration": "permanent",
+    "caps": [
+      "reduce_physical",
+      "vulnerable_fire",
+      "thorns"
+    ],
+    "memo": "受到普通/无属性伤害 −N（最低 0）；受到火属性伤害 +N；伤害来源反弹 N 点（ADR-108 藤甲盾）"
   }
 ]
