@@ -566,6 +566,55 @@
 .cr-status .cr-st[data-st="jia_dun_status"] { color: #a8d0ff; border-color: #3a5a7a; }
 .cr-status .cr-st[data-st="fan_mian"] { color: #b0b0b0; border-color: #555; }
 .cr-status .cr-st[data-st="sheng_dun_status"] { color: #ffe9a0; border-color: #8a7a3a; }
+
+/* ============================================================
+   「披坚」（免疫一次伤害）：**包住整张卡的空心盾形描边**（炉石「圣盾」样式）
+   ------------------------------------------------------------
+   需求（设计者）：护盾要**包住整个卡牌**、**完全透明不影响卡面展示**、
+   是一个"类似 buff 的盾形圈"、**被打后消失**。
+
+   踩坑记录 —— 前六版依次不合格，别再重走：
+     ① 金色细光圈：与卡牌自带的暗金边撞色，看不出。
+     ② 白热描边 + 外发光：整体尺寸下不抢眼。
+     ③ clip-path 盾形**实心**层：一眼可见，但把名字/立绘/攻血全糊住
+        （"看得见护罩"却"读不到单位"），底部盾徽是个难看的米黄色方块。
+     ④ 半透明黄气泡 + 盾徽：内容虽可读，但整张卡被染黄、盾徽依旧难看。
+     ⑤ 空心描边但太细 + 又是暗金 → 1:1 下又和卡牌边框撞色。
+     ⑥ 单层加粗亮金描边 → 可见，但仍"薄"，不像一层护盾壁。
+     ⑦ 现在：**双层描边**合成一条有厚度的护盾壁 ——
+        外层暗金粗边（stroke-width 7）撑厚度，内层亮金细边（3）做高光，
+        再叠外发光把整条壁"顶"出发光感。1:1 下是一圈明显发亮的"盾牌壁"包住整卡。
+
+   关键取舍：护罩**只是罩在卡外的一圈轮廓**，完全不碰卡面任何像素 ——
+   名字 / 立绘 / 攻血圆 / 状态徽章都原样清晰。
+   盒子外扩 inset:-7px，viewBox 60×80 比例(0.75)与 56×73 盒子(0.767)接近，描边不形变。
+   两层都靠 ::before / ::after 的 background 叠放，不引入额外 DOM。
+   ============================================================ */
+.cr-shield-glass {
+  position: absolute; inset: -7px;
+  pointer-events: none;
+  z-index: 7;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80'%3E%3Cpath d='M6 12 Q30 6 54 12 L54 40 C54 58 43 68 30 73 C17 68 6 58 6 40 Z'' fill='none' stroke='%23C98A18' stroke-width='7' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  filter:
+    drop-shadow(0 0 2px rgba(255, 240, 150, 1))
+    drop-shadow(0 0 6px rgba(255, 214, 70, .95))
+    drop-shadow(0 0 15px rgba(255, 190, 20, .7));
+  animation: cr-pijian-pulse 1.6s ease-in-out infinite;
+}
+/* 内层亮金高光边，叠在暗金粗边之上 → 合成有厚度的护盾壁 */
+.cr-shield-glass::before {
+  content: "";
+  position: absolute; inset: 2.4px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80'%3E%3Cpath d='M6 12 Q30 6 54 12 L54 40 C54 58 43 68 30 73 C17 68 6 58 6 40 Z' fill='none' stroke='%23FFE066' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+@keyframes cr-pijian-pulse {
+  0%, 100% { opacity: .66; }
+  50%      { opacity: 1; }
+}
+/* 尊重系统的"减少动态效果"设置：保留护罩，去掉呼吸 */
+@media (prefers-reduced-motion: reduce) {
+  .cr-shield-glass { animation: none; opacity: 1; }
+}
 .cr-status .cr-st[data-st="zhong_du"] { color: #a8e0a0; border-color: #3a6a3a; }
 
 /* ---------- 主动技按钮 ---------- */

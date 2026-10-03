@@ -18,7 +18,7 @@ import type { CardDef, CardEffect, EffectCondition, GameEvent, HandCard, MatchSt
 import {
   applyStatus, dealDamage, drawCard, gainArmor, healTarget, killUnit, lordRef, registerOnDeathResolver,
   registerOnDrawResolver,
-  registerAfterDeathResolver, registerMarkDeathResolver, registerOnKillResolver, summonUnit, unitRef,
+  registerAfterDeathResolver, registerAfterLordDamagedResolver, registerMarkDeathResolver, registerOnKillResolver, summonUnit, unitRef,
   type TargetRef,
 } from './mutate.ts';
 
@@ -65,6 +65,12 @@ registerOnDeathResolver((state, cards, side, unit, skills, events, rng, killer) 
 
 // 「死亡后光环重算」挂载点（ADR-087，时机表第 19 步）
 registerAfterDeathResolver((state, cards, events) => {
+  recomputeAuras(state, cards, createRng(state.rngState), events);
+});
+
+// 「主公受伤后光环重算」挂载点（ADR-113）：条件型光环若依赖**双方主公血量**
+// （无难兵「赴难」），主公掉血必须立刻重算，否则卡面滞后到回合边界才更新。
+registerAfterLordDamagedResolver((state, cards, events) => {
   recomputeAuras(state, cards, createRng(state.rngState), events);
 });
 

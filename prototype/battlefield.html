@@ -507,11 +507,14 @@
     text-shadow: 0 2px 0 #06263a, 0 0 10px rgba(140,200,255,.9);
     pointer-events: none; animation: dmgFloat .75s ease-out forwards; z-index: 60;
   }
-  .cr-status {
-    position: absolute; font-size: 11px; font-weight: 800; color: #ffe0a0;
-    text-shadow: 0 1px 3px #000; pointer-events: none;
-    animation: dmgFloat .8s ease-out forwards; z-index: 60;
-  }
+  /* ⚠️ 这里原来还有一条 `.cr-status`（披坚/震慑/灼烧等**卡面状态徽章**的类名），
+     带着 `animation: dmgFloat ... forwards` —— 也就是把徽章当"飘字"动画掉。
+     它和飘字自己的 `.cr-float.is-status` 完全是两回事，属于**死规则 + 类名撞车**：
+       · 覆盖了 card-render.css 里 `.cr-status` 的正确布局（top:13px / z-index:4）
+       · 后果是状态徽章被飘到卡外（getBoundingClientRect 显示 y=346，而卡在 y=384）
+         并最终淡出 → 玩家**永远看不到任何状态徽章**，包括披坚。
+     飘字真正的类名是 `.cr-float`（见 card-render.js `CR.float`），不依赖本条。
+     故删除。 */
 
   /* 回合横幅 */
   #banner {

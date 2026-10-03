@@ -321,7 +321,7 @@ function renderBoard(st) {
           if (side === 'own' && !Core.canAttack(st, 'own', row, col).ok) wrap.classList.add('is-tired');
           var flipped = !!(u.statuses && u.statuses.fan_mian);
           var skill = (side === 'own' && !flipped) ? unitSkillState(st, 'own', row, col) : null;
-          wrap.appendChild(CR.mini(u, {
+          mountCard(wrap, CR.mini(u, {
             row: row, hurt: u.hp < u.maxHp,
             flipped: !!(u.statuses && u.statuses.fan_mian),
             statuses: statusList(u),
@@ -2397,6 +2397,25 @@ function flyCardBack(fromEl, toEl) {
   setTimeout(function () { g.remove(); }, 400);
 }
 
+/**
+ * 把战场卡挂进 wrap；若卡上带「披坚」护罩，把它**移到 wrap 上**而不是留在卡里。
+ *
+ * 为什么必须移出去：「本回合不能行动」的置灰用的是
+ *   `.unit-wrap.is-spent .cr-card { filter: grayscale(.5) brightness(.72) }`
+ * `filter` 会作用到**整棵子树**，而 CSS 里子元素**无法反解**父元素的 filter ——
+ * 护罩留在卡里，打出过牌的单位就会连护罩一起灰掉，玩家看不出"它还挂着披坚"。
+ * 移成 wrap 的兄弟节点后，置灰只作用在卡本体，护罩保持金色。
+ *
+ * wrap 与卡同尺寸（`.unit-wrap{position:absolute;inset:0}` + `.cr-card{width/height:100%}），
+ * 所以护罩的 inset:-7px 相对 wrap 与相对卡的定位结果完全一致。
+ */
+function mountCard(wrap, card) {
+  wrap.appendChild(card);
+  var halo = card.querySelector('.cr-shield-glass');
+  if (halo) wrap.appendChild(halo);
+  return card;
+}
+
 function unitEl(side, row, col) {
   return document.querySelector('.slot[data-side="' + side + '"][data-row="' + row + '"][data-col="' + col + '"] .unit-wrap');
 }
@@ -2462,7 +2481,7 @@ function insertUnitNow(e) {
   }
   wrap.innerHTML = '';
   wrap.dataset.uid = e.unit.uid;
-  wrap.appendChild(CR.mini(e.unit, { row: e.row, hurt: false, statuses: statusList(e.unit) }));
+  mountCard(wrap, CR.mini(e.unit, { row: e.row, hurt: false, statuses: statusList(e.unit) }));
   var flash = document.createElement('div');
   flash.className = 'cr-land-flash';
   wrap.appendChild(flash);
@@ -2529,7 +2548,7 @@ function animate(e) {
       var te = unitEl(e.side, e.row, e.col);
       if (te && e.unit) {
         te.innerHTML = '';
-        te.appendChild(CR.mini(e.unit, { row: e.row, hurt: e.unit.hp < e.unit.maxHp, statuses: statusList(e.unit) }));
+        mountCard(te, CR.mini(e.unit, { row: e.row, hurt: e.unit.hp < e.unit.maxHp, statuses: statusList(e.unit) }));
         CR.spell(te, 'rgba(255,225,150,.95)');
       }
       return 460;
@@ -2538,7 +2557,7 @@ function animate(e) {
       var ue = unitEl(e.side, e.row, e.col);
       if (ue && e.unit) {
         ue.innerHTML = '';
-        ue.appendChild(CR.mini(e.unit, { row: e.row, hurt: false, statuses: statusList(e.unit) }));
+        mountCard(ue, CR.mini(e.unit, { row: e.row, hurt: false, statuses: statusList(e.unit) }));
         CR.spell(ue, 'rgba(120,220,160,.95)');
       }
       return 520;
@@ -2640,11 +2659,12 @@ function animate(e) {
       return 900;
     }
     case 'STATUS_EXPIRED': {
-      // 圣盾（immune_damage）触发时 dealDamage 直接返回 0、只发 STATUS_EXPIRED，
+      // 「披坚」（immune_damage）触发时 dealDamage 直接返回 0、只发 STATUS_EXPIRED，
       // 不产生 DAMAGE 事件 —— 不提示的话玩家会以为"这一下怎么没掉血"。
+      // 文案与状态名统一叫「披坚」（原「圣盾」已在 ADR-103 起不再是公开关键词）。
       if (e.status === 'sheng_dun_status' || e.status === 'sheng_dun') {
         var sde = unitEl(e.side, e.row, e.col);
-        if (sde) CR.float(sde, '圣盾', 'is-buff', '免疫本次伤害');
+        if (sde) CR.float(sde, '披坚', 'is-buff', '免疫本次伤害');
         return 320;
       }
       return 0;

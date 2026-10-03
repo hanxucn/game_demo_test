@@ -171,10 +171,17 @@ window.CardRender = (function () {
     var el = document.createElement('div');
     var cls = 'cr-card ' + (opts.board ? 'cr-board' : 'cr-hand') + ' ' + factionClass(card);
     if (opts.selected) cls += ' is-selected';
+    // 「披坚」（免疫一次伤害）：炉石「圣盾」式的可见光圈。
+    // 只靠状态徽章那行小字不够 —— 玩家必须**一眼**看出"这个单位还带着一次免伤"，
+    // 否则会照常打上去、白亏一次攻击。挨打消耗后 `sheng_dun_status` 从 statuses
+    // 里消失，下次渲染就不再带这个类，光圈自然不见（无需额外的清理逻辑）。
+    var hasShield = (opts.statuses || []).some(function (s) { return s.id === 'sheng_dun_status'; });
+    if (hasShield) cls += ' has-pijian';
     el.className = cls;
     el.dataset.cardId = card.id || '';
 
     var html = portraitHTML(card);
+    if (hasShield) html += '<div class="cr-shield-glass" aria-hidden="true"></div>';
     var costInline = opts.board ? '' :
       '<b class="cr-costnum">' + (card.cost != null ? card.cost : 0) + '</b>';
     // ADR-089：目标定的"减费"要在卡面上看得出来 —— 绿色费用宝石（红=费用不够，绿=已被减费）

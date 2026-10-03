@@ -1,13 +1,27 @@
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import assert from 'node:assert/strict';
 
 import { applyAction, unitSkillTargetPlan } from '../src/engine.ts';
-import { dealDamage, lordRef, unitRef } from '../src/mutate.ts';
+import { dealDamage, expireStatuses, lordRef, unitRef } from '../src/mutate.ts';
 import { recomputeAuras, resolveAttack } from '../src/effects.ts';
 import { createRng } from '../src/rng.ts';
-import { capStacks, getUnit, makeUnit, setUnit } from '../src/state.ts';
+import { capStacks, getUnit, makeUnit, setUnit, statusStacks } from '../src/state.ts';
 import { scenario } from './fixtures.ts';
 import type { CardDef, GameEvent } from '../src/types.ts';
+
+/** 从 core/data/cards.json 读一张**真实卡**（防内联夹具与数据漂移） */
+const REAL_CARDS: CardDef[] = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'cards.json'), 'utf8'),
+);
+function realTroop(id: string): CardDef {
+  const c = REAL_CARDS.find((x) => x.id === id);
+  if (!c) throw new Error(`真实卡表里没有 ${id}`);
+  return { ...c, keywords: c.keywords ?? [], skills: c.skills ?? [] };
+}
+
 
 test('攻击目标条件：青州兵只在己方主公血量更高时强化主公伤害', () => {
   const { state, ctx } = scenario({});
@@ -279,55 +293,62 @@ test('ADR-108 藤甲盾：无藤甲状态的单位不受影响（能力是状态
 });
 
 /* ========================================================================
- * 无难兵「赴难」：己方主公血量**低于**敌方主公时攻击力 +1
+ * 无难兵「赴难」：己方主公血量**低于**敌方主公时，自身 2/4 → 3/4
  *
- * 与青州兵「青州突骑」是同一套模板（on_attack + lord_hp_vs_enemy），
- * 但条件方向相反：青州=顺风（>），无难=逆风（<）。两条都锁住，
- * 防止将来改条件时把两张卡改成同一个方向。
+ * 设计要点：它必须是**条件型光环**（把 +1 攻写进修正层），而不是"攻击时 +1"——
+ * 玩家要在卡面上直接看到 3/4，而不是只在打出那一下才变。
+ * 与青州兵「青州突骑」条件方向相反（青州=顺风 >，无难=逆风 <）。
+ *
+ * ⚠️ 本组测试**从 core/data/cards.json 读真实卡**，不用内联夹具 ——
+ * 内联夹具会在数据改动后静默脱节（本组此前的 `on_attack` 版本就是这么漂移的）。
  * ===================================================================== */
 
-const WUNAN: CardDef = {
-  id: 'test_wunan', name: '无难兵', faction: 'wu', type: 'troop',
-  cost: 3, attack: 2, health: 4, troopKind: 'shield', keywords: ['jia_dun'], memo: '测试',
-  skills: [{ id: 'fu_nan', name: '赴难', kind: 'trigger', trigger: 'on_attack', effects: [
-    { action: 'attack_bonus', value: 1, condition: { lord_hp_vs_enemy: '<' } },
-  ] }],
-};
+const WUNAN = realTroop('wu_wunan_bing');
 
-test('无难兵 赴难：己方主公血量低于敌方时，打主公伤害 +1', () => {
-  // scenario() 的 place 只认**卡池里已注册**的 id，测试卡必须先 ctx.cards.set，
-  // 否则 setup 阶段就抛「测试卡不存在」。
+test('无难兵 赴难：**真实卡数据**是条件型光环（防夹具漂移）', () => {
+  const sk = (WUNAN.skills ?? []).find((x) => x.id === 'fu_nan');
+  assert.ok(sk, '应存在赴难技能');
+  assert.equal(sk.kind, 'aura', '必须是光环 —— 否则卡面不会显示 3/4');
+  assert.equal(sk.trigger, undefined, '不应是 on_attack 触发技');
+  assert.equal(sk.effects?.[0]?.action, 'modify', '应是 modify（写修正层），不是 attack_bonus');
+  assert.deepEqual(sk.effects?.[0]?.condition, { lord_hp_vs_enemy: '<' });
+});
+
+test('无难兵 赴难：逆风时卡面由 2/4 变为 3/4', () => {
   const { state, ctx } = scenario({});
   ctx.cards.set(WUNAN.id, WUNAN);
   setUnit(state, 'own', 'front', 0, makeUnit(WUNAN, 0, 501));
-  state.sides.own.lord.hp = 20;    // 我方 20
+  state.sides.own.lord.hp = 20;     // 我方 20
   state.sides.enemy.lord.hp = 28;   // 敌方 28 → 逆风
-  const r = applyAction(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
-  assert.equal(r.ok, true, r.error ?? '攻击应成立');
-  assert.equal(r.state.sides.enemy.lord.hp, 25, '2 点基础伤害 + 1 点赴难 = 3');
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+  const u = getUnit(state, 'own', 'front', 0)!;
+  assert.equal(u.atk, 3, '逆风时攻击力应为 3（2 基础 + 1 赴难）');
+  assert.equal(u.hp, 4, '生命值不变');
 });
 
-test('无难兵 赴难：己方主公血量高于敌方时**不加成**（逆风才触发）', () => {
+test('无难兵 赴难：顺风时保持 2/4', () => {
   const { state, ctx } = scenario({});
   ctx.cards.set(WUNAN.id, WUNAN);
   setUnit(state, 'own', 'front', 0, makeUnit(WUNAN, 0, 502));
   state.sides.own.lord.hp = 28;
   state.sides.enemy.lord.hp = 20;   // 顺风
-  const r = applyAction(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
-  assert.equal(r.ok, true);
-  assert.equal(r.state.sides.enemy.lord.hp, 18, '顺风时只有 2 点基础伤害，无加成');
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+  assert.equal(getUnit(state, 'own', 'front', 0)!.atk, 2, '顺风时无加成');
 });
 
-test('无难兵 赴难：与青州兵「青州突骑」条件方向相反，互不串味', () => {
+test('无难兵 赴难：主公掉血后**立即**重算，不必等到回合边界', () => {
   const { state, ctx } = scenario({});
   ctx.cards.set(WUNAN.id, WUNAN);
   setUnit(state, 'own', 'front', 0, makeUnit(WUNAN, 0, 503));
-  // 双方同血：两个条件（> 与 <）都不成立，应无任何加成
-  state.sides.own.lord.hp = 25;
+  state.sides.own.lord.hp = 30;
   state.sides.enemy.lord.hp = 25;
-  const r = applyAction(state, ctx, { type: 'ATTACK', from: { row: 'front', col: 0 }, to: { kind: 'lord' } });
-  assert.equal(r.ok, true);
-  assert.equal(r.state.sides.enemy.lord.hp, 23, '主公同血时两条条件都不触发，只有 2 点基础伤害');
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+  assert.equal(getUnit(state, 'own', 'front', 0)!.atk, 2, '初始顺风');
+
+  // 不手动重算：靠 dealDamage 的主公分支触发 afterLordDamagedResolver
+  dealDamage(state, ctx.cards, lordRef('own'), 20, [], '测试');   // 30 → 10 < 25 逆风
+  assert.equal(getUnit(state, 'own', 'front', 0)!.atk, 3,
+    '主公掉血后应立刻变 3（registerAfterLordDamagedResolver 生效）');
 });
 
 /* ========================================================================
@@ -531,4 +552,104 @@ test('ADR-108 白毦兵 忠勇：即使本击被打死也照样回敬（与反�
     { kind: 'unit', row: 'front', col: 3 }, [], createRng(1), { toSide: 'enemy' });
   assert.equal(getUnit(state, 'enemy', 'front', 3), null, '白毦兵应被击杀并离场');
   assert.equal(atkBefore - (getUnit(state, 'own', 'front', 0)?.hp ?? 0), 3, '阵亡也要吃满 反击 2 + 忠勇 1');
+});
+
+/* ========================================================================
+ * 「披坚」（原圣盾）：免疫一次伤害 —— 没有时间限制，被攻击后消耗
+ *
+ * 引擎依据：`expireStatuses` 只递减有 `turns` 的状态（`mutate.ts`：
+ * `if (inst.turns === undefined) continue; // 永久 / 直到消耗`），而
+ * `applyStatus` 对 `duration: until_consumed` **不写 turns** → 天然无时限。
+ *
+ * 三条不变量各锁一个用例：① 跨多次回合末检查仍在 ② 挨打时免伤并消耗
+ * ③ 消耗后再受伤正常掉血。
+ * ===================================================================== */
+
+const PIJIAN_UNIT: CardDef = {
+  id: 'test_pijian', name: '披坚测试兵', faction: 'wei', type: 'troop',
+  cost: 2, attack: 2, health: 3, troopKind: 'infantry', keywords: [], memo: '测试',
+};
+
+test('披坚：没有时间限制，跨多次回合末检查仍不消失', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(PIJIAN_UNIT.id, PIJIAN_UNIT);
+  const u = makeUnit(PIJIAN_UNIT, 0, 701);
+  u.statuses.sheng_dun_status = { stacks: 1 };      // 模拟「上场获得披坚」：turns 缺省
+  setUnit(state, 'own', 'front', 0, u);
+
+  for (let i = 0; i < 4; i++) expireStatuses(state, 'own', []);
+  const after = getUnit(state, 'own', 'front', 0)!;
+  assert.equal(statusStacks(after, 'sheng_dun_status'), 1, '4 次回合末检查后披坚应仍在');
+  assert.equal(after.statuses.sheng_dun_status.turns, undefined, '不应写入 turns（否则会倒计时）');
+});
+
+test('披坚：挨打时免掉该次伤害并消耗（UI 徽章随之消失）', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(PIJIAN_UNIT.id, PIJIAN_UNIT);
+  const u = makeUnit(PIJIAN_UNIT, 0, 702);
+  u.statuses.sheng_dun_status = { stacks: 1 };
+  setUnit(state, 'own', 'front', 0, u);
+  const hpBefore = getUnit(state, 'own', 'front', 0)!.hp;
+
+  const events: GameEvent[] = [];
+  const dealt = dealDamage(state, ctx.cards, unitRef('own', 'front', 0), 1, events, '测试');
+
+  assert.equal(dealt, 0, '该次伤害应被完全免掉');
+  assert.equal(getUnit(state, 'own', 'front', 0)!.hp, hpBefore, '血量不应变化');
+  assert.equal(statusStacks(getUnit(state, 'own', 'front', 0)!, 'sheng_dun_status'), 0,
+    '披坚应被消耗 —— 客户端据此把徽章抹掉');
+  assert.ok(events.some((e) => e.type === 'STATUS_EXPIRED'), '应发 STATUS_EXPIRED 事件');
+});
+
+test('披坚：消耗后再受伤正常掉血（只免疫一次）', () => {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(PIJIAN_UNIT.id, PIJIAN_UNIT);
+  const u = makeUnit(PIJIAN_UNIT, 0, 703);
+  u.statuses.sheng_dun_status = { stacks: 1 };
+  setUnit(state, 'own', 'front', 0, u);
+
+  dealDamage(state, ctx.cards, unitRef('own', 'front', 0), 1, [], '测试');   // 被免掉
+  const d2 = dealDamage(state, ctx.cards, unitRef('own', 'front', 0), 2, [], '测试');
+  assert.equal(d2, 2, '第二次应正常吃满 2 点');
+  assert.equal(getUnit(state, 'own', 'front', 0)!.hp, 1, '3 - 2 = 1');
+});
+
+/* ========================================================================
+ * 升变必须派发「战吼（on_play）」
+ *
+ * 踩到的真 bug：`upgradeUnit` 此前**完全不派发 on_play** —— 而升变正是获得
+ * 特种兵的**主要途径**。于是宿卫虎士「上场获得披坚」在升变时永远拿不到披坚，
+ * 卡面既不显示徽章也不显示光圈（只有"从手牌直接打出"才有），玩家看到的是
+ * "同一个兵，打出有免疫、升变没有"。
+ *
+ * 全池 57 张带 on_play 的卡里，**只有宿卫虎士同时带 upgradeFrom** —— 所以
+ * 这个坑一直藏着，直到要它显示光圈才暴露。
+ * ===================================================================== */
+
+const HUSHI = realTroop('wei_suwei_hushi');
+
+test('升变：新形态的战吼必须发动（宿卫虎士升变后应获得披坚）', () => {
+  const { state, ctx } = scenario({ ownCommand: 10 });
+  ctx.cards.set(HUSHI.id, HUSHI);
+  const base = realTroop('neutral_infantry');
+  ctx.cards.set(base.id, base);
+  // 宿卫虎士是魏国卡，升变候选按**主公阵营**过滤 —— 所以本方主公必须是魏
+  state.sides.own.lord.faction = 'wei';
+  const u = makeUnit(base, 0, 801);
+  // 步兵的升变条件是「累计造成伤害 ≥ 2」（字段名见 engine.ts upgradeStatus）
+  u.upgradeProgress = { damage: 2, shieldSurvival: 0, basicKills: 0, characterKills: 0, heroHits: 0 };
+  setUnit(state, 'own', 'front', 0, u);
+
+  const r = applyAction(state, ctx, { type: 'UPGRADE_UNIT', row: 'front', col: 0, toCardId: HUSHI.id });
+  assert.equal(r.ok, true, r.error ?? '升变应成立');
+  const after = getUnit(r.state, 'own', 'front', 0)!;
+  assert.equal(after.name, '宿卫虎士', '形态应已替换');
+  assert.equal(statusStacks(after, 'sheng_dun_status'), 1,
+    '升变出的宿卫虎士必须拿到披坚 —— 否则卡面不会显示徽章与光圈');
+});
+
+test('升变：战吼在数据里是 on_play（防夹具/数据漂移）', () => {
+  const sk = (HUSHI.skills ?? [])[0];
+  assert.equal(sk?.trigger, 'on_play', '虎士应为上场触发');
+  assert.equal((HUSHI as { upgradeFrom?: string }).upgradeFrom, 'infantry', '宿卫虎士走步兵升变');
 });

@@ -110,6 +110,7 @@ var Core = (() => {
     refAlive: () => refAlive,
     refHp: () => refHp,
     registerAfterDeathResolver: () => registerAfterDeathResolver,
+    registerAfterLordDamagedResolver: () => registerAfterLordDamagedResolver,
     registerMarkDeathResolver: () => registerMarkDeathResolver,
     registerOnDeathResolver: () => registerOnDeathResolver,
     registerOnDrawResolver: () => registerOnDrawResolver,
@@ -912,6 +913,10 @@ var Core = (() => {
   function registerOnDeathResolver(fn) {
     onDeathResolver = fn;
   }
+  var afterLordDamagedResolver = null;
+  function registerAfterLordDamagedResolver(fn) {
+    afterLordDamagedResolver = fn;
+  }
   var markDeathResolver = null;
   function registerMarkDeathResolver(fn) {
     markDeathResolver = fn;
@@ -991,6 +996,7 @@ var Core = (() => {
         lord.hp = 0;
         checkWinner(state, events);
       }
+      if (dmg > 0) afterLordDamagedResolver?.(state, cards, events);
       return amount;
     }
     if (ref.kind !== "unit") return 0;
@@ -1364,6 +1370,9 @@ var Core = (() => {
     }
   });
   registerAfterDeathResolver((state, cards, events) => {
+    recomputeAuras(state, cards, createRng(state.rngState), events);
+  });
+  registerAfterLordDamagedResolver((state, cards, events) => {
     recomputeAuras(state, cards, createRng(state.rngState), events);
   });
   registerMarkDeathResolver((state, cards, dead, rng, events) => {
@@ -2626,6 +2635,19 @@ var Core = (() => {
     }
     recomputeAuras(state, ctx.cards, rng, events);
     delete u.upgradeProgress;
+    const onPlay = (toCard.skills ?? []).filter((sk) => sk.trigger === "on_play");
+    for (const sk of onPlay) {
+      emitSkillTriggered(state, side, u, sk, "on_play", events);
+      runEffects(
+        state,
+        ctx.cards,
+        sk.effects ?? [],
+        { side, source: u, chosenRow: action.row, chosenCol: action.col },
+        rng,
+        events
+      );
+    }
+    recomputeAuras(state, ctx.cards, rng, events);
     events.push({ type: "UNIT_UPGRADED", side, row: action.row, col: action.col, from, to: toCard.id, unit: u });
     return true;
   }
