@@ -292,12 +292,12 @@ var Core = (() => {
     },
     qi_xi_status: { name: "\u5947\u88AD", kind: "buff", numeric: false, duration: "until_consumed", note: "\u4E0D\u80FD\u88AB\u6307\u5B9A\u4E3A\u76EE\u6807" },
     sheng_dun_status: {
-      name: "\u4F24\u5BB3\u514D\u75AB",
+      name: "\u62AB\u575A",
       kind: "buff",
       numeric: false,
       duration: "until_consumed",
       caps: ["immune_damage"],
-      note: "\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3\uFF1B\u89E6\u53D1\u540E\u6D88\u8017"
+      note: "\u62AB\u575A\uFF1A\u514D\u75AB\u4E00\u6B21\u4F24\u5BB3\uFF08\u539F\u300C\u5723\u76FE\u300D\uFF0CADR-103 \u8D77\u4E0D\u518D\u662F\u516C\u5F00\u5173\u952E\u8BCD\uFF1B\u89E6\u53D1\u540E\u6D88\u8017\uFF09"
     },
     hu_jia: { name: "\u62A4\u7532", kind: "buff", numeric: true, duration: "permanent", scope: "lord", note: "\u5438\u6536\u4F24\u5BB3" },
     zhen_she: {
@@ -437,8 +437,16 @@ var Core = (() => {
       kind: "buff",
       numeric: true,
       duration: "permanent",
-      caps: ["reduce_physical", "vulnerable_fire", "thorns"],
-      note: "\u53D7\u5230\u666E\u901A/\u65E0\u5C5E\u6027\u4F24\u5BB3 \u2212N\uFF08\u6700\u4F4E 0\uFF09\uFF0C\u53D7\u5230\u706B\u5C5E\u6027\u4F24\u5BB3 +N\uFF0C\u4E14\u4F24\u5BB3\u6765\u6E90\u53CD\u5F39 N \u70B9\uFF08ADR-108\uFF09"
+      caps: ["reduce_physical", "vulnerable_fire"],
+      note: "\u53D7\u5230\u666E\u901A/\u65E0\u5C5E\u6027\u4F24\u5BB3 \u2212N\uFF08\u6700\u4F4E 0\uFF09\uFF0C\u53D7\u5230\u706B\u5C5E\u6027\u4F24\u5BB3 +N\uFF08ADR-108\uFF1BADR-110 \u5220\u53CD\u4F24\u5C42\uFF09"
+    },
+    zhong_yong_status: {
+      name: "\u5FE0\u52C7",
+      kind: "buff",
+      numeric: true,
+      duration: "permanent",
+      caps: ["thorns"],
+      note: "\u53D7\u5230**\u666E\u901A\u653B\u51FB**\u5E76\u5B9E\u9645\u53D7\u4F24\u540E\uFF0C\u5BF9\u653B\u51FB\u8005\u989D\u5916\u9020\u6210 N \u70B9\u4F24\u5BB3\uFF08\u4E0E\u81EA\u52A8\u53CD\u51FB\u5206\u5F00\u7ED3\u7B97\uFF1B\u6280\u80FD\u4F24\u5BB3\u4E0D\u89E6\u53D1\uFF09\u3002ADR-110 \u91CA\u653E\u7684 thorns cap \u7684\u9996\u4E2A\u4F7F\u7528\u8005"
     },
     mian_yi: {
       name: "\u514D\u75AB",
@@ -1039,12 +1047,19 @@ var Core = (() => {
     }
     u.hp -= finalAmount;
     const actual = Math.min(finalAmount, hpBefore);
+    if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
+      const p = upgradeProgress(sourceUnit);
+      if (sourceUnit.troopKind === "infantry") p.damage += actual;
+      if (sourceUnit.troopKind === "archer" && ["general", "strategist"].includes(u.type)) p.heroHits += 1;
+    }
+    events.push({ type: "DAMAGE", target: ref, amount: finalAmount, source });
+    if (actual > 0 && sourceUnit?.kw.includes("ju_du") && u.hp > 0) {
+      killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
+      return actual;
+    }
     const thorns = capStacks(u.statuses, "thorns");
     if (actual > 0 && thorns > 0 && sourceUnit && killerRef && sourceUnit.uid !== u.uid) {
-      events.push({ type: "DAMAGE", target: ref, amount: actual, source });
-      const srcSide = killerRef.side;
-      const srcRow = killerRef.row;
-      const srcCol = killerRef.col;
+      const { side: srcSide, row: srcRow, col: srcCol } = killerRef;
       const v = getUnit(state, srcSide, srcRow, srcCol);
       if (v) {
         const before = v.hp;
@@ -1060,21 +1075,10 @@ var Core = (() => {
           u,
           "physical"
         );
-        if (v.hp <= 0 && before > 0) {
+        if (before > 0 && v.hp <= 0) {
           killUnit(state, cards, { side: srcSide, row: srcRow, col: srcCol, unit: v }, events, null);
         }
       }
-      return actual;
-    }
-    if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
-      const p = upgradeProgress(sourceUnit);
-      if (sourceUnit.troopKind === "infantry") p.damage += actual;
-      if (sourceUnit.troopKind === "archer" && ["general", "strategist"].includes(u.type)) p.heroHits += 1;
-    }
-    events.push({ type: "DAMAGE", target: ref, amount: finalAmount, source });
-    if (actual > 0 && sourceUnit?.kw.includes("ju_du") && u.hp > 0) {
-      killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
-      return actual;
     }
     if (u.hp <= 0 && tryLethalSave(state, u, ref, events)) return finalAmount;
     if (u.hp <= 0) killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);

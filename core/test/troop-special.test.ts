@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { applyAction, unitSkillTargetPlan } from '../src/engine.ts';
-import { dealDamage, unitRef } from '../src/mutate.ts';
-import { recomputeAuras } from '../src/effects.ts';
+import { dealDamage, lordRef, unitRef } from '../src/mutate.ts';
+import { recomputeAuras, resolveAttack } from '../src/effects.ts';
 import { createRng } from '../src/rng.ts';
 import { capStacks, getUnit, makeUnit, setUnit } from '../src/state.ts';
 import { scenario } from './fixtures.ts';
@@ -186,13 +186,13 @@ test('治疗战技可以选择满血友军', () => {
  *
  * 这是**首个受伤侧属性感知**的机制。此前 dealDamage 完全不知道伤害来源是
  * 火还是水（damage_type 只在发起侧被读取），所以这三条必须各锁一个用例：
- *   ① 物理/无属性伤害 −1，且**最低为 0**（1 攻单位打不动 2/4 藤甲）
+ *   ① 物理/无属性伤害 −1，且**最低为 0**（1 攻单位打不动 2/4 藤甲——预期设计，ADR-110）
  *   ② 火属性伤害 +1
- *   ③ 伤害来源反弹 1 点
+ *   ③ **没有反伤层**（ADR-110 删除：反弹挂在火分支会惩罚用火克制藤甲的正确行为）
  * ===================================================================== */
 
 const TENGJIA: CardDef = {
-  id: 'test_tengjia', name: '藤甲盾', faction: 'shu', type: 'troop',
+  id: 'test_tengjia', name: '藤甲兵', faction: 'shu', type: 'troop',
   cost: 2, attack: 2, health: 4, troopKind: 'shield', keywords: ['jia_dun'], memo: '测试',
   skills: [{ id: 'teng_jia_wei', name: '藤甲', kind: 'aura', effects: [
     { action: 'apply_status', status: 'teng_jia', stacks: 1, target: { source: true } },
@@ -251,12 +251,12 @@ test('ADR-108 藤甲盾：火属性伤害 +1（遇火即燃）', () => {
   assert.equal(before - getUnit(state, 'enemy', 'front', 3)!.hp, 3, '2 点火伤应放大为 3 点');
 });
 
-test('ADR-108 藤甲盾：火属性伤害触发反伤，来源掉 1 点', () => {
+test('ADR-110 藤甲兵：没有反伤层——火伤只放大自身，来源不掉血', () => {
   const { state, ctx, target } = tengjiaUnderAttack();
   const atkBefore = getUnit(state, 'own', 'front', 0)!.hp;
   dealDamage(state, ctx.cards, target, 2, [], '火攻', 0, { side: 'own', row: 'front', col: 0 },
     getUnit(state, 'own', 'front', 0) ?? undefined, 'fire');
-  assert.equal(atkBefore - getUnit(state, 'own', 'front', 0)!.hp, 1, '伤害来源应受到 1 点反伤');
+  assert.equal(getUnit(state, 'own', 'front', 0)!.hp, atkBefore, '火是克制手段，不应被反弹惩罚');
 });
 
 test('ADR-108 藤甲盾：水属性伤害不增不减（照常结算）', () => {
@@ -382,4 +382,153 @@ test('丹阳兵 袍泽：不得波及其他兵种（盾/骑/弓）', () => {
 
   assert.equal(shield.atk, 1, '盾兵攻击力不应被步兵亡语加成');
   assert.equal(shield.hp, 4, '盾兵生命值不应被步兵亡语加成');
+});
+
+/* ========================================================================
+ * 武卫营「虎帐」（护主）
+ *
+ * 史实：典韦「引置左右，将亲兵数百人，常绕大帐」——护卫主公是本职。
+ * 机制复用已有的 hu_zhu（redirect_damage + guard_scope:lord）。
+ *
+ * 这条用例锁的是**「持续承伤直到阵亡」**的完整行为，而不只是"能触发一次"：
+ *   ① 主公受 2 伤 → 血量不变，武卫营掉 2
+ *   ② 再次受 2 伤 → 守护者阵亡
+ *   ③ 阵亡后主公开始正常掉血（保护消失）
+ * 另有一条锁住**「架盾挡不住效果伤害」**这个缺口：护主正是为补它而存在。
+ * ===================================================================== */
+
+const WUWEI: CardDef = {
+  id: 'test_wuweiying', name: '武卫营', faction: 'wei', type: 'troop',
+  cost: 2, attack: 2, health: 4, troopKind: 'shield', keywords: ['jia_dun'], memo: '测试',
+  skills: [{ id: 'hu_zhang', name: '虎帐', kind: 'aura', effects: [
+    { action: 'apply_status', status: 'hu_zhu', status_source: 'self', target: { side: 'ally', lord: true } },
+  ] }],
+};
+
+/** 摆一个「武卫营护卫主公」的局面（需显式重算光环才会挂上 hu_zhu） */
+function wuweiGuarding() {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(WUWEI.id, WUWEI);
+  setUnit(state, 'own', 'front', 0, makeUnit(WUWEI, 0, 601));
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+  return { state, ctx };
+}
+
+test('武卫营 虎帐：主公受到的伤害由自己承受，自己不掉血', () => {
+  const { state, ctx } = wuweiGuarding();
+  const guard = getUnit(state, 'own', 'front', 0)!;
+  const lordBefore = state.sides.own.lord.hp;
+  assert.equal(guard.hp, 4, '起始应为满血 4');
+  assert.ok(state.sides.own.lord.statuses?.hu_zhu, '主公应挂上 hu_zhu 守护状态');
+
+  dealDamage(state, ctx.cards, lordRef('own'), 2, [], '测试');
+
+  assert.equal(state.sides.own.lord.hp, lordBefore, '主公血量不应变化');
+  assert.equal(getUnit(state, 'own', 'front', 0)!.hp, 2, '武卫营应代为承受 2 点伤害');
+});
+
+test('武卫营 虎帐：自己被打光后保护消失，主公开始正常掉血', () => {
+  const { state, ctx } = wuweiGuarding();
+  // 先打光守护者：4 血，两次 2 点
+  dealDamage(state, ctx.cards, unitRef('own', 'front', 0), 2, [], '测试');
+  dealDamage(state, ctx.cards, unitRef('own', 'front', 0), 2, [], '测试');
+  assert.equal(getUnit(state, 'own', 'front', 0), null, '武卫营应已阵亡');
+
+  // 光环重算（阵亡结算后会跑）后主公不再有 hu_zhu
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+  const lordBefore = state.sides.own.lord.hp;
+  dealDamage(state, ctx.cards, lordRef('own'), 2, [], '测试');
+  assert.equal(state.sides.own.lord.hp, lordBefore - 2, '守护者阵亡后，主公应正常承受伤害');
+});
+
+test('武卫营 虎帐：护的是「效果伤害」——架盾挡不住的那类（存在的缺口）', () => {
+  // 架盾只写在 legalTargets 里，约束的是**普通攻击的目标选择**；
+  // 卡牌效果造成的伤害不经过它。所以主公每回合都在被绕过架盾直击，
+  // 武卫营的虎帐正是补这个缺口。
+  const { state, ctx } = wuweiGuarding();
+  const lordBefore = state.sides.own.lord.hp;
+  // 走与「卡牌效果」同一条路径（dealDamage + lordRef），不走 ATTACK
+  const events: GameEvent[] = [];
+  dealDamage(state, ctx.cards, lordRef('own'), 3, events, '楼船军', 0, undefined, undefined, 'water');
+  assert.ok(events.some((e) => e.type === 'DAMAGE_REDIRECTED' && 'lord' in e && e.lord === true),
+    '应产生「主公伤害被转走」的事件');
+  assert.equal(state.sides.own.lord.hp, lordBefore, '主公不应因效果伤害掉血');
+});
+
+test('武卫营 虎帐：己方与敌方各一个时，只护己方主公', () => {
+  const { state, ctx } = wuweiGuarding();
+  // 敌方也放一个武卫营，护敌方主公
+  setUnit(state, 'enemy', 'front', 0, makeUnit(WUWEI, 0, 602));
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+
+  const ownBefore = state.sides.own.lord.hp;
+  const enemyBefore = state.sides.enemy.lord.hp;
+  dealDamage(state, ctx.cards, lordRef('enemy'), 2, [], '测试');
+  assert.equal(state.sides.own.lord.hp, ownBefore, '己方主公不应因敌方受击而变化');
+  assert.equal(state.sides.enemy.lord.hp, enemyBefore, '敌方主公的伤害应由敌方武卫营承担');
+  assert.equal(getUnit(state, 'enemy', 'front', 0)!.hp, 2, '敌方武卫营应代为承受');
+});
+
+/* ========================================================================
+ * 白毦兵「忠勇」：受到普通攻击后，对攻击者**额外**造成 1 点伤害
+ *
+ * 这是 ADR-110 释放出来的 `thorns` cap 的首个使用者（此前藤甲兵删掉反伤层后，
+ * 引擎代码保留但无卡在用 = 休眠路径）。三条不变量各锁一个用例：
+ *   ① 与**自动反击**分开结算 —— 合计回敬 = 反击 2 + 忠勇 1 = 3
+ *   ② **技能伤害不触发**（无 killerRef）—— 这是它的解药
+ *   ③ 即使被打死也触发（与「反击同时结算、死了也反击」的语义一致）
+ * ===================================================================== */
+
+const BAIER: CardDef = {
+  id: 'test_baier', name: '白毦兵', faction: 'shu', type: 'troop',
+  cost: 3, attack: 2, health: 6, troopKind: 'shield', keywords: ['jia_dun'], memo: '测试',
+  skills: [{ id: 'zhong_yong', name: '忠勇', kind: 'aura', effects: [
+    { action: 'apply_status', status: 'zhong_yong_status', stacks: 1, target: { source: true } },
+  ] }],
+};
+const RAIDER: CardDef = {
+  id: 'test_raider', name: '攻击者', faction: 'wei', type: 'troop',
+  cost: 2, attack: 3, health: 9, troopKind: 'infantry', keywords: [], memo: '测试',
+};
+
+function baierUnderAttack() {
+  const { state, ctx } = scenario({});
+  ctx.cards.set(BAIER.id, BAIER);
+  ctx.cards.set(RAIDER.id, RAIDER);
+  setUnit(state, 'enemy', 'front', 3, makeUnit(BAIER, 0, 601));   // 挨打方（蜀）
+  setUnit(state, 'own', 'front', 0, makeUnit(RAIDER, 0, 602));    // 攻击方（魏）
+  recomputeAuras(state, ctx.cards, createRng(1), []);
+  return { state, ctx };
+}
+
+test('ADR-108 白毦兵 忠勇：普攻后额外回敬 1 点（与自动反击合计 3）', () => {
+  const { state, ctx } = baierUnderAttack();
+  assert.equal(capStacks(getUnit(state, 'enemy', 'front', 3)!.statuses, 'thorns'), 1, '忠勇应挂 1 层');
+  const atkBefore = getUnit(state, 'own', 'front', 0)!.hp;
+  resolveAttack(state, ctx.cards, 'own', { row: 'front', col: 0 },
+    { kind: 'unit', row: 'front', col: 3 }, [], createRng(1), { toSide: 'enemy' });
+  const lost = atkBefore - (getUnit(state, 'own', 'front', 0)?.hp ?? 0);
+  assert.equal(lost, 3, '攻击者应吃 反击 2 + 忠勇 1 = 3 点');
+});
+
+test('ADR-108 白毦兵 忠勇：技能伤害不触发（无 killerRef）—— 这是它的解药', () => {
+  const { state, ctx } = baierUnderAttack();
+  const atkBefore = getUnit(state, 'own', 'front', 0)!.hp;
+  const t0 = getUnit(state, 'enemy', 'front', 3)!.hp;
+  // 模拟火攻/战技：走 dealDamage 的技能路径，不传 killerRef
+  dealDamage(state, ctx.cards, unitRef('enemy', 'front', 3), 2, [], '火攻',
+    0, undefined, undefined, 'fire');
+  assert.equal(getUnit(state, 'enemy', 'front', 3)!.hp, t0 - 2, '白毦兵应正常受伤');
+  assert.equal(getUnit(state, 'own', 'front', 0)!.hp, atkBefore, '技能伤害不得引发忠勇回敬');
+});
+
+test('ADR-108 白毦兵 忠勇：即使本击被打死也照样回敬（与反击「同时结算」一致）', () => {
+  const { state, ctx } = baierUnderAttack();
+  ctx.cards.set(RAIDER.id, { ...RAIDER, attack: 20 });
+  setUnit(state, 'own', 'front', 0, makeUnit({ ...RAIDER, attack: 20 }, 0, 603));
+  const atkBefore = getUnit(state, 'own', 'front', 0)!.hp;
+  resolveAttack(state, ctx.cards, 'own', { row: 'front', col: 0 },
+    { kind: 'unit', row: 'front', col: 3 }, [], createRng(1), { toSide: 'enemy' });
+  assert.equal(getUnit(state, 'enemy', 'front', 3), null, '白毦兵应被击杀并离场');
+  assert.equal(atkBefore - (getUnit(state, 'own', 'front', 0)?.hp ?? 0), 3, '阵亡也要吃满 反击 2 + 忠勇 1');
 });

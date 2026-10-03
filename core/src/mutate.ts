@@ -349,28 +349,6 @@ export function dealDamage(
   u.hp -= finalAmount;
   const actual = Math.min(finalAmount, hpBefore);
 
-  // 反伤：本次实际受伤后，由来源单位承受 N 点（同一次结算内立即回敬）。
-  // 来源的**坐标**取自 killerRef —— `sourceUnit`（Unit）本身不携带 row/col。
-  const thorns = capStacks(u.statuses, 'thorns');
-  if (actual > 0 && thorns > 0 && sourceUnit && killerRef && sourceUnit.uid !== u.uid) {
-    events.push({ type: 'DAMAGE', target: ref, amount: actual, source });
-    const srcSide = killerRef.side;
-    const srcRow = killerRef.row;
-    const srcCol = killerRef.col;
-    const v = getUnit(state, srcSide, srcRow, srcCol);
-    if (v) {
-      const before = v.hp;
-      dealDamage(
-        state, cards, unitRef(srcSide, srcRow, srcCol),
-        thorns, events, u.name, depth + 1, null, u, 'physical',
-      );
-      if (v.hp <= 0 && before > 0) {
-        killUnit(state, cards, { side: srcSide, row: srcRow, col: srcCol, unit: v }, events, null);
-      }
-    }
-    return actual;
-  }
-
   if (sourceUnit && actual > 0 && isBasicTroop(sourceUnit)) {
     const p = upgradeProgress(sourceUnit);
     if (sourceUnit.troopKind === 'infantry') p.damage += actual;
@@ -382,6 +360,29 @@ export function dealDamage(
   if (actual > 0 && sourceUnit?.kw.includes('ju_du') && u.hp > 0) {
     killUnit(state, cards, { side: ref.side, row: ref.row, col: ref.col, unit: u }, events, killerRef);
     return actual;
+  }
+
+  // 反伤（ADR-108 的 thorns cap；白毦兵「忠勇」是首个使用者）：
+  // 本次实际受伤后，由**来源单位**额外承受 N 点。
+  //
+  // 位置很关键 —— 必须排在**免死与击杀判定之前**，否则：
+  //   ① 反伤把被打死的一方提前 `return`，会让扣成负血的目标**留在场上不死**
+  //      （实测：20 攻打 6 血白毦兵，hp = −14 却仍在场，死亡结算被跳过）；
+  //   ② 「被打死也照样回敬」的语义会丢失（与自动反击的「同时结算」不一致）。
+  // 来源的**坐标**取自 killerRef —— `sourceUnit`（Unit）本身不携带 row/col。
+  const thorns = capStacks(u.statuses, 'thorns');
+  if (actual > 0 && thorns > 0 && sourceUnit && killerRef && sourceUnit.uid !== u.uid) {
+    const { side: srcSide, row: srcRow, col: srcCol } = killerRef;
+    const v = getUnit(state, srcSide, srcRow, srcCol);
+    if (v) {
+      const before = v.hp;
+      // killerRef 传 null：反伤不再引发对方的反伤，避免双向 thorns 递归
+      dealDamage(state, cards, unitRef(srcSide, srcRow, srcCol), thorns, events, u.name,
+        depth + 1, null, u, 'physical');
+      if (before > 0 && v.hp <= 0) {
+        killUnit(state, cards, { side: srcSide, row: srcRow, col: srcCol, unit: v }, events, null);
+      }
+    }
   }
 
   // 免死判定（ADR-039）：致命伤害时按 on_lethal 技能掷骰，成功则以 1 血存活
