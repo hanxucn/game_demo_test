@@ -206,6 +206,25 @@ function upgradeUnit(
   // 在本回合错误获得普通攻击能力。
   recomputeAuras(state, ctx.cards, rng, events);
   delete u.upgradeProgress;
+
+  // 升变 = 换了一个形态**上场**，所以新形态的「战吼（on_play）」必须照样发动。
+  //
+  // 此前这里完全不派发 on_play —— 而**升变正是获得特种兵的主要途径**，
+  // 于是宿卫虎士「虎士：上场获得披坚」在升变时永远拿不到披坚（卡面既不显示
+  // 徽章也不显示光圈），只有"从手牌直接打出"才会触发 —— 玩家看到的是
+  // "同一个兵，打出有免疫、升变没有"，无法理解。
+  //
+  // 注意：**不能**把这类技能改成 aura 来绕开 —— 光环每次重算都会重挂，
+  // 披坚被消耗后会在下一次重算时被重新加上，等于永久免疫。
+  const onPlay = (toCard.skills ?? []).filter((sk) => sk.trigger === 'on_play');
+  for (const sk of onPlay) {
+    emitSkillTriggered(state, side, u, sk, 'on_play', events);
+    runEffects(state, ctx.cards, sk.effects ?? [],
+      { side, source: u, chosenRow: action.row, chosenCol: action.col }, rng, events);
+  }
+  // 战吼可能挂了状态 / 改了属性 → 再重算一次光环，让卡面（含徽章与光圈）与状态一致。
+  recomputeAuras(state, ctx.cards, rng, events);
+
   events.push({ type: 'UNIT_UPGRADED', side, row: action.row, col: action.col, from, to: toCard.id, unit: u });
   return true;
 }

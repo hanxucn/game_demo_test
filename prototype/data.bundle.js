@@ -6395,18 +6395,21 @@ window.GameData = {
       "keywords": [
         "jia_dun"
       ],
-      "memo": "架盾；己方主公血量低于敌方时攻击力 +1",
+      "memo": "架盾；己方主公血量低于敌方时，自身由 2/4 变为 3/4",
+      "note": "「赴难」是**条件型光环**而非攻击时加成 —— 条件成立时把 +1 攻写进修正层，卡面直接显示 3/4（不再是\"只在打出那一下 +1\"）。依赖新增的「主公受伤后光环重算」挂载点（ADR-113），否则主将掉血后卡面要滞后到回合边界才刷新。",
       "skills": [
         {
           "id": "fu_nan",
           "name": "赴难",
-          "kind": "trigger",
-          "trigger": "on_attack",
-          "text": "己方主公生命值低于敌方主公时，攻击力 +1。",
+          "kind": "aura",
+          "text": "己方主公生命值低于敌方主公时，攻击力 +1（卡面由 2/4 变为 3/4）。",
           "effects": [
             {
-              "action": "attack_bonus",
-              "value": 1,
+              "action": "modify",
+              "attack": 1,
+              "target": {
+                "source": true
+              },
               "condition": {
                 "lord_hp_vs_enemy": "<"
               }

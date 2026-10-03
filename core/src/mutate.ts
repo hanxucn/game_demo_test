@@ -160,6 +160,28 @@ export function registerOnDeathResolver(fn: OnDeathResolver): void {
 }
 
 /**
+ * 「主公受伤后」解算器（ADR-113，无难兵「赴难」）
+ *
+ * 起因：光环（aura）在**每次重算时清空并重挂**，所以「条件型光环」只能反映**上次重算那一刻**
+ * 的局面。而 `recomputeAuras` 此前只在「出牌 / 阵亡 / 回合边界」被调用 ——
+ * **主公掉血不会触发它**。
+ *
+ * 于是「己方主公血 < 敌方主公时攻 +1」这种**依赖主公血量**的光环会滞后到下一个回合边界
+ * 才刷新（玩家看到的是「血已经低了，卡面还是 2/4」）。
+ *
+ * 这里补一个挂载点，由 effects.ts 注册 `recomputeAuras`，避免 mutate ↔ effects 循环依赖。
+ */
+export type AfterLordDamagedResolver = (
+  state: MatchState, cards: Map<string, CardDef>, events: GameEvent[],
+) => void;
+
+let afterLordDamagedResolver: AfterLordDamagedResolver | null = null;
+
+export function registerAfterLordDamagedResolver(fn: AfterLordDamagedResolver): void {
+  afterLordDamagedResolver = fn;
+}
+
+/**
  * 「标记阵亡」解算器（ADR-087）
  *
  * `runMarkDeath`（effects.ts）从 ADR-041 起就写好了，**却从来没有人调用** ——
@@ -297,6 +319,9 @@ export function dealDamage(
       lord.hp = 0;
       checkWinner(state, events);
     }
+    // 主公血量变了 → 条件型光环（如无难兵「赴难」比较双方主公血量）必须立刻重算，
+    // 否则卡面要滞后到下一个回合边界才更新。见 registerAfterLordDamagedResolver。
+    if (dmg > 0) afterLordDamagedResolver?.(state, cards, events);
     return amount;
   }
 
