@@ -59,13 +59,13 @@
   memo: "不能被指定为目标"
 
 - id: sheng_dun_status
-  name: 伤害免疫
+  name: 披坚
   kind: buff
   numeric: false
   scope: character
   timing: 10            # 伤害结算前：免疫判定
   duration: until_consumed
-  memo: "免疫一次伤害"
+  memo: "披坚：免疫一次伤害（原「圣盾」；ADR-103 起不再是公开关键词，触发后消耗）"
 
 - id: hu_jia
   name: 护甲
@@ -301,5 +301,15 @@
   scope: character
   timing: 10
   duration: permanent
-  caps: [reduce_physical, vulnerable_fire, thorns]
-  memo: "受到普通/无属性伤害 −N（最低 0）；受到火属性伤害 +N；伤害来源反弹 N 点（ADR-108 藤甲盾）"
+  caps: [reduce_physical, vulnerable_fire]
+  memo: "受到普通/无属性伤害 −N（最低 0）；受到火属性伤害 +N（ADR-108 藤甲兵；ADR-110 删反伤层）"
+
+- id: zhong_yong_status
+  name: 忠勇
+  kind: buff
+  numeric: true
+  scope: character
+  timing: 10
+  duration: permanent
+  caps: [thorns]
+  memo: "受到普通攻击并实际受伤后，对攻击者额外造成 N 点伤害（与自动反击分开结算；技能伤害不触发）"

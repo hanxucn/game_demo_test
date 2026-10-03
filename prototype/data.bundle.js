@@ -76,7 +76,7 @@ window.GameData = {
       "cost": 3,
       "attack": 3,
       "health": 3,
-      "memo": "关羽在场才 +1/+1；阵亡把一次伤害免疫交给关羽",
+      "memo": "关羽在场才 +1/+1；阵亡把「披坚」交给关羽",
       "gender": "male",
       "keywords": [],
       "skills": [
@@ -109,7 +109,7 @@ window.GameData = {
           "name": "遗计·免疫",
           "kind": "trigger",
           "trigger": "on_death",
-          "text": "亡语：使关羽获得一次伤害免疫。",
+          "text": "亡语：使关羽获得「披坚」（免疫一次伤害）。",
           "effects": [
             {
               "action": "apply_status",
@@ -1030,7 +1030,7 @@ window.GameData = {
           "id": "kong_cheng_ji",
           "name": "空城之计",
           "kind": "aura",
-          "text": "己方手牌为 0 时，诸葛亮获得一次伤害免疫。",
+          "text": "己方手牌为 0 时，诸葛亮获得「披坚」（免疫一次伤害）。",
           "effects": [
             {
               "action": "apply_status",
@@ -1290,7 +1290,7 @@ window.GameData = {
               }
             }
           ],
-          "text": "上场第二回合架盾并在上场第一回合获得一次伤害免疫."
+          "text": "上场第二回合架盾并在上场第一回合获得「披坚」（免疫一次伤害）。"
         }
       ],
       "flavor": ""
@@ -5766,23 +5766,24 @@ window.GameData = {
       "flavor": "张昭辅佐孙权，善于治国理政。"
     },
     {
-      "id": "wei_huweijun_dun",
-      "name": "虎卫军",
+      "id": "wei_huweidun",
+      "name": "虎卫盾",
       "faction": "wei",
       "type": "troop",
-      "cost": 2,
+      "cost": 3,
       "attack": 1,
-      "health": 7,
+      "health": 6,
       "troopKind": "shield",
       "upgradeFrom": "shield",
       "keywords": [
         "jia_dun"
       ],
       "memo": "架盾；阵亡时为主公恢复3点生命",
+      "note": "原「虎卫军（盾）」。1/7 → 1/6 且 2 费 → 3 费：7 血 + 架盾强制嘲讽 + 亡语回血是三重叠加，几乎无法被解；费用按「特种兵 ≥ 基础兵 +1」的下限规则（盾兵 2 费 → 3 费）",
       "skills": [
         {
-          "id": "huwei_hui_xue",
-          "name": "虎卫",
+          "id": "wei_wei",
+          "name": "卫主",
           "kind": "trigger",
           "trigger": "on_death",
           "effects": [
@@ -5803,15 +5804,36 @@ window.GameData = {
       "name": "武卫营",
       "faction": "wei",
       "type": "troop",
-      "cost": 2,
+      "cost": 3,
       "attack": 2,
-      "health": 4,
+      "health": 5,
       "troopKind": "shield",
       "upgradeFrom": "shield",
       "keywords": [
         "jia_dun"
       ],
-      "memo": "架盾的魏国精兵"
+      "memo": "架盾；己方主公受到的伤害由自己承受",
+      "note": "「常绕大帐」——典韦以亲兵数百人绕帐护卫曹操；渭南之战后宿卫虎士改建为武卫营，「武卫之号，自此始也」。架盾挡普通攻击（rules.ts 规则①：敌方有架盾单位时普攻只能打它们，主将不在候选里），虎帐挡效果伤害（findLordGuard 在扣血前转接），两者叠加才是完整护主。费用按「特种兵 ≥ 基础兵 +1」下限规则（盾兵 2 费 → 3 费）。",
+      "skills": [
+        {
+          "id": "hu_zhang",
+          "name": "虎帐",
+          "kind": "aura",
+          "text": "己方主公受到伤害时，改由武卫营承受；自身阵亡后保护消失。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "hu_zhu",
+              "status_source": "self",
+              "target": {
+                "side": "ally",
+                "lord": true
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "典韦为都尉，引置左右，将亲兵数百人，常绕大帐，每战常先登陷阵；渭南之战后，宿卫虎士改建武卫营。"
     },
     {
       "id": "wei_qingzhou_bing",
@@ -5854,8 +5876,8 @@ window.GameData = {
       ]
     },
     {
-      "id": "wei_huweijun_bu",
-      "name": "虎卫军",
+      "id": "wei_suwei_hushi",
+      "name": "宿卫虎士",
       "faction": "wei",
       "type": "troop",
       "cost": 2,
@@ -5864,14 +5886,14 @@ window.GameData = {
       "troopKind": "infantry",
       "upgradeFrom": "infantry",
       "keywords": [],
-      "memo": "免疫一次伤害的步兵",
+      "memo": "上场获得「披坚」（免疫一次伤害）",
       "skills": [
         {
-          "id": "huwei_mian_yi",
-          "name": "虎卫",
+          "id": "hu_shi",
+          "name": "虎士",
           "kind": "trigger",
           "trigger": "on_play",
-          "text": "上场时获得一次伤害免疫。",
+          "text": "上场时获得「披坚」（免疫一次伤害）。",
           "effects": [
             {
               "action": "apply_status",
@@ -6053,7 +6075,7 @@ window.GameData = {
       "name": "白毦兵",
       "faction": "shu",
       "type": "troop",
-      "cost": 2,
+      "cost": 3,
       "attack": 2,
       "health": 6,
       "troopKind": "shield",
@@ -6061,14 +6083,34 @@ window.GameData = {
       "keywords": [
         "jia_dun"
       ],
-      "memo": "架盾蜀国精兵"
+      "memo": "架盾；受到普通攻击后对攻击者额外造成 1 点伤害",
+      "note": "费用按「特种兵 ≥ 基础兵 +1」下限规则（盾兵 2 费 → 3 费）。「忠勇」是 ADR-110 释放的 thorns cap 的首个使用者——与自动反击（2 点）分开结算，合计回敬 3；技能伤害不带 killerRef，故不触发。",
+      "skills": [
+        {
+          "id": "zhong_yong",
+          "name": "忠勇",
+          "kind": "aura",
+          "text": "受到普通攻击并实际受伤后，对攻击者额外造成 1 点伤害（与自动反击分开结算；技能伤害不触发）。",
+          "effects": [
+            {
+              "action": "apply_status",
+              "status": "zhong_yong_status",
+              "stacks": 1,
+              "target": {
+                "source": true
+              }
+            }
+          ]
+        }
+      ],
+      "flavor": "陈到自豫州随先主，名位常亚赵云，俱以忠勇称。所领白毦兵为帐下精锐，皆以白毦为饰。"
     },
     {
-      "id": "shu_tengjia_dun",
-      "name": "藤甲盾",
+      "id": "shu_tengjiabing",
+      "name": "藤甲兵",
       "faction": "shu",
       "type": "troop",
-      "cost": 2,
+      "cost": 3,
       "attack": 2,
       "health": 4,
       "troopKind": "shield",
@@ -6076,13 +6118,13 @@ window.GameData = {
       "keywords": [
         "jia_dun"
       ],
-      "memo": "架盾；受到普通伤害 −1、火属性伤害 +1，且伤害来源反弹 1 点",
+      "memo": "架盾；受到物理伤害 −1（最低 0）、火属性伤害 +1",
       "skills": [
         {
           "id": "teng_jia_wei",
           "name": "藤甲",
           "kind": "aura",
-          "text": "受到普通攻击或无属性伤害时该伤害 −1（最低 0）；受到火属性伤害时该伤害 +1，且伤害来源受到 1 点反伤。",
+          "text": "受到物理或无属性伤害时该伤害 −1（最低 0）；受到火属性伤害时该伤害 +1。",
           "effects": [
             {
               "action": "apply_status",
@@ -7057,13 +7099,13 @@ window.GameData = {
     },
     {
       "id": "sheng_dun_status",
-      "name": "伤害免疫",
+      "name": "披坚",
       "kind": "buff",
       "numeric": false,
       "scope": "character",
       "timing": 10,
       "duration": "until_consumed",
-      "memo": "免疫一次伤害"
+      "memo": "披坚：免疫一次伤害（原「圣盾」；ADR-103 起不再是公开关键词，触发后消耗）"
     },
     {
       "id": "hu_jia",
@@ -7336,10 +7378,22 @@ window.GameData = {
       "duration": "permanent",
       "caps": [
         "reduce_physical",
-        "vulnerable_fire",
+        "vulnerable_fire"
+      ],
+      "memo": "受到普通/无属性伤害 −N（最低 0）；受到火属性伤害 +N（ADR-108 藤甲兵；ADR-110 删反伤层）"
+    },
+    {
+      "id": "zhong_yong_status",
+      "name": "忠勇",
+      "kind": "buff",
+      "numeric": true,
+      "scope": "character",
+      "timing": 10,
+      "duration": "permanent",
+      "caps": [
         "thorns"
       ],
-      "memo": "受到普通/无属性伤害 −N（最低 0）；受到火属性伤害 +N；伤害来源反弹 N 点（ADR-108 藤甲盾）"
+      "memo": "受到普通攻击并实际受伤后，对攻击者额外造成 N 点伤害（与自动反击分开结算；技能伤害不触发）"
     }
   ],
   "keywords": [
